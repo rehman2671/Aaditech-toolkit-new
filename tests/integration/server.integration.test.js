@@ -208,6 +208,25 @@ describe('Server & API Integration Test Suite', () => {
       expect(res.status).toBe(400);
       expect(res.body.errors).toBeDefined();
     });
+
+    it('GET /api/v1/devices returns 400 Bad Request when limit parameter is invalid or exceeds maxLimit', async () => {
+      const resOver = await request(app)
+        .get('/api/v1/devices?limit=9999')
+        .set('Authorization', `Bearer ${token}`);
+      expect(resOver.status).toBe(400);
+      expect(resOver.body.error).toBe('Limit exceeded');
+
+      const resNeg = await request(app)
+        .get('/api/v1/devices?limit=-5')
+        .set('Authorization', `Bearer ${token}`);
+      expect(resNeg.status).toBe(400);
+      expect(resNeg.body.error).toBe('Invalid query parameter');
+
+      const resValid = await request(app)
+        .get('/api/v1/devices?limit=10&offset=0')
+        .set('Authorization', `Bearer ${token}`);
+      expect(resValid.status).toBe(200);
+    });
   });
 
   describe('4. Agent Subsystem Endpoints & Flow', () => {

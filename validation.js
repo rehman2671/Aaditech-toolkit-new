@@ -27,28 +27,61 @@ export function validateBody(schema) {
 
 /**
  * Pagination helper to standardize limit and offset handling across list endpoints.
+ * Validates limit and offset parameters and returns error details if invalid.
  */
 export function parsePagination(req, defaultLimit = 50, maxLimit = 500) {
-  let limit = parseInt(req.query.limit, 10);
-  if (isNaN(limit) || limit <= 0) {
-    limit = defaultLimit;
-  } else if (limit > maxLimit) {
-    limit = maxLimit;
+  let limit = defaultLimit;
+  if (req.query && req.query.limit !== undefined) {
+    const rawLimit = String(req.query.limit).trim();
+    const parsed = parseInt(rawLimit, 10);
+    if (isNaN(parsed) || String(parsed) !== rawLimit || parsed <= 0) {
+      return {
+        valid: false,
+        error: "Invalid query parameter",
+        message: "Query parameter 'limit' must be a positive integer greater than 0"
+      };
+    }
+    if (parsed > maxLimit) {
+      return {
+        valid: false,
+        error: "Limit exceeded",
+        message: `Query parameter 'limit' cannot exceed maximum allowed limit of ${maxLimit}`
+      };
+    }
+    limit = parsed;
   }
 
-  let offset = parseInt(req.query.offset, 10);
-  if (isNaN(offset) || offset < 0) {
-    offset = 0;
+  let offset = 0;
+  if (req.query && req.query.offset !== undefined) {
+    const rawOffset = String(req.query.offset).trim();
+    const parsed = parseInt(rawOffset, 10);
+    if (isNaN(parsed) || String(parsed) !== rawOffset || parsed < 0) {
+      return {
+        valid: false,
+        error: "Invalid query parameter",
+        message: "Query parameter 'offset' must be a non-negative integer (>= 0)"
+      };
+    }
+    offset = parsed;
   }
 
-  return { limit, offset };
+  return { valid: true, limit, offset };
 }
 
 /**
  * Standardized array pagination responding with both RFC/REST headers and envelope/raw payload.
+ * If query parameters are invalid or exceed limits, responds with HTTP 400 Bad Request.
  */
 export function sendPaginated(req, res, array, defaultLimit = 50, maxLimit = 500) {
-  const { limit, offset } = parsePagination(req, defaultLimit, maxLimit);
+  const result = parsePagination(req, defaultLimit, maxLimit);
+  if (!result.valid) {
+    return res.status(400).json({
+      error: result.error,
+      message: result.message
+    });
+  }
+
+  const { limit, offset } = result;
   const total = Array.isArray(array) ? array.length : 0;
   const paginated = Array.isArray(array) ? array.slice(offset, offset + limit) : [];
 

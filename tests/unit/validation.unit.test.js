@@ -43,20 +43,47 @@ describe('Validation Subsystem (validation.js) Unit Test Suite', () => {
   describe('2. Pagination Helpers', () => {
     it('parsePagination parses valid limit and offset', () => {
       const req = { query: { limit: '25', offset: '50' } };
-      const { limit, offset } = val.parsePagination(req);
+      const { valid, limit, offset } = val.parsePagination(req);
+      expect(valid).toBe(true);
       expect(limit).toBe(25);
       expect(offset).toBe(50);
     });
 
-    it('parsePagination falls back on invalid or out-of-bounds parameters', () => {
-      const req = { query: { limit: '-5', offset: 'invalid' } };
-      const { limit, offset } = val.parsePagination(req, 30, 200);
-      expect(limit).toBe(30);
-      expect(offset).toBe(0);
+    it('parsePagination returns valid: false when limit or offset are invalid or exceed bounds', () => {
+      const negReq = { query: { limit: '-5' } };
+      expect(val.parsePagination(negReq).valid).toBe(false);
+
+      const zeroReq = { query: { limit: '0' } };
+      expect(val.parsePagination(zeroReq).valid).toBe(false);
+
+      const nanReq = { query: { limit: 'invalid' } };
+      expect(val.parsePagination(nanReq).valid).toBe(false);
 
       const maxReq = { query: { limit: '99999' } };
-      const { limit: maxLim } = val.parsePagination(maxReq, 30, 200);
-      expect(maxLim).toBe(200);
+      const maxRes = val.parsePagination(maxReq, 30, 200);
+      expect(maxRes.valid).toBe(false);
+      expect(maxRes.error).toBe('Limit exceeded');
+
+      const negOffset = { query: { offset: '-1' } };
+      expect(val.parsePagination(negOffset).valid).toBe(false);
+    });
+
+    it('sendPaginated returns HTTP 400 when limit exceeds maxLimit or is invalid', () => {
+      let statusCode = 0;
+      let jsonPayload = null;
+      const res = {
+        status: (code) => { statusCode = code; return res; },
+        json: (data) => { jsonPayload = data; return res; },
+        setHeader: () => {}
+      };
+
+      val.sendPaginated({ query: { limit: '999' } }, res, [1, 2, 3], 50, 100);
+      expect(statusCode).toBe(400);
+      expect(jsonPayload.error).toBe('Limit exceeded');
+
+      val.sendPaginated({ query: { limit: '-10' } }, res, [1, 2, 3], 50, 100);
+      expect(statusCode).toBe(400);
+      expect(jsonPayload.error).toBe('Invalid query parameter');
     });
 
     it('sendPaginated sends standard paginated response and headers', () => {
@@ -64,6 +91,7 @@ describe('Validation Subsystem (validation.js) Unit Test Suite', () => {
       const headers = {};
       let jsonPayload = null;
       const res = {
+        status: () => res,
         setHeader: (name, val) => { headers[name] = val; },
         json: (data) => { jsonPayload = data; return res; }
       };
@@ -83,6 +111,7 @@ describe('Validation Subsystem (validation.js) Unit Test Suite', () => {
       const headers = {};
       let jsonPayload = null;
       const res = {
+        status: () => res,
         setHeader: (name, val) => { headers[name] = val; },
         json: (data) => { jsonPayload = data; return res; }
       };

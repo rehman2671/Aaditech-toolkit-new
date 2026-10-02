@@ -1,0 +1,261 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- IT-Toolkit-Agent MSI
+     Build: build-msi.ps1 stages files into wix\stage\, then runs:
+       wix build Agent.wxs -o out.msi
+     Silent install: msiexec /i IT-Toolkit-Agent.msi /qn
+     Auto-deploy: push via Intune / GPO / SCCM. Endpoint + token are baked
+     into agent.json (staged from build/out by deploy.sh), so no input needed.
+
+     Install layout:
+       C:\Program Files\IT-Toolkit\
+         ├─ IT-Toolkit-Agent.exe      (ps2exe-packaged worker)
+         ├─ agent.json                (endpoint + token; also copied to ProgramData)
+         ├─ Scripts\*.ps1             (the feature scripts the agent wraps)
+         ├─ Scripts\Modules\*.psm1    (SanitizeEngine/ToolkitData/etc. — reused as-is)
+         └─ Config\config.json
+       C:\ProgramData\ITToolkit-Agent\agent.json  (runtime config, GPO-overridable)
+       HKLM\SOFTWARE\ITToolkit\Agent\...          (registry override knob)
+       Scheduled task "ITToolkitAgent" every 30 min as NETWORK SERVICE (least
+       privilege; E4). Admin-only work is staged to on-demand elevated task
+       "ITToolkitAgentElevated" (runs as SYSTEM/Highest via schtasks /run). -->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+
+  <Package Name="IT-Toolkit Agent"
+           Manufacturer="IT Toolkit"
+           Version="$(var.AgentVersion)"
+           UpgradeCode="B8C4F1E3-6A2D-4F9B-9E5C-1D2A3B4C5D6E"
+           Scope="perMachine"
+           Compressed="yes">
+
+    <MajorUpgrade DowngradeErrorMessage="A newer version of IT-Toolkit Agent is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <!-- ==================== Program Files\IT-Toolkit ==================== -->
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="IT-Toolkit">
+
+        <Component Id="AgentExe" Guid="A1B2C3D4-1111-2222-3333-444455556666">
+          <File Id="AgentExeFile" Name="IT-Toolkit-Agent.exe" Source="stage\IT-Toolkit-Agent.exe" KeyPath="yes" />
+        </Component>
+
+        <!-- Bundled sqlite3.exe so the agent's outbox queue works on stock
+             Windows with no system-wide SQLite install (see build-msi.ps1). -->
+        <Component Id="SqliteBin" Guid="A1B2C3D4-1211-2222-3333-444455556677">
+          <File Id="SqliteExe" Name="sqlite3.exe" Source="stage\sqlite3.exe" KeyPath="yes" />
+        </Component>
+
+        <Component Id="AgentJsonLocal" Guid="A1B2C3D4-9999-8888-7777-666655554444">
+          <File Id="AgentJsonLocalFile" Name="agent.json" Source="stage\agent.json" KeyPath="yes" />
+        </Component>
+
+        <Directory Id="SCRIPTS_DIR" Name="Scripts">
+          <Component Id="ScriptQuickCheck" Guid="B2C3D4E5-1111-1111-1111-111111111111">
+            <File Id="QuickCheck" Name="QuickCheck.ps1" Source="stage\Scripts\QuickCheck.ps1" KeyPath="yes" />
+          </Component>
+          <Component Id="ScriptEventLogs" Guid="B2C3D4E5-2222-2222-2222-222222222222">
+            <File Id="EventLogs" Name="Export-EventLogs.ps1" Source="stage\Scripts\Export-EventLogs.ps1" KeyPath="yes" />
+          </Component>
+          <Component Id="ScriptNetwork" Guid="B2C3D4E5-3333-3333-3333-333333333333">
+            <File Id="Network" Name="Network-Diagnostic.ps1" Source="stage\Scripts\Network-Diagnostic.ps1" KeyPath="yes" />
+          </Component>
+          <Component Id="ScriptFirewall" Guid="B2C3D4E5-4444-4444-4444-444444444444">
+            <File Id="Firewall" Name="Firewall-Test.ps1" Source="stage\Scripts\Firewall-Test.ps1" KeyPath="yes" />
+          </Component>
+          <Component Id="ElevTaskHelper" Guid="B2C3D4E5-7777-7777-7777-777777777777">
+            <File Id="CreateElevatedTask" Name="Create-ElevatedTask.ps1" Source="stage\Scripts\Create-ElevatedTask.ps1" KeyPath="yes" />
+          </Component>
+          <Component Id="ScriptUsers" Guid="B2C3D4E5-5555-5555-5555-555555555555">
+            <File Id="Users" Name="User-Inventory.ps1" Source="stage\Scripts\User-Inventory.ps1" KeyPath="yes" />
+          </Component>
+          <Component Id="ScriptPrinters" Guid="B2C3D4E5-6666-6666-6666-666666666666">
+            <File Id="Printers" Name="Printer-Fix.ps1" Source="stage\Scripts\Printer-Fix.ps1" KeyPath="yes" />
+          </Component>
+
+          <Directory Id="MODULES_DIR" Name="Modules">
+            <Component Id="ModSanitize" Guid="C3D4E5F6-1111-1111-1111-111111111111">
+              <File Id="SanitizeEngine" Name="SanitizeEngine.psm1" Source="stage\Scripts\Modules\SanitizeEngine.psm1" KeyPath="yes" />
+            </Component>
+            <Component Id="ModToolkitData" Guid="C3D4E5F6-2222-2222-2222-222222222222">
+              <File Id="ToolkitData" Name="ToolkitData.psm1" Source="stage\Scripts\Modules\ToolkitData.psm1" KeyPath="yes" />
+            </Component>
+            <Component Id="ModCredential" Guid="C3D4E5F6-3333-3333-3333-333333333333">
+              <File Id="CredentialManager" Name="CredentialManager.psm1" Source="stage\Scripts\Modules\CredentialManager.psm1" KeyPath="yes" />
+            </Component>
+            <Component Id="ModToolkitConfig" Guid="C3D4E5F6-4444-4444-4444-444444444444">
+              <File Id="ToolkitConfig" Name="ToolkitConfig.psm1" Source="stage\Scripts\Modules\ToolkitConfig.psm1" KeyPath="yes" />
+            </Component>
+            <Component Id="ModExportEngine" Guid="C3D4E5F6-5555-5555-5555-555555555555">
+              <File Id="ExportEngine" Name="ExportEngine.psm1" Source="stage\Scripts\Modules\ExportEngine.psm1" KeyPath="yes" />
+            </Component>
+            <Component Id="ModAlertEngine" Guid="C3D4E5F6-6666-6666-6666-666666666666">
+              <File Id="AlertEngine" Name="AlertEngine.psm1" Source="stage\Scripts\Modules\AlertEngine.psm1" KeyPath="yes" />
+            </Component>
+            <Component Id="ModReportGenerator" Guid="C3D4E5F6-7777-7777-7777-777777777777">
+              <File Id="ReportGenerator" Name="ReportGenerator.psm1" Source="stage\Scripts\Modules\ReportGenerator.psm1" KeyPath="yes" />
+            </Component>
+            <Component Id="ModLogManager" Guid="C3D4E5F6-8888-8888-8888-888888888888">
+              <File Id="LogManager" Name="LogManager.psm1" Source="stage\Scripts\Modules\LogManager.psm1" KeyPath="yes" />
+            </Component>
+          </Directory>
+        </Directory>
+
+        <Directory Id="CONFIG_DIR" Name="Config">
+          <Component Id="ConfigFile" Guid="D4E5F6A7-1111-1111-1111-111111111111">
+            <File Id="ConfigJson" Name="config.json" Source="stage\Config\config.json" KeyPath="yes" />
+          </Component>
+        </Directory>
+
+        <!-- Enterprise\agent\collectors = support-engineer collectors (P4) -->
+        <Directory Id="ENTERPRISE_DIR" Name="Enterprise">
+          <Directory Id="ENT_AGENT_DIR" Name="agent">
+            <Directory Id="COLLECTORS_DIR" Name="collectors">
+              <Component Id="ColHardware" Guid="E5F6A7B8-0001-0001-0001-000000000001">
+                <File Id="HardwareCollector" Name="Get-HardwareInventory.ps1" Source="stage\Enterprise\agent\collectors\Get-HardwareInventory.ps1" KeyPath="yes" />
+              </Component>
+              <Component Id="ColSoftware" Guid="E5F6A7B8-0001-0001-0001-000000000002">
+                <File Id="SoftwareCollector" Name="Get-SoftwareInventory.ps1" Source="stage\Enterprise\agent\collectors\Get-SoftwareInventory.ps1" KeyPath="yes" />
+              </Component>
+              <Component Id="ColDiskHealth" Guid="E5F6A7B8-0001-0001-0001-000000000003">
+                <File Id="DiskHealthCollector" Name="Get-DiskHealth.ps1" Source="stage\Enterprise\agent\collectors\Get-DiskHealth.ps1" KeyPath="yes" />
+              </Component>
+              <Component Id="ColSystemHealth" Guid="E5F6A7B8-0001-0001-0001-000000000004">
+                <File Id="SystemHealthCollector" Name="Get-SystemHealth.ps1" Source="stage\Enterprise\agent\collectors\Get-SystemHealth.ps1" KeyPath="yes" />
+              </Component>
+              <Component Id="ColBitLocker" Guid="E5F6A7B8-0001-0001-0001-000000000005">
+                <File Id="BitLockerCollector" Name="Get-BitLockerStatus.ps1" Source="stage\Enterprise\agent\collectors\Get-BitLockerStatus.ps1" KeyPath="yes" />
+              </Component>
+              <Component Id="ColUpdates" Guid="E5F6A7B8-0001-0001-0001-000000000006">
+                <File Id="UpdatesCollector" Name="Get-WindowsUpdateStatus.ps1" Source="stage\Enterprise\agent\collectors\Get-WindowsUpdateStatus.ps1" KeyPath="yes" />
+              </Component>
+              <Component Id="ColLicenses" Guid="E5F6A7B8-0001-0001-0001-000000000007">
+                <File Id="LicensesCollector" Name="Get-LicenseInfo.ps1" Source="stage\Enterprise\agent\collectors\Get-LicenseInfo.ps1" KeyPath="yes" />
+              </Component>
+            </Directory>
+          </Directory>
+        </Directory>
+
+      </Directory>
+    </StandardDirectory>
+
+    <!-- ==================== ProgramData runtime config ==================== -->
+    <StandardDirectory Id="CommonAppDataFolder">
+      <Directory Id="ITTK_AGENT_DIR" Name="ITToolkit-Agent">
+        <Component Id="AgentConfig" Guid="A1B2C3D4-5555-6666-7777-888899990000">
+          <File Id="AgentConfigFile" Name="agent.json" Source="stage\agent.json" KeyPath="yes" />
+        </Component>
+      </Directory>
+    </StandardDirectory>
+
+    <!-- ==================== registry override knob ==================== -->
+    <!-- GPO/manual override: set HKLM\SOFTWARE\ITToolkit\Agent\EndpointUrl
+         and/or ApiToken to redirect this agent without reinstalling. The
+         agent reads these at startup and falls back to agent.json when they
+         are absent/empty. The MSI only stamps Installed=<version> here and
+         never touches the override values, so upgrades can't clobber GPO. -->
+    <Component Id="RegistryConfig" Guid="A1B2C3D4-AAAA-BBBB-CCCC-DDDDEEEEFFFF" Directory="INSTALLFOLDER">
+      <RegistryKey Root="HKLM" Key="SOFTWARE\ITToolkit\Agent">
+        <RegistryValue Name="Installed" Type="string" Value="$(var.AgentVersion)" KeyPath="yes" />
+      </RegistryKey>
+    </Component>
+
+<!-- ==================== scheduled tasks ==================== -->
+    <!-- E4: the routine task runs as NETWORK SERVICE (least privilege). Admin-  -->
+    <!-- required work (MSI self-upgrade, reboot, elevated-only collectors) is   -->
+    <!-- staged to the on-demand elevated task (ITToolkitAgentElevated), which   -->
+    <!-- runs as SYSTEM/Highest and only ever starts via `schtasks /run`.        -->
+    <CustomAction Id="CreateSchedTask"
+                  Directory="INSTALLFOLDER"
+                  Return="check"
+                  Impersonate="no"
+                  Execute="deferred"
+                  ExeCommand="&quot;[SystemFolder]schtasks.exe&quot; /create /tn ITToolkitAgent /sc minute /mo $(var.AgentInterval) /ru &quot;NT AUTHORITY\NETWORK SERVICE&quot; /rp &quot;&quot; /f /tr &quot;\&quot;[INSTALLFOLDER]IT-Toolkit-Agent.exe\&quot; -LoopMinutes $(var.AgentInterval)&quot;" />
+
+    <CustomAction Id="CreateElevatedTask"
+                  Directory="INSTALLFOLDER"
+                  Return="ignore"
+                  Impersonate="no"
+                  Execute="deferred"
+                  ExeCommand="&quot;[SystemFolder]WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -ExecutionPolicy Bypass -File &quot;[SCRIPTS_DIR]Create-ElevatedTask.ps1&quot; -AgentExe &quot;[INSTALLFOLDER]IT-Toolkit-Agent.exe&quot;" />
+
+    <CustomAction Id="RemoveSchedTask"
+                  Directory="INSTALLFOLDER"
+                  Return="ignore"
+                  Impersonate="no"
+                  Execute="deferred"
+                  ExeCommand="&quot;[SystemFolder]schtasks.exe&quot; /delete /tn ITToolkitAgent /f" />
+
+    <CustomAction Id="RemoveElevatedTask"
+                  Directory="INSTALLFOLDER"
+                  Return="ignore"
+                  Impersonate="no"
+                  Execute="deferred"
+                  ExeCommand="&quot;[SystemFolder]schtasks.exe&quot; /delete /tn ITToolkitAgentElevated /f" />
+
+    <!-- E4: lock down the runtime dir so standard users cannot read the agent's  -->
+    <!-- token, queue, pfx or logs. The routine task (NETWORK SERVICE) keeps full- -->
+    <!-- Modify so collection still writes; restricted to privileged identities.   -->
+    <CustomAction Id="HardenAgentDataAcl"
+                  Directory="INSTALLFOLDER"
+                  Return="ignore"
+                  Impersonate="no"
+                  Execute="deferred"
+                  ExeCommand="&quot;[SystemFolder]icacls.exe&quot; &quot;[CommonAppDataFolder]ITToolkit-Agent&quot; /inheritance:r /grant:r SYSTEM:(OI)(CI)F Administrators:(OI)(CI)F &quot;NETWORK SERVICE&quot;:(OI)(CI)M /T /C" />
+
+    <!-- The Program Files copy of agent.json carries the same token; Program
+         Files grants Users read by default, so lock that file too. The agent
+         reads the ProgramData copy at runtime, so NETWORK SERVICE only needs
+         Read on this one. -->
+    <CustomAction Id="HardenLocalJsonAcl"
+                  Directory="INSTALLFOLDER"
+                  Return="ignore"
+                  Impersonate="no"
+                  Execute="deferred"
+                  ExeCommand="&quot;[SystemFolder]icacls.exe&quot; &quot;[INSTALLFOLDER]agent.json&quot; /inheritance:r /grant:r SYSTEM:R Administrators:R &quot;NETWORK SERVICE&quot;:R /C" />
+
+    <InstallExecuteSequence>
+      <Custom Action="RemoveSchedTask" After="InstallInitialize" Condition="REMOVE=&quot;ALL&quot;" />
+      <Custom Action="RemoveElevatedTask" After="InstallInitialize" Condition="REMOVE=&quot;ALL&quot;" />
+      <!-- Deferred actions MUST run between InstallInitialize and InstallFinalize;
+           scheduling After=InstallFinalize makes msiexec fail with Error 2762
+           ("Unable to schedule operation"). After=InstallFiles is the last valid
+           slot that still guarantees the files exist first. -->
+      <Custom Action="CreateSchedTask" After="InstallFiles" Condition="NOT Installed AND NOT REMOVE" />
+      <Custom Action="CreateElevatedTask" After="CreateSchedTask" Condition="NOT Installed AND NOT REMOVE" />
+      <Custom Action="HardenAgentDataAcl" After="InstallFiles" Condition="NOT REMOVE" />
+      <Custom Action="HardenLocalJsonAcl" After="HardenAgentDataAcl" Condition="NOT REMOVE" />
+    </InstallExecuteSequence>
+
+    <!-- ==================== feature ==================== -->
+    <Feature Id="Main" Title="IT-Toolkit Agent" Level="1">
+      <ComponentRef Id="AgentExe" />
+      <ComponentRef Id="SqliteBin" />
+      <ComponentRef Id="AgentJsonLocal" />
+      <ComponentRef Id="ScriptQuickCheck" />
+      <ComponentRef Id="ScriptEventLogs" />
+      <ComponentRef Id="ScriptNetwork" />
+      <ComponentRef Id="ScriptFirewall" />
+      <ComponentRef Id="ElevTaskHelper" />
+      <ComponentRef Id="ScriptUsers" />
+      <ComponentRef Id="ScriptPrinters" />
+      <ComponentRef Id="ModSanitize" />
+      <ComponentRef Id="ModToolkitData" />
+      <ComponentRef Id="ModCredential" />
+      <ComponentRef Id="ModToolkitConfig" />
+      <ComponentRef Id="ModExportEngine" />
+      <ComponentRef Id="ModAlertEngine" />
+      <ComponentRef Id="ModReportGenerator" />
+      <ComponentRef Id="ModLogManager" />
+      <ComponentRef Id="ConfigFile" />
+      <ComponentRef Id="AgentConfig" />
+      <ComponentRef Id="RegistryConfig" />
+      <ComponentRef Id="ColHardware" />
+      <ComponentRef Id="ColSoftware" />
+      <ComponentRef Id="ColDiskHealth" />
+      <ComponentRef Id="ColSystemHealth" />
+      <ComponentRef Id="ColBitLocker" />
+      <ComponentRef Id="ColUpdates" />
+      <ComponentRef Id="ColLicenses" />
+    </Feature>
+
+  </Package>
+</Wix>

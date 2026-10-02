@@ -1,0 +1,82 @@
+{
+    # Intranet agents connect by IP (no SNI hostname). Strict SNI enforcement
+    # on client-auth sites would 421 them; we trust the mTLS CA instead.
+    servers {
+        strict_sni_host insecure_off
+    }
+}
+
+# Shared main-port routes (wizard + api + auth).
+#
+# The main site is rendered differ between modes (B3):
+#   - hostname/FQDN (SCHEME=https):  {$CADDY_HOST}  → Caddy ACME auto-TLS,
+#     browsers trust it directly.
+#   - bare IP (SCHEME=http):          :443 with the internal CA server cert
+#     (TLS is optional-but-available) PLUS an unauthenticated :80 HTTP site so
+#     the first-time setup wizard works exactly as before. Agents/browsers
+#     that install our CA get HTTPS, everyone else keeps the HTTP wizard.
+(main_routes) {
+    @ingest path /ingest
+    reverse_proxy @ingest api:3000
+
+    @api path /api/*
+    reverse_proxy @api api:3000
+
+    @health path /healthz
+    reverse_proxy @health api:3000
+
+        @docs path /docs /redoc /openapi.json /api-docs/*
+    respond @docs 404
+
+    handle {
+        reverse_proxy api:3000
+    }
+}
+
+:443 {
+    encode gzip
+    tls /agent_data/certs/server.crt /agent_data/certs/server.key
+    import main_routes
+}
+
+:80 {
+    encode gzip
+    import main_routes
+}
+
+# Agent mTLS port (binding): every agent MUST present a client certificate
+# signed by the local IT-Toolkit CA before Caddy will route /ingest and the
+# command channel to the API. The CA certificate is mounted into the
+# container from the api_data volume (docker-compose.yml -> caddy /agent_data).
+:9443 {
+    encode gzip
+    tls /agent_data/certs/server.crt /agent_data/certs/server.key {
+        client_auth {
+            trust_pool file /agent_data/certs/ca.crt
+        }
+    }
+
+    handle /ingest {
+        reverse_proxy api:3000
+    }
+
+    handle /api/commands/* {
+        reverse_proxy api:3000
+    }
+
+    handle /api/agent/heartbeat {
+        reverse_proxy api:3000
+    }
+
+    handle /api/agent/update {
+        reverse_proxy api:3000
+    }
+
+    handle /api/agent/msi {
+        reverse_proxy api:3000
+    }
+
+    handle {
+        respond "mTLS agent endpoint — use /ingest, /api/commands/*, /api/agent/*" 404
+    }
+}

@@ -1,0 +1,48 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "AgentProtocolSchema",
+  "description": "Authoritative contract for Agent <-> Server wire messages",
+  "definitions": {
+    "HeartbeatMessage": {
+      "type": "object",
+      "required": ["device_uid", "timestamp", "agent_version", "status"],
+      "properties": {
+        "device_uid": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "agent_version": { "type": "string" },
+        "status": { "type": "string", "enum": ["ACTIVE", "DEGRADED", "OFFLINE"] }
+      }
+    },
+    "TelemetryBatch": {
+      "type": "object",
+      "required": ["device_uid", "timestamp", "sequence_number", "metrics"],
+      "properties": {
+        "device_uid": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "sequence_number": { "type": "integer", "minimum": 1 },
+        "metrics": {
+          "type": "object",
+          "required": ["cpu", "ram"],
+          "properties": {
+            "cpu": {
+              "type": "object",
+              "required": ["utilization_pct"],
+              "properties": {
+                "utilization_pct": { "type": "number", "minimum": 0, "maximum": 100 }
+              }
+            },
+            "ram": {
+              "type": "object",
+              "required": ["total_bytes", "used_bytes", "utilization_pct"],
+              "properties": {
+                "total_bytes": { "type": "integer" },
+                "used_bytes": { "type": "integer" },
+                "utilization_pct": { "type": "number", "minimum": 0, "maximum": 100 }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

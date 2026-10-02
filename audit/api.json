@@ -1,0 +1,226 @@
+{
+  "path": "/audit/api.json",
+  "generated": "2026-09-22T08:41:11.249Z",
+  "openapi_spec": "/contracts/openapi/openapi.yaml",
+  "agent_protocol": "/contracts/agent-protocol/agent-protocol.json",
+  "total_endpoints": 31,
+  "endpoints": [
+    {
+      "method": "GET",
+      "path": "/healthz",
+      "auth": "None",
+      "role": "Public",
+      "desc": "Observability probe with CPU, RAM, and DB status"
+    },
+    {
+      "method": "GET",
+      "path": "/metrics",
+      "auth": "None",
+      "role": "Public",
+      "desc": "Prometheus gauge and counter metrics exporter"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/login",
+      "auth": "None",
+      "role": "Public",
+      "desc": "Tenant-isolated user authentication with password verification"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/logout",
+      "auth": "Session",
+      "role": "Any",
+      "desc": "Session token invalidation"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/me",
+      "auth": "Session",
+      "role": "Any",
+      "desc": "Retrieve active authenticated user profile and permissions"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/devices",
+      "auth": "Session",
+      "role": "VIEWER, OPERATOR, SUPER_ADMIN",
+      "desc": "List enrolled fleet endpoints with indexed status and os_type filtering"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/devices",
+      "auth": "Session",
+      "role": "OPERATOR, SUPER_ADMIN",
+      "desc": "Manual device provisioning and registration"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/agent/enroll",
+      "auth": "HMAC Bootstrap Token",
+      "role": "Agent",
+      "desc": "Secure agent enrollment with device identity verification"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/agent/heartbeat",
+      "auth": "Agent Token",
+      "role": "Agent",
+      "desc": "Periodic agent heartbeat keeping device status ACTIVE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/ingest/telemetry",
+      "auth": "Agent Token",
+      "role": "Agent",
+      "desc": "High-frequency telemetry ingestion with per-device rate limiting"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/msi/generate",
+      "auth": "Session",
+      "role": "SUPER_ADMIN",
+      "desc": "Generate signed Windows MSI package with short-lived bootstrap token"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/msi/packages",
+      "auth": "Session",
+      "role": "VIEWER, OPERATOR, SUPER_ADMIN",
+      "desc": "List generated MSI package artifacts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/msi/download/:id",
+      "auth": "Session",
+      "role": "OPERATOR, SUPER_ADMIN",
+      "desc": "Securely download generated agent installer artifact"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/audit/logs",
+      "auth": "Session",
+      "role": "VIEWER, OPERATOR, SUPER_ADMIN",
+      "desc": "Retrieve tamper-resistant cryptographic audit records"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/commands/dispatch",
+      "auth": "Session",
+      "role": "OPERATOR, SUPER_ADMIN",
+      "desc": "Dispatch HMAC-signed remote command to target endpoint"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/commands/poll",
+      "auth": "Agent Token",
+      "role": "Agent",
+      "desc": "Poll queued signed commands for target device UID with rate limiting"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/commands/:id/result",
+      "auth": "Agent Token",
+      "role": "Agent",
+      "desc": "Report execution results and stdout/stderr of remote command"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/alerts/rules",
+      "auth": "Session",
+      "role": "VIEWER, OPERATOR, SUPER_ADMIN",
+      "desc": "List metric and availability alert threshold rules"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/alerts/rules",
+      "auth": "Session",
+      "role": "SUPER_ADMIN",
+      "desc": "Create new threshold alert rule"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/alerts/rules/:id",
+      "auth": "Session",
+      "role": "SUPER_ADMIN",
+      "desc": "Delete alert rule"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/groups",
+      "auth": "Session",
+      "role": "VIEWER, OPERATOR, SUPER_ADMIN",
+      "desc": "List fleet device groups"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/groups",
+      "auth": "Session",
+      "role": "SUPER_ADMIN",
+      "desc": "Create organizational device group"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/policies",
+      "auth": "Session",
+      "role": "VIEWER, OPERATOR, SUPER_ADMIN",
+      "desc": "List check-in, update, and retention policies"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/policies",
+      "auth": "Session",
+      "role": "SUPER_ADMIN",
+      "desc": "Create operational fleet policy"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/patches/summary",
+      "auth": "Session",
+      "role": "VIEWER, OPERATOR, SUPER_ADMIN",
+      "desc": "Fleet patch compliance and missing updates summary"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/patches/:id/approve",
+      "auth": "Session",
+      "role": "OPERATOR, SUPER_ADMIN",
+      "desc": "Approve OS patch for deployment"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/security/posture",
+      "auth": "Session",
+      "role": "VIEWER, OPERATOR, SUPER_ADMIN",
+      "desc": "Fleet BitLocker, Firewall, and EDR compliance scorecard"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/devices/:id/processes",
+      "auth": "Session",
+      "role": "VIEWER, OPERATOR, SUPER_ADMIN",
+      "desc": "Live running process listing for endpoint"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/devices/:id/app-usage",
+      "auth": "Session",
+      "role": "VIEWER, OPERATOR, SUPER_ADMIN",
+      "desc": "Foreground application usage and duration analytics"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/settings/retention",
+      "auth": "Session",
+      "role": "VIEWER, OPERATOR, SUPER_ADMIN",
+      "desc": "Time-series telemetry and audit retention windows"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/settings/retention",
+      "auth": "Session",
+      "role": "SUPER_ADMIN",
+      "desc": "Update data retention and webhook notification targets"
+    }
+  ]
+}

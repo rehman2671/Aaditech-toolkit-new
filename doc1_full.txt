@@ -1,0 +1,271 @@
+
+Aaditech Endpoint Monitoring & Management PlatformFINAL PRODUCT REQUIREMENTS & SYSTEM ARCHITECTURE
+Fresh implementation — consolidated master specification
+1. Product Objective
+Build a production-ready enterprise endpoint monitoring and management platform for Windows, macOS and Linux. The platform must centrally discover, inventory, monitor, score, alert, report on and manage laptops/endpoints. A lightweight endpoint agent will collect telemetry and communicate securely with the central platform. The central platform must also be capable of generating the Windows MSI installer/package for the endpoint agent, with organization/device configuration embedded or provisioned during enrollment.
+2. Core Architecture
+Endpoint Agent → Secure Ingestion/API → Queue/Workers → Device/Policy/Metrics Services → PostgreSQL + Time-Series Storage → Alert Engine/Reporting → Admin Dashboard. The architecture must support future horizontal scaling without redesigning the data model.
+3. Endpoint Agent
+Windows, macOS and Linux support with a common telemetry model and OS-specific collectors.
+Lightweight background service/daemon with configurable collection intervals.
+Secure device enrollment and per-device identity/credentials or certificates.
+Agent version, build, architecture, installation date, last heartbeat and configuration version.
+Agent auto-update capability, update status and rollout controls.
+Agent configuration sync from server.
+Agent health monitoring, self-recovery and controlled restart.
+Offline local queue/cache with retry, exponential backoff, batching, compression, sequence numbers and server acknowledgement.
+Secure uninstall/decommission workflow and device retirement state.
+Tamper detection for agent service/process/configuration where supported.
+Certificate/key rotation and credential revocation.
+Graceful resource limits so the agent does not materially impact endpoint performance.
+4. MSI Installer / Agent Package Factory — Mandatory
+The central Aaditech platform itself must provide an Agent Installer/Package Builder module.
+Admin can select organization/tenant, device group, policy/configuration, agent version and enrollment profile.
+Platform generates a signed Windows MSI installer/package from the selected configuration.
+Generated MSI must install the endpoint agent as a Windows service and register/enroll the device securely.
+Installer must support silent/unattended installation for enterprise deployment.
+Support command-line deployment parameters and enterprise software-distribution tools.
+MSI/package metadata: package ID, version, target OS/architecture, organization, policy, creation time, creator and status.
+Installer downloads must be authenticated and access-controlled.
+Packages must be digitally signed; signing configuration must support secure certificate/key handling.
+Support package revocation/disablement.
+Support generating different installers for different organizations, sites, departments or device groups.
+Support regeneration when agent version/policy changes.
+Track package download/use/enrollment statistics where feasible.
+Do not hard-code permanent secrets into MSI files. Use short-lived enrollment tokens, device bootstrap credentials or equivalent secure enrollment mechanism.
+Future package types should include macOS/Linux installation artifacts while MSI remains the Windows packaging requirement.
+5. OS & Device Inventory
+Windows/macOS/Linux; OS version/build; hostname; unique device ID; architecture x64/ARM; boot time; uptime; last reboot; logged-in user; timezone.
+First seen, last seen, last check-in, device lifecycle state and enrollment state.
+Assigned user, organization, site, department, device group, tags, ownership and asset ID.
+Device serial number and manufacturer/model.
+OS update/patch status and pending reboot state.
+6. Hardware Inventory
+CPU model, cores, threads, base/current clock where available, utilization and temperature where supported.
+RAM total/used/free/utilization and committed memory.
+GPU model, VRAM, utilization and temperature where supported.
+Motherboard, manufacturer/model and BIOS/UEFI version.
+Disk model, type (SSD/HDD/NVMe), capacity, free space and health.
+Battery design capacity, current/full charge capacity, charge level, health, charging state, cycle count and temperature where available.
+Network adapters, MAC address, interface state, Wi-Fi/Ethernet information.
+Connected peripherals where permitted by OS APIs.
+7. Real-Time & Historical Resource Monitoring
+Category
+Metrics
+CPU
+Overall %, per-core %, load, clock and temperature where available
+RAM
+Used %, available, committed memory
+Disk
+Usage %, read/write IOPS, throughput, latency
+Network
+Upload/download, packets, latency, packet loss
+GPU
+Usage %, VRAM, temperature where available
+Battery
+Charge %, health, charging/discharging
+System
+Uptime, boot, shutdown and restart events
+Dashboard must show current values plus historical graphs for 1 hour, 24 hours, 7 days and 30 days, with configurable retention and aggregation.
+8. Application & Process Monitoring
+Installed software: name, version, publisher, install date, installation path, size, last update and uninstall metadata.
+Running processes: name, PID, CPU, RAM, disk I/O, network usage where supported, start time and status.
+Application usage: opened time, active/foreground time, total running time, CPU time, RAM usage, network usage, disk I/O, launch count and last used time.
+Top resource-consuming applications and processes.
+Application crash/failure events.
+Privacy-by-design: no keystroke logging, password collection, message contents or arbitrary screen capture by default.
+9. Network Monitoring
+Current IP, MAC, gateway, DNS, Wi-Fi SSID, signal strength and interface state.
+Upload/download bandwidth, packet counts, latency and packet loss.
+Connection/disconnection history and internet connectivity checks.
+VPN status.
+Per-process network consumption where OS APIs permit.
+Top bandwidth-consuming applications.
+Network availability history.
+10. Disk & Storage Health
+Per-drive total, used, free and percentage used.
+Read/write throughput, IOPS and latency.
+Disk temperature where available.
+SMART information and health where supported.
+Low-storage detection and alerts.
+Disk health history and failure-warning events.
+11. Battery & Laptop Health
+Battery percentage, charging status, health, design capacity, current/full charge capacity and cycle count.
+Estimated remaining time, AC/battery mode and temperature where available.
+Battery Health Score and historical degradation trend.
+12. Device Health Score
+Provide configurable weighted scoring for CPU, Memory, Disk, Battery, Network and Security, producing an overall 0–100 Device Health Score. Score calculation and weights must be explainable and configurable by policy.
+13. Security Posture
+Firewall status.
+Antivirus/EDR status and real-time protection status where available.
+OS security-update status.
+Disk encryption status (e.g. BitLocker where supported).
+Secure Boot and TPM status where supported.
+UAC/security configuration where supported.
+Local administrator account inventory/status where permitted.
+Relevant failed-login/security events where supported.
+Security compliance score and alerts.
+14. Patch & Software Compliance
+Installed and missing OS updates.
+Patch severity, compliance percentage, last patch date and pending reboot.
+Approved/blocked/unauthorized software policies.
+Software version compliance and distribution.
+Software license inventory where data is available.
+Future-ready workflow: Detect → Approve → Deploy → Verify.
+15. Device Lifecycle & Asset Management
+Lifecycle states: Discovered → Enrolled → Active → Offline → Maintenance → Retired → Deleted. Preserve first/last seen, ownership, assignment, replacement and retirement history.
+16. Device Groups, Policies & Configuration
+Organizations/tenants, sites, departments and device groups.
+Tags, assigned users and asset ownership.
+Policy assignment by organization/group/device.
+Remote agent configuration.
+Collection intervals and telemetry settings.
+Maintenance mode.
+Policy versioning and effective date.
+Configuration change history.
+17. Alert & Notification Engine
+Threshold alerts: CPU/RAM/disk/network/battery and other supported metrics.
+Availability alerts: device offline, agent stopped, missed heartbeat.
+Application crash and service failure alerts.
+Patch/security compliance alerts.
+Disk health warnings.
+Composite rules and anomaly detection.
+Configurable duration, cooldown, deduplication and suppression.
+Alert lifecycle: Open → Acknowledged → Investigating → Resolved.
+Recovery notifications.
+Channels: dashboard, email, Slack/Teams, webhook and push notification where implemented.
+Maintenance-window suppression.
+18. Remote Actions & Automated Remediation
+Command queue between server and agent.
+Approved actions such as restart agent/service, reboot device, collect diagnostics/logs, clear approved temporary data, restart approved applications and run approved scripts.
+RBAC authorization, command signing/validation, execution timeout, result reporting and complete audit trail.
+Remote shell must not be unrestricted by default.
+Automation workflow: Detect → Decide/Policy → Approve if required → Execute → Verify → Record.
+19. Event Monitoring
+Boot, shutdown, restart, login/logout, sleep/wake, crash/BSOD, application crash, service failure, network changes, disk warnings and other important OS events where supported.
+20. Dashboard & Device Detail
+Dashboard: total devices, online/offline, unhealthy, critical alerts, patch/security compliance, top resource consumers and health distribution.
+Devices: All, Online, Offline, Unhealthy, New and Device Details.
+Hardware: CPU, RAM, Disk, GPU, Battery.
+Applications: Installed Apps, Running Apps, Application Usage.
+Performance: CPU, Memory, Disk, Network, GPU.
+Network, Battery, Storage and Security pages.
+Alerts, Reports, Groups, Policies, Remote Actions and Audit Logs.
+Settings: Organizations, Users, Roles, Agent Configuration, Alert Rules, Integrations and Data Retention.
+Device detail must show OS, uptime, CPU, RAM, disk, battery, network, top applications/processes and historical graphs.
+21. Backend Services
+API Gateway.
+Authentication/Identity Service.
+Organization/Tenant Service.
+Device Registration & Device Service.
+Agent Management Service.
+Metrics Ingestion Service.
+Event Ingestion Service.
+Application/Software Inventory Service.
+Policy & Configuration Service.
+Alert/Notification Engine.
+Remote Command Service.
+Reporting Service.
+Installer/MSI Package Builder Service.
+Audit Service.
+Integration/Webhook Service.
+22. Data Architecture
+Relational PostgreSQL-style storage for users, organizations, devices, hardware inventory, applications, policies, alerts, groups, packages, commands and audit data. Time-series optimized storage for CPU/RAM/disk/network/GPU/battery/process metrics. Define retention, aggregation, indexes/partitioning and archival from the start.
+23. Agent ↔ Server Communication
+HTTPS and/or gRPC with encrypted transport.
+Per-device identity using certificates or secure enrollment credentials.
+Hardware inventory daily/on-change.
+CPU/RAM approximately every 30–60 seconds.
+Disk/network approximately every 30–60 seconds.
+Battery approximately every 1–5 minutes.
+Process inventory approximately every 30–60 seconds.
+Critical alerts/events immediately.
+Configurable intervals through policy.
+Batching/compression and backpressure for scale.
+24. Authentication, Authorization & Multi-Tenancy
+Multi-tenant data isolation from the beginning.
+Roles: Super Admin, Organization Admin, IT Admin, Helpdesk, Auditor, Read Only.
+Fine-grained permissions for devices, telemetry, alerts, reports, policies, remote actions and packages.
+Secure session/token management, MFA-ready design, API keys/service accounts and rate limiting.
+Tenant/site/department/group scoping.
+Complete authorization checks on every privileged API/action.
+25. Audit Logging
+Record administrator/system actions including actor, action, target device/object, timestamp, source IP where appropriate, old value, new value, result and correlation/request ID. Audit records should be tamper-resistant and retained according to policy.
+26. Reports & Export
+Device inventory, hardware, software, application usage, performance, battery, disk, network, patch, security, agent health, offline-device and department/group reports.
+CSV/Excel/PDF export.
+Scheduled reports and report permissions.
+Filters by organization/site/department/group/tag/date.
+27. API & Integrations
+REST/OpenAPI and/or GraphQL where justified.
+Webhooks.
+Email.
+Slack/Teams.
+SIEM/ITSM/CMDB integration readiness.
+API keys/service accounts.
+API audit logs and rate limits.
+28. Data Retention & Privacy
+Configurable retention for raw metrics, aggregated metrics, inventory, events and audit logs.
+Automatic aggregation and deletion/archival according to policy.
+Tenant-specific retention policies where required.
+Telemetry minimization and configurable collection.
+No passwords, keystrokes, message contents or arbitrary surveillance data by default.
+Access control, encryption in transit and appropriate encryption at rest.
+29. Scalability & Reliability
+Queue-based ingestion to decouple agents from databases.
+Stateless API services where possible.
+Horizontal scaling of API and workers.
+Database indexing/partitioning and time-series retention.
+Idempotent ingestion and duplicate protection.
+Backpressure and rate limiting.
+Health checks, metrics, structured logs and tracing.
+Backup/restore and disaster-recovery readiness.
+High availability architecture for production deployment.
+30. Observability of the Platform Itself
+Platform health dashboard.
+API latency/error rate.
+Queue depth.
+Worker health.
+Database health.
+Ingestion rate.
+Agent enrollment rate.
+Alert-processing latency.
+Package-builder health.
+Application logs, metrics and distributed tracing.
+31. Recommended Delivery Phases
+Phase 1 — Production MVP: Agent enrollment/identity, OS + hardware inventory, CPU/RAM/disk/network/battery metrics, installed apps, running processes, heartbeat/offline status, PostgreSQL + metrics storage, core dashboard, device detail, authentication/RBAC foundation, audit foundation, MSI package builder, secure enrollment, basic alerts.
+Phase 2 — Operational Management: Application usage, historical reports, advanced alerts, groups/tags, policies, OS/patch inventory, security posture, audit UI, remote diagnostics/actions, email/webhook notifications, data retention controls.
+Phase 3 — Enterprise Fleet: Windows/macOS/Linux parity, advanced network monitoring, disk SMART, battery analytics, anomaly detection, automated remediation, fleet reports, full multi-tenant controls, integrations, HA/scaling hardening.
+Phase 4 — Advanced Endpoint Management: Software deployment/removal, patch deployment, advanced policy enforcement, richer remote management, compliance automation and enterprise integrations.
+32. Non-Functional Requirements
+Secure by default.
+No mock telemetry or fake production data.
+All production metrics must originate from real endpoint collectors.
+Every endpoint must have a unique stable device identity.
+APIs must validate tenant and authorization scope.
+All privileged actions must be auditable.
+Agent must remain functional during temporary network outages.
+System must support configurable collection frequency and retention.
+UI must clearly distinguish live, stale and historical data.
+All background jobs must be observable and retry-safe.
+MSI generation must be reproducible, versioned, signed and auditable.
+33. Definition of Done
+An administrator can create an organization/device group/policy.
+Administrator can generate a Windows MSI from the platform for that organization/group/policy.
+MSI installs and enrolls a real Windows endpoint securely.
+Endpoint appears in the dashboard with correct identity and online status.
+Real OS/hardware inventory is visible.
+Live CPU/RAM/disk/network/battery metrics arrive at the configured interval.
+Installed and running applications/processes are visible.
+Historical metrics are graphed.
+Offline endpoint is detected from heartbeat policy.
+Alerts trigger, deduplicate, recover and are auditable.
+RBAC prevents unauthorized access/actions.
+Remote approved action can be issued, executed and verified with audit trail.
+Reports can be filtered/exported.
+Agent can survive temporary connectivity loss and upload buffered telemetry later.
+Agent/package version and lifecycle are visible.
+Platform itself exposes health/observability metrics.
+No feature depends on mock data in production.
+34. Final Master Scope
+This document is the consolidated baseline for the fresh Aaditech Endpoint Monitoring & Management Platform implementation. It includes the originally requested OS, hardware, resource, application, process, usage, network, storage, battery, health score, alerts, device management, dashboard, backend, database and phased MVP requirements, plus the missing enterprise foundations: agent lifecycle, MSI/package generation from the platform, secure enrollment, device lifecycle, RBAC/multi-tenancy, audit logs, security posture, patch/software compliance, remote actions, event monitoring, offline buffering, data retention, privacy, API/integration, scalability and platform observability. Any future feature should extend this baseline rather than silently removing or weakening these requirements.

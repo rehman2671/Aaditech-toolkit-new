@@ -1,0 +1,44 @@
+{
+  "path": "/audit/dependencies.json",
+  "generated": "2026-09-22T08:41:11.250Z",
+  "package_name": "aaditech-toolkit-enterprise",
+  "version": "1.0.0",
+  "runtime_dependencies": {
+    "bcrypt": "^6.0.0",
+    "compression": "^1.8.2",
+    "cookie-parser": "^1.4.6",
+    "dotenv": "^17.4.2",
+    "express": "^4.19.2",
+    "express-rate-limit": "^8.7.0",
+    "helmet": "^8.3.0",
+    "ioredis": "^6.0.0",
+    "jsonwebtoken": "^9.0.3",
+    "jszip": "^3.10.1",
+    "mysql2": "^3.24.3",
+    "pm2": "^7.0.4",
+    "yaml": "^2.9.1",
+    "zod": "^4.6.5"
+  },
+  "dev_dependencies": {
+    "@vitest/coverage-v8": "^5.0.1",
+    "supertest": "^7.2.2",
+    "vitest": "^5.0.1"
+  },
+  "internal_dependency_graph": {
+    "server.js": [
+      "db.js",
+      "contracts/openapi/openapi.yaml",
+      "public/index.html"
+    ],
+    "db.js": [
+      "mysql2/promise",
+      "bcrypt"
+    ],
+    "public/index.html": [
+      "React 18 CDN",
+      "Tailwind CDN",
+      "Chart.js CDN",
+      "Lucide Icons CDN"
+    ]
+  }
+}

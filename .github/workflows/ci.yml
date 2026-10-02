@@ -1,0 +1,331 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: '0 0 * * 0' # Weekly run on Sunday midnight
+  workflow_dispatch:
+
+jobs:
+  powershell-validation:
+    name: PowerShell validation
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install PSScriptAnalyzer
+        run: Install-Module PSScriptAnalyzer -Force -Scope CurrentUser -SkipPublisherCheck
+
+      - name: Parse all PowerShell files
+        run: |
+          $errors = 0
+          Get-ChildItem -Recurse -Include *.ps1,*.psm1 | ForEach-Object {
+            $tokens = $null; $errs = $null
+            [System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$tokens, [ref]$errs) | Out-Null
+            if ($errs.Count -gt 0) {
+              $errors++
+              Write-Host "PARSE FAIL: $($_.Name)"
+              $errs | ForEach-Object { Write-Host "  $($_.Message) @ line $($_.Extent.StartLineNumber)" }
+            }
+          }
+          if ($errors -gt 0) { throw "$errors file(s) failed to parse" }
+          Write-Host "All PowerShell files parse cleanly."
+
+      - name: Validate JSON config
+        run: |
+          Get-ChildItem -Recurse -Include *.json | Where-Object { $_.FullName -notmatch 'node_modules' } | ForEach-Object {
+            try {
+              Get-Content $_.FullName -Raw | ConvertFrom-Json | Out-Null
+              Write-Host "JSON OK: $($_.Name)"
+            } catch {
+              throw "Invalid JSON in $($_.Name): $_"
+            }
+          }
+
+      - name: Run Phase 1 regression suite
+        run: pwsh -NoProfile -File ./Scripts/Tests/Phase1-Regression.Tests.ps1
+
+      - name: Run Pester suites (RemoteToolkit, BatchLauncher, Phase2 modules)
+        run: |
+          if (-not (Get-Module -ListAvailable -Name Pester | Where-Object { $_.Version.Major -ge 6 })) {
+            Install-Module Pester -Force -Scope CurrentUser -SkipPublisherCheck
+          }
+          Import-Module Pester
+          $all = @(
+            (Invoke-Pester -Path ./Scripts/Tests/RemoteToolkit.tests.ps1 -Output Normal -PassThru),
+            (Invoke-Pester -Path ./Scripts/Tests/BatchLauncher.Tests.ps1 -Output Normal -PassThru),
+            (Invoke-Pester -Path ./Scripts/Tests/Phase2-Modules.Tests.ps1 -Output Normal -PassThru)
+          )
+          $failed = 0
+          foreach ($r in $all) {
+            if ($null -ne $r) { $failed += $r.FailedCount }
+          }
+          if ($failed -gt 0) { throw "$failed Pester test(s) failed across the suites" }
+          Write-Host 'All Pester suites passed.'
+
+      - name: PSScriptAnalyzer (errors)
+        run: |
+          $results = Invoke-ScriptAnalyzer -Path ./Scripts -Recurse -Severity Error -ErrorAction SilentlyContinue
+          if ($results) {
+            $results | Format-Table -AutoSize
+            throw "$($results.Count) analyzer error(s) found"
+          }
+          Write-Host "No PSScriptAnalyzer errors."
+
+      - name: Verify project index is up to date
+        run: |
+          pwsh -NoProfile -File ./Scripts/Index/Update-ProjectIndex.ps1 -Check
+
+  node-tests:
+    name: Node.js Unit & Integration Tests (Vitest + MySQL 8)
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: ci_root_password
+          MYSQL_DATABASE: it_toolkit
+          MYSQL_USER: itk_user
+          MYSQL_PASSWORD: itk_password_ci
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -uroot -pci_root_password"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci || npm install
+
+      - name: Lint and syntax validation
+        run: npm run lint
+
+      - name: Verify repository version consistency
+        run: node scripts/check-version-consistency.cjs
+
+      - name: Run Vitest unit & integration test suite (enforcing 70%+ coverage)
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_USER: itk_user
+          DB_PASSWORD: itk_password_ci
+          DB_NAME: it_toolkit
+          NODE_ENV: test
+          VITEST: "true"
+        run: npm run test:coverage
+
+  api-tests:
+    name: API test suite (Node.js vs MySQL 8)
+    needs: [node-tests]
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: ci_root_password
+          MYSQL_DATABASE: it_toolkit
+          MYSQL_USER: itk_user
+          MYSQL_PASSWORD: itk_password_ci
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -uroot -pci_root_password"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci || npm install
+
+      - name: Lint and syntax validation
+        run: npm run lint
+
+      - name: Validate OpenAPI 3.0 contract vs server.js routes
+        run: node test-contract-validation.js
+
+      - name: Run MySQL schema migrations & partitioning suite
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_USER: itk_user
+          DB_PASSWORD: itk_password_ci
+          DB_NAME: it_toolkit
+          NODE_ENV: test
+        run: node test-migrations-runner.js
+
+      - name: Run Auth & RBAC integration test suite
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_USER: itk_user
+          DB_PASSWORD: itk_password_ci
+          DB_NAME: it_toolkit
+          NODE_ENV: test
+        run: node test-auth-integration.js
+
+      - name: Start Background Server for API verification
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_USER: itk_user
+          DB_PASSWORD: itk_password_ci
+          DB_NAME: it_toolkit
+          PORT: 3000
+          NODE_ENV: test
+        run: |
+          node server.js &
+          sleep 4
+
+      - name: Run MSI packaging & artifact streaming integration suite
+        run: node test-msi-packaging-integration.js
+
+      - name: Refresh repository audit reports
+        run: node audit/scanner.cjs
+
+  agent-build:
+    name: Build agent exe + MSI
+    needs: [node-tests, api-tests]
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Stage agent config (endpoint + token from repo secrets)
+        shell: pwsh
+        env:
+          SERVER_ENDPOINT: ${{ secrets.SERVER_ENDPOINT }}
+          API_TOKEN: ${{ secrets.API_TOKEN }}
+          MTLS_ENDPOINT: ${{ secrets.MTLS_ENDPOINT }}
+          ENROLL_URL: ${{ secrets.ENROLL_URL }}
+          RUN_SCRIPT_ALLOWLIST: ${{ secrets.RUN_SCRIPT_ALLOWLIST }}
+        run: |
+          # Endpoint comes from the repo's committed endpoint.json (authoritative
+          # for this deployment) so a stale/missing SERVER_ENDPOINT secret can't
+          # bake the wrong URL; the secret only wins when the file is absent.
+          $fileCfg = if (Test-Path ./Enterprise/agent/endpoint.json) { Get-Content ./Enterprise/agent/endpoint.json -Raw | ConvertFrom-Json } else { $null }
+          $endpoint = if ($fileCfg -and $fileCfg.endpoint) { $fileCfg.endpoint } elseif ($env:SERVER_ENDPOINT) { $env:SERVER_ENDPOINT } else { 'http://CHANGE-ME/ingest' }
+          $token = if ($env:API_TOKEN) { $env:API_TOKEN } else { 'CHANGE-ME' }
+          $featuresFile = if (Test-Path ./Enterprise/agent/features.json) { './Enterprise/agent/features.json' } elseif (Test-Path ./Enterprise/api/features.json) { './Enterprise/api/features.json' } else { './Enterprise/agent/agent-config.example.json' }
+          $manifest = (Get-Content $featuresFile -Raw | ConvertFrom-Json).features
+          $features = @($manifest | ForEach-Object {
+            @{ name = $_.name; script = $_.script; enabled = [bool]$_.default_enabled; requires_elevation = [bool]$_.requires_elevation }
+          })
+          $agentMeta = Get-Content ./Enterprise/agent/agent-version.json -Raw | ConvertFrom-Json
+          # C5: run-script allowlist mirrors what deploy.sh/deploy.ps1 bake
+          # (from the RUN_SCRIPT_ALLOWLIST env), so CI-built agents enforce the
+          # same defense when the server issues run-script commands. Empty -> [].
+          $runScripts = if ($env:RUN_SCRIPT_ALLOWLIST) { $env:RUN_SCRIPT_ALLOWLIST -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ } } else { @() }
+          $cfg = [ordered]@{
+            endpoint = $endpoint
+            token = $token
+            agent_version = [string]$agentMeta.agent_version
+            interval_minutes = [int]$agentMeta.interval_minutes
+            features = $features
+            run_script_allowlist = @($runScripts)
+          }
+          # Optional mTLS: only when the committed endpoint.json does NOT pin the
+          # endpoint (file is authoritative), MTLS_ENDPOINT points agents at the
+          # :9443 client-auth port and they enroll for a client cert over the
+          # main port. MTLS_ENDPOINT is also honored standalone if set.
+          if ($env:MTLS_ENDPOINT -and (-not $fileCfg -or -not $fileCfg.endpoint)) {
+            $cfg.endpoint = $env:MTLS_ENDPOINT
+            $cfg.enroll_url = if ($env:ENROLL_URL) { $env:ENROLL_URL } else { ($env:MTLS_ENDPOINT -replace '/ingest$', '/api/agent/enroll') }
+          }
+          $cfg | ConvertTo-Json -Depth 5 | Set-Content ./Enterprise/agent/agent-config.json
+
+      - name: Install ps2exe
+        # MScholtes/PS2EXE requires Windows PowerShell 5.1 (uses the .NET
+        # Framework compiler); it fails under pwsh (PowerShell 7).
+        shell: powershell
+        run: Install-Module ps2exe -Force -Scope CurrentUser
+
+      - name: Build agent exe
+        shell: powershell
+        run: ./Enterprise/agent/build/build-agent.ps1
+
+      - name: Install WiX toolset
+        run: dotnet tool install --global wix --version "5.*"
+
+      - name: Build MSI
+        run: |
+          $env:Path = "$env:USERPROFILE\.dotnet\tools;$env:Path"
+          ./Enterprise/agent/wix/build-msi.ps1
+
+      - name: Code-sign agent exe + MSI (internal CA)
+        shell: pwsh
+        env:
+          CODESIGN_PFX_B64: ${{ secrets.CODESIGN_PFX_B64 }}
+          CODESIGN_PFX_PASSWORD: ${{ secrets.CODESIGN_PFX_PASSWORD }}
+        run: |
+          $out = 'Enterprise/agent/build/out'
+          $targets = @(Join-Path $out 'IT-Toolkit-Agent.exe') + @(Get-ChildItem -Path $out -Filter '*.msi' -ErrorAction SilentlyContinue | ForEach-Object { $_.FullName })
+          if (-not $env:CODESIGN_PFX_B64) {
+            Write-Host "::warning::CODESIGN_PFX_B64 not set — artifacts left UNSIGNED"
+            exit 0
+          }
+          $pfx = Join-Path $env:RUNNER_TEMP 'codesign.pfx'
+          [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:CODESIGN_PFX_B64))
+
+          # signtool ships with the Windows SDK (present on windows-latest)
+          $sdk = "${env:ProgramFiles(x86)}\Windows Kits\10\bin"
+          $signtool = Get-ChildItem $sdk -Recurse -Filter signtool.exe -ErrorAction SilentlyContinue |
+            Where-Object { $_.FullName -match '\d+\.\d+\.\d+\.\d+\\x64' } |
+            Sort-Object FullName -Descending | Select-Object -First 1
+          if (-not $signtool) { throw 'signtool.exe not found under Windows SDK' }
+
+          # Import the internal code-signing root into the runner's trust
+          # stores so `signtool verify` can validate the chain (this mirrors the
+          # GPO "Trusted Publishers" push on real clients).
+          $rootCer = './Enterprise/agent/build/codesign/IT-Toolkit-CodeSign-Root.cer'
+          if (Test-Path $rootCer) {
+            Import-Certificate -FilePath $rootCer -CertStoreLocation Cert:\LocalMachine\Root -ErrorAction SilentlyContinue | Out-Null
+            Import-Certificate -FilePath $rootCer -CertStoreLocation Cert:\LocalMachine\TrustedPublisher -ErrorAction SilentlyContinue | Out-Null
+          }
+
+          foreach ($t in $targets) {
+            if (-not (Test-Path $t)) { continue }
+            $signed = $false
+            # Prefer an RFC3161 timestamp so the signature outlives the CA's
+            # expiry; fall back to signing without one if the server is unreachable.
+            foreach ($ts in @('http://timestamp.digicert.com', $null)) {
+              if ($null -eq $ts) { $signed = $false }
+              & $signtool.FullName sign /f $pfx /p $env:CODESIGN_PFX_PASSWORD /fd SHA256 $(if ($ts) { @('/tr', $ts, '/td', 'SHA256') }) $t 2>$null
+              if ($LASTEXITCODE -eq 0) { $signed = $true; break }
+            }
+            if (-not $signed) { throw "signtool failed on $t" }
+            & $signtool.FullName verify /pa /v $t 2>$null
+            if ($LASTEXITCODE -ne 0) { Write-Host "::warning::verify reported an issue (check cert chain on target machines)" }
+            Write-Host "Signed: $t"
+          }
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: it-toolkit-agent
+          path: |
+            Enterprise/agent/build/out/*.exe
+            Enterprise/agent/build/out/*.msi
+            Enterprise/agent/build/out/agent-config.json

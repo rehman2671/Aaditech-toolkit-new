@@ -1,0 +1,1236 @@
+openapi: 3.0.3
+info:
+  title: Aaditech Endpoint Monitoring & Management API
+  description: Enterprise API for device monitoring, real-time telemetry ingestion, secure MSI package generation, remote command execution, multi-tenancy, and immutable audit logging.
+  version: 1.0.0
+servers:
+  - url: /api/v1
+    description: Primary API Gateway v1
+
+paths:
+  /auth/login:
+    post:
+      summary: Authenticate user & issue JWT token
+      operationId: loginUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [password]
+              properties:
+                username:
+                  type: string
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Successful login
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                  user:
+                    $ref: '#/components/schemas/User'
+
+  /auth/logout:
+    post:
+      summary: Invalidate user session and clear cookies
+      operationId: logoutUser
+      responses:
+        '200':
+          description: Session invalidated successfully
+
+  /auth/me:
+    get:
+      summary: Get currently authenticated user profile
+      operationId: getAuthMe
+      responses:
+        '200':
+          description: Authenticated user details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+  /devices:
+    get:
+      summary: List registered endpoint devices
+      operationId: listDevices
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [ACTIVE, OFFLINE, DECOMMISSIONED]
+        - name: os_type
+          in: query
+          schema:
+            type: string
+            enum: [WINDOWS, MACOS, LINUX]
+      responses:
+        '200':
+          description: List of devices
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Device'
+    post:
+      summary: Register a new device manually
+      operationId: registerDevice
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeviceRegistration'
+      responses:
+        '201':
+          description: Device registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Device'
+
+  /devices/{id}:
+    get:
+      summary: Get device details by ID or hostname
+      operationId: getDeviceById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Device record
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Device'
+    delete:
+      summary: Delete an endpoint device
+      operationId: deleteDevice
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Device deleted
+
+  /devices/{id}/processes:
+    get:
+      summary: Retrieve running processes for a device
+      operationId: getDeviceProcesses
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Running process list
+
+  /devices/{id}/app-usage:
+    get:
+      summary: Retrieve application foreground usage stats for a device
+      operationId: getDeviceAppUsage
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: App usage records
+
+  /ingest/telemetry:
+    post:
+      summary: High-frequency telemetry ingestion from agent
+      operationId: ingestTelemetry
+      parameters:
+        - name: X-Agent-Version
+          in: header
+          required: false
+          schema:
+            type: string
+        - name: X-Device-UID
+          in: header
+          required: false
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TelemetryIngestPayload'
+      responses:
+        '200':
+          description: Telemetry accepted & evaluated
+        '401':
+          description: Unauthorized device credential
+
+  /agent/enroll:
+    post:
+      summary: Enroll a new agent using a bootstrap token
+      operationId: enrollAgent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [bootstrap_token, hostname]
+              properties:
+                bootstrap_token:
+                  type: string
+                hostname:
+                  type: string
+                device_uid:
+                  type: string
+                os_version:
+                  type: string
+                agent_version:
+                  type: string
+      responses:
+        '201':
+          description: Agent enrolled successfully
+
+  /agent/heartbeat:
+    post:
+      summary: Agent heartbeat check-in
+      operationId: agentHeartbeat
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                hostname:
+                  type: string
+                device_id:
+                  type: string
+      responses:
+        '200':
+          description: Heartbeat recorded
+
+  /agent/bundle:
+    get:
+      summary: Get agent bundle deployment metadata
+      operationId: getAgentBundle
+      responses:
+        '200':
+          description: Bundle metadata
+
+  /agent/bundle.zip:
+    get:
+      summary: Download complete agent bundle archive
+      operationId: downloadAgentBundleZip
+      responses:
+        '200':
+          description: ZIP archive containing agent scripts and config
+          content:
+            application/zip:
+              schema:
+                type: string
+                format: binary
+
+  /agent/agent.json:
+    get:
+      summary: Generate dynamic agent.json configuration
+      operationId: getAgentJson
+      responses:
+        '200':
+          description: Agent configuration JSON
+
+  /agent/install.cmd:
+    get:
+      summary: Download Windows CMD installer script
+      operationId: getInstallCmd
+      responses:
+        '200':
+          description: Command script
+
+  /agent/install.ps1:
+    get:
+      summary: Download PowerShell installer script
+      operationId: getInstallPs1
+      responses:
+        '200':
+          description: PowerShell script
+
+  /agent/update-target:
+    put:
+      summary: Set fleet-wide rollout target version
+      operationId: updateTargetVersion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                target_version:
+                  type: string
+      responses:
+        '200':
+          description: Target version updated
+
+  /ca.crt:
+    get:
+      summary: Download Root CA Certificate
+      operationId: getCaCertificate
+      responses:
+        '200':
+          description: PEM-encoded Root CA certificate
+
+  /msi/generate:
+    post:
+      summary: Generate a secure, pre-configured MSI package
+      operationId: generateMsiPackage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                package_name:
+                  type: string
+                version:
+                  type: string
+                group_id:
+                  type: string
+                bootstrap_expiry_hours:
+                  type: integer
+      responses:
+        '201':
+          description: MSI package generated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MSIPackage'
+
+  /msi/packages:
+    get:
+      summary: List all generated MSI packages
+      operationId: listMsiPackages
+      responses:
+        '200':
+          description: List of MSI packages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MSIPackage'
+
+  /msi/download/{id}:
+    get:
+      summary: Download an MSI installer package by ID
+      operationId: downloadMsiPackage
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Real MSI installer package binary
+          content:
+            application/x-msi:
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: MSI package not found
+
+  /msi/download/latest:
+    get:
+      summary: Download latest available MSI installer binary
+      operationId: downloadLatestMsi
+      responses:
+        '200':
+          description: Latest MSI installer binary
+          content:
+            application/x-msi:
+              schema:
+                type: string
+                format: binary
+
+  /commands:
+    get:
+      summary: List dispatched remote commands
+      operationId: listCommands
+      responses:
+        '200':
+          description: Command history list
+
+  /commands/dispatch:
+    post:
+      summary: Dispatch remote command to agent device
+      operationId: dispatchCommand
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [device_id, command_type]
+              properties:
+                device_id:
+                  type: string
+                command_type:
+                  type: string
+                  enum: [DIAGNOSTIC, REMEDIATION, EXEC_POWERSHELL]
+                payload:
+                  type: object
+      responses:
+        '201':
+          description: Command dispatched
+
+  /commands/poll:
+    get:
+      summary: Poll pending signed commands for a device
+      operationId: pollCommands
+      parameters:
+        - name: hostname
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: device_id
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of pending signed commands
+
+  /commands/{id}/result:
+    post:
+      summary: Report execution result of a dispatched command
+      operationId: submitCommandResult
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                output:
+                  type: string
+                stderr:
+                  type: string
+                exit_code:
+                  type: integer
+      responses:
+        '200':
+          description: Result accepted
+
+  /alerts:
+    get:
+      summary: List system alerts
+      operationId: listAlerts
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Alert list
+
+  /alerts/open:
+    get:
+      summary: Get count of open alerts
+      operationId: getOpenAlertsCount
+      responses:
+        '200':
+          description: Open alerts count
+
+  /alerts/{id}/acknowledge:
+    post:
+      summary: Acknowledge an alert
+      operationId: acknowledgeAlert
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Alert acknowledged
+
+  /alerts/{id}/resolve:
+    post:
+      summary: Resolve an alert
+      operationId: resolveAlert
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Alert resolved
+
+  /alerts/rules:
+    get:
+      summary: List all alert threshold rules
+      operationId: listAlertRules
+      responses:
+        '200':
+          description: Alert rules
+    post:
+      summary: Create a new alert rule
+      operationId: createAlertRule
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, metric, threshold]
+              properties:
+                name:
+                  type: string
+                metric:
+                  type: string
+                threshold:
+                  type: number
+                severity:
+                  type: string
+      responses:
+        '201':
+          description: Alert rule created
+
+  /alerts/rules/{id}:
+    put:
+      summary: Update an alert rule
+      operationId: updateAlertRule
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Alert rule updated
+    delete:
+      summary: Delete an alert rule
+      operationId: deleteAlertRule
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Alert rule deleted
+
+  /alerts/webhook:
+    get:
+      summary: Get alert webhook notification configuration
+      operationId: getWebhookConfig
+      responses:
+        '200':
+          description: Webhook config
+    put:
+      summary: Update alert webhook configuration
+      operationId: updateWebhookConfig
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Webhook updated
+
+  /alerts/test-webhook:
+    post:
+      summary: Send test webhook notification
+      operationId: testWebhook
+      responses:
+        '200':
+          description: Test notification dispatched
+
+  /alerts/test-email:
+    post:
+      summary: Send test alert email
+      operationId: testAlertEmail
+      responses:
+        '200':
+          description: Test email dispatched
+
+  /events:
+    get:
+      summary: Query system and device telemetry events
+      operationId: listEvents
+      parameters:
+        - name: hostname
+          in: query
+          schema:
+            type: string
+        - name: kind
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Event list
+
+  /audit/logs:
+    get:
+      summary: Retrieve immutable security audit logs
+      operationId: getAuditLogs
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Audit log history
+
+  /tenants:
+    get:
+      summary: List tenants for multi-tenant isolation
+      operationId: listTenants
+      responses:
+        '200':
+          description: Tenant list
+
+  /groups:
+    get:
+      summary: List device groups
+      operationId: listGroups
+      responses:
+        '200':
+          description: Device groups
+    post:
+      summary: Create a device group
+      operationId: createGroup
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+      responses:
+        '201':
+          description: Group created
+
+  /policies:
+    get:
+      summary: List device management policies
+      operationId: listPolicies
+      responses:
+        '200':
+          description: Policies
+    post:
+      summary: Create a device management policy
+      operationId: createPolicy
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                checkin_interval_sec:
+                  type: integer
+      responses:
+        '201':
+          description: Policy created
+
+  /patches/summary:
+    get:
+      summary: Get fleet patch compliance summary
+      operationId: getPatchesSummary
+      responses:
+        '200':
+          description: Patch summary
+
+  /patches/{id}/approve:
+    post:
+      summary: Approve a security patch for deployment
+      operationId: approvePatch
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Patch approved
+
+  /security/posture:
+    get:
+      summary: Fleet security posture overview
+      operationId: getSecurityPosture
+      responses:
+        '200':
+          description: Security posture metrics
+
+  /settings/retention:
+    get:
+      summary: Get data retention policies
+      operationId: getRetentionSettings
+      responses:
+        '200':
+          description: Retention settings
+    post:
+      summary: Update data retention policies
+      operationId: updateRetentionSettings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Settings updated
+
+  /settings/retention/run:
+    post:
+      summary: Trigger manual data retention purge
+      operationId: runRetentionPurge
+      responses:
+        '200':
+          description: Purge triggered
+
+  /settings/default-company:
+    get:
+      summary: Get default company settings
+      operationId: getDefaultCompany
+      responses:
+        '200':
+          description: Default company
+    post:
+      summary: Update default company
+      operationId: setDefaultCompany
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+      responses:
+        '200':
+          description: Default company updated
+
+  /software/search:
+    get:
+      summary: Search installed software inventory across fleet
+      operationId: searchSoftware
+      parameters:
+        - name: q
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Software search results
+
+  /software/export:
+    get:
+      summary: Export software inventory to CSV
+      operationId: exportSoftwareCsv
+      responses:
+        '200':
+          description: CSV file
+
+  /license/compliance:
+    get:
+      summary: License compliance overview
+      operationId: getLicenseCompliance
+      responses:
+        '200':
+          description: License compliance report
+
+  /license/export:
+    get:
+      summary: Export license compliance to CSV
+      operationId: exportLicenseCsv
+      responses:
+        '200':
+          description: CSV file
+
+  /reports/fleet:
+    get:
+      summary: Export fleet inventory report to CSV
+      operationId: exportFleetReport
+      responses:
+        '200':
+          description: Fleet report CSV
+
+  /reports/device/{id}:
+    get:
+      summary: Export device event report
+      operationId: exportDeviceReport
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Device report
+
+  /features:
+    get:
+      summary: List feature flags
+      operationId: listFeatures
+      responses:
+        '200':
+          description: Feature flag list
+
+  /features/{name}:
+    put:
+      summary: Update a feature flag configuration
+      operationId: updateFeature
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Feature updated
+
+  /users:
+    get:
+      summary: List user accounts
+      operationId: listUsers
+      responses:
+        '200':
+          description: User accounts
+    post:
+      summary: Create a user account
+      operationId: createUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, role]
+              properties:
+                username:
+                  type: string
+                email:
+                  type: string
+                role:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '201':
+          description: User created
+
+  /users/{id}:
+    put:
+      summary: Update a user account
+      operationId: updateUser
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: User updated
+
+  /companies:
+    get:
+      summary: List company organizations
+      operationId: listCompanies
+      responses:
+        '200':
+          description: Companies
+    post:
+      summary: Create a company
+      operationId: createCompany
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+      responses:
+        '201':
+          description: Company created
+
+  /analytics/predictive:
+    get:
+      summary: Predictive hardware & anomaly failure analytics
+      operationId: getPredictiveAnalytics
+      responses:
+        '200':
+          description: Predictive analysis
+
+  /remediation/policies:
+    get:
+      summary: List auto-remediation policies and logs
+      operationId: listRemediationPolicies
+      responses:
+        '200':
+          description: Remediation policies and logs
+
+  /remediation/policies/{id}:
+    put:
+      summary: Update auto-remediation policy state
+      operationId: updateRemediationPolicy
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Policy updated
+
+  /remediation/trigger:
+    post:
+      summary: Manually trigger a remediation action on a host
+      operationId: triggerRemediation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [hostname, action_type]
+              properties:
+                hostname:
+                  type: string
+                action_type:
+                  type: string
+      responses:
+        '200':
+          description: Remediation triggered
+
+  /tickets/config:
+    get:
+      summary: Get ticketing integration configuration
+      operationId: getTicketConfig
+      responses:
+        '200':
+          description: Ticket configuration
+    put:
+      summary: Update ticketing integration configuration
+      operationId: updateTicketConfig
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Configuration updated
+
+  /tickets/list:
+    get:
+      summary: List helpdesk support tickets
+      operationId: listTickets
+      responses:
+        '200':
+          description: Ticket list
+
+  /tickets/create:
+    post:
+      summary: Create a new support ticket
+      operationId: createTicket
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title]
+              properties:
+                title:
+                  type: string
+                agent:
+                  type: string
+                severity:
+                  type: string
+                description:
+                  type: string
+      responses:
+        '201':
+          description: Ticket created
+
+  /compliance/cloud-audit:
+    get:
+      summary: Cloud identity and hybrid compliance status
+      operationId: getCloudAuditCompliance
+      responses:
+        '200':
+          description: Cloud compliance status
+
+  /build/status:
+    get:
+      summary: Check MSI build and CI workflow status
+      operationId: getBuildStatus
+      responses:
+        '200':
+          description: Build status
+
+  /build/trigger:
+    post:
+      summary: Trigger CI agent build workflow
+      operationId: triggerBuild
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                branch:
+                  type: string
+                repo:
+                  type: string
+      responses:
+        '200':
+          description: Build triggered
+
+  /database/status:
+    get:
+      summary: Health check and database connection status
+      operationId: getDatabaseStatus
+      responses:
+        '200':
+          description: Database and subsystem operational metrics
+
+  /setup/status:
+    get:
+      summary: Check initialization setup status
+      operationId: getSetupStatus
+      responses:
+        '200':
+          description: Setup status
+
+  /setup:
+    post:
+      summary: Initialize portal and administrator credentials
+      operationId: completeSetup
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Setup completed
+
+  /bootstrap:
+    get:
+      summary: Bootstrap configuration and state for portal load
+      operationId: getBootstrapState
+      responses:
+        '200':
+          description: Bootstrap state
+
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+        username:
+          type: string
+        email:
+          type: string
+        full_name:
+          type: string
+        role:
+          type: string
+          enum: [SUPER_ADMIN, TENANT_ADMIN, OPERATOR, VIEWER]
+        tenant_id:
+          type: string
+
+    Device:
+      type: object
+      properties:
+        id:
+          type: string
+        device_uid:
+          type: string
+        hostname:
+          type: string
+        os_type:
+          type: string
+        os_version:
+          type: string
+        agent_version:
+          type: string
+        status:
+          type: string
+        ip_address:
+          type: string
+        last_seen_at:
+          type: string
+          format: date-time
+
+    DeviceRegistration:
+      type: object
+      required: [hostname]
+      properties:
+        device_uid:
+          type: string
+        hostname:
+          type: string
+        os_type:
+          type: string
+        os_version:
+          type: string
+        agent_version:
+          type: string
+
+    TelemetryIngestPayload:
+      type: object
+      properties:
+        hostname:
+          type: string
+        device_uid:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        sequence_number:
+          type: integer
+        metrics:
+          type: object
+          properties:
+            cpu:
+              type: object
+              properties:
+                utilization_pct:
+                  type: number
+            ram:
+              type: object
+              properties:
+                utilization_pct:
+                  type: number
+            disk:
+              type: object
+              properties:
+                free_gb:
+                  type: number
+
+    MSIPackage:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        package_name:
+          type: string
+        version:
+          type: string
+        bootstrap_token:
+          type: string
+        download_url:
+          type: string
+        file_hash_sha256:
+          type: string
+        file_size_bytes:
+          type: integer
+        status:
+          type: string
+          enum: [PENDING, READY, FAILED]
+        token_expires_at:
+          type: string
+          format: date-time

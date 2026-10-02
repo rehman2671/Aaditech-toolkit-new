@@ -1,0 +1,86 @@
+{
+  "path": "/audit/architecture.json",
+  "generated": "2026-09-22T08:41:11.249Z",
+  "topology": "Enterprise Modular Monolith + In-Memory Caching & Partitioned Storage",
+  "layers": {
+    "frontend": {
+      "type": "Single-Page Application (SPA)",
+      "entry_point": "/public/index.html",
+      "libraries": [
+        "React 18",
+        "Lucide Icons",
+        "Tailwind CSS",
+        "Chart.js"
+      ],
+      "features": [
+        "Executive Fleet Dashboard",
+        "Live Device Inventory & Inspection",
+        "MSI Package Builder & Token Management",
+        "Patch & Security Posture Scorecards",
+        "Groups & Operational Policy Configuration",
+        "Remote Terminal & Command Dispatch",
+        "Immutable Cryptographic Audit Explorer"
+      ]
+    },
+    "backend": {
+      "framework": "Express.js 4 on Node.js v20",
+      "entry_point": "/server.js",
+      "modules": [
+        "Authentication & Multi-Tenancy (Argon2 / Session Tokens)",
+        "Device Enrollment & Heartbeat Tracker",
+        "Telemetry Ingestion Engine with Adaptive Rate Limiting",
+        "Signed Remote Command Dispatcher (HMAC-SHA256)",
+        "Secure MSI Package Builder with Time-Limited Bootstrap Tokens",
+        "Alert Rules Engine & Outgoing Webhook Notifier (Slack/Teams)",
+        "Audit Logging Pipeline",
+        "Prometheus Observability (/metrics & /healthz)"
+      ]
+    },
+    "database": {
+      "primary": "MySQL / MariaDB Connection Pool with Dynamic In-Memory Fallback",
+      "schema_files": [
+        "/database/mysql/schema.sql",
+        "/database/migrations/001_init_schema.sql",
+        "/database/migrations/002_partitioning.sql",
+        "/database/migrations/003_rbac_and_audit.sql"
+      ],
+      "tables": [
+        "tenants",
+        "users",
+        "devices",
+        "device_telemetry (monthly partitioned)",
+        "device_hardware",
+        "device_software",
+        "device_processes",
+        "device_groups",
+        "policies",
+        "patches",
+        "msi_packages",
+        "commands",
+        "audit_logs",
+        "alert_rules",
+        "retention_settings"
+      ],
+      "indexes": [
+        "idx_devices_tenant_status",
+        "idx_devices_tenant_uid",
+        "idx_telemetry_device_time",
+        "idx_commands_device_status",
+        "idx_audit_tenant_action",
+        "idx_patches_device_approved"
+      ]
+    },
+    "security": {
+      "auth": "Argon2 / PBKDF2 Password Hashing, Session Bearer Tokens",
+      "rbac_roles": [
+        "SUPER_ADMIN",
+        "OPERATOR",
+        "VIEWER"
+      ],
+      "command_signing": "HMAC-SHA256 Command Signature Verification",
+      "msi_bootstrap": "HMAC-SHA256 Short-Lived Enrollment Tokens",
+      "audit_integrity": "Append-Only Cryptographic Audit Log with Actor Attribution"
+    }
+  },
+  "mermaid_diagram": "graph TD\n    User([IT Administrator]) -->|HTTPS / Port 3000| WebUI[Public Enterprise Portal UI]\n    WebUI -->|REST / JSON| APIGateway[Express API Gateway v1 /server.js]\n    Agent([Cross-Platform Endpoint Agent]) -->|HTTPS /api/v1/*| APIGateway\n    \n    subgraph Gateway & Middleware Layer\n        APIGateway --> RateLimit[Token Bucket Rate Limiter]\n        APIGateway --> RBAC[Role-Based Access Control]\n        APIGateway --> AuditLog[Immutable Audit Trail]\n    end\n    \n    subgraph Domain Services\n        APIGateway --> DevSvc[Device Management & Enrollment]\n        APIGateway --> TelemetrySvc[Telemetry Ingestion Engine]\n        APIGateway --> MSISvc[Secure MSI Package Subsystem]\n        APIGateway --> CmdSvc[Signed Command Dispatcher]\n        APIGateway --> AlertSvc[Alert Rules & Webhook Engine]\n        APIGateway --> PatchSvc[Patch & Compliance Engine]\n    end\n    \n    subgraph Storage & Caching Layer\n        DevSvc --> DBPool[(MySQL / MariaDB Connection Pool)]\n        TelemetrySvc --> Cache[In-Memory O(1) Cache & Partitioned Tables]\n        MSISvc --> DBPool\n        CmdSvc --> DBPool\n        AlertSvc --> DBPool\n        AuditLog --> DBPool\n    end"
+}

@@ -1,0 +1,36 @@
+{
+  "path": "/audit/database.json",
+  "generated": "2026-09-22T08:41:11.250Z",
+  "engine": "MySQL / MariaDB with In-Memory High-Performance Cache",
+  "migrations": [
+    {
+      "file": "001_init_schema.sql",
+      "status": "APPLIED",
+      "tables": 9
+    },
+    {
+      "file": "002_partitioning.sql",
+      "status": "APPLIED",
+      "tables": 1,
+      "partitions": 12
+    },
+    {
+      "file": "003_rbac_and_audit.sql",
+      "status": "APPLIED",
+      "tables": 5
+    }
+  ],
+  "schema_file": "/database/mysql/schema.sql",
+  "indexed_queries_verified": [
+    "SELECT * FROM devices WHERE tenant_id = ? AND status = ? AND os_type = ?",
+    "SELECT * FROM devices WHERE device_uid = ?",
+    "SELECT * FROM commands WHERE device_id = ? AND status = 'QUEUED'",
+    "SELECT * FROM device_telemetry WHERE device_id = ? AND recorded_at >= ?",
+    "SELECT * FROM audit_logs WHERE tenant_id = ? ORDER BY timestamp DESC LIMIT ?"
+  ],
+  "caching_optimizations": [
+    "O(1) in-memory Map lookup for active devices by UID and ID",
+    "In-memory token bucket rate limiting preventing DB connection saturation",
+    "Batching and queueing for high-frequency telemetry records"
+  ]
+}

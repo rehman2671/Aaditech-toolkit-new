@@ -1,0 +1,905 @@
+
+
+AADITECH
+Endpoint Monitoring & Management Platform
+Master Development Directive — Go Backend Edition
+Revision Note: this directive supersedes and extends the originally pasted engineering prompt. It locks the backend implementation language to Go, and adds three explicit, mandatory improvements (service-topology decision gate, MSI Package Builder treated as a secure subsystem, and a hard no-mock-telemetry rule) ahead of the full original directive, which is preserved verbatim below as the base source of truth.
+
+Document Control
+Document: Aaditech Master Development Directive — Go Backend Edition
+Base source: Aaditech_Endpoint_Monitoring_Management_Final_Requirements.docx (pasted engineering prompt, reproduced verbatim in Part C)
+Applies to: Backend Core scope — API + PostgreSQL schema + Authentication / Multi-Tenancy
+Implementation language: Go (Golang) — locked, see Part B
+Status: Controlled — changes require an Architecture Decision Record per Section 26 of Part C
+
+How to read this document
+Part A explains why this revision exists and what it changes. Part B locks the technology stack to Go and restates the affected sections of the original directive in that context. Part C is the complete original directive, preserved word-for-word as the authoritative source of truth. Where Part B and Part C appear to conflict on the language/stack question only, Part B governs; on every other point Part C governs.
+
+Part A — Key Improvements Incorporated in This Revision
+Listing every backend service individually in the original requirements does not, by itself, mean each one must become a separate microservice. The requirements do explicitly call out queue-based ingestion, stateless APIs, and future horizontal scaling as important architectural properties. The three improvements below make sure a coding agent cannot quietly over-engineer, under-secure, or fake its way past those properties.
+A.1  Explicit Service-Topology Decision Gate
+Mandate: Before any code is written, the architecture must explicitly choose and justify one of: (a) modular monolith, (b) modular monolith + background workers, or (c) independently deployable microservices. The default assumption, unless dependency analysis proves otherwise, is modular monolith + workers. This decision must be written down as an Architecture Decision Record before Section 5 (Service Boundaries) of Part C is implemented.
+Why this was added: The original requirements list many backend domains (device management, metrics ingestion, alerting, MSI builder, etc.) as separate concerns. A coding agent reading that list literally tends to translate "separate concern" into "separate microservice," producing 10–15 independently deployed services for what is still, at this stage, an MVP. That inflates operational complexity, cross-service latency, and deployment surface area without a corresponding benefit, and it works against the requirement for developer productivity and operational simplicity.
+Reinforces original section(s): Section 4 (Technology Stack — operational simplicity, developer productivity), Section 5 (Service Boundaries), Section 11 (Queue/Event Architecture), Section 19 (Deployment Architecture).
+A.2  MSI Package Builder Treated as a Secure Package-Generation Subsystem
+Mandate: The MSI Package Builder must be designed and implemented as a first-class, security-sensitive backend subsystem — with its own build pipeline, signing key protection, artifact storage, download authorization, and audit trail — never as a simple "download the installer" button wired to a static file.
+Why this was added: The original directive already states this is a mandatory core feature and explicitly prohibits hard-coding permanent secrets inside MSI packages. Left implicit, a coding agent under time pressure will often implement the path of least resistance: a pre-built installer with a baked-in API key or static enrollment secret. That directly violates the enrollment lifecycle (Section 8) and the no-hard-coded-secrets rule (Rule 9). Calling this out again, explicitly, closes that shortcut.
+Reinforces original section(s): Section 14 (MSI Package Builder), Section 8 (Enrollment & Security), Rule 9 (Never hard-code secrets).
+A.3  Hard Rule: No Mock Telemetry or Fake Production Data
+Mandate: Every metric, inventory item, and event surfaced by the platform must originate from a real collector reading an actual OS API, system interface, or validated library. This is a blocking rule, not a style preference: a build that ships simulated CPU, RAM, disk, or process data for demonstration purposes is not acceptable at any phase, including early MVP demos.
+Why this was added: The original document already states "no mock telemetry or fake production data" and requires real endpoint collectors (Section 1, Section 6, Rule 4). Elevating it to a named hard rule in this revision makes sure a coding agent cannot rationalize "just for the demo" fake values as a temporary convenience, since that is exactly the failure mode the original rule was written to prevent.
+Reinforces original section(s): Section 1 (Source-of-Truth Rule), Section 6 (Agent Architecture), Rule 4 (Never create fake telemetry).
+
+Part B — Technology Stack Lock: Go Backend Edition
+This section amends Section 4 (Technology Stack) of the original directive for the current implementation scope. It does not remove any requirement — it removes the open language choice and replaces it with a locked decision, consistent with Section 4's own instruction to "freeze the technology stack before implementation."
+B.1  Language & Runtime Decision
+Amendment: Wherever Section 4 of Part C says "Prefer a Python-based backend where technically appropriate," substitute: "The backend is implemented in Go." This is a project-level engineering decision made by the platform owner, not an inference by the implementing agent, and it is now binding for all backend components.
+Current phase scope: Backend Core — HTTP/REST API layer, PostgreSQL schema and migrations, and the Authentication / Multi-Tenancy / RBAC foundation described in Section 13 and Phase 1 of Section 22.
+Every other selection criterion in Section 4 (production reliability, long-term maintainability, security, performance, horizontal scalability, developer productivity, operational simplicity, availability of mature libraries, enterprise deployment requirements) still applies in full and must be used to choose the specific Go framework, ORM/query layer, migration tool, and supporting libraries. Those specific package choices are not prescribed here; they must be proposed with the same Technology / Version / Purpose / Reason / Alternatives Considered / Why Selected / Operational Impact / Security Impact table that Section 4 already requires, then frozen the same way.
+B.2  Consequences for Adjacent Sections
+Locking the language does not change any requirement — it constrains how each one is met:
+Section 5 — Service Boundaries: Combined with Improvement A.1: module boundaries inside the Go codebase (e.g. internal/devices, internal/metrics, internal/alerts) must be as clean as they would be if each were a separate service, so a later split to independent services is a deployment change, not a rewrite.
+Section 7 — Agent ↔ Server Protocol: The wire protocol and message schemas remain language-agnostic (versioned JSON/HTTP contracts as required); Go implements the server side, and the OS agents (Section 6) remain independent native/cross-platform code, not Go-specific.
+Section 12 — API Architecture: OpenAPI remains the contract of record; a Go web framework must serve exactly what the OpenAPI spec describes, generated or validated against it, never hand-diverging.
+Section 21 — Testing Strategy: Go's standard testing tooling (table-driven tests, race detector, integration tests against a real PostgreSQL instance) satisfies the unit/integration/API-contract/database test categories already required.
+Section 23 — Implementation Artifacts: The /backend/ and /database/ artifact directories are Go module(s) and SQL migrations respectively; /contracts/openapi/ and /contracts/agent-protocol/ stay language-neutral.
+No other requirement in Part C is weakened, removed, or reinterpreted by this stack lock.
+
+Part C — Original Directive (Preserved Verbatim)
+The following is the complete pasted engineering prompt, reproduced without modification as the primary source of truth. Part A and Part B amend how this is applied for the current Go-based backend-core phase; they do not alter its text.
+You are the Principal Software Architect, Security Architect, Backend Engineer, Agent Engineer, DevOps Engineer, Database Architect, QA Architect and Technical Lead responsible for building the Aaditech Endpoint Monitoring & Management Platform.
+IMPORTANT:
+I have attached the authoritative requirements document:
+Aaditech_Endpoint_Monitoring_Management_Final_Requirements.docx
+Treat this document as the PRIMARY SOURCE OF TRUTH.
+Your job is NOT to casually interpret the requirements and start coding.
+Your job is to transform the requirements into a production-grade, implementable technical architecture and then implement the system systematically without hallucinating, silently changing requirements, skipping dependencies, creating fake functionality, or leaving hidden architectural gaps.
+1. SOURCE-OF-TRUTH RULE
+The attached requirements document is authoritative.
+You MUST:
+Read and analyze the COMPLETE document before implementation.
+Preserve all functional and non-functional requirements.
+Do not silently remove, weaken, replace or reinterpret requirements.
+Do not invent product requirements that are not present.
+You may make technical implementation decisions where the requirements are silent, but:
+1. clearly identify them as engineering decisions,
+2. explain why the decision is necessary,
+3. ensure the decision does not conflict with the requirements.
+If a requirement is ambiguous and the ambiguity materially affects architecture, security, data model or implementation, STOP and ask for clarification.
+Never fill a critical requirement gap using an assumption and pretend it came from the specification.
+Never use mock telemetry, fake production data or placeholder implementations for production functionality.
+Every implementation decision must be traceable back to:
+an explicit requirement,
+a justified engineering decision,
+or an external technical standard/documentation.
+2. FIRST PHASE — REQUIREMENT ANALYSIS
+Before writing production code, create a complete Requirement Traceability Matrix.
+For EVERY requirement identify:
+Requirement ID
+Requirement description
+Source section
+Priority
+Affected components
+Database impact
+API impact
+Agent impact
+UI impact
+Security impact
+Testing requirement
+Dependencies
+Implementation status
+Classify each item as:
+MANDATORY
+IMPORTANT
+FUTURE
+ENGINEERING DECISION
+BLOCKED / NEEDS CLARIFICATION
+Do not begin implementation until the architecture accounts for all MANDATORY requirements.
+3. CREATE THE TECHNICAL ARCHITECTURE SPECIFICATION
+Create one authoritative technical architecture specification containing:
+1. System Architecture
+2. Technology Stack
+3. Service Boundaries
+4. Agent Architecture
+5. Agent ↔ Server Protocol
+6. Enrollment & Security Architecture
+7. Database Schema
+8. Metrics / Time-Series Architecture
+9. Queue / Event Architecture
+10. API Structure
+11. Authentication / RBAC
+12. MSI Package Builder
+13. Alert Engine
+14. Remote Command Architecture
+15. Audit Architecture
+16. AI-Agent Integration Architecture
+17. Deployment Architecture
+18. Observability
+19. Testing Strategy
+20. Development Sequence
+This document must be implementation-oriented.
+Avoid unnecessary theoretical prose.
+Every architecture component must answer:
+What is it?
+Why does it exist?
+What owns it?
+What data does it own?
+What APIs does it expose?
+What depends on it?
+How does it fail?
+How is it secured?
+How is it tested?
+How does it scale?
+How is it observed?
+4. TECHNOLOGY STACK
+Select the technology stack based on:
+Production reliability
+Long-term maintainability
+Cross-platform endpoint support
+Security
+Performance
+Horizontal scalability
+Developer productivity
+Operational simplicity
+Availability of mature libraries
+Enterprise deployment requirements
+Prefer a Python-based backend where technically appropriate.
+However:
+DO NOT select Python merely because the project is expected to be Python-based.
+For each major technology choice provide:
+Technology
+Version
+Purpose
+Reason
+Alternatives considered
+Why selected
+Operational impact
+Security impact
+Freeze the technology stack before implementation.
+Do not randomly change frameworks or databases halfway through development.
+5. SERVICE BOUNDARIES
+Define explicit boundaries for:
+API Gateway
+Authentication / Identity
+Organization / Tenant
+Device Registration / Device Management
+Agent Management
+Metrics Ingestion
+Event Ingestion
+Application / Software Inventory
+Policy / Configuration
+Alert / Notification
+Remote Command
+Reporting
+MSI Package Builder
+Audit
+Integration / Webhook
+Do NOT automatically create microservices just because the requirements list services.
+Determine whether the initial implementation should use:
+modular monolith,
+modular monolith + workers,
+or independently deployable services.
+Choose the architecture that provides the best balance between MVP simplicity and future horizontal scaling.
+Service boundaries must prevent:
+circular dependencies
+duplicated business logic
+unclear ownership
+direct database coupling between unrelated domains
+6. AGENT ARCHITECTURE
+Design a real production endpoint agent for:
+Windows
+macOS
+Linux
+Use:
+Common Agent Core
++
+OS-specific collectors/adapters.
+Define:
+agent process model
+service/daemon architecture
+collector architecture
+scheduler
+local configuration
+local persistent queue
+retry mechanism
+exponential backoff
+batching
+compression
+sequence numbers
+acknowledgement
+offline behavior
+configuration synchronization
+self-health
+self-recovery
+auto-update
+version management
+secure uninstall
+device retirement
+tamper detection
+credential/certificate rotation
+resource limits
+The agent must remain functional during temporary network outages.
+Do not implement collectors using fake/random values.
+Every production metric must originate from actual OS APIs, system interfaces or validated libraries.
+Clearly identify OS-specific capability differences.
+Never pretend that a metric is available on an OS when it is not.
+7. AGENT ↔ SERVER PROTOCOL
+Define the protocol precisely.
+Specify:
+transport
+authentication
+enrollment
+heartbeat
+inventory submission
+metrics submission
+event submission
+configuration retrieval
+command polling/delivery
+command result
+acknowledgement
+retry
+idempotency
+sequence numbers
+timestamps
+clock handling
+compression
+payload limits
+rate limiting
+backpressure
+error codes
+protocol versioning
+Every message must have a defined schema.
+Do not use vague JSON structures.
+Create versioned API/message contracts.
+8. ENROLLMENT & SECURITY
+Design secure device enrollment.
+The architecture MUST NOT hard-code permanent secrets inside MSI packages.
+Define:
+bootstrap mechanism
+short-lived enrollment token
+device identity
+certificate/key generation
+certificate rotation
+revocation
+device authentication
+enrollment state machine
+decommissioning
+credential compromise handling
+Document the complete lifecycle:
+Package Generated
+→ Package Downloaded
+→ Installed
+→ Bootstrap
+→ Enrollment
+→ Identity Issued
+→ Active
+→ Credential Rotation
+→ Retirement
+→ Revocation
+All privileged operations must be authenticated and authorized.
+9. DATABASE ARCHITECTURE
+Design the complete relational database schema.
+Include at minimum the domains required by the requirements:
+organizations
+sites
+departments
+device groups
+users
+roles
+permissions
+devices
+device identities
+enrollment
+agents
+agent versions
+hardware inventory
+software inventory
+processes
+policies
+configurations
+policy versions
+alerts
+alert rules
+commands
+command results
+packages
+package versions
+package downloads
+audit logs
+events
+integrations
+notifications
+For every table define:
+columns
+data types
+primary key
+foreign keys
+unique constraints
+indexes
+nullable/non-nullable
+lifecycle/status fields
+timestamps
+tenant ownership
+audit requirements
+Explicitly define:
+UUID strategy
+tenant isolation strategy
+soft delete strategy
+optimistic locking where needed
+idempotency keys
+created_at
+updated_at
+versioning
+partitioning candidates
+Never create a table without knowing which domain owns it.
+10. TIME-SERIES / METRICS ARCHITECTURE
+Design storage for:
+CPU
+RAM
+Disk
+Network
+GPU
+Battery
+Process metrics
+Other supported telemetry
+Define:
+raw retention
+downsampling
+aggregation
+hourly/daily rollups
+partitioning
+indexes
+compression if applicable
+deletion
+archival
+query strategy
+The architecture must support:
+1 hour
+24 hours
+7 days
+30 days
+and configurable retention.
+Avoid putting high-volume telemetry blindly into normal relational tables.
+11. QUEUE / EVENT ARCHITECTURE
+Define the queue/event system.
+Explain:
+broker
+producers
+consumers
+topics/queues
+retry queues
+dead-letter queues
+ordering
+delivery semantics
+idempotency
+duplicate protection
+backpressure
+worker scaling
+failure recovery
+At minimum account for:
+Telemetry
+Events
+Alerts
+Commands
+Notifications
+Background jobs
+No background job should silently disappear.
+12. API ARCHITECTURE
+Use REST/OpenAPI unless there is a strong technical reason otherwise.
+Define versioned APIs.
+Example domains:
+/auth
+/organizations
+/users
+/roles
+/devices
+/agents
+/inventory
+/metrics
+/events
+/policies
+/alerts
+/commands
+/packages
+/reports
+/audit
+/integrations
+For EVERY API define:
+HTTP method
+endpoint
+authentication
+authorization
+tenant scope
+request schema
+response schema
+validation
+pagination
+filtering
+sorting
+error responses
+idempotency
+rate limits
+audit requirement
+Maintain OpenAPI as an actual implementation artifact.
+The implementation and OpenAPI contract MUST remain synchronized.
+Do not manually invent API payloads in different parts of the codebase.
+13. AUTHENTICATION / RBAC / MULTI-TENANCY
+Implement multi-tenancy from the beginning.
+Roles from the requirements must be supported:
+Super Admin
+Organization Admin
+IT Admin
+Helpdesk
+Auditor
+Read Only
+Define fine-grained permissions.
+Every privileged API must perform authorization.
+Never trust tenant IDs supplied by the client without validating access.
+Define:
+authentication
+sessions/tokens
+refresh/revocation
+MFA-ready architecture
+API keys
+service accounts
+RBAC
+tenant scope
+site scope
+department scope
+group scope
+device scope
+rate limiting
+Test for cross-tenant data leakage explicitly.
+14. MSI PACKAGE BUILDER
+This is a MANDATORY core feature.
+The Aaditech platform itself must generate Windows MSI packages.
+Design:
+Package Builder
+→ Package Configuration
+→ Agent Version Selection
+→ Organization/Group/Policy Selection
+→ Secure Enrollment Configuration
+→ MSI Build
+→ Digital Signing
+→ Artifact Storage
+→ Download
+→ Installation
+→ Enrollment
+Never embed permanent secrets.
+Define:
+reproducible builds
+package metadata
+versioning
+signing
+certificate/key protection
+artifact storage
+package revocation
+download authorization
+audit logging
+package statistics
+regeneration
+different organization/group configurations
+silent installation
+CLI deployment parameters
+The MSI must install the agent as a Windows service and securely enroll the device.
+Do not implement MSI generation as a fake "download button".
+15. ALERT ENGINE
+Design a real alert engine supporting:
+threshold rules
+availability
+heartbeat
+agent stopped
+application crash
+service failure
+patch compliance
+security compliance
+disk health
+composite rules
+anomaly detection readiness
+Define:
+rule evaluation
+duration
+cooldown
+deduplication
+suppression
+maintenance windows
+recovery
+state machine
+Alert lifecycle:
+OPEN
+→ ACKNOWLEDGED
+→ INVESTIGATING
+→ RESOLVED
+Recovery notifications must be supported.
+16. REMOTE COMMAND ARCHITECTURE
+Remote execution is security-sensitive.
+Do NOT create unrestricted remote shell access by default.
+Implement an allowlisted command model.
+Support approved actions such as:
+restart agent
+restart service
+reboot device
+collect diagnostics
+collect logs
+clear approved temporary data
+restart approved application
+execute approved scripts
+Every command must include:
+authorization
+target
+command type
+payload
+creator
+approval state if required
+expiry
+timeout
+signature/validation
+execution status
+result
+audit trail
+Workflow:
+Detect
+→ Decide
+→ Approve if required
+→ Execute
+→ Verify
+→ Record
+17. AUDIT ARCHITECTURE
+All privileged operations must be auditable.
+Audit records should contain:
+actor
+action
+target
+timestamp
+source IP where appropriate
+old value
+new value
+result
+correlation ID
+request ID
+Audit records must be tamper-resistant.
+Do not rely only on application logs as the audit system.
+18. AI AGENT INTEGRATION
+AI must NOT become a source of uncontrolled system changes.
+If AI integration is implemented:
+AI must operate through controlled tools/APIs.
+AI must NOT:
+directly access the database
+bypass RBAC
+execute arbitrary shell commands
+modify production configuration without authorization
+fabricate telemetry
+fabricate device information
+invent API responses
+Use:
+AI
+→ Tool/Function Layer
+→ Authorization
+→ Validation
+→ Execution
+→ Audit
+AI actions must be explainable and auditable.
+AI-generated actions should use approval gates for destructive/high-risk operations.
+19. DEPLOYMENT ARCHITECTURE
+Design environments:
+Development
+Testing
+Staging
+Production
+Define:
+containers
+reverse proxy/API gateway
+application services
+workers
+PostgreSQL
+time-series storage
+message broker
+object storage
+secrets management
+TLS
+backups
+disaster recovery
+scaling
+health checks
+Production architecture must support horizontal scaling.
+20. OBSERVABILITY
+Implement observability from the beginning.
+Include:
+structured logs
+application metrics
+distributed tracing
+API latency
+API error rate
+queue depth
+worker health
+database health
+ingestion rate
+enrollment rate
+alert-processing latency
+package-builder health
+agent health
+Every background job must be observable and retry-safe.
+21. TESTING STRATEGY
+Do not wait until the end to test.
+Implement:
+unit tests
+integration tests
+API contract tests
+database tests
+queue tests
+agent tests
+OS-specific tests
+enrollment tests
+security tests
+RBAC tests
+multi-tenant isolation tests
+MSI installation tests
+telemetry correctness tests
+offline buffering tests
+retry/idempotency tests
+alert lifecycle tests
+remote command security tests
+audit tests
+performance/load tests
+failure/recovery tests
+Critical security boundaries require negative tests.
+Examples:
+Tenant A cannot access Tenant B.
+Helpdesk cannot perform unauthorized remote actions.
+Read Only cannot modify anything.
+Invalid enrollment token cannot enroll.
+Revoked device cannot authenticate.
+Duplicate telemetry does not create duplicate records.
+Expired command cannot execute.
+Unauthorized MSI cannot be downloaded.
+AI cannot bypass authorization.
+22. DEVELOPMENT SEQUENCE
+Do not implement features randomly.
+Create a dependency-aware development sequence.
+Recommended high-level sequence:
+PHASE 0
+Requirements + architecture + contracts
+PHASE 1
+Project foundation
+Database
+Authentication
+Multi-tenancy
+RBAC
+Audit foundation
+Observability foundation
+PHASE 2
+Device enrollment
+Device identity
+Agent foundation
+Heartbeat
+PHASE 3
+Hardware/OS inventory
+PHASE 4
+Metrics ingestion
+Queue
+Time-series storage
+PHASE 5
+Dashboard
+Device detail
+Historical graphs
+PHASE 6
+MSI Package Builder
+Signing
+Secure enrollment
+PHASE 7
+Applications/process monitoring
+PHASE 8
+Policies/configuration
+PHASE 9
+Alerts/notifications
+PHASE 10
+Remote commands
+PHASE 11
+Reports/export
+PHASE 12
+Security posture
+Patch/software compliance
+PHASE 13
+Advanced management
+Automation
+Integrations
+AI integration
+Adjust this sequence if dependency analysis proves another sequence is technically superior.
+Do not skip foundational work simply because a feature is visually attractive.
+23. IMPLEMENTATION ARTIFACTS
+Maintain these as real source-controlled artifacts:
+/docs/architecture/
+/docs/requirements/
+/docs/security/
+/docs/adr/
+/contracts/openapi/
+/contracts/agent-protocol/
+/contracts/events/
+/database/
+/agent/
+/backend/
+/frontend/
+/workers/
+/package-builder/
+/tests/
+/deployment/
+At minimum maintain:
+Architecture Specification
+Requirement Traceability Matrix
+Architecture Decision Records
+OpenAPI specification
+Database schema/migrations
+Agent protocol specification
+Event schemas
+Security model
+Deployment documentation
+Test strategy
+OpenAPI and DB schema are implementation artifacts, not merely prose documentation.
+24. NO-HALLUCINATION DEVELOPMENT RULES
+These rules are MANDATORY.
+RULE 1:
+Never invent an existing API, library behavior, framework feature or OS capability.
+RULE 2:
+If unsure about a technical fact, verify it from authoritative documentation before implementing it.
+RULE 3:
+Never claim that code is production-ready if it is only a placeholder.
+RULE 4:
+Never create fake telemetry.
+RULE 5:
+Never silently skip a requirement.
+RULE 6:
+Never silently change the architecture.
+RULE 7:
+Never silently change the database model.
+RULE 8:
+Never silently introduce a security weakness for convenience.
+RULE 9:
+Never hard-code secrets.
+RULE 10:
+Never bypass authorization because implementation is difficult.
+RULE 11:
+Never assume Windows/macOS/Linux APIs behave identically.
+RULE 12:
+Never use "TODO" as a substitute for a required implementation unless the requirement is explicitly deferred to a documented future phase.
+RULE 13:
+Never mark a feature complete without tests.
+RULE 14:
+Never mark a requirement complete merely because an endpoint or UI screen exists.
+RULE 15:
+A feature is complete only when:
+Requirement
+→ Architecture
+→ Implementation
+→ Data model
+→ API contract
+→ Security
+→ Error handling
+→ Observability
+→ Tests
+→ Documentation
+are all accounted for.
+25. GAP DETECTION
+Before every major implementation phase perform a GAP CHECK.
+Check:
+Missing requirements
+Missing APIs
+Missing DB tables
+Missing indexes
+Missing authorization
+Missing audit events
+Missing validation
+Missing error handling
+Missing retry handling
+Missing observability
+Missing tests
+Missing migration
+Missing deployment configuration
+Missing OS-specific implementation
+Missing security controls
+Missing documentation
+If a gap is discovered:
+DO NOT hide it.
+Create:
+GAP ID
+Description
+Impact
+Affected requirements
+Recommended solution
+Blocking/non-blocking
+Resolution status
+26. CHANGE CONTROL
+Once architecture is approved, treat it as controlled.
+Any change affecting:
+database
+API
+agent protocol
+security
+authentication
+tenant isolation
+MSI
+remote commands
+queue semantics
+telemetry model
+must produce an Architecture Decision Record.
+Do not make silent breaking changes.
+27. DEFINITION OF DONE
+A feature is NOT DONE merely because it works in a happy-path demo.
+For every feature verify:
+☐ Requirement mapped
+☐ Architecture defined
+☐ API defined
+☐ Database defined
+☐ Authorization defined
+☐ Audit defined
+☐ Error handling implemented
+☐ Retry/idempotency considered
+☐ Observability implemented
+☐ Tests implemented
+☐ Documentation updated
+☐ Security reviewed
+☐ Production behavior verified
+28. EXECUTION MODE
+Your workflow must always be:
+READ
+→ ANALYZE
+→ TRACE REQUIREMENTS
+→ IDENTIFY GAPS
+→ ARCHITECT
+→ DEFINE CONTRACTS
+→ DESIGN DATA MODEL
+→ PLAN DEPENDENCIES
+→ IMPLEMENT
+→ TEST
+→ VERIFY
+→ AUDIT
+→ DOCUMENT
+→ MOVE TO NEXT PHASE
+Never:
+READ
+→ ASSUME
+→ CODE EVERYTHING
+→ PATCH PROBLEMS LATER
+29. FIRST ACTION
+DO NOT START CODING IMMEDIATELY.
+First:
+1. Read the complete attached requirements document.
+2. Produce a complete requirements understanding.
+3. Identify all mandatory requirements.
+4. Build the Requirement Traceability Matrix.
+5. Identify ambiguities and architectural gaps.
+6. Propose the complete technical architecture.
+7. Propose the technology stack with justification.
+8. Define service/module boundaries.
+9. Define agent architecture.
+10. Define Agent ↔ Server protocol.
+11. Define security/enrollment architecture.
+12. Define database schema.
+13. Define metrics/time-series architecture.
+14. Define queue/event architecture.
+15. Define API/OpenAPI structure.
+16. Define RBAC/multi-tenancy.
+17. Define MSI Package Builder architecture.
+18. Define Alert Engine.
+19. Define Remote Command architecture.
+20. Define Audit architecture.
+21. Define AI integration architecture.
+22. Define deployment architecture.
+23. Define observability.
+24. Define testing strategy.
+25. Define dependency-aware development sequence.
+Then STOP and present the architecture for review.
+Do NOT begin large-scale implementation until the architecture and contracts are internally consistent.
+Phase 0 Exit Gate --- Mandatory Human Approval:
+The STOP above is not a self-review checkpoint. Phase 1 implementation MUST NOT begin until the human reviewer has explicitly approved, in writing, the complete set of Phase 0 artifacts: the Requirement Traceability Matrix, the Technical Architecture Specification, the Architecture Decision Records, the OpenAPI specification, the Agent Protocol specification, the Database Schema, the Event Schemas, and the Security Model. Presenting these artifacts satisfies the STOP instruction; it does not by itself constitute approval. If the reviewer requests changes, the coding agent must revise the relevant Phase 0 artifact(s) and re-present them for approval before any Phase 1 code is written.
+30. FINAL PRINCIPLE
+Build Aaditech as a real production enterprise endpoint monitoring and management platform.
+Accuracy > speed.
+Correct architecture > quick coding.
+Real telemetry > mock data.
+Security > convenience.
+Traceability > assumptions.
+Explicit decisions > silent assumptions.
+Complete implementation > superficial feature coverage.
+If the requirements document does not provide enough information for a critical decision, identify the gap instead of hallucinating an answer.
+The goal is not merely to produce code.
+The goal is to produce a secure, maintainable, observable, scalable and production-ready Aaditech platform whose implementation can be traced back to the supplied requirements.

@@ -1,0 +1,120 @@
+{
+  "path": "/audit/statistics.json",
+  "generated": "2026-09-22T08:41:11.249Z",
+  "method": "computed dynamically",
+  "total_files": 198,
+  "total_source_files": 79,
+  "total_test_files": 25,
+  "total_documentation_files": 53,
+  "total_configuration_files": 6,
+  "total_images": 2,
+  "total_scripts": 53,
+  "total_directories": 51,
+  "total_loc": 71291,
+  "average_file_size_bytes": 18752.91919191919,
+  "breakdown_by_language": {
+    "JavaScript": 22,
+    "TypeScript": 0,
+    "PowerShell": 44,
+    "Markdown": 53,
+    "JSON": 22,
+    "SQL": 4,
+    "YAML": 3,
+    "HTML": 6,
+    "Batch": 6
+  },
+  "largest_files": [
+    {
+      "path": "/coverage/server.js.html",
+      "lines": 8230,
+      "bytes": 406853
+    },
+    {
+      "path": "/coverage/db.js.html",
+      "lines": 8143,
+      "bytes": 405060
+    },
+    {
+      "path": "/package-lock.json",
+      "lines": 3788,
+      "bytes": 116420
+    },
+    {
+      "path": "/audit/index.json",
+      "lines": 2743,
+      "bytes": 75376
+    },
+    {
+      "path": "/server.js",
+      "lines": 2716,
+      "bytes": 104723
+    },
+    {
+      "path": "/db.js",
+      "lines": 2687,
+      "bytes": 100566
+    },
+    {
+      "path": "/Enterprise/portal/index.html",
+      "lines": 2297,
+      "bytes": 127919
+    },
+    {
+      "path": "/Data/state-persisted.json",
+      "lines": 2214,
+      "bytes": 73264
+    },
+    {
+      "path": "/project-index.json",
+      "lines": 1842,
+      "bytes": 58519
+    },
+    {
+      "path": "/Scaling Plan/IMPLEMENTATION-PLAN.md",
+      "lines": 1734,
+      "bytes": 50402
+    }
+  ],
+  "largest_folders": [
+    {
+      "folder": "/",
+      "files": 41
+    },
+    {
+      "folder": "/audit",
+      "files": 17
+    },
+    {
+      "folder": "/coverage",
+      "files": 12
+    },
+    {
+      "folder": "/Scripts/Modules",
+      "files": 11
+    },
+    {
+      "folder": "/Enterprise/agent",
+      "files": 9
+    },
+    {
+      "folder": "/Scripts",
+      "files": 9
+    },
+    {
+      "folder": "/Scaling Plan",
+      "files": 8
+    },
+    {
+      "folder": "/Documentation",
+      "files": 8
+    },
+    {
+      "folder": "/Enterprise/deploy",
+      "files": 7
+    },
+    {
+      "folder": "/Enterprise/agent/collectors",
+      "files": 7
+    }
+  ]
+}

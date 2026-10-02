@@ -1,0 +1,86 @@
+services:
+  db:
+    image: mysql:8.0
+    restart: unless-stopped
+    command: --default-authentication-plugin=mysql_native_password
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_ci_pass}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-it_toolkit}
+      MYSQL_USER: ${MYSQL_USER:-itk_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?set in .env}
+    volumes:
+      - mysqldata:/var/lib/mysql
+      - ../database/mysql/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u${MYSQL_USER:-itk_user} -p${MYSQL_PASSWORD}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [ittoolkit]
+
+  api:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_USER: ${MYSQL_USER:-itk_user}
+      DB_PASSWORD: ${MYSQL_PASSWORD}
+      DB_NAME: ${MYSQL_DATABASE:-it_toolkit}
+      API_TOKEN: ${API_TOKEN:-}
+      API_TOKEN_FILE: /data/api_token
+      SERVER_HOST: ${SERVER_HOST:?set in .env}
+      SESSION_SECRET: ${SESSION_SECRET:-}
+      JWT_SECRET: ${JWT_SECRET:-}
+      COMMAND_SIGNING_KEY: ${COMMAND_SIGNING_KEY:-}
+      DATA_DIR: /data
+      ARTIFACTS_DIR: /artifacts
+      ENVIRONMENT: ${ENVIRONMENT:-prod}
+    volumes:
+      - ./portal:/app/Enterprise/portal:ro
+      - ./agent/features.json:/app/Enterprise/agent/features.json:ro
+      - api_data:/data
+      - agent_artifacts:/artifacts
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/healthz').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [ittoolkit]
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      CADDY_HOST: ${CADDY_HOST:-:80}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "9443:9443"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+      - api_data:/agent_data:ro
+    networks: [ittoolkit]
+
+volumes:
+  mysqldata:
+  api_data:
+  caddy_data:
+  caddy_config:
+  agent_artifacts:
+
+networks:
+  ittoolkit:
+    driver: bridge

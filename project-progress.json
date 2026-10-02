@@ -1,0 +1,315 @@
+{
+  "progress_version": "1.0",
+  "path": "project-progress.json",
+  "generated": "2026-08-12T04:56:59+05:30",
+  "last_verified_commit": "44d67517c2da26fa62c3f44a7c23d3deed548edb",
+  "last_verified_date": "2026-08-12T04:29:10+05:30",
+  "overall_progress_percent": 100.0,
+  "issue_progress": {
+    "total": 17,
+    "completed": 17,
+    "pending": 0,
+    "percent": 100.0
+  },
+  "latest_delta": {
+    "added": 1,
+    "removed": 0,
+    "changed": 1,
+    "unchanged": 130
+  },
+  "delta_history": [
+    {
+      "detected_at": "2026-08-09T02:34:07+05:30",
+      "added": [],
+      "removed": [],
+      "changed": [
+        "Enterprise/api/app/main.py",
+        "Enterprise/api/app/db.py",
+        "Enterprise/SCALING-PLAN.md"
+      ],
+      "unchanged_count": 117
+    },
+    {
+      "detected_at": "2026-08-09T02:39:39+05:30",
+      "added": [],
+      "removed": [],
+      "changed": [
+        "Enterprise/agent/Agent-Collect.ps1",
+        "Enterprise/api/app/ratelimit.py",
+        "Enterprise/api/app/main.py",
+        "Enterprise/deploy/Caddyfile.template",
+        "Enterprise/deploy/Caddyfile",
+        "Enterprise/SCALING-PLAN.md"
+      ],
+      "unchanged_count": 114
+    },
+    {
+      "detected_at": "2026-08-09T02:43:05+05:30",
+      "added": [],
+      "removed": [],
+      "changed": [
+        "Enterprise/SCALING-PLAN.md",
+        "Enterprise/agent/Agent-Collect.ps1"
+      ],
+      "unchanged_count": 118
+    },
+    {
+      "detected_at": "2026-08-09T02:48:16+05:30",
+      "added": [],
+      "removed": [],
+      "changed": [
+        "Enterprise/deploy/Caddyfile",
+        "Enterprise/SCALING-PLAN.md",
+        "Enterprise/agent/Agent-Collect.ps1",
+        "Enterprise/deploy/Caddyfile.template",
+        "Enterprise/portal/index.html",
+        "Enterprise/api/app/ratelimit.py",
+        "Enterprise/api/app/main.py"
+      ],
+      "unchanged_count": 113
+    },
+    {
+      "detected_at": "2026-08-09T19:52:08+05:30",
+      "added": [
+        "Enterprise/agent/wix/Create-ElevatedTask.ps1"
+      ],
+      "removed": [],
+      "changed": [
+        "Enterprise/agent/agent-config.example.json",
+        "Enterprise/api/features.json",
+        "Enterprise/agent/wix/build-msi.ps1",
+        "Enterprise/agent/Agent-Collect.ps1",
+        "Enterprise/api/app/main.py",
+        "Enterprise/deploy/deploy.ps1",
+        "Enterprise/api/app/bundle.py",
+        "Enterprise/SCALING-PLAN.md",
+        "Enterprise/agent/wix/Agent.wxs"
+      ],
+      "unchanged_count": 111
+    },
+    {
+      "detected_at": "2026-08-09T21:12:27+05:30",
+      "added": [
+        "Enterprise/api/tests/conftest.py",
+        "Documentation/Deployment-AI-Runbook.md",
+        "Enterprise/api/tests/test_smoke.py",
+        "Enterprise/tests/Check-Deploy-Prereqs.ps1",
+        "Enterprise/api/requirements-dev.txt",
+        "Enterprise/api/tests/__init__.py"
+      ],
+      "removed": [],
+      "changed": [
+        "VERSION.md",
+        "CHANGELOG.md",
+        "Enterprise/README.md",
+        "Enterprise/deploy/deploy.sh",
+        ".github/workflows/ci.yml"
+      ],
+      "unchanged_count": 116
+    },
+    {
+      "detected_at": "2026-08-09T21:21:28+05:30",
+      "added": [],
+      "removed": [],
+      "changed": [
+        "Enterprise/api/tests/conftest.py"
+      ],
+      "unchanged_count": 126
+    },
+    {
+      "detected_at": "2026-08-10T20:53:09+05:30",
+      "added": [
+        "Enterprise/api/.dockerignore"
+      ],
+      "removed": [],
+      "changed": [
+        "COMPLETION-REPORT.md",
+        "Enterprise/api/app/main.py",
+        "Enterprise/agent/wix/Agent.wxs",
+        "Documentation/README.md",
+        "Enterprise/agent/wix/build-msi.ps1",
+        "Remote-Tools/README.md",
+        "QUICK-SUMMARY.md",
+        "Enterprise/agent/agent-config.example.json",
+        "Enterprise/agent/build/build-agent.ps1",
+        "Enterprise/agent/Agent-Collect.ps1",
+        "Scripts/Tests/Phase2-Modules.Tests.ps1",
+        "Enterprise/deploy/deploy.ps1",
+        "Enterprise/api/tests/conftest.py",
+        "Scripts/Modules/SanitizeEngine.psm1",
+        "Enterprise/api/schema.sql",
+        ".github/workflows/ci.yml",
+        "VERSION.md",
+        "Enterprise/api/app/logging_setup.py",
+        "Enterprise/agent/build/new-codesign-cert.ps1",
+        "Documentation/Setup-Guide.md"
+      ],
+      "unchanged_count": 107
+    },
+    {
+      "detected_at": "2026-08-10T21:01:43+05:30",
+      "added": [],
+      "removed": [],
+      "changed": [
+        "Enterprise/agent/build/build-agent.ps1",
+        "Enterprise/agent/Agent-Collect.ps1"
+      ],
+      "unchanged_count": 126
+    },
+    {
+      "detected_at": "2026-08-10T21:10:01+05:30",
+      "added": [],
+      "removed": [],
+      "changed": [
+        "Enterprise/agent/wix/build-msi.ps1"
+      ],
+      "unchanged_count": 127
+    },
+    {
+      "detected_at": "2026-08-10T23:13:33+05:30",
+      "added": [],
+      "removed": [],
+      "changed": [
+        "Enterprise/api/app/main.py",
+        "Enterprise/api/tests/test_smoke.py",
+        "VERSION.md",
+        "Enterprise/portal/index.html",
+        "Enterprise/deploy/deploy.ps1",
+        "Enterprise/api/app/config.py"
+      ],
+      "unchanged_count": 122
+    },
+    {
+      "detected_at": "2026-08-10T23:55:50+05:30",
+      "added": [
+        "Enterprise/deploy/Install-Prereqs.ps1"
+      ],
+      "removed": [],
+      "changed": [
+        "VERSION.md",
+        "Documentation/Deployment-AI-Runbook.md"
+      ],
+      "unchanged_count": 126
+    },
+    {
+      "detected_at": "2026-08-11T05:12:31+05:30",
+      "added": [],
+      "removed": [],
+      "changed": [
+        "Enterprise/portal/index.html",
+        "VERSION.md",
+        "Enterprise/api/app/config.py",
+        "Enterprise/api/app/db.py",
+        "Enterprise/api/tests/test_smoke.py",
+        "Enterprise/api/schema.sql",
+        "Enterprise/api/app/rules.py",
+        "Enterprise/api/app/main.py",
+        "CHANGELOG.md"
+      ],
+      "unchanged_count": 120
+    },
+    {
+      "detected_at": "2026-08-11T05:32:29+05:30",
+      "added": [],
+      "removed": [],
+      "changed": [
+        "Enterprise/ROADMAP.md",
+        "Documentation/Windows-Smoke-Run.md",
+        "QUICK-SUMMARY.md",
+        "ANALYSIS-RECOMMENDATIONS.md",
+        "Enterprise/docker-compose.yml",
+        "Enterprise/README.md",
+        "Scaling Plan/PROGRESS-TRACKING.md",
+        "Documentation/README.md",
+        "Scaling Plan/IMPLEMENTATION-PLAN.md",
+        "Enterprise/.env.example",
+        "COMPLETION-REPORT.md",
+        "IT-TOOLKIT-GAP-ANALYSIS.md",
+        "Enterprise/SCALING-PLAN.md",
+        "Documentation/Deployment-AI-Runbook.md",
+        "Enterprise/ARCHITECTURE.md"
+      ],
+      "unchanged_count": 114
+    },
+    {
+      "detected_at": "2026-08-12T00:21:43+05:30",
+      "added": [
+        "Documentation/PROJECT-SPEC.md",
+        "Documentation/Local-E2E-Test.md"
+      ],
+      "removed": [],
+      "changed": [
+        "Documentation/README.md",
+        "CHANGELOG.md",
+        "Enterprise/api/tests/test_smoke.py",
+        "Enterprise/api/app/main.py",
+        "Enterprise/api/app/github.py",
+        "Documentation/Deployment-AI-Runbook.md"
+      ],
+      "unchanged_count": 123
+    },
+    {
+      "detected_at": "2026-08-12T03:12:26+05:30",
+      "added": [],
+      "removed": [],
+      "changed": [
+        "Enterprise/agent/agent-version.json",
+        "Enterprise/agent/wix/Agent.wxs",
+        "Enterprise/portal/index.html"
+      ],
+      "unchanged_count": 128
+    },
+    {
+      "detected_at": "2026-08-12T04:10:08+05:30",
+      "added": [],
+      "removed": [],
+      "changed": [
+        "Enterprise/agent/wix/Agent.wxs",
+        "Enterprise/agent/agent-version.json"
+      ],
+      "unchanged_count": 129
+    },
+    {
+      "detected_at": "2026-08-12T04:17:04+05:30",
+      "added": [],
+      "removed": [],
+      "changed": [
+        "Enterprise/api/app/main.py",
+        "Enterprise/README.md",
+        "Enterprise/agent/wix/build-msi.ps1",
+        ".github/workflows/ci.yml",
+        "Enterprise/api/app/github.py",
+        "Enterprise/api/app/bundle.py",
+        "Enterprise/deploy/deploy.sh",
+        "Enterprise/deploy/deploy.ps1"
+      ],
+      "unchanged_count": 123
+    },
+    {
+      "detected_at": "2026-08-12T04:29:10+05:30",
+      "added": [],
+      "removed": [],
+      "changed": [
+        "Enterprise/agent/agent-version.json",
+        "Enterprise/agent/wix/Agent.wxs"
+      ],
+      "unchanged_count": 129
+    },
+    {
+      "detected_at": "2026-08-12T04:56:59+05:30",
+      "added": [
+        "Enterprise/agent/endpoint.json"
+      ],
+      "removed": [],
+      "changed": [
+        ".github/workflows/ci.yml"
+      ],
+      "unchanged_count": 130
+    }
+  ],
+  "next_recommended_tasks": [
+    "Push to remote + verify CI runs green",
+    "Install Pester locally and run RemoteToolkit.tests.ps1",
+    "Sign scripts with Authenticode certificate"
+  ]
+}

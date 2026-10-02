@@ -1,0 +1,8 @@
+{
+  "name": "IT-Toolkit Enterprise",
+  "description": "Enterprise IT Administration, Fleet Monitoring & Automation Portal",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

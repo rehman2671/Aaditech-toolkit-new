@@ -1,0 +1,2743 @@
+{
+  "path": "/audit/index.json",
+  "generated": "2026-09-22T08:41:11.247Z",
+  "method": "computed dynamically by audit/scanner.js",
+  "total_files": 198,
+  "total_directories": 51,
+  "files": [
+    {
+      "path": "/.env",
+      "filename": ".env",
+      "extension": "",
+      "language": "Other",
+      "size_bytes": 543,
+      "loc": 20,
+      "last_modified": "2026-09-22T08:35:13.631Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "General"
+    },
+    {
+      "path": "/.env.example",
+      "filename": ".env.example",
+      "extension": ".example",
+      "language": "Other",
+      "size_bytes": 637,
+      "loc": 24,
+      "last_modified": "2026-09-22T08:35:13.637Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "General"
+    },
+    {
+      "path": "/.gitattributes",
+      "filename": ".gitattributes",
+      "extension": "",
+      "language": "Other",
+      "size_bytes": 241,
+      "loc": 7,
+      "last_modified": "2026-09-22T08:35:13.621Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "General"
+    },
+    {
+      "path": "/.githooks/pre-commit",
+      "filename": "pre-commit",
+      "extension": "",
+      "language": "Other",
+      "size_bytes": 813,
+      "loc": 25,
+      "last_modified": "2026-09-22T08:35:13.692Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "General"
+    },
+    {
+      "path": "/.github/workflows/ci.yml",
+      "filename": "ci.yml",
+      "extension": ".yml",
+      "language": "YAML",
+      "size_bytes": 13434,
+      "loc": 329,
+      "last_modified": "2026-09-22T08:41:10.009Z",
+      "imports": [
+        "Pester"
+      ],
+      "exports": [],
+      "architecture_layer": "General"
+    },
+    {
+      "path": "/.gitignore",
+      "filename": ".gitignore",
+      "extension": "",
+      "language": "Other",
+      "size_bytes": 431,
+      "loc": 23,
+      "last_modified": "2026-09-22T08:35:13.621Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "General"
+    },
+    {
+      "path": "/ANALYSIS-RECOMMENDATIONS.md",
+      "filename": "ANALYSIS-RECOMMENDATIONS.md",
+      "extension": ".md",
+      "language": "Markdown",
+      "size_bytes": 48885,
+      "loc": 1372,
+      "last_modified": "2026-09-22T08:35:13.674Z",
+      "imports": [],
+      "exports": [
+        "option",
+        "not",
+        "doesn",
+        "2"
+      ],
+      "architecture_layer": "Documentation"
+    },
+    {
+      "path": "/Aaditech_Endpoint_Monitoring_Management_Final_Requirements.docx",
+      "filename": "Aaditech_Endpoint_Monitoring_Management_Final_Requirements.docx",
+      "extension": ".docx",
+      "language": "Other",
+      "size_bytes": 44221,
+      "loc": 180,
+      "last_modified": "2026-09-22T08:35:13.670Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "General"
+    },
+    {
+      "path": "/Aaditech_Master_Development_Directive_Go_Edition_updated.docx",
+      "filename": "Aaditech_Master_Development_Directive_Go_Edition_updated.docx",
+      "extension": ".docx",
+      "language": "Other",
+      "size_bytes": 25319,
+      "loc": 114,
+      "last_modified": "2026-09-22T08:35:13.588Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "General"
+    },
+    {
+      "path": "/CHANGELOG.md",
+      "filename": "CHANGELOG.md",
+      "extension": ".md",
+      "language": "Markdown",
+      "size_bytes": 31286,
+      "loc": 447,
+      "last_modified": "2026-09-22T08:35:13.685Z",
+      "imports": [],
+      "exports": [
+        "showing",
+        "links"
+      ],
+      "architecture_layer": "Documentation"
+    },
+    {
+      "path": "/COMPLETION-REPORT.md",
+      "filename": "COMPLETION-REPORT.md",
+      "extension": ".md",
+      "language": "Markdown",
+      "size_bytes": 18717,
+      "loc": 558,
+      "last_modified": "2026-09-22T08:35:13.618Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "Documentation"
+    },
+    {
+      "path": "/Config/CONFIG-GUIDE.md",
+      "filename": "CONFIG-GUIDE.md",
+      "extension": ".md",
+      "language": "Markdown",
+      "size_bytes": 2177,
+      "loc": 48,
+      "last_modified": "2026-09-22T08:35:13.609Z",
+      "imports": [],
+      "exports": [
+        "sources"
+      ],
+      "architecture_layer": "Documentation"
+    },
+    {
+      "path": "/Config/config.json",
+      "filename": "config.json",
+      "extension": ".json",
+      "language": "JSON",
+      "size_bytes": 4555,
+      "loc": 170,
+      "last_modified": "2026-09-22T08:35:13.601Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "General"
+    },
+    {
+      "path": "/Data/DATABASE-GUIDE.md",
+      "filename": "DATABASE-GUIDE.md",
+      "extension": ".md",
+      "language": "Markdown",
+      "size_bytes": 2771,
+      "loc": 84,
+      "last_modified": "2026-09-22T08:35:13.704Z",
+      "imports": [
+        ".\\Scripts\\Modules\\ToolkitData.psm1"
+      ],
+      "exports": [],
+      "architecture_layer": "Documentation"
+    },
+    {
+      "path": "/Data/README.txt",
+      "filename": "README.txt",
+      "extension": ".txt",
+      "language": "Other",
+      "size_bytes": 122,
+      "loc": 3,
+      "last_modified": "2026-09-22T08:35:13.657Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "General"
+    },
+    {
+      "path": "/Data/state-persisted.json",
+      "filename": "state-persisted.json",
+      "extension": ".json",
+      "language": "JSON",
+      "size_bytes": 73264,
+      "loc": 2214,
+      "last_modified": "2026-09-22T08:35:13.596Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "General"
+    },
+    {
+      "path": "/Dockerfile",
+      "filename": "Dockerfile",
+      "extension": "",
+      "language": "Other",
+      "size_bytes": 729,
+      "loc": 28,
+      "last_modified": "2026-09-22T08:35:13.596Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "General"
+    },
+    {
+      "path": "/Documentation/Cheat-Sheet.md",
+      "filename": "Cheat-Sheet.md",
+      "extension": ".md",
+      "language": "Markdown",
+      "size_bytes": 3042,
+      "loc": 63,
+      "last_modified": "2026-09-22T08:35:13.602Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "Documentation"
+    },
+    {
+      "path": "/Documentation/Deployment-AI-Runbook.md",
+      "filename": "Deployment-AI-Runbook.md",
+      "extension": ".md",
+      "language": "Markdown",
+      "size_bytes": 13892,
+      "loc": 308,
+      "last_modified": "2026-09-22T08:35:13.680Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "Documentation"
+    },
+    {
+      "path": "/Documentation/Local-E2E-Test.md",
+      "filename": "Local-E2E-Test.md",
+      "extension": ".md",
+      "language": "Markdown",
+      "size_bytes": 6812,
+      "loc": 163,
+      "last_modified": "2026-09-22T08:35:13.667Z",
+      "imports": [],
+      "exports": [
+        "downloads"
+      ],
+      "architecture_layer": "Documentation"
+    },
+    {
+      "path": "/Documentation/PROJECT-SPEC.md",
+      "filename": "PROJECT-SPEC.md",
+      "extension": ".md",
+      "language": "Markdown",
+      "size_bytes": 18943,
+      "loc": 396,
+      "last_modified": "2026-09-22T08:35:13.620Z",
+      "imports": [],
+      "exports": [
+        "of",
+        "available"
+      ],
+      "architecture_layer": "Documentation"
+    },
+    {
+      "path": "/Documentation/README.md",
+      "filename": "README.md",
+      "extension": ".md",
+      "language": "Markdown",
+      "size_bytes": 15407,
+      "loc": 458,
+      "last_modified": "2026-09-22T08:35:13.610Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "Documentation"
+    },
+    {
+      "path": "/Documentation/Setup-Guide.md",
+      "filename": "Setup-Guide.md",
+      "extension": ".md",
+      "language": "Markdown",
+      "size_bytes": 7020,
+      "loc": 122,
+      "last_modified": "2026-09-22T08:35:13.653Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "Documentation"
+    },
+    {
+      "path": "/Documentation/Troubleshooting-Flowcharts.md",
+      "filename": "Troubleshooting-Flowcharts.md",
+      "extension": ".md",
+      "language": "Markdown",
+      "size_bytes": 2472,
+      "loc": 137,
+      "last_modified": "2026-09-22T08:35:13.681Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "Documentation"
+    },
+    {
+      "path": "/Documentation/Windows-Smoke-Run.md",
+      "filename": "Windows-Smoke-Run.md",
+      "extension": ".md",
+      "language": "Markdown",
+      "size_bytes": 4912,
+      "loc": 125,
+      "last_modified": "2026-09-22T08:35:13.608Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "Documentation"
+    },
+    {
+      "path": "/Drivers/README.txt",
+      "filename": "README.txt",
+      "extension": ".txt",
+      "language": "Other",
+      "size_bytes": 136,
+      "loc": 2,
+      "last_modified": "2026-09-22T08:35:13.688Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "General"
+    },
+    {
+      "path": "/Enterprise/ARCHITECTURE.md",
+      "filename": "ARCHITECTURE.md",
+      "extension": ".md",
+      "language": "Markdown",
+      "size_bytes": 15602,
+      "loc": 254,
+      "last_modified": "2026-09-22T08:35:13.650Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "Documentation"
+    },
+    {
+      "path": "/Enterprise/README.md",
+      "filename": "README.md",
+      "extension": ".md",
+      "language": "Markdown",
+      "size_bytes": 14537,
+      "loc": 239,
+      "last_modified": "2026-09-22T08:35:13.607Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "Documentation"
+    },
+    {
+      "path": "/Enterprise/ROADMAP.md",
+      "filename": "ROADMAP.md",
+      "extension": ".md",
+      "language": "Markdown",
+      "size_bytes": 24104,
+      "loc": 399,
+      "last_modified": "2026-09-22T08:35:13.646Z",
+      "imports": [],
+      "exports": [
+        "links",
+        "buttons"
+      ],
+      "architecture_layer": "Documentation"
+    },
+    {
+      "path": "/Enterprise/SCALING-PLAN.md",
+      "filename": "SCALING-PLAN.md",
+      "extension": ".md",
+      "language": "Markdown",
+      "size_bytes": 36308,
+      "loc": 591,
+      "last_modified": "2026-09-22T08:35:13.659Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "Documentation"
+    },
+    {
+      "path": "/Enterprise/agent/Aaditech-Agent.ps1",
+      "filename": "Aaditech-Agent.ps1",
+      "extension": ".ps1",
+      "language": "PowerShell",
+      "size_bytes": 13949,
+      "loc": 332,
+      "last_modified": "2026-09-22T08:35:13.625Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "Agent/Automation Scripts"
+    },
+    {
+      "path": "/Enterprise/agent/Agent-Collect.ps1",
+      "filename": "Agent-Collect.ps1",
+      "extension": ".ps1",
+      "language": "PowerShell",
+      "size_bytes": 40147,
+      "loc": 947,
+      "last_modified": "2026-09-22T08:35:13.639Z",
+      "imports": [
+        "(Join-Path"
+      ],
+      "exports": [],
+      "architecture_layer": "Agent/Automation Scripts"
+    },
+    {
+      "path": "/Enterprise/agent/agent-config.example.json",
+      "filename": "agent-config.example.json",
+      "extension": ".json",
+      "language": "JSON",
+      "size_bytes": 1891,
+      "loc": 24,
+      "last_modified": "2026-09-22T08:35:13.683Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "General"
+    },
+    {
+      "path": "/Enterprise/agent/agent-version.json",
+      "filename": "agent-version.json",
+      "extension": ".json",
+      "language": "JSON",
+      "size_bytes": 57,
+      "loc": 5,
+      "last_modified": "2026-09-22T08:35:13.590Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "General"
+    },
+    {
+      "path": "/Enterprise/agent/collectors/Get-BitLockerStatus.ps1",
+      "filename": "Get-BitLockerStatus.ps1",
+      "extension": ".ps1",
+      "language": "PowerShell",
+      "size_bytes": 648,
+      "loc": 19,
+      "last_modified": "2026-09-22T08:35:13.600Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "Agent/Automation Scripts"
+    },
+    {
+      "path": "/Enterprise/agent/collectors/Get-DiskHealth.ps1",
+      "filename": "Get-DiskHealth.ps1",
+      "extension": ".ps1",
+      "language": "PowerShell",
+      "size_bytes": 2226,
+      "loc": 60,
+      "last_modified": "2026-09-22T08:35:13.602Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "Agent/Automation Scripts"
+    },
+    {
+      "path": "/Enterprise/agent/collectors/Get-HardwareInventory.ps1",
+      "filename": "Get-HardwareInventory.ps1",
+      "extension": ".ps1",
+      "language": "PowerShell",
+      "size_bytes": 2547,
+      "loc": 60,
+      "last_modified": "2026-09-22T08:35:13.604Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "Agent/Automation Scripts"
+    },
+    {
+      "path": "/Enterprise/agent/collectors/Get-LicenseInfo.ps1",
+      "filename": "Get-LicenseInfo.ps1",
+      "extension": ".ps1",
+      "language": "PowerShell",
+      "size_bytes": 1877,
+      "loc": 53,
+      "last_modified": "2026-09-22T08:35:13.679Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "Agent/Automation Scripts"
+    },
+    {
+      "path": "/Enterprise/agent/collectors/Get-SoftwareInventory.ps1",
+      "filename": "Get-SoftwareInventory.ps1",
+      "extension": ".ps1",
+      "language": "PowerShell",
+      "size_bytes": 705,
+      "loc": 19,
+      "last_modified": "2026-09-22T08:35:13.619Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "Agent/Automation Scripts"
+    },
+    {
+      "path": "/Enterprise/agent/collectors/Get-SystemHealth.ps1",
+      "filename": "Get-SystemHealth.ps1",
+      "extension": ".ps1",
+      "language": "PowerShell",
+      "size_bytes": 1754,
+      "loc": 35,
+      "last_modified": "2026-09-22T08:35:13.616Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "Agent/Automation Scripts"
+    },
+    {
+      "path": "/Enterprise/agent/collectors/Get-WindowsUpdateStatus.ps1",
+      "filename": "Get-WindowsUpdateStatus.ps1",
+      "extension": ".ps1",
+      "language": "PowerShell",
+      "size_bytes": 1210,
+      "loc": 26,
+      "last_modified": "2026-09-22T08:35:13.651Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "Agent/Automation Scripts"
+    },
+    {
+      "path": "/Enterprise/agent/endpoint.json",
+      "filename": "endpoint.json",
+      "extension": ".json",
+      "language": "JSON",
+      "size_bytes": 101,
+      "loc": 5,
+      "last_modified": "2026-09-22T08:35:13.632Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "General"
+    },
+    {
+      "path": "/Enterprise/agent/features.json",
+      "filename": "features.json",
+      "extension": ".json",
+      "language": "JSON",
+      "size_bytes": 1786,
+      "loc": 18,
+      "last_modified": "2026-09-22T08:35:13.612Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "General"
+    },
+    {
+      "path": "/Enterprise/agent/fixtures/IT-Toolkit-Agent-1.1.2.msi",
+      "filename": "IT-Toolkit-Agent-1.1.2.msi",
+      "extension": ".msi",
+      "language": "Other",
+      "size_bytes": 1536,
+      "loc": 1,
+      "last_modified": "2026-09-22T08:35:13.601Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "General"
+    },
+    {
+      "path": "/Enterprise/agent/install-agent.cmd",
+      "filename": "install-agent.cmd",
+      "extension": ".cmd",
+      "language": "Batch",
+      "size_bytes": 2905,
+      "loc": 69,
+      "last_modified": "2026-09-22T08:35:13.665Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "General"
+    },
+    {
+      "path": "/Enterprise/agent/run-agent-once.cmd",
+      "filename": "run-agent-once.cmd",
+      "extension": ".cmd",
+      "language": "Batch",
+      "size_bytes": 496,
+      "loc": 13,
+      "last_modified": "2026-09-22T08:35:13.743Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "General"
+    },
+    {
+      "path": "/Enterprise/agent/uninstall-agent.cmd",
+      "filename": "uninstall-agent.cmd",
+      "extension": ".cmd",
+      "language": "Batch",
+      "size_bytes": 662,
+      "loc": 22,
+      "last_modified": "2026-09-22T08:35:13.639Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "General"
+    },
+    {
+      "path": "/Enterprise/agent/wix/Agent.wxs",
+      "filename": "Agent.wxs",
+      "extension": ".wxs",
+      "language": "Other",
+      "size_bytes": 15640,
+      "loc": 262,
+      "last_modified": "2026-09-22T08:35:13.687Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "General"
+    },
+    {
+      "path": "/Enterprise/agent/wix/Create-ElevatedTask.ps1",
+      "filename": "Create-ElevatedTask.ps1",
+      "extension": ".ps1",
+      "language": "PowerShell",
+      "size_bytes": 2947,
+      "loc": 63,
+      "last_modified": "2026-09-22T08:35:13.616Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "Agent/Automation Scripts"
+    },
+    {
+      "path": "/Enterprise/agent/wix/build-msi.ps1",
+      "filename": "build-msi.ps1",
+      "extension": ".ps1",
+      "language": "PowerShell",
+      "size_bytes": 6503,
+      "loc": 126,
+      "last_modified": "2026-09-22T08:35:13.595Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "Agent/Automation Scripts"
+    },
+    {
+      "path": "/Enterprise/api/features.json",
+      "filename": "features.json",
+      "extension": ".json",
+      "language": "JSON",
+      "size_bytes": 1786,
+      "loc": 18,
+      "last_modified": "2026-09-22T08:35:13.675Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "Backend/API"
+    },
+    {
+      "path": "/Enterprise/deploy/Caddyfile",
+      "filename": "Caddyfile",
+      "extension": "",
+      "language": "Other",
+      "size_bytes": 2150,
+      "loc": 82,
+      "last_modified": "2026-09-22T08:35:13.633Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "General"
+    },
+    {
+      "path": "/Enterprise/deploy/Caddyfile.template",
+      "filename": "Caddyfile.template",
+      "extension": ".template",
+      "language": "Other",
+      "size_bytes": 1945,
+      "loc": 72,
+      "last_modified": "2026-09-22T08:35:13.650Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "General"
+    },
+    {
+      "path": "/Enterprise/deploy/Install-Prereqs.ps1",
+      "filename": "Install-Prereqs.ps1",
+      "extension": ".ps1",
+      "language": "PowerShell",
+      "size_bytes": 12927,
+      "loc": 300,
+      "last_modified": "2026-09-22T08:35:13.609Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "Agent/Automation Scripts"
+    },
+    {
+      "path": "/Enterprise/deploy/backup.sh",
+      "filename": "backup.sh",
+      "extension": ".sh",
+      "language": "Shell",
+      "size_bytes": 1675,
+      "loc": 51,
+      "last_modified": "2026-09-22T08:35:13.672Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "General"
+    },
+    {
+      "path": "/Enterprise/deploy/deploy.ps1",
+      "filename": "deploy.ps1",
+      "extension": ".ps1",
+      "language": "PowerShell",
+      "size_bytes": 18600,
+      "loc": 458,
+      "last_modified": "2026-09-22T08:35:13.635Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "Agent/Automation Scripts"
+    },
+    {
+      "path": "/Enterprise/deploy/deploy.sh",
+      "filename": "deploy.sh",
+      "extension": ".sh",
+      "language": "Shell",
+      "size_bytes": 12917,
+      "loc": 318,
+      "last_modified": "2026-09-22T08:35:13.614Z",
+      "imports": [],
+      "exports": [
+        "CADDY_HOST"
+      ],
+      "architecture_layer": "General"
+    },
+    {
+      "path": "/Enterprise/deploy/restore.sh",
+      "filename": "restore.sh",
+      "extension": ".sh",
+      "language": "Shell",
+      "size_bytes": 2418,
+      "loc": 73,
+      "last_modified": "2026-09-22T08:35:13.596Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "General"
+    },
+    {
+      "path": "/Enterprise/docker-compose.yml",
+      "filename": "docker-compose.yml",
+      "extension": ".yml",
+      "language": "YAML",
+      "size_bytes": 2376,
+      "loc": 87,
+      "last_modified": "2026-09-22T08:35:13.658Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "General"
+    },
+    {
+      "path": "/Enterprise/portal/index.html",
+      "filename": "index.html",
+      "extension": ".html",
+      "language": "HTML",
+      "size_bytes": 127919,
+      "loc": 2297,
+      "last_modified": "2026-09-22T08:35:13.633Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "Frontend"
+    },
+    {
+      "path": "/Enterprise/tests/Check-Deploy-Prereqs.ps1",
+      "filename": "Check-Deploy-Prereqs.ps1",
+      "extension": ".ps1",
+      "language": "PowerShell",
+      "size_bytes": 14526,
+      "loc": 278,
+      "last_modified": "2026-09-22T08:35:13.598Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "Agent/Automation Scripts"
+    },
+    {
+      "path": "/Enterprise_Audit_Prompt.md",
+      "filename": "Enterprise_Audit_Prompt.md",
+      "extension": ".md",
+      "language": "Markdown",
+      "size_bytes": 9403,
+      "loc": 831,
+      "last_modified": "2026-09-22T08:35:13.617Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "Documentation"
+    },
+    {
+      "path": "/HOSTINGER_DEPLOYMENT_GUIDE.md",
+      "filename": "HOSTINGER_DEPLOYMENT_GUIDE.md",
+      "extension": ".md",
+      "language": "Markdown",
+      "size_bytes": 3623,
+      "loc": 95,
+      "last_modified": "2026-09-22T08:35:13.663Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "Documentation"
+    },
+    {
+      "path": "/IT-TOOLKIT-GAP-ANALYSIS.md",
+      "filename": "IT-TOOLKIT-GAP-ANALYSIS.md",
+      "extension": ".md",
+      "language": "Markdown",
+      "size_bytes": 11900,
+      "loc": 317,
+      "last_modified": "2026-09-22T08:35:13.629Z",
+      "imports": [],
+      "exports": [
+        "for",
+        "to"
+      ],
+      "architecture_layer": "Documentation"
+    },
+    {
+      "path": "/QUICK-SUMMARY.md",
+      "filename": "QUICK-SUMMARY.md",
+      "extension": ".md",
+      "language": "Markdown",
+      "size_bytes": 13548,
+      "loc": 291,
+      "last_modified": "2026-09-22T08:35:13.688Z",
+      "imports": [],
+      "exports": [
+        "for",
+        "option"
+      ],
+      "architecture_layer": "Documentation"
+    },
+    {
+      "path": "/Remote-Tools/Generate-RDP-Shortcuts.ps1",
+      "filename": "Generate-RDP-Shortcuts.ps1",
+      "extension": ".ps1",
+      "language": "PowerShell",
+      "size_bytes": 1659,
+      "loc": 51,
+      "last_modified": "2026-09-22T08:35:13.655Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "Agent/Automation Scripts"
+    },
+    {
+      "path": "/Remote-Tools/README.md",
+      "filename": "README.md",
+      "extension": ".md",
+      "language": "Markdown",
+      "size_bytes": 1333,
+      "loc": 24,
+      "last_modified": "2026-09-22T08:35:13.697Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "Documentation"
+    },
+    {
+      "path": "/Scaling Plan/ARCHITECTURE.md",
+      "filename": "ARCHITECTURE.md",
+      "extension": ".md",
+      "language": "Markdown",
+      "size_bytes": 12875,
+      "loc": 444,
+      "last_modified": "2026-09-22T08:35:13.591Z",
+      "imports": [
+        "$PSScriptRoot\\Modules\\ExportEngine.psm1",
+        "$PSScriptRoot\\Modules\\ReportGenerator.psm1",
+        "$PSScriptRoot\\Modules\\AlertEngine.psm1",
+        "$PSScriptRoot\\Modules\\LogManager.psm1",
+        "$PSScriptRoot\\Modules\\RemoteToolkit.psm1",
+        "$PSScriptRoot\\Modules\\DataPersistence.psm1",
+        "$PSScriptRoot\\Modules\\TrendAnalysis.psm1",
+        "$PSScriptRoot\\Modules\\TicketingIntegration.psm1",
+        "$PSScriptRoot\\Modules\\ChatNotifications.psm1",
+        "$PSScriptRoot\\Modules\\AutoRemediation.psm1",
+        "$PSScriptRoot\\Modules\\ComplianceChecks.psm1",
+        "$PSScriptRoot\\Modules\\SchedulerEngine.psm1",
+        "$PSScriptRoot\\Modules\\AnomalyDetection-Advanced.psm1"
+      ],
+      "exports": [],
+      "architecture_layer": "Documentation"
+    },
+    {
+      "path": "/Scaling Plan/DELIVERY-SUMMARY.md",
+      "filename": "DELIVERY-SUMMARY.md",
+      "extension": ".md",
+      "language": "Markdown",
+      "size_bytes": 13058,
+      "loc": 499,
+      "last_modified": "2026-09-22T08:35:13.694Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "Documentation"
+    },
+    {
+      "path": "/Scaling Plan/DOCUMENTATION-INDEX.md",
+      "filename": "DOCUMENTATION-INDEX.md",
+      "extension": ".md",
+      "language": "Markdown",
+      "size_bytes": 13021,
+      "loc": 452,
+      "last_modified": "2026-09-22T08:35:13.605Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "Documentation"
+    },
+    {
+      "path": "/Scaling Plan/IMPLEMENTATION-PLAN.md",
+      "filename": "IMPLEMENTATION-PLAN.md",
+      "extension": ".md",
+      "language": "Markdown",
+      "size_bytes": 50402,
+      "loc": 1734,
+      "last_modified": "2026-09-22T08:35:13.621Z",
+      "imports": [],
+      "exports": [
+        "location",
+        "option",
+        "from",
+        "options",
+        "instructions",
+        "produces"
+      ],
+      "architecture_layer": "Documentation"
+    },
+    {
+      "path": "/Scaling Plan/PROGRESS-TRACKING.md",
+      "filename": "PROGRESS-TRACKING.md",
+      "extension": ".md",
+      "language": "Markdown",
+      "size_bytes": 33220,
+      "loc": 1081,
+      "last_modified": "2026-09-22T08:35:13.611Z",
+      "imports": [],
+      "exports": [
+        "option"
+      ],
+      "architecture_layer": "Documentation"
+    },
+    {
+      "path": "/Scaling Plan/QUICK-REFERENCE.md",
+      "filename": "QUICK-REFERENCE.md",
+      "extension": ".md",
+      "language": "Markdown",
+      "size_bytes": 11859,
+      "loc": 458,
+      "last_modified": "2026-09-22T08:35:13.642Z",
+      "imports": [],
+      "exports": [
+        "data"
+      ],
+      "architecture_layer": "Documentation"
+    },
+    {
+      "path": "/Scaling Plan/README-IMPLEMENTATION.md",
+      "filename": "README-IMPLEMENTATION.md",
+      "extension": ".md",
+      "language": "Markdown",
+      "size_bytes": 12171,
+      "loc": 366,
+      "last_modified": "2026-09-22T08:35:13.615Z",
+      "imports": [],
+      "exports": [
+        "data"
+      ],
+      "architecture_layer": "Documentation"
+    },
+    {
+      "path": "/Scaling Plan/START-HERE.md",
+      "filename": "START-HERE.md",
+      "extension": ".md",
+      "language": "Markdown",
+      "size_bytes": 12349,
+      "loc": 391,
+      "last_modified": "2026-09-22T08:35:13.599Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "Documentation"
+    },
+    {
+      "path": "/Scripts/Export-EventLogs.ps1",
+      "filename": "Export-EventLogs.ps1",
+      "extension": ".ps1",
+      "language": "PowerShell",
+      "size_bytes": 3967,
+      "loc": 83,
+      "last_modified": "2026-09-22T08:35:13.708Z",
+      "imports": [
+        "$sanitizeModule"
+      ],
+      "exports": [],
+      "architecture_layer": "Agent/Automation Scripts"
+    },
+    {
+      "path": "/Scripts/Firewall-Test.ps1",
+      "filename": "Firewall-Test.ps1",
+      "extension": ".ps1",
+      "language": "PowerShell",
+      "size_bytes": 6794,
+      "loc": 164,
+      "last_modified": "2026-09-22T08:35:13.597Z",
+      "imports": [
+        "(Join-Path"
+      ],
+      "exports": [
+        "and"
+      ],
+      "architecture_layer": "Agent/Automation Scripts"
+    },
+    {
+      "path": "/Scripts/GUI/DASHBOARD-GUIDE.md",
+      "filename": "DASHBOARD-GUIDE.md",
+      "extension": ".md",
+      "language": "Markdown",
+      "size_bytes": 2068,
+      "loc": 56,
+      "last_modified": "2026-09-22T08:35:13.619Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "Agent/Automation Scripts"
+    },
+    {
+      "path": "/Scripts/GUI/Toolkit-GUI.ps1",
+      "filename": "Toolkit-GUI.ps1",
+      "extension": ".ps1",
+      "language": "PowerShell",
+      "size_bytes": 4646,
+      "loc": 114,
+      "last_modified": "2026-09-22T08:35:13.623Z",
+      "imports": [
+        "(Join-Path"
+      ],
+      "exports": [],
+      "architecture_layer": "Agent/Automation Scripts"
+    },
+    {
+      "path": "/Scripts/Index/Install-GitHook.ps1",
+      "filename": "Install-GitHook.ps1",
+      "extension": ".ps1",
+      "language": "PowerShell",
+      "size_bytes": 1630,
+      "loc": 48,
+      "last_modified": "2026-09-22T08:35:13.609Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "Agent/Automation Scripts"
+    },
+    {
+      "path": "/Scripts/Index/Update-ProjectIndex.ps1",
+      "filename": "Update-ProjectIndex.ps1",
+      "extension": ".ps1",
+      "language": "PowerShell",
+      "size_bytes": 15904,
+      "loc": 382,
+      "last_modified": "2026-09-22T08:35:13.671Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "Agent/Automation Scripts"
+    },
+    {
+      "path": "/Scripts/Modules/AlertEngine.psm1",
+      "filename": "AlertEngine.psm1",
+      "extension": ".psm1",
+      "language": "PowerShell",
+      "size_bytes": 5923,
+      "loc": 211,
+      "last_modified": "2026-09-22T08:35:13.693Z",
+      "imports": [],
+      "exports": [
+        "Test-AlertThreshold, Get-AlertSeverity, Format-AlertMessage, Test-MultipleThresholds"
+      ],
+      "architecture_layer": "Agent/Automation Scripts"
+    },
+    {
+      "path": "/Scripts/Modules/CredentialManager.psm1",
+      "filename": "CredentialManager.psm1",
+      "extension": ".psm1",
+      "language": "PowerShell",
+      "size_bytes": 9938,
+      "loc": 267,
+      "last_modified": "2026-09-22T08:35:13.618Z",
+      "imports": [],
+      "exports": [
+        "Save-ToolkitCredential, Get-ToolkitCredential, Remove-ToolkitCredential, Test-CredentialValid"
+      ],
+      "architecture_layer": "Agent/Automation Scripts"
+    },
+    {
+      "path": "/Scripts/Modules/ExportEngine.psm1",
+      "filename": "ExportEngine.psm1",
+      "extension": ".psm1",
+      "language": "PowerShell",
+      "size_bytes": 5147,
+      "loc": 178,
+      "last_modified": "2026-09-22T08:35:13.674Z",
+      "imports": [],
+      "exports": [
+        "PowerShell",
+        "CSV",
+        "JSON",
+        "with",
+        "Export-ToCSV, Export-ToJSON, Export-ToExcel"
+      ],
+      "architecture_layer": "Agent/Automation Scripts"
+    },
+    {
+      "path": "/Scripts/Modules/LogManager.psm1",
+      "filename": "LogManager.psm1",
+      "extension": ".psm1",
+      "language": "PowerShell",
+      "size_bytes": 2713,
+      "loc": 91,
+      "last_modified": "2026-09-22T08:35:13.598Z",
+      "imports": [],
+      "exports": [
+        "Remove-OldLogs"
+      ],
+      "architecture_layer": "Agent/Automation Scripts"
+    },
+    {
+      "path": "/Scripts/Modules/RemoteToolkit.psm1",
+      "filename": "RemoteToolkit.psm1",
+      "extension": ".psm1",
+      "language": "PowerShell",
+      "size_bytes": 9942,
+      "loc": 263,
+      "last_modified": "2026-09-22T08:35:13.637Z",
+      "imports": [],
+      "exports": [
+        "Test-RemoteConnection, Invoke-RemoteCommand, Invoke-ParallelRemoteExecution, Get-RemoteComputerInfo, Invoke-RemoteNetworkDiagnostic, Invoke-QuickCheckRemote"
+      ],
+      "architecture_layer": "Agent/Automation Scripts"
+    },
+    {
+      "path": "/Scripts/Modules/ReportGenerator.psm1",
+      "filename": "ReportGenerator.psm1",
+      "extension": ".psm1",
+      "language": "PowerShell",
+      "size_bytes": 4346,
+      "loc": 137,
+      "last_modified": "2026-09-22T08:35:13.732Z",
+      "imports": [],
+      "exports": [
+        "Convert-ObjectArrayToHtmlTable, New-HTMLReport"
+      ],
+      "architecture_layer": "Agent/Automation Scripts"
+    },
+    {
+      "path": "/Scripts/Modules/SCHEDULE-GUIDE.md",
+      "filename": "SCHEDULE-GUIDE.md",
+      "extension": ".md",
+      "language": "Markdown",
+      "size_bytes": 1750,
+      "loc": 54,
+      "last_modified": "2026-09-22T08:35:13.592Z",
+      "imports": [
+        ".\\Scripts\\Modules\\TaskScheduler.psm1"
+      ],
+      "exports": [],
+      "architecture_layer": "Agent/Automation Scripts"
+    },
+    {
+      "path": "/Scripts/Modules/SanitizeEngine.psm1",
+      "filename": "SanitizeEngine.psm1",
+      "extension": ".psm1",
+      "language": "PowerShell",
+      "size_bytes": 5297,
+      "loc": 141,
+      "last_modified": "2026-09-22T08:35:13.652Z",
+      "imports": [],
+      "exports": [
+        "ConvertTo-SanitizedText, Protect-SanitizedContent, Get-SanitizationConfig"
+      ],
+      "architecture_layer": "Agent/Automation Scripts"
+    },
+    {
+      "path": "/Scripts/Modules/TaskScheduler.psm1",
+      "filename": "TaskScheduler.psm1",
+      "extension": ".psm1",
+      "language": "PowerShell",
+      "size_bytes": 4116,
+      "loc": 117,
+      "last_modified": "2026-09-22T08:35:13.645Z",
+      "imports": [],
+      "exports": [
+        "New-CronExpression, Register-ToolkitScheduledTask, Get-ToolkitScheduledTask, Remove-ToolkitScheduledTask, Get-TaskSchedulerAvailable"
+      ],
+      "architecture_layer": "Agent/Automation Scripts"
+    },
+    {
+      "path": "/Scripts/Modules/ToolkitConfig.psm1",
+      "filename": "ToolkitConfig.psm1",
+      "extension": ".psm1",
+      "language": "PowerShell",
+      "size_bytes": 3036,
+      "loc": 102,
+      "last_modified": "2026-09-22T08:35:13.618Z",
+      "imports": [],
+      "exports": [
+        "Get-ToolkitConfig, Resolve-ToolPath, Get-ToolkitDirectory"
+      ],
+      "architecture_layer": "Agent/Automation Scripts"
+    },
+    {
+      "path": "/Scripts/Modules/ToolkitData.psm1",
+      "filename": "ToolkitData.psm1",
+      "extension": ".psm1",
+      "language": "PowerShell",
+      "size_bytes": 8025,
+      "loc": 222,
+      "last_modified": "2026-09-22T08:35:13.703Z",
+      "imports": [],
+      "exports": [
+        "Get-ToolkitData, Initialize-ToolkitDatabase, Add-ToolkitInventoryRecord, Get-ToolkitInventory, Add-ToolkitDiagnostic, Remove-ToolkitData, Test-SQLiteBinary, Invoke-SQLite"
+      ],
+      "architecture_layer": "Agent/Automation Scripts"
+    },
+    {
+      "path": "/Scripts/Network-Diagnostic.ps1",
+      "filename": "Network-Diagnostic.ps1",
+      "extension": ".ps1",
+      "language": "PowerShell",
+      "size_bytes": 5481,
+      "loc": 115,
+      "last_modified": "2026-09-22T08:35:13.601Z",
+      "imports": [
+        "(Join-Path"
+      ],
+      "exports": [
+        "and"
+      ],
+      "architecture_layer": "Agent/Automation Scripts"
+    },
+    {
+      "path": "/Scripts/Pin-QuickAccess-Folders.ps1",
+      "filename": "Pin-QuickAccess-Folders.ps1",
+      "extension": ".ps1",
+      "language": "PowerShell",
+      "size_bytes": 1204,
+      "loc": 37,
+      "last_modified": "2026-09-22T08:35:13.611Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "Agent/Automation Scripts"
+    },
+    {
+      "path": "/Scripts/Printer-Fix.ps1",
+      "filename": "Printer-Fix.ps1",
+      "extension": ".ps1",
+      "language": "PowerShell",
+      "size_bytes": 1939,
+      "loc": 44,
+      "last_modified": "2026-09-22T08:35:13.626Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "Agent/Automation Scripts"
+    },
+    {
+      "path": "/Scripts/QuickCheck.ps1",
+      "filename": "QuickCheck.ps1",
+      "extension": ".ps1",
+      "language": "PowerShell",
+      "size_bytes": 14190,
+      "loc": 285,
+      "last_modified": "2026-09-22T08:35:13.604Z",
+      "imports": [
+        "(Join-Path"
+      ],
+      "exports": [],
+      "architecture_layer": "Agent/Automation Scripts"
+    },
+    {
+      "path": "/Scripts/README.md",
+      "filename": "README.md",
+      "extension": ".md",
+      "language": "Markdown",
+      "size_bytes": 11615,
+      "loc": 441,
+      "last_modified": "2026-09-22T08:35:13.634Z",
+      "imports": [],
+      "exports": [
+        "for",
+        "and",
+        "summary"
+      ],
+      "architecture_layer": "Agent/Automation Scripts"
+    },
+    {
+      "path": "/Scripts/Remote/BatchScan.ps1",
+      "filename": "BatchScan.ps1",
+      "extension": ".ps1",
+      "language": "PowerShell",
+      "size_bytes": 2763,
+      "loc": 78,
+      "last_modified": "2026-09-22T08:35:13.647Z",
+      "imports": [
+        "(Join-Path"
+      ],
+      "exports": [],
+      "architecture_layer": "Agent/Automation Scripts"
+    },
+    {
+      "path": "/Scripts/Remote/Invoke-RemoteNetworkDiagnostic.ps1",
+      "filename": "Invoke-RemoteNetworkDiagnostic.ps1",
+      "extension": ".ps1",
+      "language": "PowerShell",
+      "size_bytes": 1609,
+      "loc": 50,
+      "last_modified": "2026-09-22T08:35:13.674Z",
+      "imports": [
+        "(Join-Path"
+      ],
+      "exports": [],
+      "architecture_layer": "Agent/Automation Scripts"
+    },
+    {
+      "path": "/Scripts/Remote/Invoke-RemoteQuickCheck.ps1",
+      "filename": "Invoke-RemoteQuickCheck.ps1",
+      "extension": ".ps1",
+      "language": "PowerShell",
+      "size_bytes": 1575,
+      "loc": 50,
+      "last_modified": "2026-09-22T08:35:13.666Z",
+      "imports": [
+        "(Join-Path"
+      ],
+      "exports": [],
+      "architecture_layer": "Agent/Automation Scripts"
+    },
+    {
+      "path": "/Scripts/Remote/README.md",
+      "filename": "README.md",
+      "extension": ".md",
+      "language": "Markdown",
+      "size_bytes": 1250,
+      "loc": 28,
+      "last_modified": "2026-09-22T08:35:13.679Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "Agent/Automation Scripts"
+    },
+    {
+      "path": "/Scripts/Run-QuickCheck.bat",
+      "filename": "Run-QuickCheck.bat",
+      "extension": ".bat",
+      "language": "Batch",
+      "size_bytes": 243,
+      "loc": 6,
+      "last_modified": "2026-09-22T08:35:13.600Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "Agent/Automation Scripts"
+    },
+    {
+      "path": "/Scripts/Templates/Report-Template.html",
+      "filename": "Report-Template.html",
+      "extension": ".html",
+      "language": "HTML",
+      "size_bytes": 895,
+      "loc": 24,
+      "last_modified": "2026-09-22T08:35:13.662Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "Frontend"
+    },
+    {
+      "path": "/Scripts/Tests/BatchLauncher.Tests.ps1",
+      "filename": "BatchLauncher.Tests.ps1",
+      "extension": ".ps1",
+      "language": "PowerShell",
+      "size_bytes": 3238,
+      "loc": 80,
+      "last_modified": "2026-09-22T08:35:13.610Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "Agent/Automation Scripts"
+    },
+    {
+      "path": "/Scripts/Tests/Phase1-Regression.Tests.ps1",
+      "filename": "Phase1-Regression.Tests.ps1",
+      "extension": ".ps1",
+      "language": "PowerShell",
+      "size_bytes": 6680,
+      "loc": 176,
+      "last_modified": "2026-09-22T08:35:13.588Z",
+      "imports": [
+        "$path"
+      ],
+      "exports": [
+        "and",
+        "file"
+      ],
+      "architecture_layer": "Agent/Automation Scripts"
+    },
+    {
+      "path": "/Scripts/Tests/Phase2-Modules.Tests.ps1",
+      "filename": "Phase2-Modules.Tests.ps1",
+      "extension": ".ps1",
+      "language": "PowerShell",
+      "size_bytes": 5389,
+      "loc": 108,
+      "last_modified": "2026-09-22T08:35:13.600Z",
+      "imports": [
+        "(Join-Path"
+      ],
+      "exports": [],
+      "architecture_layer": "Agent/Automation Scripts"
+    },
+    {
+      "path": "/Scripts/Tests/README.md",
+      "filename": "README.md",
+      "extension": ".md",
+      "language": "Markdown",
+      "size_bytes": 665,
+      "loc": 24,
+      "last_modified": "2026-09-22T08:35:13.632Z",
+      "imports": [],
+      "exports": [
+        "behavior"
+      ],
+      "architecture_layer": "Agent/Automation Scripts"
+    },
+    {
+      "path": "/Scripts/Tests/RemoteToolkit.tests.ps1",
+      "filename": "RemoteToolkit.tests.ps1",
+      "extension": ".ps1",
+      "language": "PowerShell",
+      "size_bytes": 1494,
+      "loc": 39,
+      "last_modified": "2026-09-22T08:35:13.699Z",
+      "imports": [
+        "(Join-Path"
+      ],
+      "exports": [
+        "and",
+        "Invoke",
+        "Test"
+      ],
+      "architecture_layer": "Agent/Automation Scripts"
+    },
+    {
+      "path": "/Scripts/Tests/Run-RemoteToolkit-Tests.ps1",
+      "filename": "Run-RemoteToolkit-Tests.ps1",
+      "extension": ".ps1",
+      "language": "PowerShell",
+      "size_bytes": 755,
+      "loc": 23,
+      "last_modified": "2026-09-22T08:35:13.671Z",
+      "imports": [
+        "Pester"
+      ],
+      "exports": [],
+      "architecture_layer": "Agent/Automation Scripts"
+    },
+    {
+      "path": "/Scripts/User-Inventory.ps1",
+      "filename": "User-Inventory.ps1",
+      "extension": ".ps1",
+      "language": "PowerShell",
+      "size_bytes": 7841,
+      "loc": 178,
+      "last_modified": "2026-09-22T08:35:13.709Z",
+      "imports": [
+        "(Join-Path"
+      ],
+      "exports": [
+        "and"
+      ],
+      "architecture_layer": "Agent/Automation Scripts"
+    },
+    {
+      "path": "/Setup-Wizard.bat",
+      "filename": "Setup-Wizard.bat",
+      "extension": ".bat",
+      "language": "Batch",
+      "size_bytes": 10046,
+      "loc": 350,
+      "last_modified": "2026-09-22T08:35:13.606Z",
+      "imports": [],
+      "exports": [
+        "echo"
+      ],
+      "architecture_layer": "Agent/Automation Scripts"
+    },
+    {
+      "path": "/Software/Portable-Software-Links.md",
+      "filename": "Portable-Software-Links.md",
+      "extension": ".md",
+      "language": "Markdown",
+      "size_bytes": 2252,
+      "loc": 32,
+      "last_modified": "2026-09-22T08:35:13.657Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "Documentation"
+    },
+    {
+      "path": "/Templates/AI-Assistant-Prompts.txt",
+      "filename": "AI-Assistant-Prompts.txt",
+      "extension": ".txt",
+      "language": "Other",
+      "size_bytes": 13168,
+      "loc": 303,
+      "last_modified": "2026-09-22T08:35:13.626Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "General"
+    },
+    {
+      "path": "/Templates/CMD-Commands-Reference.txt",
+      "filename": "CMD-Commands-Reference.txt",
+      "extension": ".txt",
+      "language": "Other",
+      "size_bytes": 3123,
+      "loc": 65,
+      "last_modified": "2026-09-22T08:35:13.599Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "General"
+    },
+    {
+      "path": "/Templates/Knowledge-Base.xlsx",
+      "filename": "Knowledge-Base.xlsx",
+      "extension": ".xlsx",
+      "language": "Other",
+      "size_bytes": 11414,
+      "loc": 33,
+      "last_modified": "2026-09-22T08:35:13.589Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "General"
+    },
+    {
+      "path": "/Templates/Ticket-Reply-Templates.txt",
+      "filename": "Ticket-Reply-Templates.txt",
+      "extension": ".txt",
+      "language": "Other",
+      "size_bytes": 2500,
+      "loc": 93,
+      "last_modified": "2026-09-22T08:35:13.655Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "General"
+    },
+    {
+      "path": "/Toolkit-Menu.bat",
+      "filename": "Toolkit-Menu.bat",
+      "extension": ".bat",
+      "language": "Batch",
+      "size_bytes": 4053,
+      "loc": 133,
+      "last_modified": "2026-09-22T08:35:13.599Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "Agent/Automation Scripts"
+    },
+    {
+      "path": "/VERSION.md",
+      "filename": "VERSION.md",
+      "extension": ".md",
+      "language": "Markdown",
+      "size_bytes": 9760,
+      "loc": 125,
+      "last_modified": "2026-09-22T08:35:13.587Z",
+      "imports": [],
+      "exports": [
+        "and",
+        "tools",
+        "links"
+      ],
+      "architecture_layer": "Documentation"
+    },
+    {
+      "path": "/agent-artifacts.js",
+      "filename": "agent-artifacts.js",
+      "extension": ".js",
+      "language": "JavaScript",
+      "size_bytes": 5434,
+      "loc": 159,
+      "last_modified": "2026-09-22T08:35:13.639Z",
+      "imports": [
+        "fs",
+        "path",
+        "crypto",
+        "child_process",
+        "url"
+      ],
+      "exports": [
+        "getAgentVersionInfo",
+        "getAgentVersion",
+        "getCaCertificate",
+        "resolveAgentMsi",
+        "createValidMsiFixture"
+      ],
+      "architecture_layer": "General"
+    },
+    {
+      "path": "/artifacts/msi/51e7acd3-98d4-4f63-ac0c-7aae35853728/IT-Toolkit-Agent-Enterprise-1.1.2.msi",
+      "filename": "IT-Toolkit-Agent-Enterprise-1.1.2.msi",
+      "extension": ".msi",
+      "language": "Other",
+      "size_bytes": 1536,
+      "loc": 1,
+      "last_modified": "2026-09-22T08:35:13.608Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "General"
+    },
+    {
+      "path": "/artifacts/msi/5562742b-ef4e-4c8c-b699-593042e71c11/IT-Toolkit-Agent-Enterprise-1.1.2.msi",
+      "filename": "IT-Toolkit-Agent-Enterprise-1.1.2.msi",
+      "extension": ".msi",
+      "language": "Other",
+      "size_bytes": 1536,
+      "loc": 1,
+      "last_modified": "2026-09-22T08:35:13.613Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "General"
+    },
+    {
+      "path": "/artifacts/msi/57604147-5f39-420e-b7d8-ed1bfd3cb03b/IT-Toolkit-Agent-Enterprise-1.1.2.msi",
+      "filename": "IT-Toolkit-Agent-Enterprise-1.1.2.msi",
+      "extension": ".msi",
+      "language": "Other",
+      "size_bytes": 1536,
+      "loc": 1,
+      "last_modified": "2026-09-22T08:35:13.617Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "General"
+    },
+    {
+      "path": "/artifacts/msi/60e6be69-8a5d-48dd-9fde-cc9be47873e2/IT-Toolkit-Agent-Enterprise-1.1.2.msi",
+      "filename": "IT-Toolkit-Agent-Enterprise-1.1.2.msi",
+      "extension": ".msi",
+      "language": "Other",
+      "size_bytes": 1536,
+      "loc": 1,
+      "last_modified": "2026-09-22T08:35:13.664Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "General"
+    },
+    {
+      "path": "/artifacts/msi/662ac363-597c-427a-aa7b-3db3bb8c086d/IT-Toolkit-Agent-Enterprise-1.1.2.msi",
+      "filename": "IT-Toolkit-Agent-Enterprise-1.1.2.msi",
+      "extension": ".msi",
+      "language": "Other",
+      "size_bytes": 1536,
+      "loc": 1,
+      "last_modified": "2026-09-22T08:35:13.660Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "General"
+    },
+    {
+      "path": "/artifacts/msi/IT-Toolkit-Agent-1.1.2.msi",
+      "filename": "IT-Toolkit-Agent-1.1.2.msi",
+      "extension": ".msi",
+      "language": "Other",
+      "size_bytes": 1536,
+      "loc": 1,
+      "last_modified": "2026-09-22T08:35:13.605Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "General"
+    },
+    {
+      "path": "/artifacts/msi/a4b6b717-efee-471b-914d-994eeec2ca70/IT-Toolkit-Agent-Enterprise-1.1.2.msi",
+      "filename": "IT-Toolkit-Agent-Enterprise-1.1.2.msi",
+      "extension": ".msi",
+      "language": "Other",
+      "size_bytes": 1536,
+      "loc": 1,
+      "last_modified": "2026-09-22T08:35:13.651Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "General"
+    },
+    {
+      "path": "/artifacts/msi/bca6a12d-1c60-4985-8f27-528331d72022/IT-Toolkit-Agent-Enterprise-1.1.2.msi",
+      "filename": "IT-Toolkit-Agent-Enterprise-1.1.2.msi",
+      "extension": ".msi",
+      "language": "Other",
+      "size_bytes": 1536,
+      "loc": 1,
+      "last_modified": "2026-09-22T08:35:13.593Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "General"
+    },
+    {
+      "path": "/audit/ai.md",
+      "filename": "ai.md",
+      "extension": ".md",
+      "language": "Markdown",
+      "size_bytes": 2580,
+      "loc": 72,
+      "last_modified": "2026-09-22T08:35:13.607Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "Audit"
+    },
+    {
+      "path": "/audit/api.json",
+      "filename": "api.json",
+      "extension": ".json",
+      "language": "JSON",
+      "size_bytes": 6440,
+      "loc": 226,
+      "last_modified": "2026-09-22T08:39:50.622Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "Audit"
+    },
+    {
+      "path": "/audit/architecture.json",
+      "filename": "architecture.json",
+      "extension": ".json",
+      "language": "JSON",
+      "size_bytes": 4001,
+      "loc": 86,
+      "last_modified": "2026-09-22T08:39:50.622Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "Audit"
+    },
+    {
+      "path": "/audit/audit-engine.ps1",
+      "filename": "audit-engine.ps1",
+      "extension": ".ps1",
+      "language": "PowerShell",
+      "size_bytes": 3146,
+      "loc": 88,
+      "last_modified": "2026-09-22T08:35:13.663Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "Agent/Automation Scripts"
+    },
+    {
+      "path": "/audit/backend.md",
+      "filename": "backend.md",
+      "extension": ".md",
+      "language": "Markdown",
+      "size_bytes": 1752,
+      "loc": 28,
+      "last_modified": "2026-09-22T08:39:53.974Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "Audit"
+    },
+    {
+      "path": "/audit/code-quality.md",
+      "filename": "code-quality.md",
+      "extension": ".md",
+      "language": "Markdown",
+      "size_bytes": 4745,
+      "loc": 84,
+      "last_modified": "2026-09-22T08:35:13.607Z",
+      "imports": [
+        "RemoteToolkit.psm1`"
+      ],
+      "exports": [],
+      "architecture_layer": "Audit"
+    },
+    {
+      "path": "/audit/database.json",
+      "filename": "database.json",
+      "extension": ".json",
+      "language": "JSON",
+      "size_bytes": 1176,
+      "loc": 36,
+      "last_modified": "2026-09-22T08:39:50.622Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "Audit"
+    },
+    {
+      "path": "/audit/dependencies.json",
+      "filename": "dependencies.json",
+      "extension": ".json",
+      "language": "JSON",
+      "size_bytes": 995,
+      "loc": 44,
+      "last_modified": "2026-09-22T08:39:50.623Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "Audit"
+    },
+    {
+      "path": "/audit/documentation.md",
+      "filename": "documentation.md",
+      "extension": ".md",
+      "language": "Markdown",
+      "size_bytes": 5344,
+      "loc": 96,
+      "last_modified": "2026-09-22T08:40:39.192Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "Audit"
+    },
+    {
+      "path": "/audit/frontend.md",
+      "filename": "frontend.md",
+      "extension": ".md",
+      "language": "Markdown",
+      "size_bytes": 2736,
+      "loc": 53,
+      "last_modified": "2026-09-22T08:35:13.659Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "Frontend"
+    },
+    {
+      "path": "/audit/index.json",
+      "filename": "index.json",
+      "extension": ".json",
+      "language": "JSON",
+      "size_bytes": 75376,
+      "loc": 2743,
+      "last_modified": "2026-09-22T08:39:50.621Z",
+      "imports": [],
+      "exports": [
+        "module.exports"
+      ],
+      "architecture_layer": "Audit"
+    },
+    {
+      "path": "/audit/issues.json",
+      "filename": "issues.json",
+      "extension": ".json",
+      "language": "JSON",
+      "size_bytes": 338,
+      "loc": 20,
+      "last_modified": "2026-09-22T08:39:53.975Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "Audit"
+    },
+    {
+      "path": "/audit/release-readiness.md",
+      "filename": "release-readiness.md",
+      "extension": ".md",
+      "language": "Markdown",
+      "size_bytes": 2057,
+      "loc": 31,
+      "last_modified": "2026-09-22T08:39:53.975Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "Audit"
+    },
+    {
+      "path": "/audit/reports/final.md",
+      "filename": "final.md",
+      "extension": ".md",
+      "language": "Markdown",
+      "size_bytes": 1775,
+      "loc": 43,
+      "last_modified": "2026-09-22T08:39:53.975Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "Audit"
+    },
+    {
+      "path": "/audit/reports/latest.md",
+      "filename": "latest.md",
+      "extension": ".md",
+      "language": "Markdown",
+      "size_bytes": 1775,
+      "loc": 43,
+      "last_modified": "2026-09-22T08:39:53.975Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "Audit"
+    },
+    {
+      "path": "/audit/scanner.cjs",
+      "filename": "scanner.cjs",
+      "extension": ".cjs",
+      "language": "JavaScript",
+      "size_bytes": 33475,
+      "loc": 650,
+      "last_modified": "2026-09-22T08:39:49.014Z",
+      "imports": [
+        "fs",
+        "path",
+        "child_process"
+      ],
+      "exports": [
+        "module.exports"
+      ],
+      "architecture_layer": "Audit"
+    },
+    {
+      "path": "/audit/security.md",
+      "filename": "security.md",
+      "extension": ".md",
+      "language": "Markdown",
+      "size_bytes": 1624,
+      "loc": 23,
+      "last_modified": "2026-09-22T08:39:53.975Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "Audit"
+    },
+    {
+      "path": "/audit/statistics.json",
+      "filename": "statistics.json",
+      "extension": ".json",
+      "language": "JSON",
+      "size_bytes": 2224,
+      "loc": 120,
+      "last_modified": "2026-09-22T08:39:50.622Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "Audit"
+    },
+    {
+      "path": "/audit/testing.md",
+      "filename": "testing.md",
+      "extension": ".md",
+      "language": "Markdown",
+      "size_bytes": 3270,
+      "loc": 54,
+      "last_modified": "2026-09-22T08:39:53.974Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "Audit"
+    },
+    {
+      "path": "/bun.lock",
+      "filename": "bun.lock",
+      "extension": ".lock",
+      "language": "Other",
+      "size_bytes": 65365,
+      "loc": 644,
+      "last_modified": "2026-09-22T08:35:13.607Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "General"
+    },
+    {
+      "path": "/certs/ca.crt",
+      "filename": "ca.crt",
+      "extension": ".crt",
+      "language": "Other",
+      "size_bytes": 1302,
+      "loc": 23,
+      "last_modified": "2026-09-22T08:35:13.625Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "General"
+    },
+    {
+      "path": "/certs/ca.key",
+      "filename": "ca.key",
+      "extension": ".key",
+      "language": "Other",
+      "size_bytes": 1704,
+      "loc": 29,
+      "last_modified": "2026-09-22T08:35:13.617Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "General"
+    },
+    {
+      "path": "/contracts/agent-protocol/agent-protocol.json",
+      "filename": "agent-protocol.json",
+      "extension": ".json",
+      "language": "JSON",
+      "size_bytes": 1694,
+      "loc": 49,
+      "last_modified": "2026-09-22T08:35:13.700Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "Backend/API"
+    },
+    {
+      "path": "/contracts/openapi/openapi.yaml",
+      "filename": "openapi.yaml",
+      "extension": ".yaml",
+      "language": "YAML",
+      "size_bytes": 29848,
+      "loc": 1237,
+      "last_modified": "2026-09-22T08:35:13.684Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "Backend/API"
+    },
+    {
+      "path": "/coverage/base.css",
+      "filename": "base.css",
+      "extension": ".css",
+      "language": "CSS",
+      "size_bytes": 5494,
+      "loc": 363,
+      "last_modified": "2026-09-22T08:35:13.649Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "Frontend"
+    },
+    {
+      "path": "/coverage/block-navigation.js",
+      "filename": "block-navigation.js",
+      "extension": ".js",
+      "language": "JavaScript",
+      "size_bytes": 2336,
+      "loc": 83,
+      "last_modified": "2026-09-22T08:35:13.644Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "General"
+    },
+    {
+      "path": "/coverage/coverage-final.json",
+      "filename": "coverage-final.json",
+      "extension": ".json",
+      "language": "JSON",
+      "size_bytes": 737224,
+      "loc": 5,
+      "last_modified": "2026-09-22T08:35:13.695Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "General"
+    },
+    {
+      "path": "/coverage/db.js.html",
+      "filename": "db.js.html",
+      "extension": ".html",
+      "language": "HTML",
+      "size_bytes": 405060,
+      "loc": 8143,
+      "last_modified": "2026-09-22T08:35:13.623Z",
+      "imports": [
+        "mysql2/promise",
+        "ioredis",
+        "fs",
+        "path",
+        "crypto",
+        "bcrypt",
+        "url"
+      ],
+      "exports": [
+        "initRedisClient",
+        "async",
+        "startDbHealthCheck",
+        "stopDbHealthCheck",
+        "isMysqlConnected",
+        "getPool",
+        "invalidateDeviceCache",
+        "startTelemetryFlushWorker",
+        "invalidateAlertRulesCache",
+        "getLastRetentionRun",
+        "initRetentionScheduler"
+      ],
+      "architecture_layer": "Frontend"
+    },
+    {
+      "path": "/coverage/favicon.png",
+      "filename": "favicon.png",
+      "extension": ".png",
+      "language": "Other",
+      "size_bytes": 445,
+      "loc": 3,
+      "last_modified": "2026-09-22T08:35:13.589Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "General"
+    },
+    {
+      "path": "/coverage/index.html",
+      "filename": "index.html",
+      "extension": ".html",
+      "language": "HTML",
+      "size_bytes": 5832,
+      "loc": 146,
+      "last_modified": "2026-09-22T08:35:13.641Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "Frontend"
+    },
+    {
+      "path": "/coverage/prettify.css",
+      "filename": "prettify.css",
+      "extension": ".css",
+      "language": "CSS",
+      "size_bytes": 1060,
+      "loc": 102,
+      "last_modified": "2026-09-22T08:35:13.643Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "Frontend"
+    },
+    {
+      "path": "/coverage/prettify.js",
+      "filename": "prettify.js",
+      "extension": ".js",
+      "language": "JavaScript",
+      "size_bytes": 26708,
+      "loc": 938,
+      "last_modified": "2026-09-22T08:35:13.642Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "General"
+    },
+    {
+      "path": "/coverage/server.js.html",
+      "filename": "server.js.html",
+      "extension": ".html",
+      "language": "HTML",
+      "size_bytes": 406853,
+      "loc": 8230,
+      "last_modified": "2026-09-22T08:35:13.606Z",
+      "imports": [
+        "express",
+        "cookie-parser",
+        "path",
+        "url",
+        "jszip",
+        "crypto",
+        "fs",
+        "bcrypt",
+        "jsonwebtoken",
+        "helmet",
+        "compression",
+        "express-rate-limit",
+        "./db.js"
+      ],
+      "exports": [],
+      "architecture_layer": "Frontend"
+    },
+    {
+      "path": "/coverage/sort-arrow-sprite.png",
+      "filename": "sort-arrow-sprite.png",
+      "extension": ".png",
+      "language": "Other",
+      "size_bytes": 138,
+      "loc": 3,
+      "last_modified": "2026-09-22T08:35:13.667Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "General"
+    },
+    {
+      "path": "/coverage/sorter.js",
+      "filename": "sorter.js",
+      "extension": ".js",
+      "language": "JavaScript",
+      "size_bytes": 5744,
+      "loc": 206,
+      "last_modified": "2026-09-22T08:35:13.598Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "General"
+    },
+    {
+      "path": "/coverage/validation.js.html",
+      "filename": "validation.js.html",
+      "extension": ".html",
+      "language": "HTML",
+      "size_bytes": 38783,
+      "loc": 925,
+      "last_modified": "2026-09-22T08:35:13.613Z",
+      "imports": [
+        "zod"
+      ],
+      "exports": [
+        "validateBody",
+        "parsePagination",
+        "sendPaginated",
+        "loginSchema",
+        "agentEnrollSchema",
+        "deviceRegistrationSchema",
+        "telemetryIngestSchema",
+        "commandDispatchSchema",
+        "commandResultSchema",
+        "msiGenerateSchema",
+        "createAlertRuleSchema",
+        "updateAlertRuleSchema",
+        "webhookConfigSchema",
+        "createGroupSchema",
+        "updateGroupSchema",
+        "createPolicySchema",
+        "updatePolicySchema",
+        "assignPolicySchema",
+        "updateRetentionSchema",
+        "setupSchema",
+        "createUserSchema",
+        "updateUserSchema",
+        "createCompanySchema",
+        "defaultCompanySchema",
+        "updateFeatureSchema",
+        "updateTargetVersionSchema",
+        "buildTriggerSchema",
+        "updateRemediationPolicySchema",
+        "remediationTriggerSchema",
+        "ticketConfigSchema",
+        "createTicketSchema"
+      ],
+      "architecture_layer": "Frontend"
+    },
+    {
+      "path": "/database/migrations/001_init_schema.sql",
+      "filename": "001_init_schema.sql",
+      "extension": ".sql",
+      "language": "SQL",
+      "size_bytes": 10205,
+      "loc": 258,
+      "last_modified": "2026-09-22T08:35:13.597Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "Database"
+    },
+    {
+      "path": "/database/migrations/002_partitioning.sql",
+      "filename": "002_partitioning.sql",
+      "extension": ".sql",
+      "language": "SQL",
+      "size_bytes": 1374,
+      "loc": 33,
+      "last_modified": "2026-09-22T08:35:13.658Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "Database"
+    },
+    {
+      "path": "/database/migrations/003_rbac_and_audit.sql",
+      "filename": "003_rbac_and_audit.sql",
+      "extension": ".sql",
+      "language": "SQL",
+      "size_bytes": 8316,
+      "loc": 139,
+      "last_modified": "2026-09-22T08:35:13.592Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "Database"
+    },
+    {
+      "path": "/database/migrations/README.md",
+      "filename": "README.md",
+      "extension": ".md",
+      "language": "Markdown",
+      "size_bytes": 1332,
+      "loc": 18,
+      "last_modified": "2026-09-22T08:35:13.615Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "Database"
+    },
+    {
+      "path": "/database/mysql/schema.sql",
+      "filename": "schema.sql",
+      "extension": ".sql",
+      "language": "SQL",
+      "size_bytes": 22576,
+      "loc": 467,
+      "last_modified": "2026-09-22T08:35:13.676Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "Database"
+    },
+    {
+      "path": "/db.js",
+      "filename": "db.js",
+      "extension": ".js",
+      "language": "JavaScript",
+      "size_bytes": 100566,
+      "loc": 2687,
+      "last_modified": "2026-09-22T08:35:13.635Z",
+      "imports": [
+        "mysql2/promise",
+        "ioredis",
+        "fs",
+        "path",
+        "crypto",
+        "bcrypt",
+        "url"
+      ],
+      "exports": [
+        "initRedisClient",
+        "async",
+        "startDbHealthCheck",
+        "stopDbHealthCheck",
+        "isMysqlConnected",
+        "getPool",
+        "invalidateDeviceCache",
+        "startTelemetryFlushWorker",
+        "invalidateAlertRulesCache",
+        "getLastRetentionRun",
+        "initRetentionScheduler"
+      ],
+      "architecture_layer": "Database"
+    },
+    {
+      "path": "/doc1_full.txt",
+      "filename": "doc1_full.txt",
+      "extension": ".txt",
+      "language": "Other",
+      "size_bytes": 17507,
+      "loc": 271,
+      "last_modified": "2026-09-22T08:35:13.610Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "General"
+    },
+    {
+      "path": "/doc2_full.txt",
+      "filename": "doc2_full.txt",
+      "extension": ".txt",
+      "language": "Other",
+      "size_bytes": 30279,
+      "loc": 905,
+      "last_modified": "2026-09-22T08:35:13.586Z",
+      "imports": [],
+      "exports": [
+        "PHASE"
+      ],
+      "architecture_layer": "General"
+    },
+    {
+      "path": "/docs/architecture/ADR-001-service-topology.md",
+      "filename": "ADR-001-service-topology.md",
+      "extension": ".md",
+      "language": "Markdown",
+      "size_bytes": 2226,
+      "loc": 35,
+      "last_modified": "2026-09-22T08:35:13.600Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "Documentation"
+    },
+    {
+      "path": "/docs/architecture/ADR-002-msi-package-builder.md",
+      "filename": "ADR-002-msi-package-builder.md",
+      "extension": ".md",
+      "language": "Markdown",
+      "size_bytes": 2242,
+      "loc": 32,
+      "last_modified": "2026-09-22T08:35:13.641Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "Documentation"
+    },
+    {
+      "path": "/docs/architecture/ADR-003-no-mock-telemetry.md",
+      "filename": "ADR-003-no-mock-telemetry.md",
+      "extension": ".md",
+      "language": "Markdown",
+      "size_bytes": 1493,
+      "loc": 22,
+      "last_modified": "2026-09-22T08:35:13.598Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "Documentation"
+    },
+    {
+      "path": "/docs/architecture/RTM.md",
+      "filename": "RTM.md",
+      "extension": ".md",
+      "language": "Markdown",
+      "size_bytes": 5901,
+      "loc": 30,
+      "last_modified": "2026-09-22T08:35:13.690Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "Documentation"
+    },
+    {
+      "path": "/docs/architecture/Technical-Architecture-Spec.md",
+      "filename": "Technical-Architecture-Spec.md",
+      "extension": ".md",
+      "language": "Markdown",
+      "size_bytes": 9676,
+      "loc": 220,
+      "last_modified": "2026-09-22T08:35:13.665Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "Documentation"
+    },
+    {
+      "path": "/ecosystem.config.cjs",
+      "filename": "ecosystem.config.cjs",
+      "extension": ".cjs",
+      "language": "JavaScript",
+      "size_bytes": 1003,
+      "loc": 34,
+      "last_modified": "2026-09-22T08:35:13.619Z",
+      "imports": [],
+      "exports": [
+        "module.exports"
+      ],
+      "architecture_layer": "General"
+    },
+    {
+      "path": "/metadata.json",
+      "filename": "metadata.json",
+      "extension": ".json",
+      "language": "JSON",
+      "size_bytes": 234,
+      "loc": 9,
+      "last_modified": "2026-09-22T08:35:13.624Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "General"
+    },
+    {
+      "path": "/package-lock.json",
+      "filename": "package-lock.json",
+      "extension": ".json",
+      "language": "JSON",
+      "size_bytes": 116420,
+      "loc": 3788,
+      "last_modified": "2026-09-22T08:36:20.963Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "General"
+    },
+    {
+      "path": "/package.json",
+      "filename": "package.json",
+      "extension": ".json",
+      "language": "JSON",
+      "size_bytes": 1604,
+      "loc": 46,
+      "last_modified": "2026-09-22T08:40:53.187Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "General"
+    },
+    {
+      "path": "/project-index.json",
+      "filename": "project-index.json",
+      "extension": ".json",
+      "language": "JSON",
+      "size_bytes": 58519,
+      "loc": 1842,
+      "last_modified": "2026-09-22T08:35:13.601Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "General"
+    },
+    {
+      "path": "/project-progress.json",
+      "filename": "project-progress.json",
+      "extension": ".json",
+      "language": "JSON",
+      "size_bytes": 8831,
+      "loc": 316,
+      "last_modified": "2026-09-22T08:35:13.670Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "General"
+    },
+    {
+      "path": "/project-state.json",
+      "filename": "project-state.json",
+      "extension": ".json",
+      "language": "JSON",
+      "size_bytes": 1699,
+      "loc": 53,
+      "last_modified": "2026-09-22T08:35:13.599Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "General"
+    },
+    {
+      "path": "/server.js",
+      "filename": "server.js",
+      "extension": ".js",
+      "language": "JavaScript",
+      "size_bytes": 104723,
+      "loc": 2716,
+      "last_modified": "2026-09-22T08:35:13.736Z",
+      "imports": [
+        "express",
+        "cookie-parser",
+        "path",
+        "url",
+        "jszip",
+        "crypto",
+        "fs",
+        "bcrypt",
+        "jsonwebtoken",
+        "helmet",
+        "compression",
+        "express-rate-limit",
+        "./db.js"
+      ],
+      "exports": [],
+      "architecture_layer": "Backend/API"
+    },
+    {
+      "path": "/test-auth-integration.js",
+      "filename": "test-auth-integration.js",
+      "extension": ".js",
+      "language": "JavaScript",
+      "size_bytes": 8315,
+      "loc": 195,
+      "last_modified": "2026-09-22T08:35:13.702Z",
+      "imports": [
+        "http",
+        "crypto",
+        "jsonwebtoken"
+      ],
+      "exports": [],
+      "architecture_layer": "Testing"
+    },
+    {
+      "path": "/test-contract-validation.js",
+      "filename": "test-contract-validation.js",
+      "extension": ".js",
+      "language": "JavaScript",
+      "size_bytes": 4253,
+      "loc": 112,
+      "last_modified": "2026-09-22T08:35:13.614Z",
+      "imports": [
+        "node:assert",
+        "node:fs",
+        "node:path",
+        "node:url",
+        "yaml"
+      ],
+      "exports": [],
+      "architecture_layer": "Testing"
+    },
+    {
+      "path": "/test-data-retention.js",
+      "filename": "test-data-retention.js",
+      "extension": ".js",
+      "language": "JavaScript",
+      "size_bytes": 8291,
+      "loc": 202,
+      "last_modified": "2026-09-22T08:35:13.682Z",
+      "imports": [
+        "node:assert",
+        "node:http",
+        "node:fs",
+        "node:path",
+        "node:url",
+        "./db.js"
+      ],
+      "exports": [],
+      "architecture_layer": "Testing"
+    },
+    {
+      "path": "/test-database-resilience.js",
+      "filename": "test-database-resilience.js",
+      "extension": ".js",
+      "language": "JavaScript",
+      "size_bytes": 4715,
+      "loc": 101,
+      "last_modified": "2026-09-22T08:35:13.606Z",
+      "imports": [
+        "node:assert",
+        "./db.js"
+      ],
+      "exports": [],
+      "architecture_layer": "Testing"
+    },
+    {
+      "path": "/test-device-auth-deep.js",
+      "filename": "test-device-auth-deep.js",
+      "extension": ".js",
+      "language": "JavaScript",
+      "size_bytes": 9826,
+      "loc": 228,
+      "last_modified": "2026-09-22T08:35:13.649Z",
+      "imports": [
+        "http",
+        "crypto",
+        "child_process"
+      ],
+      "exports": [],
+      "architecture_layer": "Testing"
+    },
+    {
+      "path": "/test-id-generation-race.js",
+      "filename": "test-id-generation-race.js",
+      "extension": ".js",
+      "language": "JavaScript",
+      "size_bytes": 8621,
+      "loc": 240,
+      "last_modified": "2026-09-22T08:35:13.682Z",
+      "imports": [
+        "http",
+        "crypto",
+        "./db.js"
+      ],
+      "exports": [],
+      "architecture_layer": "Testing"
+    },
+    {
+      "path": "/test-migrations-runner.js",
+      "filename": "test-migrations-runner.js",
+      "extension": ".js",
+      "language": "JavaScript",
+      "size_bytes": 7010,
+      "loc": 145,
+      "last_modified": "2026-09-22T08:35:13.616Z",
+      "imports": [
+        "node:assert",
+        "node:fs",
+        "node:path",
+        "node:url",
+        "./db.js"
+      ],
+      "exports": [],
+      "architecture_layer": "Testing"
+    },
+    {
+      "path": "/test-msi-packaging-integration.js",
+      "filename": "test-msi-packaging-integration.js",
+      "extension": ".js",
+      "language": "JavaScript",
+      "size_bytes": 6882,
+      "loc": 127,
+      "last_modified": "2026-09-22T08:35:13.664Z",
+      "imports": [
+        "assert",
+        "crypto",
+        "jsonwebtoken",
+        "fs",
+        "path",
+        "url"
+      ],
+      "exports": [],
+      "architecture_layer": "Testing"
+    },
+    {
+      "path": "/test-query-performance-indexing.js",
+      "filename": "test-query-performance-indexing.js",
+      "extension": ".js",
+      "language": "JavaScript",
+      "size_bytes": 10556,
+      "loc": 272,
+      "last_modified": "2026-09-22T08:35:13.612Z",
+      "imports": [
+        "node:assert",
+        "node:http",
+        "node:crypto",
+        "./db.js"
+      ],
+      "exports": [],
+      "architecture_layer": "Testing"
+    },
+    {
+      "path": "/tests/integration/server.integration.test.js",
+      "filename": "server.integration.test.js",
+      "extension": ".js",
+      "language": "JavaScript",
+      "size_bytes": 28575,
+      "loc": 821,
+      "last_modified": "2026-09-22T08:35:13.609Z",
+      "imports": [
+        "vitest",
+        "supertest",
+        "../../server.js"
+      ],
+      "exports": [],
+      "architecture_layer": "Testing"
+    },
+    {
+      "path": "/tests/unit/db.unit.test.js",
+      "filename": "db.unit.test.js",
+      "extension": ".js",
+      "language": "JavaScript",
+      "size_bytes": 33505,
+      "loc": 926,
+      "last_modified": "2026-09-22T08:35:13.587Z",
+      "imports": [
+        "vitest",
+        "../../db.js"
+      ],
+      "exports": [],
+      "architecture_layer": "Testing"
+    },
+    {
+      "path": "/tests/unit/validation.unit.test.js",
+      "filename": "validation.unit.test.js",
+      "extension": ".js",
+      "language": "JavaScript",
+      "size_bytes": 6615,
+      "loc": 173,
+      "last_modified": "2026-09-22T08:37:54.616Z",
+      "imports": [
+        "vitest",
+        "../../validation.js"
+      ],
+      "exports": [],
+      "architecture_layer": "Testing"
+    },
+    {
+      "path": "/validation.js",
+      "filename": "validation.js",
+      "extension": ".js",
+      "language": "JavaScript",
+      "size_bytes": 9427,
+      "loc": 281,
+      "last_modified": "2026-09-22T08:37:50.064Z",
+      "imports": [
+        "zod"
+      ],
+      "exports": [
+        "validateBody",
+        "parsePagination",
+        "sendPaginated",
+        "loginSchema",
+        "agentEnrollSchema",
+        "deviceRegistrationSchema",
+        "telemetryIngestSchema",
+        "commandDispatchSchema",
+        "commandResultSchema",
+        "msiGenerateSchema",
+        "createAlertRuleSchema",
+        "updateAlertRuleSchema",
+        "webhookConfigSchema",
+        "createGroupSchema",
+        "updateGroupSchema",
+        "createPolicySchema",
+        "updatePolicySchema",
+        "assignPolicySchema",
+        "updateRetentionSchema",
+        "setupSchema",
+        "createUserSchema",
+        "updateUserSchema",
+        "createCompanySchema",
+        "defaultCompanySchema",
+        "updateFeatureSchema",
+        "updateTargetVersionSchema",
+        "buildTriggerSchema",
+        "updateRemediationPolicySchema",
+        "remediationTriggerSchema",
+        "ticketConfigSchema",
+        "createTicketSchema"
+      ],
+      "architecture_layer": "General"
+    },
+    {
+      "path": "/vitest.config.js",
+      "filename": "vitest.config.js",
+      "extension": ".js",
+      "language": "JavaScript",
+      "size_bytes": 657,
+      "loc": 31,
+      "last_modified": "2026-09-22T08:35:13.673Z",
+      "imports": [
+        "vitest/config"
+      ],
+      "exports": [
+        "defineConfig"
+      ],
+      "architecture_layer": "Testing"
+    }
+  ]
+}

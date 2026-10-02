@@ -1,0 +1,29 @@
+# Requirement Traceability Matrix (RTM)
+## Aaditech Endpoint Monitoring & Management Platform
+
+**Document Reference:** `Aaditech_Endpoint_Monitoring_Management_Final_Requirements.docx` & `Aaditech_Master_Development_Directive_Go_Edition_updated.docx`
+
+---
+
+| Requirement ID | Requirement Description | Source Section | Priority | Affected Components | Database Impact | API Impact | Agent Impact | UI Impact | Security Impact | Testing Requirement | Dependencies | Implementation Status |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| **REQ-001** | Cross-Platform Telemetry Collection (OS, HW, SW, Disk, Net, Process) | Doc 1 Sec 3, 5, 6 | MANDATORY | Agent Collectors | Metric Tables | `/api/v1/ingest/telemetry` | Native Collectors | Metrics View | Sensor Integrity | Unit/Integration | OS Collector APIs | **Phase 0 Specs Complete** |
+| **REQ-002** | Multi-OS Support (Windows, macOS, Linux) | Doc 1 Sec 3, 5 | MANDATORY | Agent Core | Device OS Field | Ingest Protocol | Cross-Compile | Device Filtering | Platform Security | Matrix Test | Go / Native APIs | **Phase 0 Specs Complete** |
+| **REQ-003** | Agent Auto-Update & Server Config Sync | Doc 1 Sec 3 | MANDATORY | Agent Engine, Update Subsystem | Config & Version Tables | `/api/v1/agent/config` | Self-Update | Rollout View | Signed Binaries | Canary Deploy Test | Signed Binaries | **Phase 0 Specs Complete** |
+| **REQ-004** | Offline Local Queue, Retry, Exponential Backoff & Sequence | Doc 1 Sec 3 | MANDATORY | Agent Storage | Ingest Dup Detection | Ingest Protocol | SQLite/LevelDB Cache | Queue Health | Replay Protection | Network Partition | SQLite | **Phase 0 Specs Complete** |
+| **REQ-005** | Agent Tamper Detection & Cert Rotation | Doc 1 Sec 3, 8 | MANDATORY | Security Engine | Cert Revocation Table | `/api/v1/enroll/renew` | Service Watchdog | Security Health | mTLS & Cert Rotation | Cert Expiry Test | PKI / CA | **Phase 0 Specs Complete** |
+| **REQ-006** | Secure MSI Package Builder Subsystem | Doc 1 Sec 4, Doc 2 A.2 | MANDATORY | MSI Subsystem | MSI Artifact Table | `/api/v1/msi/generate` | Bootstrapper | Package Generator | KMS Signing & Tokens | Build & Sign Test | WiX / Go MSI Engine | **Phase 0 Specs Complete** |
+| **REQ-007** | OS & Device Inventory Discovery | Doc 1 Sec 5 | MANDATORY | Inventory Engine | `devices` Table | `/api/v1/devices` | System Query | Device Inventory | Identity Verification | Integration Test | OS Syscalls | **Phase 0 Specs Complete** |
+| **REQ-008** | Hardware Inventory & Performance Metrics | Doc 1 Sec 6, 7 | MANDATORY | Telemetry Engine | `device_hardware`, Partitioned Metrics | Ingest Endpoint | HW Probes | Metrics Dashboard | Data Validation | Load & Stress Test | gopsutil / sysinfo | **Phase 0 Specs Complete** |
+| **REQ-009** | Software & Patch Inventory | Doc 1 Sec 7 | MANDATORY | Patch Manager | `device_software` | Inventory API | Registry/Package Scan | Software Catalog | Vulnerability Scan | Inventory Test | WMI/rpm/dpkg | **Phase 0 Specs Complete** |
+| **REQ-010** | Ingestion Pipeline & Event Queue Architecture | Doc 1 Sec 11, Doc 2 A.1 | MANDATORY | Ingest Service, Worker Pool | Queue / DB Ingest | Ingest API | Batching Engine | Throughput Gauge | Backpressure & Rate Limit | Load & Queue Test | Redis / NATS | **Phase 0 Specs Complete** |
+| **REQ-011** | Security & Compliance Posture Tracking | Doc 1 Sec 9 | MANDATORY | Compliance Engine | `compliance_posture` | Compliance API | Security Probes | Security Scorecard | Compliance Audit | Security Test | OS Security APIs | **Phase 0 Specs Complete** |
+| **REQ-012** | Database Architecture & Partitioning | Doc 1 Sec 10 | MANDATORY | Database Subsystem | PostgreSQL 16 Partitioning | Data Query APIs | N/A | Dashboard Feeds | Tenant Isolation | Migration & Query Test | PostgreSQL 16 | **Phase 0 Specs Complete** |
+| **REQ-013** | Authentication, Multi-Tenancy & RBAC | Doc 1 Sec 13 | MANDATORY | Auth Module | `tenants`, `users`, `roles` | `/api/v1/auth/*` | Bearer/mTLS Auth | RBAC Navigation | JWT & Tenant Isolation | Security Audit Test | Argon2 / JWT | **Phase 0 Specs Complete** |
+| **REQ-014** | Alerting Engine & Auto-Remediation | Doc 1 Sec 15 | MANDATORY | Alert Engine | `alerts`, `alert_rules` | Alert Management | Action Handler | Alert Console | Command Signing | Alert Simulation | Evaluation Loop | **Phase 0 Specs Complete** |
+| **REQ-015** | Remote Command Execution Subsystem | Doc 1 Sec 16 | MANDATORY | Remote Command Engine | `remote_commands` | Command Dispatch API | Executor Daemon | Terminal Console | ECDSA Signature Verification | Execution Audit | HMAC / ECDSA | **Phase 0 Specs Complete** |
+| **REQ-016** | Comprehensive Immutable Audit Logging | Doc 1 Sec 17 | MANDATORY | Audit Subsystem | `audit_logs` (Append Only) | Audit API | Local Audit Probe | Audit Explorer | Immutable Logs | Tamper Test | DB Trigger / Ledger | **Phase 0 Specs Complete** |
+| **REQ-017** | AI Integration & Predictive Analysis | Doc 1 Sec 18 | IMPORTANT | AI Integration Engine | AI Summary Cache | AI Insight API | N/A | AI Advisory Widget | Privacy Safeguards | Prompt Safety Test | Gemini API | **Phase 0 Specs Complete** |
+| **REQ-018** | Observability, Health & Diagnostics | Doc 1 Sec 20 | MANDATORY | Telemetry / Prometheus | Metrics Exporter | `/healthz`, `/metrics` | Health Heartbeat | System Status | Health Check Isolation | Chaos Test | Prometheus / Zerolog | **Phase 0 Specs Complete** |
+| **REQ-019** | Strict Hard Rule: No Mock Telemetry | Doc 2 A.3 | MANDATORY | Entire System | All Production DBs | All API Responses | All Collectors | All Widgets | Zero Mock Enforcement | Validation Gate | Real OS Probes | **Phase 0 Specs Complete** |
+| **REQ-020** | Explicit Service-Topology Decision Gate | Doc 2 A.1 | MANDATORY | Backend Core | N/A | Monolith API | N/A | N/A | Clean Domain Boundaries | Architecture Review | Modular Monolith | **Phase 0 Specs Complete** |

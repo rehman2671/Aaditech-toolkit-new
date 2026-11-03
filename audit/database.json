@@ -1,6 +1,6 @@
 {
   "path": "/audit/database.json",
-  "generated": "2026-09-22T08:41:11.250Z",
+  "generated": "2026-10-20T19:03:19.320Z",
   "engine": "MySQL / MariaDB with In-Memory High-Performance Cache",
   "migrations": [
     {

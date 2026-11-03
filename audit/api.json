@@ -1,6 +1,6 @@
 {
   "path": "/audit/api.json",
-  "generated": "2026-09-22T08:41:11.249Z",
+  "generated": "2026-10-20T19:03:19.319Z",
   "openapi_spec": "/contracts/openapi/openapi.yaml",
   "agent_protocol": "/contracts/agent-protocol/agent-protocol.json",
   "total_endpoints": 31,

@@ -7,6 +7,11 @@ Scalling Plan/.gitkeep
 *.log
 Data/*.sqlite3*
 
+# Node / Package managers
+node_modules/
+bun.lock
+bun.lockb
+
 # Python bytecode
 __pycache__/
 *.pyc

@@ -1,23 +1,23 @@
 {
   "path": "/audit/statistics.json",
-  "generated": "2026-09-22T08:41:11.249Z",
+  "generated": "2026-10-20T19:03:19.319Z",
   "method": "computed dynamically",
-  "total_files": 198,
-  "total_source_files": 79,
-  "total_test_files": 25,
+  "total_files": 209,
+  "total_source_files": 84,
+  "total_test_files": 30,
   "total_documentation_files": 53,
-  "total_configuration_files": 6,
+  "total_configuration_files": 7,
   "total_images": 2,
   "total_scripts": 53,
-  "total_directories": 51,
-  "total_loc": 71291,
-  "average_file_size_bytes": 18752.91919191919,
+  "total_directories": 59,
+  "total_loc": 70010,
+  "average_file_size_bytes": 17556.24880382775,
   "breakdown_by_language": {
-    "JavaScript": 22,
+    "JavaScript": 27,
     "TypeScript": 0,
     "PowerShell": 44,
     "Markdown": 53,
-    "JSON": 22,
+    "JSON": 21,
     "SQL": 4,
     "YAML": 3,
     "HTML": 6,
@@ -26,13 +26,13 @@
   "largest_files": [
     {
       "path": "/coverage/server.js.html",
-      "lines": 8230,
-      "bytes": 406853
+      "lines": 8278,
+      "bytes": 408805
     },
     {
       "path": "/coverage/db.js.html",
-      "lines": 8143,
-      "bytes": 405060
+      "lines": 8164,
+      "bytes": 403662
     },
     {
       "path": "/package-lock.json",
@@ -41,28 +41,23 @@
     },
     {
       "path": "/audit/index.json",
-      "lines": 2743,
-      "bytes": 75376
+      "lines": 2890,
+      "bytes": 79732
     },
     {
       "path": "/server.js",
-      "lines": 2716,
-      "bytes": 104723
+      "lines": 2732,
+      "bytes": 105166
     },
     {
       "path": "/db.js",
-      "lines": 2687,
-      "bytes": 100566
+      "lines": 2694,
+      "bytes": 99722
     },
     {
       "path": "/Enterprise/portal/index.html",
-      "lines": 2297,
-      "bytes": 127919
-    },
-    {
-      "path": "/Data/state-persisted.json",
-      "lines": 2214,
-      "bytes": 73264
+      "lines": 2418,
+      "bytes": 134623
     },
     {
       "path": "/project-index.json",
@@ -73,6 +68,11 @@
       "path": "/Scaling Plan/IMPLEMENTATION-PLAN.md",
       "lines": 1734,
       "bytes": 50402
+    },
+    {
+      "path": "/ANALYSIS-RECOMMENDATIONS.md",
+      "lines": 1372,
+      "bytes": 48885
     }
   ],
   "largest_folders": [

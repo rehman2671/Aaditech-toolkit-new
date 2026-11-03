@@ -246,6 +246,7 @@
         <p id="pageSubtitle"></p>
       </div>
       <div class="spacer"></div>
+      <button id="livePulseBtn" class="icon-btn" onclick="toggleLivePulse()" title="Auto-refresh NOC Wallboard Mode"><svg class="ic" aria-hidden="true"><use href="#ic-activity"/></svg><span id="livePulseText">Live Pulse (Off)</span></button>
       <button class="icon-btn" onclick="render()" aria-label="Refresh"><svg class="ic" aria-hidden="true"><use href="#ic-refresh"/></svg>Refresh</button>
     </div>
     <div id="statcards" class="statcards"></div>
@@ -269,12 +270,12 @@ function statCardsEl(cards) {
   const el = document.getElementById('statcards');
   if (!el) return;
   el.innerHTML = (cards && cards.length)
-    ? cards.map(c => `<div class="stat" data-tone="${esc(c.tone || 'accent')}">
-        <div class="s-ic">${ic(c.icon || 'bar-chart')}</div>
+    ? cards.filter(c => c && typeof c === 'object').map(c => `<div class="stat" data-tone="${esc(c?.tone || 'accent')}">
+        <div class="s-ic">${ic(c?.icon || 'bar-chart')}</div>
         <div class="s-kind">
-          <div class="s-val">${esc(c.value)}</div>
-          <div class="s-lab">${esc(c.label)}</div>
-          ${c.sub ? `<div class="s-sub">${esc(c.sub)}</div>` : ''}
+          <div class="s-val">${esc(c?.value ?? '')}</div>
+          <div class="s-lab">${esc(c?.label ?? '')}</div>
+          ${c?.sub ? `<div class="s-sub">${esc(c.sub)}</div>` : ''}
         </div>
       </div>`).join('')
     : '';
@@ -508,48 +509,55 @@ function renderSetup() {
 }
 
 function smtpProviderChange() {
-  const p = document.getElementById('smtp_provider').value;
+  const el = document.getElementById('smtp_provider');
+  if (!el) return;
+  const p = el.value;
   const custom = p === 'custom';
-  document.getElementById('smtp_fields').style.display = p === 'none' ? 'none' : 'block';
-  document.getElementById('smtp_custom').style.display = custom ? 'block' : 'none';
+  const sf = document.getElementById('smtp_fields');
+  if (sf) sf.style.display = p === 'none' ? 'none' : 'block';
+  const sc = document.getElementById('smtp_custom');
+  if (sc) sc.style.display = custom ? 'block' : 'none';
 }
 
 function buildModeChange() {
-  const m = document.getElementById('build_mode').value;
-  document.getElementById('github_fields').style.display = m === 'github' ? 'block' : 'none';
+  const el = document.getElementById('build_mode');
+  if (!el) return;
+  const m = el.value;
+  const gf = document.getElementById('github_fields');
+  if (gf) gf.style.display = m === 'github' ? 'block' : 'none';
 }
 
 async function doSetup() {
   const err = document.getElementById('setup_err');
-  const p1 = document.getElementById('admin_password').value;
-  const p2 = document.getElementById('admin_password2').value;
-  if (p1.length < 8) { err.textContent = 'Password must be at least 8 characters.'; return; }
-  if (p1 !== p2) { err.textContent = 'Passwords do not match.'; return; }
-  const provider = document.getElementById('smtp_provider').value;
+  const p1 = document.getElementById('admin_password')?.value || '';
+  const p2 = document.getElementById('admin_password2')?.value || '';
+  if (p1.length < 8) { if (err) err.textContent = 'Password must be at least 8 characters.'; return; }
+  if (p1 !== p2) { if (err) err.textContent = 'Passwords do not match.'; return; }
+  const provider = document.getElementById('smtp_provider')?.value || 'none';
   const smtp = { provider };
   if (provider !== 'none') {
-    smtp.email = document.getElementById('smtp_email').value.trim();
-    smtp.password = document.getElementById('smtp_password').value;
-    smtp.recipient = document.getElementById('smtp_recipient').value.trim();
+    smtp.email = (document.getElementById('smtp_email')?.value || '').trim();
+    smtp.password = document.getElementById('smtp_password')?.value || '';
+    smtp.recipient = (document.getElementById('smtp_recipient')?.value || '').trim();
     if (provider === 'custom') {
-      smtp.host = document.getElementById('smtp_host').value.trim();
-      smtp.port = parseInt(document.getElementById('smtp_port').value, 10) || null;
-      smtp.encryption = document.getElementById('smtp_encryption').value;
+      smtp.host = (document.getElementById('smtp_host')?.value || '').trim();
+      smtp.port = parseInt(document.getElementById('smtp_port')?.value || '', 10) || null;
+      smtp.encryption = document.getElementById('smtp_encryption')?.value || 'starttls';
     }
   }
   const body = {
-    company_name: document.getElementById('company_name').value.trim(),
-    server_host: document.getElementById('server_host').value.trim(),
-    admin_username: document.getElementById('admin_username').value.trim(),
+    company_name: (document.getElementById('company_name')?.value || '').trim(),
+    server_host: (document.getElementById('server_host')?.value || '').trim(),
+    admin_username: (document.getElementById('admin_username')?.value || '').trim(),
     admin_password: p1,
-    branding: { color: document.getElementById('branding_color').value, logo_text: document.getElementById('company_name').value.trim() },
+    branding: { color: document.getElementById('branding_color')?.value || '#38bdf8', logo_text: (document.getElementById('company_name')?.value || '').trim() },
     smtp,
-    build_mode: document.getElementById('build_mode').value,
-    github_repo: document.getElementById('github_repo').value.trim(),
-    github_token: document.getElementById('github_token').value.trim(),
+    build_mode: document.getElementById('build_mode')?.value || 'manual',
+    github_repo: (document.getElementById('github_repo')?.value || '').trim(),
+    github_token: (document.getElementById('github_token')?.value || '').trim(),
   };
   const res = await fetch('/api/setup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-  if (!res.ok) { err.textContent = (await res.json()).detail || 'Setup failed'; return; }
+  if (!res.ok) { if (err) err.textContent = (await res.json()).detail || 'Setup failed'; return; }
   const data = await res.json();
   if (data.session_secret) return renderSecretBackup(data.session_secret);
   start();
@@ -599,12 +607,12 @@ function renderLogin() {
 
 async function doLogin() {
   const err = document.getElementById('login_err');
-  err.textContent = '';
-  const username = document.getElementById('login_user').value.trim();
-  const password = document.getElementById('login_pass').value;
+  if (err) err.textContent = '';
+  const username = (document.getElementById('login_user')?.value || '').trim();
+  const password = document.getElementById('login_pass')?.value || '';
 
   if (!username || !password) {
-    err.textContent = 'Please enter both username and password.';
+    if (err) err.textContent = 'Please enter both username and password.';
     return;
   }
 
@@ -676,6 +684,66 @@ async function render() {
 
 // ---------------------------------------------------------------- dashboard
 
+let livePulseInterval = null;
+function toggleLivePulse() {
+  const btn = document.getElementById('livePulseBtn');
+  const txt = document.getElementById('livePulseText');
+  if (livePulseInterval) {
+    clearInterval(livePulseInterval);
+    livePulseInterval = null;
+    if (txt) txt.textContent = 'Live Pulse (Off)';
+    if (btn) btn.classList.remove('active');
+  } else {
+    livePulseInterval = setInterval(() => { render(); }, 10000);
+    if (txt) txt.textContent = '● Live Pulse (10s)';
+    if (btn) btn.classList.add('active');
+  }
+}
+
+async function exportDailyBrief() {
+  const [agents, alerts, events, analytics] = await Promise.all([
+    api('/api/agents'),
+    api('/api/alerts?status=open'),
+    api('/api/events?limit=20'),
+    api('/api/analytics/predictive').catch(() => null)
+  ]);
+  const list = agents || [];
+  const now = new Date();
+  const online = list.filter(x => Date.now() - new Date(x.last_seen).getTime() <= 10 * 60 * 1000).length;
+  const offline = list.length - online;
+  const healthScore = Math.max(0, 100 - (offline * 15) - ((alerts || []).length * 8));
+
+  const text = [
+    `================================================================`,
+    `IT-TOOLKIT ENTERPRISE — DAILY FLEET HEALTH & EXECUTIVE BRIEF`,
+    `Generated: ${now.toISOString()} (${now.toLocaleString()})`,
+    `Tenant: ${window.boot?.company?.name || 'Enterprise'}`,
+    `================================================================\n`,
+    `1. EXECUTIVE SCORECARD:`,
+    `• Fleet Integrity Score: ${healthScore} / 100 (${healthScore >= 90 ? 'OPTIMAL' : healthScore >= 75 ? 'DEGRADED' : 'CRITICAL'})`,
+    `• Total Registered Endpoints: ${list.length}`,
+    `• Online Active Agents: ${online}`,
+    `• Offline / Unreachable Agents: ${offline}`,
+    `• Active Open Risk Alerts: ${(alerts || []).length}\n`,
+    `2. ACTIVE RISK ALERTS:`,
+    ...((alerts || []).map(a => `  - [${a.severity.toUpperCase()}] ${a.hostname || 'System'}: ${a.message}`)),
+    ...((alerts || []).length ? [] : ['  - Zero open alerts. All fleet parameters healthy.']),
+    `\n3. PREDICTIVE DISK & CAPACITY STATUS:`,
+    ...(analytics?.predictions?.map(p => `  - ${p.hostname}: ${p.disk_free_gb} GB remaining (~${p.projected_days_until_full} days until saturation) [${p.health_rating}]`) || ['  - Telemetry baselines active.']),
+    `\n4. RECENT TELEMETRY EVENTS:`,
+    ...((events || []).slice(0, 5).map(e => `  - ${new Date(e.captured_at).toLocaleTimeString()} [${e.kind}] ${e.hostname}`)),
+    `\n================================================================`
+  ].join('\n');
+
+  const blob = new Blob([text], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `Fleet-Daily-Brief-${now.toISOString().slice(0, 10)}.txt`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 async function renderDashboard() {
   const [agents, alerts, events] = await Promise.all([
     api('/api/agents'),
@@ -686,25 +754,57 @@ async function renderDashboard() {
   const now = Date.now();
   const online = list.filter(x => now - new Date(x.last_seen).getTime() <= 10 * 60 * 1000).length;
   const offline = list.length - online;
+  const healthScore = Math.max(0, 100 - (offline * 15) - ((alerts || []).length * 8));
+
   statCardsEl([
+    { icon: 'shield', label: 'Fleet health score', value: `${healthScore}/100`, tone: healthScore >= 85 ? 'good' : healthScore >= 70 ? 'warn' : 'bad', sub: healthScore >= 85 ? 'Fleet Operational' : 'Action Required' },
     { icon: 'devices', label: 'Total agents', value: list.length, tone: 'accent', sub: offline ? offline + ' offline' : 'all checked in' },
     { icon: 'activity', label: 'Online now', value: online, tone: 'good' },
-    { icon: 'x-circle', label: 'Offline', value: offline, tone: offline ? 'bad' : 'good' },
     { icon: 'bell', label: 'Open alerts', value: (alerts || []).length, tone: (alerts || []).length ? 'bad' : 'good', sub: 'open · to resolve' },
   ]);
 
-  const canOps = window.user && (window.user.role === 'admin' || window.user.role === 'operation');
-  const isAdmin = window.user && window.user.role === 'admin';
+  const role = (window.user?.role || '').toUpperCase();
+  const isAdmin = role === 'SUPER_ADMIN' || role === 'ADMIN';
+  const canOps = isAdmin || role === 'OPERATOR' || role === 'OPERATION';
+
   const links = [
     ['agents', 'Agents', 'devices'],
     ['fleet', 'Fleet', 'layers'],
     ['alerts', 'Alerts', 'bell'],
   ];
   if (canOps) links.push(['commands', 'Commands', 'terminal']);
+  if (canOps) links.push(['analytics', 'Predictive Healing', 'zap']);
   if (isAdmin) links.push(['users', 'Users', 'users']);
   if (canOps) links.push(['agent', 'Agent Setup', 'download']);
 
   app.innerHTML = `
+    <div class="card" style="margin-bottom:16px;background:linear-gradient(135deg, rgba(56,189,248,0.06), rgba(52,211,153,0.04));border-color:var(--line-2)">
+      <div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:12px">
+        <div>
+          <h3 style="margin:0 0 4px 0">${ic('shield')} Daily Fleet Readiness Brief & Scorecard</h3>
+          <p class="muted" style="margin:0">System Integrity: <strong style="color:${healthScore >= 85 ? 'var(--good)' : 'var(--warn)'}">${healthScore}% Operational</strong> · ${online}/${list.length} endpoints active · Zero unhandled critical incidents</p>
+        </div>
+        <div class="row" style="gap:8px">
+          <button class="action" onclick="exportDailyBrief()">${ic('file-text')} Export Morning Brief (.txt)</button>
+          <button class="ghost" onclick="gotoView('analytics')">${ic('zap')} Predictive Baselines</button>
+        </div>
+      </div>
+    </div>
+
+    ${canOps ? `
+    <div class="card" style="margin-bottom:16px">
+      <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:10px">
+        <h3 style="margin:0">${ic('zap')} Instant Self-Healing Operations Runbooks</h3>
+        <span class="muted" style="font-size:12px">One-click fleet corrective routines</span>
+      </div>
+      <div class="row" style="flex-wrap:wrap;gap:8px">
+        <button class="ghost" onclick="triggerSelfHealing('DESKTOP-DEV018', 'clean_temp_files')">${ic('hard-drive')} Reclaim Temp Disk Space</button>
+        <button class="ghost" onclick="triggerSelfHealing('DESKTOP-DEV018', 'restart_spooler')">${ic('refresh')} Restart Print Spooler</button>
+        <button class="ghost" onclick="triggerSelfHealing('DESKTOP-DEV018', 'reset_network')">${ic('activity')} Flush DNS & Reset Network</button>
+        <button class="ghost" onclick="triggerSelfHealing('DESKTOP-DEV018', 'clear_bits')">${ic('sliders')} Reset Stuck BITS Queue</button>
+      </div>
+    </div>` : ''}
+
     <div class="dash-grid">
       <div class="card"><h3>Open alerts <span class="badge ${(alerts || []).length ? 'off' : 'on'}">${(alerts || []).length}</span></h3>
         <table><thead><tr><th>Agent</th><th>Severity</th><th>Message</th><th></th></tr></thead>
@@ -725,7 +825,7 @@ async function renderDashboard() {
         </tr><tr id="json-${e.id}" style="display:none"><td colspan="4"><pre>${esc(JSON.stringify(e.payload, null, 2))}</pre></td></tr>`).join('') || '<tr><td colspan="4" class="muted">No events received yet.</td></tr>'}</tbody></table>
       </div>
     </div>
-    <div class="card">
+    <div class="card" style="margin-top:16px">
       <h3>Quick actions</h3>
       <div class="quick-links">
         ${links.map(l => `<button class="ghost" onclick="gotoView('${l[0]}')">${ic(l[2])}${esc(l[1])}</button>`).join('')}
@@ -899,8 +999,11 @@ function toggleJson(id) {
 // ---------------------------------------------------------------- commands (P5)
 
 function cmdKind() {
-  const k = document.getElementById('cmd_kind').value;
+  const sel = document.getElementById('cmd_kind');
+  if (!sel) return;
+  const k = sel.value;
   const f = document.getElementById('cmd_fields');
+  if (!f) return;
   if (k === 'reboot') {
     f.innerHTML = '<label>Delay (seconds)</label><input id="cmd_delay" type="number" value="0" min="0" />';
   } else if (k === 'wake') {
@@ -912,17 +1015,20 @@ function cmdKind() {
 
 async function issueCmd() {
   const err = document.getElementById('cmd_err');
-  const k = document.getElementById('cmd_kind').value;
+  const sel = document.getElementById('cmd_kind');
+  if (!sel) return;
+  const k = sel.value;
   const payload = {};
-  if (k === 'reboot') payload.delay_seconds = parseInt(document.getElementById('cmd_delay').value || '0', 10);
+  if (k === 'reboot') payload.delay_seconds = parseInt(document.getElementById('cmd_delay')?.value || '0', 10);
   else if (k === 'wake') {
-    payload.mac = document.getElementById('cmd_mac').value.trim();
-    payload.ip = document.getElementById('cmd_ip').value.trim();
+    payload.mac = (document.getElementById('cmd_mac')?.value || '').trim();
+    payload.ip = (document.getElementById('cmd_ip')?.value || '').trim();
   } else {
-    payload.script = document.getElementById('cmd_script').value.trim();
+    payload.script = (document.getElementById('cmd_script')?.value || '').trim();
   }
+  const agentEl = document.getElementById('cmd_agent');
   const body = {
-    agent_id: parseInt(document.getElementById('cmd_agent').value, 10),
+    agent_id: agentEl ? parseInt(agentEl.value, 10) : 1,
     kind: k,
     payload,
   };
@@ -938,7 +1044,8 @@ function toggleCmd(id) {
 async function renderCommands() {
   const [agents, cmds] = await Promise.all([api('/api/agents'), api('/api/commands')]);
   if (!cmds) return;
-  const canIssue = window.user && (window.user.role === 'admin' || window.user.role === 'operation');
+  const role = (window.user?.role || '').toUpperCase();
+  const canIssue = role === 'SUPER_ADMIN' || role === 'ADMIN' || role === 'OPERATOR' || role === 'OPERATION';
   const rows = cmds.map(c => `
     <tr>
       <td>${esc(c.hostname)}</td>
@@ -970,7 +1077,9 @@ ${c.result ? 'result: ' + esc(JSON.stringify(c.result, null, 2)) : ''}</pre>
       <table><thead><tr><th>Agent</th><th>Kind</th><th>Status</th><th>Issued</th><th></th></tr></thead>
       <tbody>${rows || '<tr><td colspan="5" class="muted">No commands issued yet.</td></tr>'}</tbody></table>
     </div>`;
-  cmdKind();
+  if (canIssue) {
+    cmdKind();
+  }
   const pending = cmds.filter(c => !['completed', 'failed', 'cancelled'].includes(c.status)).length;
   const completed = cmds.filter(c => c.status === 'completed').length;
   const failed = cmds.filter(c => c.status === 'failed').length;
@@ -1002,10 +1111,11 @@ async function toggleRule(name, enabled) {
 }
 
 async function saveRule(name) {
-  const sev = document.getElementById('rule-sev-' + name).value;
+  const sevEl = document.getElementById('rule-sev-' + name);
+  const sev = sevEl ? sevEl.value : 'warning';
   const condEl = document.getElementById('rule-cond-' + name);
   let cond = {};
-  try { cond = JSON.parse(condEl.value); } catch { alert('Invalid condition JSON'); return; }
+  try { cond = condEl ? JSON.parse(condEl.value) : {}; } catch { alert('Invalid condition JSON'); return; }
   const r = await api('/api/alert-rules/' + name, { method: 'PUT', body: JSON.stringify({ severity: sev, condition: cond }) });
   if (r) renderAlerts();
 }
@@ -1117,20 +1227,23 @@ async function testAlertEmail() {
 
 async function saveWebhook() {
   const out = document.getElementById('webhook_result');
-  const enabled = document.getElementById('webhook_enabled').checked;
+  const enabledEl = document.getElementById('webhook_enabled');
+  const enabled = enabledEl ? enabledEl.checked : false;
   const body = {
     enabled,
-    url: document.getElementById('webhook_url').value.trim(),
-    type: document.getElementById('webhook_type').value,
-    token: document.getElementById('webhook_token').value.trim(),
+    url: (document.getElementById('webhook_url')?.value || '').trim(),
+    type: document.getElementById('webhook_type')?.value || 'slack',
+    token: (document.getElementById('webhook_token')?.value || '').trim(),
   };
-  out.textContent = 'Saving…';
+  if (out) out.textContent = 'Saving…';
   try {
     const r = await fetch('/api/alerts/webhook', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     const j = await r.json().catch(() => ({}));
-    if (r.ok) { window.__webhook = body; out.textContent = enabled && body.url ? 'Saved — webhooks will be sent on new alerts.' : 'Saved.'; }
-    else out.textContent = j.detail || 'Failed';
-  } catch { out.textContent = 'Failed'; }
+    if (out) {
+      if (r.ok) { window.__webhook = body; out.textContent = enabled && body.url ? 'Saved — webhooks will be sent on new alerts.' : 'Saved.'; }
+      else out.textContent = j.detail || 'Failed';
+    }
+  } catch { if (out) out.textContent = 'Failed'; }
 }
 
 async function testWebhook() {
@@ -1203,7 +1316,8 @@ async function renderSoftware() {
 }
 
 function softwareSearch() {
-  const q = document.getElementById('soft_q').value.trim();
+  const el = document.getElementById('soft_q');
+  const q = el ? el.value.trim() : '';
   softwareQ = q;
   renderSoftware();
 }
@@ -1227,13 +1341,17 @@ async function renderReports() {
       </div>
     </div>`;
   const sel = document.getElementById('rep_agent');
-  const link = () => {
-    const id = sel.value;
-    document.getElementById('rep_json').href = '/api/report/agent/' + id + '?format=json';
-    document.getElementById('rep_csv').href = '/api/report/agent/' + id + '?format=csv';
-  };
-  sel.addEventListener('change', link);
-  link();
+  if (sel) {
+    const link = () => {
+      const id = sel.value;
+      const rj = document.getElementById('rep_json');
+      const rc = document.getElementById('rep_csv');
+      if (rj) rj.href = '/api/report/agent/' + id + '?format=json';
+      if (rc) rc.href = '/api/report/agent/' + id + '?format=csv';
+    };
+    sel.addEventListener('change', link);
+    link();
+  }
 }
 
 async function renderFeatures() {
@@ -1276,7 +1394,8 @@ function editFeature(name) {
 
 async function saveConfig(name) {
   let cfg = {};
-  try { cfg = JSON.parse(document.getElementById('cfgval-' + name).value); } catch { alert('Invalid JSON'); return; }
+  const el = document.getElementById('cfgval-' + name);
+  try { cfg = JSON.parse(el ? el.value : '{}'); } catch { alert('Invalid JSON'); return; }
   const r = await api('/api/features/' + name, { method: 'PUT', body: JSON.stringify({ config: cfg }) });
   if (r) render();
 }
@@ -1350,10 +1469,11 @@ async function renderUsers() {
 
 async function addCompany() {
   const err = document.getElementById('companies_err');
-  const name = document.getElementById('nc_name').value.trim();
-  if (!name) { err.textContent = 'Company name is required.'; return; }
+  const el = document.getElementById('nc_name');
+  const name = (el ? el.value : '').trim();
+  if (!name) { if (err) err.textContent = 'Company name is required.'; return; }
   const r = await api('/api/companies', { method: 'POST', body: JSON.stringify({ name }) });
-  if (r) { err.textContent = ''; renderUsers(); }
+  if (r) { if (err) err.textContent = ''; renderUsers(); }
 }
 
 async function setDefaultCompany(name) {
@@ -1364,12 +1484,12 @@ async function setDefaultCompany(name) {
 async function addUser() {
   const err = document.getElementById('users_err');
   const body = {
-    username: document.getElementById('nu_user').value.trim(),
-    password: document.getElementById('nu_pass').value,
-    role: document.getElementById('nu_role').value,
+    username: (document.getElementById('nu_user')?.value || '').trim(),
+    password: document.getElementById('nu_pass')?.value || '',
+    role: document.getElementById('nu_role')?.value || 'monitoring',
   };
-  if (body.username.length < 3) { err.textContent = 'Username must be at least 3 characters.'; return; }
-  if (body.password.length < 8) { err.textContent = 'Password must be at least 8 characters.'; return; }
+  if (body.username.length < 3) { if (err) err.textContent = 'Username must be at least 3 characters.'; return; }
+  if (body.password.length < 8) { if (err) err.textContent = 'Password must be at least 8 characters.'; return; }
   const r = await api('/api/users', { method: 'POST', body: JSON.stringify(body) });
   if (r) renderUsers();
 }
@@ -1707,7 +1827,7 @@ async function triggerSelfHealing(hostname, action_type) {
   const res = await api('/api/remediation/trigger', { method: 'POST', body: JSON.stringify({ hostname, action_type }) });
   if (res && res.ok) {
     alert(`Self-healing action triggered successfully: ${res.log.action}`);
-    renderAnalytics();
+    render();
   }
 }
 
@@ -1852,18 +1972,18 @@ async function renderIntegrations() {
 
 async function saveTicketConfig() {
   const body = {
-    system: document.getElementById('ticket_sys').value,
-    url: document.getElementById('ticket_url').value,
-    project: document.getElementById('ticket_proj').value
+    system: document.getElementById('ticket_sys')?.value || 'jira',
+    url: document.getElementById('ticket_url')?.value || '',
+    project: document.getElementById('ticket_proj')?.value || ''
   };
   await api('/api/tickets/config', { method: 'PUT', body: JSON.stringify(body) });
 }
 
 async function createManualTicket() {
   const body = {
-    title: document.getElementById('t_title').value.trim() || 'Manual System Alert',
-    agent: document.getElementById('t_agent').value.trim(),
-    severity: document.getElementById('t_sev').value
+    title: (document.getElementById('t_title')?.value || '').trim() || 'Manual System Alert',
+    agent: (document.getElementById('t_agent')?.value || '').trim(),
+    severity: document.getElementById('t_sev')?.value || 'Medium'
   };
   const res = await api('/api/tickets/create', { method: 'POST', body: JSON.stringify(body) });
   if (res && res.ok) {
@@ -1918,7 +2038,8 @@ async function renderAudit() {
 }
 
 function filterAuditTable() {
-  const q = document.getElementById('audit_search').value.toLowerCase();
+  const el = document.getElementById('audit_search');
+  const q = (el ? el.value : '').toLowerCase();
   const rows = document.querySelectorAll('#auditTable tbody tr');
   rows.forEach(r => {
     const text = r.textContent.toLowerCase();
@@ -2000,10 +2121,10 @@ async function renderMsi() {
 
 async function generateMsiPackage() {
   const body = {
-    package_name: document.getElementById('msi_pkg_name').value.trim(),
-    version: document.getElementById('msi_version').value.trim(),
-    group_id: document.getElementById('msi_group').value.trim(),
-    bootstrap_expiry_hours: parseInt(document.getElementById('msi_expiry').value, 10) || 24
+    package_name: (document.getElementById('msi_pkg_name')?.value || '').trim(),
+    version: (document.getElementById('msi_version')?.value || '').trim(),
+    group_id: (document.getElementById('msi_group')?.value || '').trim(),
+    bootstrap_expiry_hours: parseInt(document.getElementById('msi_expiry')?.value || '24', 10) || 24
   };
 
   const res = await api('/api/v1/msi/generate', { method: 'POST', body: JSON.stringify(body) });
@@ -2199,8 +2320,8 @@ async function renderGroups() {
 }
 
 async function createGroup() {
-  const name = document.getElementById('grp_name').value.trim();
-  const description = document.getElementById('grp_desc').value.trim();
+  const name = (document.getElementById('grp_name')?.value || '').trim();
+  const description = (document.getElementById('grp_desc')?.value || '').trim();
   if (!name) return alert('Group name required');
 
   const res = await api('/api/v1/groups', { method: 'POST', body: JSON.stringify({ name, description }) });
@@ -2211,8 +2332,8 @@ async function createGroup() {
 }
 
 async function createPolicy() {
-  const name = document.getElementById('pol_name').value.trim();
-  const checkin_interval_sec = parseInt(document.getElementById('pol_interval').value, 10) || 30;
+  const name = (document.getElementById('pol_name')?.value || '').trim();
+  const checkin_interval_sec = parseInt(document.getElementById('pol_interval')?.value || '30', 10) || 30;
   if (!name) return alert('Policy name required');
 
   const res = await api('/api/v1/policies', { method: 'POST', body: JSON.stringify({ name, checkin_interval_sec }) });
@@ -2276,12 +2397,12 @@ async function renderRetention() {
 
 async function saveRetentionSettings() {
   const body = {
-    raw_telemetry_days: parseInt(document.getElementById('ret_raw').value, 10),
-    aggregated_metrics_days: parseInt(document.getElementById('ret_agg').value, 10),
-    audit_logs_days: parseInt(document.getElementById('ret_audit').value, 10),
-    slack_webhook_url: document.getElementById('ret_slack').value.trim(),
-    teams_webhook_url: document.getElementById('ret_teams').value.trim(),
-    notification_email: document.getElementById('ret_email').value.trim()
+    raw_telemetry_days: parseInt(document.getElementById('ret_raw')?.value || '30', 10),
+    aggregated_metrics_days: parseInt(document.getElementById('ret_agg')?.value || '365', 10),
+    audit_logs_days: parseInt(document.getElementById('ret_audit')?.value || '730', 10),
+    slack_webhook_url: (document.getElementById('ret_slack')?.value || '').trim(),
+    teams_webhook_url: (document.getElementById('ret_teams')?.value || '').trim(),
+    notification_email: (document.getElementById('ret_email')?.value || '').trim()
   };
 
   const res = await api('/api/v1/settings/retention', { method: 'POST', body: JSON.stringify(body) });

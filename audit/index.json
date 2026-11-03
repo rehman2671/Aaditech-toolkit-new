@@ -1,9 +1,9 @@
 {
   "path": "/audit/index.json",
-  "generated": "2026-09-22T08:41:11.247Z",
+  "generated": "2026-10-20T19:03:19.318Z",
   "method": "computed dynamically by audit/scanner.js",
-  "total_files": 198,
-  "total_directories": 51,
+  "total_files": 209,
+  "total_directories": 59,
   "files": [
     {
       "path": "/.env",
@@ -12,7 +12,7 @@
       "language": "Other",
       "size_bytes": 543,
       "loc": 20,
-      "last_modified": "2026-09-22T08:35:13.631Z",
+      "last_modified": "2026-10-20T19:00:14.050Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "General"
@@ -22,9 +22,9 @@
       "filename": ".env.example",
       "extension": ".example",
       "language": "Other",
-      "size_bytes": 637,
-      "loc": 24,
-      "last_modified": "2026-09-22T08:35:13.637Z",
+      "size_bytes": 770,
+      "loc": 26,
+      "last_modified": "2026-10-20T19:00:14.047Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "General"
@@ -36,7 +36,7 @@
       "language": "Other",
       "size_bytes": 241,
       "loc": 7,
-      "last_modified": "2026-09-22T08:35:13.621Z",
+      "last_modified": "2026-10-20T19:00:14.072Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "General"
@@ -48,7 +48,7 @@
       "language": "Other",
       "size_bytes": 813,
       "loc": 25,
-      "last_modified": "2026-09-22T08:35:13.692Z",
+      "last_modified": "2026-10-20T19:00:14.049Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "General"
@@ -58,9 +58,9 @@
       "filename": "ci.yml",
       "extension": ".yml",
       "language": "YAML",
-      "size_bytes": 13434,
-      "loc": 329,
-      "last_modified": "2026-09-22T08:41:10.009Z",
+      "size_bytes": 13543,
+      "loc": 332,
+      "last_modified": "2026-10-20T19:00:14.125Z",
       "imports": [
         "Pester"
       ],
@@ -72,9 +72,9 @@
       "filename": ".gitignore",
       "extension": "",
       "language": "Other",
-      "size_bytes": 431,
-      "loc": 23,
-      "last_modified": "2026-09-22T08:35:13.621Z",
+      "size_bytes": 491,
+      "loc": 28,
+      "last_modified": "2026-10-20T19:00:14.062Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "General"
@@ -86,7 +86,7 @@
       "language": "Markdown",
       "size_bytes": 48885,
       "loc": 1372,
-      "last_modified": "2026-09-22T08:35:13.674Z",
+      "last_modified": "2026-10-20T19:00:14.004Z",
       "imports": [],
       "exports": [
         "option",
@@ -103,7 +103,7 @@
       "language": "Other",
       "size_bytes": 44221,
       "loc": 180,
-      "last_modified": "2026-09-22T08:35:13.670Z",
+      "last_modified": "2026-10-20T19:00:14.010Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "General"
@@ -115,7 +115,7 @@
       "language": "Other",
       "size_bytes": 25319,
       "loc": 114,
-      "last_modified": "2026-09-22T08:35:13.588Z",
+      "last_modified": "2026-10-20T19:00:14.030Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "General"
@@ -127,7 +127,7 @@
       "language": "Markdown",
       "size_bytes": 31286,
       "loc": 447,
-      "last_modified": "2026-09-22T08:35:13.685Z",
+      "last_modified": "2026-10-20T19:00:14.059Z",
       "imports": [],
       "exports": [
         "showing",
@@ -142,7 +142,7 @@
       "language": "Markdown",
       "size_bytes": 18717,
       "loc": 558,
-      "last_modified": "2026-09-22T08:35:13.618Z",
+      "last_modified": "2026-10-20T19:00:14.040Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "Documentation"
@@ -154,7 +154,7 @@
       "language": "Markdown",
       "size_bytes": 2177,
       "loc": 48,
-      "last_modified": "2026-09-22T08:35:13.609Z",
+      "last_modified": "2026-10-20T19:00:14.015Z",
       "imports": [],
       "exports": [
         "sources"
@@ -168,7 +168,7 @@
       "language": "JSON",
       "size_bytes": 4555,
       "loc": 170,
-      "last_modified": "2026-09-22T08:35:13.601Z",
+      "last_modified": "2026-10-20T19:00:13.993Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "General"
@@ -180,7 +180,7 @@
       "language": "Markdown",
       "size_bytes": 2771,
       "loc": 84,
-      "last_modified": "2026-09-22T08:35:13.704Z",
+      "last_modified": "2026-10-20T19:00:14.015Z",
       "imports": [
         ".\\Scripts\\Modules\\ToolkitData.psm1"
       ],
@@ -194,19 +194,7 @@
       "language": "Other",
       "size_bytes": 122,
       "loc": 3,
-      "last_modified": "2026-09-22T08:35:13.657Z",
-      "imports": [],
-      "exports": [],
-      "architecture_layer": "General"
-    },
-    {
-      "path": "/Data/state-persisted.json",
-      "filename": "state-persisted.json",
-      "extension": ".json",
-      "language": "JSON",
-      "size_bytes": 73264,
-      "loc": 2214,
-      "last_modified": "2026-09-22T08:35:13.596Z",
+      "last_modified": "2026-10-20T19:00:14.089Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "General"
@@ -218,7 +206,7 @@
       "language": "Other",
       "size_bytes": 729,
       "loc": 28,
-      "last_modified": "2026-09-22T08:35:13.596Z",
+      "last_modified": "2026-10-20T19:00:14.001Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "General"
@@ -230,7 +218,7 @@
       "language": "Markdown",
       "size_bytes": 3042,
       "loc": 63,
-      "last_modified": "2026-09-22T08:35:13.602Z",
+      "last_modified": "2026-10-20T19:00:14.059Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "Documentation"
@@ -242,7 +230,7 @@
       "language": "Markdown",
       "size_bytes": 13892,
       "loc": 308,
-      "last_modified": "2026-09-22T08:35:13.680Z",
+      "last_modified": "2026-10-20T19:00:14.035Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "Documentation"
@@ -254,7 +242,7 @@
       "language": "Markdown",
       "size_bytes": 6812,
       "loc": 163,
-      "last_modified": "2026-09-22T08:35:13.667Z",
+      "last_modified": "2026-10-20T19:00:14.037Z",
       "imports": [],
       "exports": [
         "downloads"
@@ -268,7 +256,7 @@
       "language": "Markdown",
       "size_bytes": 18943,
       "loc": 396,
-      "last_modified": "2026-09-22T08:35:13.620Z",
+      "last_modified": "2026-10-20T19:00:14.050Z",
       "imports": [],
       "exports": [
         "of",
@@ -283,7 +271,7 @@
       "language": "Markdown",
       "size_bytes": 15407,
       "loc": 458,
-      "last_modified": "2026-09-22T08:35:13.610Z",
+      "last_modified": "2026-10-20T19:00:14.073Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "Documentation"
@@ -295,7 +283,7 @@
       "language": "Markdown",
       "size_bytes": 7020,
       "loc": 122,
-      "last_modified": "2026-09-22T08:35:13.653Z",
+      "last_modified": "2026-10-20T19:00:14.005Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "Documentation"
@@ -307,7 +295,7 @@
       "language": "Markdown",
       "size_bytes": 2472,
       "loc": 137,
-      "last_modified": "2026-09-22T08:35:13.681Z",
+      "last_modified": "2026-10-20T19:00:14.087Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "Documentation"
@@ -319,7 +307,7 @@
       "language": "Markdown",
       "size_bytes": 4912,
       "loc": 125,
-      "last_modified": "2026-09-22T08:35:13.608Z",
+      "last_modified": "2026-10-20T19:00:14.008Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "Documentation"
@@ -331,7 +319,7 @@
       "language": "Other",
       "size_bytes": 136,
       "loc": 2,
-      "last_modified": "2026-09-22T08:35:13.688Z",
+      "last_modified": "2026-10-20T19:00:14.006Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "General"
@@ -343,7 +331,7 @@
       "language": "Markdown",
       "size_bytes": 15602,
       "loc": 254,
-      "last_modified": "2026-09-22T08:35:13.650Z",
+      "last_modified": "2026-10-20T19:00:14.057Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "Documentation"
@@ -353,9 +341,9 @@
       "filename": "README.md",
       "extension": ".md",
       "language": "Markdown",
-      "size_bytes": 14537,
-      "loc": 239,
-      "last_modified": "2026-09-22T08:35:13.607Z",
+      "size_bytes": 15249,
+      "loc": 249,
+      "last_modified": "2026-10-20T19:00:14.055Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "Documentation"
@@ -367,7 +355,7 @@
       "language": "Markdown",
       "size_bytes": 24104,
       "loc": 399,
-      "last_modified": "2026-09-22T08:35:13.646Z",
+      "last_modified": "2026-10-20T19:00:13.994Z",
       "imports": [],
       "exports": [
         "links",
@@ -382,7 +370,7 @@
       "language": "Markdown",
       "size_bytes": 36308,
       "loc": 591,
-      "last_modified": "2026-09-22T08:35:13.659Z",
+      "last_modified": "2026-10-20T19:00:13.990Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "Documentation"
@@ -394,7 +382,7 @@
       "language": "PowerShell",
       "size_bytes": 13949,
       "loc": 332,
-      "last_modified": "2026-09-22T08:35:13.625Z",
+      "last_modified": "2026-10-20T19:00:14.030Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "Agent/Automation Scripts"
@@ -406,7 +394,7 @@
       "language": "PowerShell",
       "size_bytes": 40147,
       "loc": 947,
-      "last_modified": "2026-09-22T08:35:13.639Z",
+      "last_modified": "2026-10-20T19:00:14.058Z",
       "imports": [
         "(Join-Path"
       ],
@@ -420,7 +408,7 @@
       "language": "JSON",
       "size_bytes": 1891,
       "loc": 24,
-      "last_modified": "2026-09-22T08:35:13.683Z",
+      "last_modified": "2026-10-20T19:00:13.986Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "General"
@@ -432,7 +420,7 @@
       "language": "JSON",
       "size_bytes": 57,
       "loc": 5,
-      "last_modified": "2026-09-22T08:35:13.590Z",
+      "last_modified": "2026-10-20T19:00:14.003Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "General"
@@ -444,7 +432,7 @@
       "language": "PowerShell",
       "size_bytes": 648,
       "loc": 19,
-      "last_modified": "2026-09-22T08:35:13.600Z",
+      "last_modified": "2026-10-20T19:00:14.058Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "Agent/Automation Scripts"
@@ -456,7 +444,7 @@
       "language": "PowerShell",
       "size_bytes": 2226,
       "loc": 60,
-      "last_modified": "2026-09-22T08:35:13.602Z",
+      "last_modified": "2026-10-20T19:00:13.992Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "Agent/Automation Scripts"
@@ -468,7 +456,7 @@
       "language": "PowerShell",
       "size_bytes": 2547,
       "loc": 60,
-      "last_modified": "2026-09-22T08:35:13.604Z",
+      "last_modified": "2026-10-20T19:00:13.994Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "Agent/Automation Scripts"
@@ -480,7 +468,7 @@
       "language": "PowerShell",
       "size_bytes": 1877,
       "loc": 53,
-      "last_modified": "2026-09-22T08:35:13.679Z",
+      "last_modified": "2026-10-20T19:00:14.031Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "Agent/Automation Scripts"
@@ -492,7 +480,7 @@
       "language": "PowerShell",
       "size_bytes": 705,
       "loc": 19,
-      "last_modified": "2026-09-22T08:35:13.619Z",
+      "last_modified": "2026-10-20T19:00:14.090Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "Agent/Automation Scripts"
@@ -504,7 +492,7 @@
       "language": "PowerShell",
       "size_bytes": 1754,
       "loc": 35,
-      "last_modified": "2026-09-22T08:35:13.616Z",
+      "last_modified": "2026-10-20T19:00:14.010Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "Agent/Automation Scripts"
@@ -516,7 +504,7 @@
       "language": "PowerShell",
       "size_bytes": 1210,
       "loc": 26,
-      "last_modified": "2026-09-22T08:35:13.651Z",
+      "last_modified": "2026-10-20T19:00:14.044Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "Agent/Automation Scripts"
@@ -528,7 +516,7 @@
       "language": "JSON",
       "size_bytes": 101,
       "loc": 5,
-      "last_modified": "2026-09-22T08:35:13.632Z",
+      "last_modified": "2026-10-20T19:00:14.024Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "General"
@@ -540,7 +528,7 @@
       "language": "JSON",
       "size_bytes": 1786,
       "loc": 18,
-      "last_modified": "2026-09-22T08:35:13.612Z",
+      "last_modified": "2026-10-20T19:00:13.993Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "General"
@@ -552,7 +540,7 @@
       "language": "Other",
       "size_bytes": 1536,
       "loc": 1,
-      "last_modified": "2026-09-22T08:35:13.601Z",
+      "last_modified": "2026-10-20T19:00:14.072Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "General"
@@ -564,7 +552,7 @@
       "language": "Batch",
       "size_bytes": 2905,
       "loc": 69,
-      "last_modified": "2026-09-22T08:35:13.665Z",
+      "last_modified": "2026-10-20T19:00:14.069Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "General"
@@ -576,7 +564,7 @@
       "language": "Batch",
       "size_bytes": 496,
       "loc": 13,
-      "last_modified": "2026-09-22T08:35:13.743Z",
+      "last_modified": "2026-10-20T19:00:13.989Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "General"
@@ -588,7 +576,7 @@
       "language": "Batch",
       "size_bytes": 662,
       "loc": 22,
-      "last_modified": "2026-09-22T08:35:13.639Z",
+      "last_modified": "2026-10-20T19:00:14.035Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "General"
@@ -600,7 +588,7 @@
       "language": "Other",
       "size_bytes": 15640,
       "loc": 262,
-      "last_modified": "2026-09-22T08:35:13.687Z",
+      "last_modified": "2026-10-20T19:00:14.015Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "General"
@@ -612,7 +600,7 @@
       "language": "PowerShell",
       "size_bytes": 2947,
       "loc": 63,
-      "last_modified": "2026-09-22T08:35:13.616Z",
+      "last_modified": "2026-10-20T19:00:14.065Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "Agent/Automation Scripts"
@@ -624,7 +612,7 @@
       "language": "PowerShell",
       "size_bytes": 6503,
       "loc": 126,
-      "last_modified": "2026-09-22T08:35:13.595Z",
+      "last_modified": "2026-10-20T19:00:14.025Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "Agent/Automation Scripts"
@@ -636,7 +624,7 @@
       "language": "JSON",
       "size_bytes": 1786,
       "loc": 18,
-      "last_modified": "2026-09-22T08:35:13.675Z",
+      "last_modified": "2026-10-20T19:00:14.034Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "Backend/API"
@@ -648,7 +636,7 @@
       "language": "Other",
       "size_bytes": 2150,
       "loc": 82,
-      "last_modified": "2026-09-22T08:35:13.633Z",
+      "last_modified": "2026-10-20T19:00:14.079Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "General"
@@ -660,7 +648,7 @@
       "language": "Other",
       "size_bytes": 1945,
       "loc": 72,
-      "last_modified": "2026-09-22T08:35:13.650Z",
+      "last_modified": "2026-10-20T19:00:14.032Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "General"
@@ -672,7 +660,7 @@
       "language": "PowerShell",
       "size_bytes": 12927,
       "loc": 300,
-      "last_modified": "2026-09-22T08:35:13.609Z",
+      "last_modified": "2026-10-20T19:00:14.078Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "Agent/Automation Scripts"
@@ -684,7 +672,7 @@
       "language": "Shell",
       "size_bytes": 1675,
       "loc": 51,
-      "last_modified": "2026-09-22T08:35:13.672Z",
+      "last_modified": "2026-10-20T19:00:14.008Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "General"
@@ -696,7 +684,7 @@
       "language": "PowerShell",
       "size_bytes": 18600,
       "loc": 458,
-      "last_modified": "2026-09-22T08:35:13.635Z",
+      "last_modified": "2026-10-20T19:00:13.994Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "Agent/Automation Scripts"
@@ -708,7 +696,7 @@
       "language": "Shell",
       "size_bytes": 12917,
       "loc": 318,
-      "last_modified": "2026-09-22T08:35:13.614Z",
+      "last_modified": "2026-10-20T19:00:14.052Z",
       "imports": [],
       "exports": [
         "CADDY_HOST"
@@ -722,7 +710,7 @@
       "language": "Shell",
       "size_bytes": 2418,
       "loc": 73,
-      "last_modified": "2026-09-22T08:35:13.596Z",
+      "last_modified": "2026-10-20T19:00:13.999Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "General"
@@ -734,7 +722,7 @@
       "language": "YAML",
       "size_bytes": 2376,
       "loc": 87,
-      "last_modified": "2026-09-22T08:35:13.658Z",
+      "last_modified": "2026-10-20T19:00:14.040Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "General"
@@ -744,9 +732,9 @@
       "filename": "index.html",
       "extension": ".html",
       "language": "HTML",
-      "size_bytes": 127919,
-      "loc": 2297,
-      "last_modified": "2026-09-22T08:35:13.633Z",
+      "size_bytes": 134623,
+      "loc": 2418,
+      "last_modified": "2026-10-20T19:00:14.043Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "Frontend"
@@ -758,7 +746,7 @@
       "language": "PowerShell",
       "size_bytes": 14526,
       "loc": 278,
-      "last_modified": "2026-09-22T08:35:13.598Z",
+      "last_modified": "2026-10-20T19:00:14.053Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "Agent/Automation Scripts"
@@ -770,7 +758,7 @@
       "language": "Markdown",
       "size_bytes": 9403,
       "loc": 831,
-      "last_modified": "2026-09-22T08:35:13.617Z",
+      "last_modified": "2026-10-20T19:00:14.098Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "Documentation"
@@ -782,7 +770,7 @@
       "language": "Markdown",
       "size_bytes": 3623,
       "loc": 95,
-      "last_modified": "2026-09-22T08:35:13.663Z",
+      "last_modified": "2026-10-20T19:00:14.017Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "Documentation"
@@ -794,7 +782,7 @@
       "language": "Markdown",
       "size_bytes": 11900,
       "loc": 317,
-      "last_modified": "2026-09-22T08:35:13.629Z",
+      "last_modified": "2026-10-20T19:00:14.016Z",
       "imports": [],
       "exports": [
         "for",
@@ -809,7 +797,7 @@
       "language": "Markdown",
       "size_bytes": 13548,
       "loc": 291,
-      "last_modified": "2026-09-22T08:35:13.688Z",
+      "last_modified": "2026-10-20T19:00:14.007Z",
       "imports": [],
       "exports": [
         "for",
@@ -824,7 +812,7 @@
       "language": "PowerShell",
       "size_bytes": 1659,
       "loc": 51,
-      "last_modified": "2026-09-22T08:35:13.655Z",
+      "last_modified": "2026-10-20T19:00:14.054Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "Agent/Automation Scripts"
@@ -836,7 +824,7 @@
       "language": "Markdown",
       "size_bytes": 1333,
       "loc": 24,
-      "last_modified": "2026-09-22T08:35:13.697Z",
+      "last_modified": "2026-10-20T19:00:14.088Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "Documentation"
@@ -848,7 +836,7 @@
       "language": "Markdown",
       "size_bytes": 12875,
       "loc": 444,
-      "last_modified": "2026-09-22T08:35:13.591Z",
+      "last_modified": "2026-10-20T19:00:13.995Z",
       "imports": [
         "$PSScriptRoot\\Modules\\ExportEngine.psm1",
         "$PSScriptRoot\\Modules\\ReportGenerator.psm1",
@@ -874,7 +862,7 @@
       "language": "Markdown",
       "size_bytes": 13058,
       "loc": 499,
-      "last_modified": "2026-09-22T08:35:13.694Z",
+      "last_modified": "2026-10-20T19:00:14.096Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "Documentation"
@@ -886,7 +874,7 @@
       "language": "Markdown",
       "size_bytes": 13021,
       "loc": 452,
-      "last_modified": "2026-09-22T08:35:13.605Z",
+      "last_modified": "2026-10-20T19:00:14.041Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "Documentation"
@@ -898,7 +886,7 @@
       "language": "Markdown",
       "size_bytes": 50402,
       "loc": 1734,
-      "last_modified": "2026-09-22T08:35:13.621Z",
+      "last_modified": "2026-10-20T19:00:14.055Z",
       "imports": [],
       "exports": [
         "location",
@@ -917,7 +905,7 @@
       "language": "Markdown",
       "size_bytes": 33220,
       "loc": 1081,
-      "last_modified": "2026-09-22T08:35:13.611Z",
+      "last_modified": "2026-10-20T19:00:13.995Z",
       "imports": [],
       "exports": [
         "option"
@@ -931,7 +919,7 @@
       "language": "Markdown",
       "size_bytes": 11859,
       "loc": 458,
-      "last_modified": "2026-09-22T08:35:13.642Z",
+      "last_modified": "2026-10-20T19:00:14.090Z",
       "imports": [],
       "exports": [
         "data"
@@ -945,7 +933,7 @@
       "language": "Markdown",
       "size_bytes": 12171,
       "loc": 366,
-      "last_modified": "2026-09-22T08:35:13.615Z",
+      "last_modified": "2026-10-20T19:00:13.996Z",
       "imports": [],
       "exports": [
         "data"
@@ -959,7 +947,7 @@
       "language": "Markdown",
       "size_bytes": 12349,
       "loc": 391,
-      "last_modified": "2026-09-22T08:35:13.599Z",
+      "last_modified": "2026-10-20T19:00:14.045Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "Documentation"
@@ -971,7 +959,7 @@
       "language": "PowerShell",
       "size_bytes": 3967,
       "loc": 83,
-      "last_modified": "2026-09-22T08:35:13.708Z",
+      "last_modified": "2026-10-20T19:00:14.056Z",
       "imports": [
         "$sanitizeModule"
       ],
@@ -985,7 +973,7 @@
       "language": "PowerShell",
       "size_bytes": 6794,
       "loc": 164,
-      "last_modified": "2026-09-22T08:35:13.597Z",
+      "last_modified": "2026-10-20T19:00:13.986Z",
       "imports": [
         "(Join-Path"
       ],
@@ -1001,7 +989,7 @@
       "language": "Markdown",
       "size_bytes": 2068,
       "loc": 56,
-      "last_modified": "2026-09-22T08:35:13.619Z",
+      "last_modified": "2026-10-20T19:00:14.052Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "Agent/Automation Scripts"
@@ -1013,7 +1001,7 @@
       "language": "PowerShell",
       "size_bytes": 4646,
       "loc": 114,
-      "last_modified": "2026-09-22T08:35:13.623Z",
+      "last_modified": "2026-10-20T19:00:14.011Z",
       "imports": [
         "(Join-Path"
       ],
@@ -1027,7 +1015,7 @@
       "language": "PowerShell",
       "size_bytes": 1630,
       "loc": 48,
-      "last_modified": "2026-09-22T08:35:13.609Z",
+      "last_modified": "2026-10-20T19:00:14.009Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "Agent/Automation Scripts"
@@ -1039,7 +1027,7 @@
       "language": "PowerShell",
       "size_bytes": 15904,
       "loc": 382,
-      "last_modified": "2026-09-22T08:35:13.671Z",
+      "last_modified": "2026-10-20T19:00:14.008Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "Agent/Automation Scripts"
@@ -1051,7 +1039,7 @@
       "language": "PowerShell",
       "size_bytes": 5923,
       "loc": 211,
-      "last_modified": "2026-09-22T08:35:13.693Z",
+      "last_modified": "2026-10-20T19:00:14.056Z",
       "imports": [],
       "exports": [
         "Test-AlertThreshold, Get-AlertSeverity, Format-AlertMessage, Test-MultipleThresholds"
@@ -1065,7 +1053,7 @@
       "language": "PowerShell",
       "size_bytes": 9938,
       "loc": 267,
-      "last_modified": "2026-09-22T08:35:13.618Z",
+      "last_modified": "2026-10-20T19:00:14.122Z",
       "imports": [],
       "exports": [
         "Save-ToolkitCredential, Get-ToolkitCredential, Remove-ToolkitCredential, Test-CredentialValid"
@@ -1079,7 +1067,7 @@
       "language": "PowerShell",
       "size_bytes": 5147,
       "loc": 178,
-      "last_modified": "2026-09-22T08:35:13.674Z",
+      "last_modified": "2026-10-20T19:00:14.028Z",
       "imports": [],
       "exports": [
         "PowerShell",
@@ -1097,7 +1085,7 @@
       "language": "PowerShell",
       "size_bytes": 2713,
       "loc": 91,
-      "last_modified": "2026-09-22T08:35:13.598Z",
+      "last_modified": "2026-10-20T19:00:13.987Z",
       "imports": [],
       "exports": [
         "Remove-OldLogs"
@@ -1111,7 +1099,7 @@
       "language": "PowerShell",
       "size_bytes": 9942,
       "loc": 263,
-      "last_modified": "2026-09-22T08:35:13.637Z",
+      "last_modified": "2026-10-20T19:00:14.028Z",
       "imports": [],
       "exports": [
         "Test-RemoteConnection, Invoke-RemoteCommand, Invoke-ParallelRemoteExecution, Get-RemoteComputerInfo, Invoke-RemoteNetworkDiagnostic, Invoke-QuickCheckRemote"
@@ -1125,7 +1113,7 @@
       "language": "PowerShell",
       "size_bytes": 4346,
       "loc": 137,
-      "last_modified": "2026-09-22T08:35:13.732Z",
+      "last_modified": "2026-10-20T19:00:14.029Z",
       "imports": [],
       "exports": [
         "Convert-ObjectArrayToHtmlTable, New-HTMLReport"
@@ -1139,7 +1127,7 @@
       "language": "Markdown",
       "size_bytes": 1750,
       "loc": 54,
-      "last_modified": "2026-09-22T08:35:13.592Z",
+      "last_modified": "2026-10-20T19:00:13.995Z",
       "imports": [
         ".\\Scripts\\Modules\\TaskScheduler.psm1"
       ],
@@ -1153,7 +1141,7 @@
       "language": "PowerShell",
       "size_bytes": 5297,
       "loc": 141,
-      "last_modified": "2026-09-22T08:35:13.652Z",
+      "last_modified": "2026-10-20T19:00:14.059Z",
       "imports": [],
       "exports": [
         "ConvertTo-SanitizedText, Protect-SanitizedContent, Get-SanitizationConfig"
@@ -1167,7 +1155,7 @@
       "language": "PowerShell",
       "size_bytes": 4116,
       "loc": 117,
-      "last_modified": "2026-09-22T08:35:13.645Z",
+      "last_modified": "2026-10-20T19:00:14.003Z",
       "imports": [],
       "exports": [
         "New-CronExpression, Register-ToolkitScheduledTask, Get-ToolkitScheduledTask, Remove-ToolkitScheduledTask, Get-TaskSchedulerAvailable"
@@ -1181,7 +1169,7 @@
       "language": "PowerShell",
       "size_bytes": 3036,
       "loc": 102,
-      "last_modified": "2026-09-22T08:35:13.618Z",
+      "last_modified": "2026-10-20T19:00:14.079Z",
       "imports": [],
       "exports": [
         "Get-ToolkitConfig, Resolve-ToolPath, Get-ToolkitDirectory"
@@ -1195,7 +1183,7 @@
       "language": "PowerShell",
       "size_bytes": 8025,
       "loc": 222,
-      "last_modified": "2026-09-22T08:35:13.703Z",
+      "last_modified": "2026-10-20T19:00:14.057Z",
       "imports": [],
       "exports": [
         "Get-ToolkitData, Initialize-ToolkitDatabase, Add-ToolkitInventoryRecord, Get-ToolkitInventory, Add-ToolkitDiagnostic, Remove-ToolkitData, Test-SQLiteBinary, Invoke-SQLite"
@@ -1209,7 +1197,7 @@
       "language": "PowerShell",
       "size_bytes": 5481,
       "loc": 115,
-      "last_modified": "2026-09-22T08:35:13.601Z",
+      "last_modified": "2026-10-20T19:00:14.008Z",
       "imports": [
         "(Join-Path"
       ],
@@ -1225,7 +1213,7 @@
       "language": "PowerShell",
       "size_bytes": 1204,
       "loc": 37,
-      "last_modified": "2026-09-22T08:35:13.611Z",
+      "last_modified": "2026-10-20T19:00:14.081Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "Agent/Automation Scripts"
@@ -1237,7 +1225,7 @@
       "language": "PowerShell",
       "size_bytes": 1939,
       "loc": 44,
-      "last_modified": "2026-09-22T08:35:13.626Z",
+      "last_modified": "2026-10-20T19:00:13.986Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "Agent/Automation Scripts"
@@ -1249,7 +1237,7 @@
       "language": "PowerShell",
       "size_bytes": 14190,
       "loc": 285,
-      "last_modified": "2026-09-22T08:35:13.604Z",
+      "last_modified": "2026-10-20T19:00:14.009Z",
       "imports": [
         "(Join-Path"
       ],
@@ -1263,7 +1251,7 @@
       "language": "Markdown",
       "size_bytes": 11615,
       "loc": 441,
-      "last_modified": "2026-09-22T08:35:13.634Z",
+      "last_modified": "2026-10-20T19:00:14.033Z",
       "imports": [],
       "exports": [
         "for",
@@ -1279,7 +1267,7 @@
       "language": "PowerShell",
       "size_bytes": 2763,
       "loc": 78,
-      "last_modified": "2026-09-22T08:35:13.647Z",
+      "last_modified": "2026-10-20T19:00:14.075Z",
       "imports": [
         "(Join-Path"
       ],
@@ -1293,7 +1281,7 @@
       "language": "PowerShell",
       "size_bytes": 1609,
       "loc": 50,
-      "last_modified": "2026-09-22T08:35:13.674Z",
+      "last_modified": "2026-10-20T19:00:13.996Z",
       "imports": [
         "(Join-Path"
       ],
@@ -1307,7 +1295,7 @@
       "language": "PowerShell",
       "size_bytes": 1575,
       "loc": 50,
-      "last_modified": "2026-09-22T08:35:13.666Z",
+      "last_modified": "2026-10-20T19:00:13.997Z",
       "imports": [
         "(Join-Path"
       ],
@@ -1321,7 +1309,7 @@
       "language": "Markdown",
       "size_bytes": 1250,
       "loc": 28,
-      "last_modified": "2026-09-22T08:35:13.679Z",
+      "last_modified": "2026-10-20T19:00:14.000Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "Agent/Automation Scripts"
@@ -1333,7 +1321,7 @@
       "language": "Batch",
       "size_bytes": 243,
       "loc": 6,
-      "last_modified": "2026-09-22T08:35:13.600Z",
+      "last_modified": "2026-10-20T19:00:14.059Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "Agent/Automation Scripts"
@@ -1345,7 +1333,7 @@
       "language": "HTML",
       "size_bytes": 895,
       "loc": 24,
-      "last_modified": "2026-09-22T08:35:13.662Z",
+      "last_modified": "2026-10-20T19:00:14.032Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "Frontend"
@@ -1357,7 +1345,7 @@
       "language": "PowerShell",
       "size_bytes": 3238,
       "loc": 80,
-      "last_modified": "2026-09-22T08:35:13.610Z",
+      "last_modified": "2026-10-20T19:00:14.015Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "Agent/Automation Scripts"
@@ -1369,7 +1357,7 @@
       "language": "PowerShell",
       "size_bytes": 6680,
       "loc": 176,
-      "last_modified": "2026-09-22T08:35:13.588Z",
+      "last_modified": "2026-10-20T19:00:14.004Z",
       "imports": [
         "$path"
       ],
@@ -1386,7 +1374,7 @@
       "language": "PowerShell",
       "size_bytes": 5389,
       "loc": 108,
-      "last_modified": "2026-09-22T08:35:13.600Z",
+      "last_modified": "2026-10-20T19:00:14.033Z",
       "imports": [
         "(Join-Path"
       ],
@@ -1400,7 +1388,7 @@
       "language": "Markdown",
       "size_bytes": 665,
       "loc": 24,
-      "last_modified": "2026-09-22T08:35:13.632Z",
+      "last_modified": "2026-10-20T19:00:14.041Z",
       "imports": [],
       "exports": [
         "behavior"
@@ -1414,7 +1402,7 @@
       "language": "PowerShell",
       "size_bytes": 1494,
       "loc": 39,
-      "last_modified": "2026-09-22T08:35:13.699Z",
+      "last_modified": "2026-10-20T19:00:14.058Z",
       "imports": [
         "(Join-Path"
       ],
@@ -1432,7 +1420,7 @@
       "language": "PowerShell",
       "size_bytes": 755,
       "loc": 23,
-      "last_modified": "2026-09-22T08:35:13.671Z",
+      "last_modified": "2026-10-20T19:00:14.029Z",
       "imports": [
         "Pester"
       ],
@@ -1446,7 +1434,7 @@
       "language": "PowerShell",
       "size_bytes": 7841,
       "loc": 178,
-      "last_modified": "2026-09-22T08:35:13.709Z",
+      "last_modified": "2026-10-20T19:00:14.038Z",
       "imports": [
         "(Join-Path"
       ],
@@ -1462,7 +1450,7 @@
       "language": "Batch",
       "size_bytes": 10046,
       "loc": 350,
-      "last_modified": "2026-09-22T08:35:13.606Z",
+      "last_modified": "2026-10-20T19:00:14.042Z",
       "imports": [],
       "exports": [
         "echo"
@@ -1476,7 +1464,7 @@
       "language": "Markdown",
       "size_bytes": 2252,
       "loc": 32,
-      "last_modified": "2026-09-22T08:35:13.657Z",
+      "last_modified": "2026-10-20T19:00:14.027Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "Documentation"
@@ -1488,7 +1476,7 @@
       "language": "Other",
       "size_bytes": 13168,
       "loc": 303,
-      "last_modified": "2026-09-22T08:35:13.626Z",
+      "last_modified": "2026-10-20T19:00:14.061Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "General"
@@ -1500,7 +1488,7 @@
       "language": "Other",
       "size_bytes": 3123,
       "loc": 65,
-      "last_modified": "2026-09-22T08:35:13.599Z",
+      "last_modified": "2026-10-20T19:00:14.123Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "General"
@@ -1512,7 +1500,7 @@
       "language": "Other",
       "size_bytes": 11414,
       "loc": 33,
-      "last_modified": "2026-09-22T08:35:13.589Z",
+      "last_modified": "2026-10-20T19:00:14.033Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "General"
@@ -1524,7 +1512,7 @@
       "language": "Other",
       "size_bytes": 2500,
       "loc": 93,
-      "last_modified": "2026-09-22T08:35:13.655Z",
+      "last_modified": "2026-10-20T19:00:14.128Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "General"
@@ -1536,7 +1524,7 @@
       "language": "Batch",
       "size_bytes": 4053,
       "loc": 133,
-      "last_modified": "2026-09-22T08:35:13.599Z",
+      "last_modified": "2026-10-20T19:00:14.049Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "Agent/Automation Scripts"
@@ -1548,7 +1536,7 @@
       "language": "Markdown",
       "size_bytes": 9760,
       "loc": 125,
-      "last_modified": "2026-09-22T08:35:13.587Z",
+      "last_modified": "2026-10-20T19:00:14.043Z",
       "imports": [],
       "exports": [
         "and",
@@ -1564,7 +1552,7 @@
       "language": "JavaScript",
       "size_bytes": 5434,
       "loc": 159,
-      "last_modified": "2026-09-22T08:35:13.639Z",
+      "last_modified": "2026-10-20T19:00:14.027Z",
       "imports": [
         "fs",
         "path",
@@ -1582,13 +1570,37 @@
       "architecture_layer": "General"
     },
     {
+      "path": "/artifacts/msi/297e37ed-5e3c-430c-b7b2-cd39f0179e96/IT-Toolkit-Agent-Enterprise-1.1.2.msi",
+      "filename": "IT-Toolkit-Agent-Enterprise-1.1.2.msi",
+      "extension": ".msi",
+      "language": "Other",
+      "size_bytes": 1536,
+      "loc": 1,
+      "last_modified": "2026-10-20T19:00:14.029Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "General"
+    },
+    {
+      "path": "/artifacts/msi/3ed63471-a6f5-408d-8b17-07bb0c10dea1/IT-Toolkit-Agent-Enterprise-1.1.2.msi",
+      "filename": "IT-Toolkit-Agent-Enterprise-1.1.2.msi",
+      "extension": ".msi",
+      "language": "Other",
+      "size_bytes": 1536,
+      "loc": 1,
+      "last_modified": "2026-10-20T19:00:14.027Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "General"
+    },
+    {
       "path": "/artifacts/msi/51e7acd3-98d4-4f63-ac0c-7aae35853728/IT-Toolkit-Agent-Enterprise-1.1.2.msi",
       "filename": "IT-Toolkit-Agent-Enterprise-1.1.2.msi",
       "extension": ".msi",
       "language": "Other",
       "size_bytes": 1536,
       "loc": 1,
-      "last_modified": "2026-09-22T08:35:13.608Z",
+      "last_modified": "2026-10-20T19:00:14.029Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "General"
@@ -1600,7 +1612,7 @@
       "language": "Other",
       "size_bytes": 1536,
       "loc": 1,
-      "last_modified": "2026-09-22T08:35:13.613Z",
+      "last_modified": "2026-10-20T19:00:14.045Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "General"
@@ -1612,7 +1624,7 @@
       "language": "Other",
       "size_bytes": 1536,
       "loc": 1,
-      "last_modified": "2026-09-22T08:35:13.617Z",
+      "last_modified": "2026-10-20T19:00:14.068Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "General"
@@ -1624,7 +1636,7 @@
       "language": "Other",
       "size_bytes": 1536,
       "loc": 1,
-      "last_modified": "2026-09-22T08:35:13.664Z",
+      "last_modified": "2026-10-20T19:00:14.019Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "General"
@@ -1636,7 +1648,31 @@
       "language": "Other",
       "size_bytes": 1536,
       "loc": 1,
-      "last_modified": "2026-09-22T08:35:13.660Z",
+      "last_modified": "2026-10-20T19:00:14.052Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "General"
+    },
+    {
+      "path": "/artifacts/msi/8600bfa1-0be3-4184-b870-94a4555ef182/IT-Toolkit-Agent-Enterprise-1.1.2.msi",
+      "filename": "IT-Toolkit-Agent-Enterprise-1.1.2.msi",
+      "extension": ".msi",
+      "language": "Other",
+      "size_bytes": 1536,
+      "loc": 1,
+      "last_modified": "2026-10-20T19:00:14.043Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "General"
+    },
+    {
+      "path": "/artifacts/msi/8e58fa75-231e-4433-bca1-7007194724d2/IT-Toolkit-Agent-Enterprise-1.1.2.msi",
+      "filename": "IT-Toolkit-Agent-Enterprise-1.1.2.msi",
+      "extension": ".msi",
+      "language": "Other",
+      "size_bytes": 1536,
+      "loc": 1,
+      "last_modified": "2026-10-20T19:00:14.014Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "General"
@@ -1648,7 +1684,7 @@
       "language": "Other",
       "size_bytes": 1536,
       "loc": 1,
-      "last_modified": "2026-09-22T08:35:13.605Z",
+      "last_modified": "2026-10-20T19:00:14.088Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "General"
@@ -1660,10 +1696,34 @@
       "language": "Other",
       "size_bytes": 1536,
       "loc": 1,
-      "last_modified": "2026-09-22T08:35:13.651Z",
+      "last_modified": "2026-10-20T19:00:14.005Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "General"
+    },
+    {
+      "path": "/artifacts/msi/a50699ec-e0b7-4f7a-9f49-81308aa1156e/IT-Toolkit-Agent-Enterprise-1.1.2.msi",
+      "filename": "IT-Toolkit-Agent-Enterprise-1.1.2.msi",
+      "extension": ".msi",
+      "language": "Other",
+      "size_bytes": 1536,
+      "loc": 1,
+      "last_modified": "2026-10-20T19:00:14.076Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "General"
+    },
+    {
+      "path": "/artifacts/msi/b465f41d-4927-4e39-af8b-db7e4c277785/test-agent-1.1.2.msi",
+      "filename": "test-agent-1.1.2.msi",
+      "extension": ".msi",
+      "language": "Other",
+      "size_bytes": 1536,
+      "loc": 1,
+      "last_modified": "2026-10-20T19:00:14.046Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "Testing"
     },
     {
       "path": "/artifacts/msi/bca6a12d-1c60-4985-8f27-528331d72022/IT-Toolkit-Agent-Enterprise-1.1.2.msi",
@@ -1672,7 +1732,19 @@
       "language": "Other",
       "size_bytes": 1536,
       "loc": 1,
-      "last_modified": "2026-09-22T08:35:13.593Z",
+      "last_modified": "2026-10-20T19:00:14.028Z",
+      "imports": [],
+      "exports": [],
+      "architecture_layer": "General"
+    },
+    {
+      "path": "/artifacts/msi/d5a936f0-fa60-4a32-92ec-9cf37983cd98/IT-Toolkit-Agent-Enterprise-1.1.2.msi",
+      "filename": "IT-Toolkit-Agent-Enterprise-1.1.2.msi",
+      "extension": ".msi",
+      "language": "Other",
+      "size_bytes": 1536,
+      "loc": 1,
+      "last_modified": "2026-10-20T19:00:47.793Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "General"
@@ -1684,7 +1756,7 @@
       "language": "Markdown",
       "size_bytes": 2580,
       "loc": 72,
-      "last_modified": "2026-09-22T08:35:13.607Z",
+      "last_modified": "2026-10-20T19:00:14.007Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "Audit"
@@ -1696,7 +1768,7 @@
       "language": "JSON",
       "size_bytes": 6440,
       "loc": 226,
-      "last_modified": "2026-09-22T08:39:50.622Z",
+      "last_modified": "2026-10-20T19:00:14.085Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "Audit"
@@ -1708,7 +1780,7 @@
       "language": "JSON",
       "size_bytes": 4001,
       "loc": 86,
-      "last_modified": "2026-09-22T08:39:50.622Z",
+      "last_modified": "2026-10-20T19:00:14.003Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "Audit"
@@ -1720,7 +1792,7 @@
       "language": "PowerShell",
       "size_bytes": 3146,
       "loc": 88,
-      "last_modified": "2026-09-22T08:35:13.663Z",
+      "last_modified": "2026-10-20T19:00:14.039Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "Agent/Automation Scripts"
@@ -1732,7 +1804,7 @@
       "language": "Markdown",
       "size_bytes": 1752,
       "loc": 28,
-      "last_modified": "2026-09-22T08:39:53.974Z",
+      "last_modified": "2026-10-20T19:00:14.039Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "Audit"
@@ -1744,7 +1816,7 @@
       "language": "Markdown",
       "size_bytes": 4745,
       "loc": 84,
-      "last_modified": "2026-09-22T08:35:13.607Z",
+      "last_modified": "2026-10-20T19:00:14.093Z",
       "imports": [
         "RemoteToolkit.psm1`"
       ],
@@ -1758,7 +1830,7 @@
       "language": "JSON",
       "size_bytes": 1176,
       "loc": 36,
-      "last_modified": "2026-09-22T08:39:50.622Z",
+      "last_modified": "2026-10-20T19:00:14.075Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "Audit"
@@ -1770,7 +1842,7 @@
       "language": "JSON",
       "size_bytes": 995,
       "loc": 44,
-      "last_modified": "2026-09-22T08:39:50.623Z",
+      "last_modified": "2026-10-20T19:00:14.003Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "Audit"
@@ -1780,9 +1852,9 @@
       "filename": "documentation.md",
       "extension": ".md",
       "language": "Markdown",
-      "size_bytes": 5344,
-      "loc": 96,
-      "last_modified": "2026-09-22T08:40:39.192Z",
+      "size_bytes": 3835,
+      "loc": 56,
+      "last_modified": "2026-10-20T19:00:14.004Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "Audit"
@@ -1792,9 +1864,9 @@
       "filename": "frontend.md",
       "extension": ".md",
       "language": "Markdown",
-      "size_bytes": 2736,
-      "loc": 53,
-      "last_modified": "2026-09-22T08:35:13.659Z",
+      "size_bytes": 4375,
+      "loc": 67,
+      "last_modified": "2026-10-20T19:00:14.016Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "Frontend"
@@ -1804,9 +1876,9 @@
       "filename": "index.json",
       "extension": ".json",
       "language": "JSON",
-      "size_bytes": 75376,
-      "loc": 2743,
-      "last_modified": "2026-09-22T08:39:50.621Z",
+      "size_bytes": 79732,
+      "loc": 2890,
+      "last_modified": "2026-10-20T19:00:14.039Z",
       "imports": [],
       "exports": [
         "module.exports"
@@ -1820,7 +1892,7 @@
       "language": "JSON",
       "size_bytes": 338,
       "loc": 20,
-      "last_modified": "2026-09-22T08:39:53.975Z",
+      "last_modified": "2026-10-20T19:00:14.020Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "Audit"
@@ -1832,7 +1904,7 @@
       "language": "Markdown",
       "size_bytes": 2057,
       "loc": 31,
-      "last_modified": "2026-09-22T08:39:53.975Z",
+      "last_modified": "2026-10-20T19:00:13.997Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "Audit"
@@ -1844,7 +1916,7 @@
       "language": "Markdown",
       "size_bytes": 1775,
       "loc": 43,
-      "last_modified": "2026-09-22T08:39:53.975Z",
+      "last_modified": "2026-10-20T19:00:14.050Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "Audit"
@@ -1856,7 +1928,7 @@
       "language": "Markdown",
       "size_bytes": 1775,
       "loc": 43,
-      "last_modified": "2026-09-22T08:39:53.975Z",
+      "last_modified": "2026-10-20T19:00:13.987Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "Audit"
@@ -1868,7 +1940,7 @@
       "language": "JavaScript",
       "size_bytes": 33475,
       "loc": 650,
-      "last_modified": "2026-09-22T08:39:49.014Z",
+      "last_modified": "2026-10-20T19:00:13.999Z",
       "imports": [
         "fs",
         "path",
@@ -1886,7 +1958,7 @@
       "language": "Markdown",
       "size_bytes": 1624,
       "loc": 23,
-      "last_modified": "2026-09-22T08:39:53.975Z",
+      "last_modified": "2026-10-20T19:00:14.030Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "Audit"
@@ -1896,9 +1968,9 @@
       "filename": "statistics.json",
       "extension": ".json",
       "language": "JSON",
-      "size_bytes": 2224,
+      "size_bytes": 2218,
       "loc": 120,
-      "last_modified": "2026-09-22T08:39:50.622Z",
+      "last_modified": "2026-10-20T19:00:14.033Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "Audit"
@@ -1908,9 +1980,9 @@
       "filename": "testing.md",
       "extension": ".md",
       "language": "Markdown",
-      "size_bytes": 3270,
+      "size_bytes": 3269,
       "loc": 54,
-      "last_modified": "2026-09-22T08:39:53.974Z",
+      "last_modified": "2026-10-20T19:00:14.094Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "Audit"
@@ -1920,9 +1992,9 @@
       "filename": "bun.lock",
       "extension": ".lock",
       "language": "Other",
-      "size_bytes": 65365,
+      "size_bytes": 52923,
       "loc": 644,
-      "last_modified": "2026-09-22T08:35:13.607Z",
+      "last_modified": "2026-10-20T19:00:16.253Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "General"
@@ -1934,7 +2006,7 @@
       "language": "Other",
       "size_bytes": 1302,
       "loc": 23,
-      "last_modified": "2026-09-22T08:35:13.625Z",
+      "last_modified": "2026-10-20T19:00:14.060Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "General"
@@ -1946,7 +2018,7 @@
       "language": "Other",
       "size_bytes": 1704,
       "loc": 29,
-      "last_modified": "2026-09-22T08:35:13.617Z",
+      "last_modified": "2026-10-20T19:00:13.998Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "General"
@@ -1958,7 +2030,7 @@
       "language": "JSON",
       "size_bytes": 1694,
       "loc": 49,
-      "last_modified": "2026-09-22T08:35:13.700Z",
+      "last_modified": "2026-10-20T19:00:13.988Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "Backend/API"
@@ -1970,7 +2042,7 @@
       "language": "YAML",
       "size_bytes": 29848,
       "loc": 1237,
-      "last_modified": "2026-09-22T08:35:13.684Z",
+      "last_modified": "2026-10-20T19:00:14.064Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "Backend/API"
@@ -1982,7 +2054,7 @@
       "language": "CSS",
       "size_bytes": 5494,
       "loc": 363,
-      "last_modified": "2026-09-22T08:35:13.649Z",
+      "last_modified": "2026-10-20T19:00:30.222Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "Frontend"
@@ -1994,7 +2066,7 @@
       "language": "JavaScript",
       "size_bytes": 2336,
       "loc": 83,
-      "last_modified": "2026-09-22T08:35:13.644Z",
+      "last_modified": "2026-10-20T19:00:30.223Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "General"
@@ -2004,9 +2076,9 @@
       "filename": "coverage-final.json",
       "extension": ".json",
       "language": "JSON",
-      "size_bytes": 737224,
+      "size_bytes": 734329,
       "loc": 5,
-      "last_modified": "2026-09-22T08:35:13.695Z",
+      "last_modified": "2026-10-20T19:00:30.222Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "General"
@@ -2016,9 +2088,9 @@
       "filename": "db.js.html",
       "extension": ".html",
       "language": "HTML",
-      "size_bytes": 405060,
-      "loc": 8143,
-      "last_modified": "2026-09-22T08:35:13.623Z",
+      "size_bytes": 403662,
+      "loc": 8164,
+      "last_modified": "2026-10-20T19:00:30.240Z",
       "imports": [
         "mysql2/promise",
         "ioredis",
@@ -2026,7 +2098,8 @@
         "path",
         "crypto",
         "bcrypt",
-        "url"
+        "url",
+        "./agent-artifacts.js"
       ],
       "exports": [
         "initRedisClient",
@@ -2035,8 +2108,10 @@
         "stopDbHealthCheck",
         "isMysqlConnected",
         "getPool",
+        "setConnectionStateForTesting",
         "invalidateDeviceCache",
         "startTelemetryFlushWorker",
+        "getMemProcesses",
         "invalidateAlertRulesCache",
         "getLastRetentionRun",
         "initRetentionScheduler"
@@ -2050,7 +2125,7 @@
       "language": "Other",
       "size_bytes": 445,
       "loc": 3,
-      "last_modified": "2026-09-22T08:35:13.589Z",
+      "last_modified": "2026-10-20T19:00:30.223Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "General"
@@ -2060,9 +2135,9 @@
       "filename": "index.html",
       "extension": ".html",
       "language": "HTML",
-      "size_bytes": 5832,
+      "size_bytes": 5835,
       "loc": 146,
-      "last_modified": "2026-09-22T08:35:13.641Z",
+      "last_modified": "2026-10-20T19:00:30.225Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "Frontend"
@@ -2074,7 +2149,7 @@
       "language": "CSS",
       "size_bytes": 1060,
       "loc": 102,
-      "last_modified": "2026-09-22T08:35:13.643Z",
+      "last_modified": "2026-10-20T19:00:30.223Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "Frontend"
@@ -2086,7 +2161,7 @@
       "language": "JavaScript",
       "size_bytes": 26708,
       "loc": 938,
-      "last_modified": "2026-09-22T08:35:13.642Z",
+      "last_modified": "2026-10-20T19:00:30.223Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "General"
@@ -2096,9 +2171,9 @@
       "filename": "server.js.html",
       "extension": ".html",
       "language": "HTML",
-      "size_bytes": 406853,
-      "loc": 8230,
-      "last_modified": "2026-09-22T08:35:13.606Z",
+      "size_bytes": 408805,
+      "loc": 8278,
+      "last_modified": "2026-10-20T19:00:30.253Z",
       "imports": [
         "express",
         "cookie-parser",
@@ -2124,7 +2199,7 @@
       "language": "Other",
       "size_bytes": 138,
       "loc": 3,
-      "last_modified": "2026-09-22T08:35:13.667Z",
+      "last_modified": "2026-10-20T19:00:30.223Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "General"
@@ -2136,7 +2211,7 @@
       "language": "JavaScript",
       "size_bytes": 5744,
       "loc": 206,
-      "last_modified": "2026-09-22T08:35:13.598Z",
+      "last_modified": "2026-10-20T19:00:30.223Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "General"
@@ -2146,9 +2221,9 @@
       "filename": "validation.js.html",
       "extension": ".html",
       "language": "HTML",
-      "size_bytes": 38783,
-      "loc": 925,
-      "last_modified": "2026-09-22T08:35:13.613Z",
+      "size_bytes": 43005,
+      "loc": 1024,
+      "last_modified": "2026-10-20T19:00:30.254Z",
       "imports": [
         "zod"
       ],
@@ -2194,7 +2269,7 @@
       "language": "SQL",
       "size_bytes": 10205,
       "loc": 258,
-      "last_modified": "2026-09-22T08:35:13.597Z",
+      "last_modified": "2026-10-20T19:00:14.093Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "Database"
@@ -2206,7 +2281,7 @@
       "language": "SQL",
       "size_bytes": 1374,
       "loc": 33,
-      "last_modified": "2026-09-22T08:35:13.658Z",
+      "last_modified": "2026-10-20T19:00:14.034Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "Database"
@@ -2218,7 +2293,7 @@
       "language": "SQL",
       "size_bytes": 8316,
       "loc": 139,
-      "last_modified": "2026-09-22T08:35:13.592Z",
+      "last_modified": "2026-10-20T19:00:14.005Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "Database"
@@ -2230,7 +2305,7 @@
       "language": "Markdown",
       "size_bytes": 1332,
       "loc": 18,
-      "last_modified": "2026-09-22T08:35:13.615Z",
+      "last_modified": "2026-10-20T19:00:14.006Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "Database"
@@ -2242,7 +2317,7 @@
       "language": "SQL",
       "size_bytes": 22576,
       "loc": 467,
-      "last_modified": "2026-09-22T08:35:13.676Z",
+      "last_modified": "2026-10-20T19:00:13.998Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "Database"
@@ -2252,9 +2327,9 @@
       "filename": "db.js",
       "extension": ".js",
       "language": "JavaScript",
-      "size_bytes": 100566,
-      "loc": 2687,
-      "last_modified": "2026-09-22T08:35:13.635Z",
+      "size_bytes": 99722,
+      "loc": 2694,
+      "last_modified": "2026-10-20T19:00:14.014Z",
       "imports": [
         "mysql2/promise",
         "ioredis",
@@ -2262,7 +2337,8 @@
         "path",
         "crypto",
         "bcrypt",
-        "url"
+        "url",
+        "./agent-artifacts.js"
       ],
       "exports": [
         "initRedisClient",
@@ -2271,8 +2347,10 @@
         "stopDbHealthCheck",
         "isMysqlConnected",
         "getPool",
+        "setConnectionStateForTesting",
         "invalidateDeviceCache",
         "startTelemetryFlushWorker",
+        "getMemProcesses",
         "invalidateAlertRulesCache",
         "getLastRetentionRun",
         "initRetentionScheduler"
@@ -2286,7 +2364,7 @@
       "language": "Other",
       "size_bytes": 17507,
       "loc": 271,
-      "last_modified": "2026-09-22T08:35:13.610Z",
+      "last_modified": "2026-10-20T19:00:13.998Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "General"
@@ -2298,7 +2376,7 @@
       "language": "Other",
       "size_bytes": 30279,
       "loc": 905,
-      "last_modified": "2026-09-22T08:35:13.586Z",
+      "last_modified": "2026-10-20T19:00:14.067Z",
       "imports": [],
       "exports": [
         "PHASE"
@@ -2312,7 +2390,7 @@
       "language": "Markdown",
       "size_bytes": 2226,
       "loc": 35,
-      "last_modified": "2026-09-22T08:35:13.600Z",
+      "last_modified": "2026-10-20T19:00:14.004Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "Documentation"
@@ -2324,7 +2402,7 @@
       "language": "Markdown",
       "size_bytes": 2242,
       "loc": 32,
-      "last_modified": "2026-09-22T08:35:13.641Z",
+      "last_modified": "2026-10-20T19:00:14.013Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "Documentation"
@@ -2336,7 +2414,7 @@
       "language": "Markdown",
       "size_bytes": 1493,
       "loc": 22,
-      "last_modified": "2026-09-22T08:35:13.598Z",
+      "last_modified": "2026-10-20T19:00:14.062Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "Documentation"
@@ -2348,7 +2426,7 @@
       "language": "Markdown",
       "size_bytes": 5901,
       "loc": 30,
-      "last_modified": "2026-09-22T08:35:13.690Z",
+      "last_modified": "2026-10-20T19:00:14.021Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "Documentation"
@@ -2360,7 +2438,7 @@
       "language": "Markdown",
       "size_bytes": 9676,
       "loc": 220,
-      "last_modified": "2026-09-22T08:35:13.665Z",
+      "last_modified": "2026-10-20T19:00:14.023Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "Documentation"
@@ -2372,7 +2450,7 @@
       "language": "JavaScript",
       "size_bytes": 1003,
       "loc": 34,
-      "last_modified": "2026-09-22T08:35:13.619Z",
+      "last_modified": "2026-10-20T19:00:14.044Z",
       "imports": [],
       "exports": [
         "module.exports"
@@ -2386,7 +2464,7 @@
       "language": "JSON",
       "size_bytes": 234,
       "loc": 9,
-      "last_modified": "2026-09-22T08:35:13.624Z",
+      "last_modified": "2026-10-20T19:00:14.034Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "General"
@@ -2398,7 +2476,7 @@
       "language": "JSON",
       "size_bytes": 116420,
       "loc": 3788,
-      "last_modified": "2026-09-22T08:36:20.963Z",
+      "last_modified": "2026-10-20T19:00:14.081Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "General"
@@ -2408,9 +2486,9 @@
       "filename": "package.json",
       "extension": ".json",
       "language": "JSON",
-      "size_bytes": 1604,
-      "loc": 46,
-      "last_modified": "2026-09-22T08:40:53.187Z",
+      "size_bytes": 1762,
+      "loc": 47,
+      "last_modified": "2026-10-20T19:00:14.058Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "General"
@@ -2422,7 +2500,7 @@
       "language": "JSON",
       "size_bytes": 58519,
       "loc": 1842,
-      "last_modified": "2026-09-22T08:35:13.601Z",
+      "last_modified": "2026-10-20T19:00:14.077Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "General"
@@ -2434,7 +2512,7 @@
       "language": "JSON",
       "size_bytes": 8831,
       "loc": 316,
-      "last_modified": "2026-09-22T08:35:13.670Z",
+      "last_modified": "2026-10-20T19:00:13.997Z",
       "imports": [],
       "exports": [],
       "architecture_layer": "General"
@@ -2446,8 +2524,23 @@
       "language": "JSON",
       "size_bytes": 1699,
       "loc": 53,
-      "last_modified": "2026-09-22T08:35:13.599Z",
+      "last_modified": "2026-10-20T19:00:13.997Z",
       "imports": [],
+      "exports": [],
+      "architecture_layer": "General"
+    },
+    {
+      "path": "/scripts/check-version-consistency.cjs",
+      "filename": "check-version-consistency.cjs",
+      "extension": ".cjs",
+      "language": "JavaScript",
+      "size_bytes": 2564,
+      "loc": 77,
+      "last_modified": "2026-10-20T19:00:14.047Z",
+      "imports": [
+        "fs",
+        "path"
+      ],
       "exports": [],
       "architecture_layer": "General"
     },
@@ -2456,9 +2549,9 @@
       "filename": "server.js",
       "extension": ".js",
       "language": "JavaScript",
-      "size_bytes": 104723,
-      "loc": 2716,
-      "last_modified": "2026-09-22T08:35:13.736Z",
+      "size_bytes": 105166,
+      "loc": 2732,
+      "last_modified": "2026-10-20T19:00:14.040Z",
       "imports": [
         "express",
         "cookie-parser",
@@ -2484,7 +2577,7 @@
       "language": "JavaScript",
       "size_bytes": 8315,
       "loc": 195,
-      "last_modified": "2026-09-22T08:35:13.702Z",
+      "last_modified": "2026-10-20T19:00:14.031Z",
       "imports": [
         "http",
         "crypto",
@@ -2500,7 +2593,7 @@
       "language": "JavaScript",
       "size_bytes": 4253,
       "loc": 112,
-      "last_modified": "2026-09-22T08:35:13.614Z",
+      "last_modified": "2026-10-20T19:00:14.037Z",
       "imports": [
         "node:assert",
         "node:fs",
@@ -2518,7 +2611,7 @@
       "language": "JavaScript",
       "size_bytes": 8291,
       "loc": 202,
-      "last_modified": "2026-09-22T08:35:13.682Z",
+      "last_modified": "2026-10-20T19:00:14.045Z",
       "imports": [
         "node:assert",
         "node:http",
@@ -2537,7 +2630,7 @@
       "language": "JavaScript",
       "size_bytes": 4715,
       "loc": 101,
-      "last_modified": "2026-09-22T08:35:13.606Z",
+      "last_modified": "2026-10-20T19:00:14.086Z",
       "imports": [
         "node:assert",
         "./db.js"
@@ -2552,7 +2645,7 @@
       "language": "JavaScript",
       "size_bytes": 9826,
       "loc": 228,
-      "last_modified": "2026-09-22T08:35:13.649Z",
+      "last_modified": "2026-10-20T19:00:14.026Z",
       "imports": [
         "http",
         "crypto",
@@ -2568,7 +2661,7 @@
       "language": "JavaScript",
       "size_bytes": 8621,
       "loc": 240,
-      "last_modified": "2026-09-22T08:35:13.682Z",
+      "last_modified": "2026-10-20T19:00:14.095Z",
       "imports": [
         "http",
         "crypto",
@@ -2584,7 +2677,7 @@
       "language": "JavaScript",
       "size_bytes": 7010,
       "loc": 145,
-      "last_modified": "2026-09-22T08:35:13.616Z",
+      "last_modified": "2026-10-20T19:00:14.085Z",
       "imports": [
         "node:assert",
         "node:fs",
@@ -2602,7 +2695,7 @@
       "language": "JavaScript",
       "size_bytes": 6882,
       "loc": 127,
-      "last_modified": "2026-09-22T08:35:13.664Z",
+      "last_modified": "2026-10-20T19:00:14.007Z",
       "imports": [
         "assert",
         "crypto",
@@ -2619,9 +2712,9 @@
       "filename": "test-query-performance-indexing.js",
       "extension": ".js",
       "language": "JavaScript",
-      "size_bytes": 10556,
-      "loc": 272,
-      "last_modified": "2026-09-22T08:35:13.612Z",
+      "size_bytes": 10975,
+      "loc": 279,
+      "last_modified": "2026-10-20T19:00:14.009Z",
       "imports": [
         "node:assert",
         "node:http",
@@ -2636,9 +2729,9 @@
       "filename": "server.integration.test.js",
       "extension": ".js",
       "language": "JavaScript",
-      "size_bytes": 28575,
-      "loc": 821,
-      "last_modified": "2026-09-22T08:35:13.609Z",
+      "size_bytes": 29355,
+      "loc": 840,
+      "last_modified": "2026-10-20T19:00:14.017Z",
       "imports": [
         "vitest",
         "supertest",
@@ -2648,16 +2741,82 @@
       "architecture_layer": "Testing"
     },
     {
+      "path": "/tests/unit/boot-security.test.js",
+      "filename": "boot-security.test.js",
+      "extension": ".js",
+      "language": "JavaScript",
+      "size_bytes": 2517,
+      "loc": 63,
+      "last_modified": "2026-10-20T19:00:14.051Z",
+      "imports": [
+        "vitest",
+        "child_process",
+        "path",
+        "url"
+      ],
+      "exports": [],
+      "architecture_layer": "Testing"
+    },
+    {
       "path": "/tests/unit/db.unit.test.js",
       "filename": "db.unit.test.js",
       "extension": ".js",
       "language": "JavaScript",
-      "size_bytes": 33505,
-      "loc": 926,
-      "last_modified": "2026-09-22T08:35:13.587Z",
+      "size_bytes": 33830,
+      "loc": 933,
+      "last_modified": "2026-10-20T19:00:14.041Z",
       "imports": [
         "vitest",
         "../../db.js"
+      ],
+      "exports": [],
+      "architecture_layer": "Testing"
+    },
+    {
+      "path": "/tests/unit/msi-latest-route.test.js",
+      "filename": "msi-latest-route.test.js",
+      "extension": ".js",
+      "language": "JavaScript",
+      "size_bytes": 1880,
+      "loc": 38,
+      "last_modified": "2026-10-20T19:00:13.994Z",
+      "imports": [
+        "vitest",
+        "supertest",
+        "../../server.js",
+        "../../agent-artifacts.js"
+      ],
+      "exports": [],
+      "architecture_layer": "Testing"
+    },
+    {
+      "path": "/tests/unit/port-configuration.test.js",
+      "filename": "port-configuration.test.js",
+      "extension": ".js",
+      "language": "JavaScript",
+      "size_bytes": 3534,
+      "loc": 116,
+      "last_modified": "2026-10-20T19:00:14.097Z",
+      "imports": [
+        "vitest",
+        "child_process",
+        "http",
+        "path",
+        "url"
+      ],
+      "exports": [],
+      "architecture_layer": "Testing"
+    },
+    {
+      "path": "/tests/unit/sync-device-processes.test.js",
+      "filename": "sync-device-processes.test.js",
+      "extension": ".js",
+      "language": "JavaScript",
+      "size_bytes": 2997,
+      "loc": 83,
+      "last_modified": "2026-10-20T19:00:14.119Z",
+      "imports": [
+        "vitest"
       ],
       "exports": [],
       "architecture_layer": "Testing"
@@ -2667,9 +2826,9 @@
       "filename": "validation.unit.test.js",
       "extension": ".js",
       "language": "JavaScript",
-      "size_bytes": 6615,
-      "loc": 173,
-      "last_modified": "2026-09-22T08:37:54.616Z",
+      "size_bytes": 7730,
+      "loc": 202,
+      "last_modified": "2026-10-20T19:00:14.096Z",
       "imports": [
         "vitest",
         "../../validation.js"
@@ -2682,9 +2841,9 @@
       "filename": "validation.js",
       "extension": ".js",
       "language": "JavaScript",
-      "size_bytes": 9427,
-      "loc": 281,
-      "last_modified": "2026-09-22T08:37:50.064Z",
+      "size_bytes": 10590,
+      "loc": 314,
+      "last_modified": "2026-10-20T19:00:14.016Z",
       "imports": [
         "zod"
       ],
@@ -2730,7 +2889,7 @@
       "language": "JavaScript",
       "size_bytes": 657,
       "loc": 31,
-      "last_modified": "2026-09-22T08:35:13.673Z",
+      "last_modified": "2026-10-20T19:00:14.053Z",
       "imports": [
         "vitest/config"
       ],

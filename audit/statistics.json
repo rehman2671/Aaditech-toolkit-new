@@ -1,17 +1,17 @@
 {
   "path": "/audit/statistics.json",
-  "generated": "2026-10-20T19:03:19.319Z",
+  "generated": "2026-11-03T13:38:24.879Z",
   "method": "computed dynamically",
-  "total_files": 209,
+  "total_files": 212,
   "total_source_files": 84,
   "total_test_files": 30,
   "total_documentation_files": 53,
   "total_configuration_files": 7,
   "total_images": 2,
   "total_scripts": 53,
-  "total_directories": 59,
-  "total_loc": 70010,
-  "average_file_size_bytes": 17556.24880382775,
+  "total_directories": 63,
+  "total_loc": 71622,
+  "average_file_size_bytes": 17511.580188679247,
   "breakdown_by_language": {
     "JavaScript": 27,
     "TypeScript": 0,
@@ -32,7 +32,7 @@
     {
       "path": "/coverage/db.js.html",
       "lines": 8164,
-      "bytes": 403662
+      "bytes": 403965
     },
     {
       "path": "/package-lock.json",
@@ -41,13 +41,13 @@
     },
     {
       "path": "/audit/index.json",
-      "lines": 2890,
-      "bytes": 79732
+      "lines": 2938,
+      "bytes": 81234
     },
     {
       "path": "/server.js",
       "lines": 2732,
-      "bytes": 105166
+      "bytes": 105254
     },
     {
       "path": "/db.js",
@@ -70,15 +70,15 @@
       "bytes": 50402
     },
     {
-      "path": "/ANALYSIS-RECOMMENDATIONS.md",
-      "lines": 1372,
-      "bytes": 48885
+      "path": "/public/assets/aistudio/Paste_November_03__2026_-_6_59PM_c4c14beb",
+      "lines": 1389,
+      "bytes": 35309
     }
   ],
   "largest_folders": [
     {
       "folder": "/",
-      "files": 41
+      "files": 42
     },
     {
       "folder": "/audit",

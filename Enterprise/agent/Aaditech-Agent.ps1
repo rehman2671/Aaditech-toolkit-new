@@ -121,12 +121,13 @@ function Get-LiveTelemetry {
 function Get-TopProcesses {
     try {
         $procs = Get-Process | Sort-Object -Property WorkingSet64 -Descending | Select-Object -First 25 | ForEach-Object {
+            $procPath = if ($_.Path) { $_.Path } else { "System" }
             @{
                 pid       = $_.Id
                 name      = $_.ProcessName + ".exe"
                 cpu_pct   = [math]::Round(($_.CPU / 10), 1)
                 ram_mb    = [math]::Round($_.WorkingSet64 / 1MB, 1)
-                path      = try { $_.Path } catch { "System" }
+                path      = $procPath
                 user      = $env:USERNAME
             }
         }

@@ -1,20 +1,48 @@
 {
   "path": "/audit/issues.json",
-  "generated": "2026-10-20T19:03:22.442Z",
-  "total_issues": 0,
+  "generated": "2026-11-03T13:38:28.398Z",
+  "total_issues": 3,
   "by_severity": {
-    "CRITICAL": 0,
-    "HIGH": 0,
-    "MEDIUM": 0,
+    "CRITICAL": 1,
+    "HIGH": 1,
+    "MEDIUM": 1,
     "LOW": 0
   },
   "by_priority": {
-    "P0": 0,
-    "P1": 0,
+    "P0": 1,
+    "P1": 2,
     "P2": 0,
     "P3": 0
   },
-  "total_estimated_hours": 0,
+  "total_estimated_hours": 12,
   "resolved_issues_count": 17,
-  "issues": []
+  "issues": [
+    {
+      "id": "P0-01",
+      "title": "Committed RSA Private Key & Secrets Exposure",
+      "severity": "CRITICAL",
+      "priority": "P0",
+      "status": "OPEN_GATE",
+      "target": "certs/ca.key",
+      "description": "RSA Private Key committed in repository. Requires rotation, exclusion via .gitignore/.dockerignore, and secure external injection."
+    },
+    {
+      "id": "PROD-01",
+      "title": "MSI Artifact is Test Fixture (Non-Production)",
+      "severity": "HIGH",
+      "priority": "P1",
+      "status": "PENDING_WINDOWS_BUILD",
+      "target": "artifacts/msi/IT-Toolkit-Agent-1.1.2.msi",
+      "description": "Tracked MSI size is 1536 bytes (CFBF header mock fixture). Real production WiX compilation must run on Windows runner."
+    },
+    {
+      "id": "AGENT-01",
+      "title": "Dual Endpoint Agent Implementations (Agent-Collect.ps1 vs Aaditech-Agent.ps1)",
+      "severity": "MEDIUM",
+      "priority": "P1",
+      "status": "IN_PROGRESS",
+      "target": "Enterprise/agent/",
+      "description": "Repository contains two agent scripts; canonical protocol and packaging must be finalized under unified ADR."
+    }
+  ]
 }

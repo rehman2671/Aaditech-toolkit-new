@@ -17,6 +17,12 @@ __pycache__/
 *.pyc
 
 # Enterprise server (secrets + build artifacts)
+.env
+.env.local
+.env.*.local
+certs/*.key
+certs/*.pfx
+certs/*.pem
 Enterprise/.env
 Enterprise/agent/agent-config.json
 Enterprise/agent/build/out/
@@ -25,3 +31,4 @@ Enterprise/agent/wix/agent-config.json
 Enterprise/agent/wix/*.msi
 Enterprise/api/agent-version.json
 Enterprise/deploy/backups/
+

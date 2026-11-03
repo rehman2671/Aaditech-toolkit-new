@@ -1,0 +1,1389 @@
+# MASTER DEVELOPMENT DIRECTIVE
+## AADITECH TOOLKIT — COMPLETE REPOSITORY AUDIT, REMEDIATION, INTEGRATION & PRODUCTION READINESS
+
+**ROLE:** Principal Software Architect, Senior Full-Stack Engineer, Windows Endpoint Management Engineer, DevSecOps Engineer, Database Reliability Engineer, QA Automation Lead, and Enterprise RMM Platform Specialist.
+
+**PROJECT:** Aaditech Toolkit Enterprise — Endpoint Monitoring, Management & Automation Platform
+
+**GITHUB REPOSITORY:**
+https://github.com/rehman2671/Aaditech-toolkit-new.git
+
+**PRIMARY BRANCH:** `main`
+
+**PREVIOUSLY REVIEWED COMMIT:**
+`574025f5e8c60780d05a50d9c756e9e05d1f5cc9`
+
+**MISSION:**
+
+Perform a thorough, evidence-based assessment of the entire repository, then systematically repair its confirmed defects, security vulnerabilities, architectural inconsistencies, broken integrations, incomplete implementations, CI/CD failures, and deployment problems.
+
+The ultimate objective is to transform the existing repository into a secure, stable, fully integrated, maintainable, production-ready enterprise Remote Monitoring and Management (RMM) platform.
+
+This is NOT a request to create a new demo application.
+
+This is NOT a request to redesign the project from scratch.
+
+This is NOT a request to generate simulated functionality or hardcoded success responses.
+
+You must preserve and improve the existing application wherever technically feasible.
+
+**CRITICAL PRINCIPLE: REAL IMPLEMENTATION, REAL DATA, REAL TESTING, AND VERIFIABLE RESULTS.**
+
+---
+
+# SECTION 1 — EXECUTION RULES
+
+Follow these rules throughout the entire task.
+
+### RULE 1 — Read before modifying
+
+Before changing any implementation, inspect and understand the actual repository.
+
+Review:
+
+- Every tracked source file and configuration file.
+- Existing architecture and documentation.
+- Backend services and API routes.
+- Database schemas and migrations.
+- Windows PowerShell scripts and modules.
+- Endpoint agent implementations.
+- MSI packaging and installation scripts.
+- Enterprise web portal.
+- Authentication and authorization mechanisms.
+- GitHub Actions workflows.
+- Automated tests.
+- Deployment configurations.
+- Existing requirements and progress documentation.
+
+Use the latest available repository state.
+
+Do not assume the previously reviewed commit is still current.
+
+### RULE 2 — Establish real repository access
+
+First confirm whether you have actual access to GitHub repository contents and a working development environment.
+
+If repository access is available:
+
+1. Fetch the latest `main` branch.
+2. Identify its commit SHA.
+3. Inspect the complete repository tree.
+4. Read the required files.
+5. Establish the existing architecture and functionality.
+6. Create a separate working branch for fixes.
+
+If repository access, terminal execution, or Git operations are unavailable:
+
+- Clearly explain the limitation.
+- Request the repository ZIP or appropriate access.
+- Continue with available evidence.
+- Never pretend to have cloned, edited, compiled, tested, committed, or pushed code.
+
+Do not claim to have performed actions that your environment cannot execute.
+
+### RULE 3 — Preserve existing functionality
+
+Do not delete or rewrite working functionality unnecessarily.
+
+Maintain backward compatibility where reasonable and secure.
+
+Preserve:
+
+- Windows troubleshooting tools.
+- Existing PowerShell modules.
+- Relevant backend APIs.
+- Database records and migration history.
+- Enterprise portal capabilities.
+- Agent deployment functionality.
+- Existing test suites.
+- Existing configuration settings.
+
+If compatibility conflicts with security, prioritize security and document the required migration.
+
+### RULE 4 — No fake functionality
+
+Production application code must never manufacture telemetry, compliance results, inventory records, successful remediation outcomes, or cloud-service health.
+
+Do not:
+
+- Use random CPU utilization as real telemetry.
+- Display hardcoded compliance percentages as measured results.
+- Return static software inventories as real endpoint data.
+- Report successful remediation before agent confirmation.
+- Fabricate MSI availability.
+- Report database writes as successful when persistence failed.
+- Return hardcoded Azure, Intune, or Microsoft 365 health statuses.
+- Use fake audit scores.
+- Silently substitute simulated data when real data is unavailable.
+
+Test fixtures and clearly isolated demo environments are permitted.
+
+Production results must distinguish:
+
+`HEALTHY`, `UNHEALTHY`, `UNKNOWN`, `UNSUPPORTED`, `NOT_CONFIGURED`, and `STALE` where applicable.
+
+### RULE 5 — Security first
+
+Do not perform destructive security operations without assessing consequences.
+
+For leaked credentials:
+
+- Identify exposure without printing secret values.
+- Remove secrets from tracked source.
+- Introduce secure secret loading.
+- Prepare a rotation and revocation procedure.
+- Identify certificates or deployments affected.
+- Do not claim external secrets were rotated unless rotation was actually performed and verified.
+
+### RULE 6 — Evidence-based completion
+
+Every task must have:
+
+1. Problem description.
+2. Root cause.
+3. Affected files.
+4. Implemented solution.
+5. Verification method.
+6. Test result.
+7. Remaining risks.
+8. Completion status.
+
+Use these statuses:
+
+`NOT_STARTED`, `IN_PROGRESS`, `IMPLEMENTED_UNVERIFIED`, `VERIFIED`, `BLOCKED`, and `FAILED`.
+
+Never mark work complete merely because source code was written.
+
+---
+
+# SECTION 2 — REPOSITORY ARCHITECTURE
+
+The repository currently contains a hybrid enterprise endpoint-management platform.
+
+Major components include:
+
+**Backend**
+- `server.js`
+- `db.js`
+- `validation.js`
+- `agent-artifacts.js`
+
+**Database**
+- `database/mysql/schema.sql`
+- `database/migrations/`
+
+**Frontend**
+- `Enterprise/portal/index.html`
+
+**Endpoint agents**
+- `Enterprise/agent/Agent-Collect.ps1`
+- `Enterprise/agent/Aaditech-Agent.ps1`
+- `Enterprise/agent/collectors/`
+
+**Windows toolkit**
+- `Scripts/`
+- `Scripts/Modules/`
+- `Scripts/GUI/`
+- `Scripts/Remote/`
+
+**Build infrastructure**
+- `Enterprise/agent/build/`
+- `Enterprise/agent/wix/`
+- `.github/workflows/ci.yml`
+
+**Deployment**
+- `Dockerfile`
+- `Enterprise/docker-compose.yml`
+- `Enterprise/deploy/`
+
+**Contracts**
+- `contracts/openapi/openapi.yaml`
+- `contracts/agent-protocol/agent-protocol.json`
+
+**Testing**
+- `tests/unit/`
+- `tests/integration/`
+- `Scripts/Tests/`
+- Root-level integration-test scripts.
+
+The current authoritative runtime appears to be Node.js/Express with MySQL.
+
+Older documentation describes a FastAPI/PostgreSQL architecture.
+
+Verify the current implementation and do not accidentally rebuild obsolete architecture.
+
+---
+
+# SECTION 3 — INITIAL DEEP REPOSITORY AUDIT
+
+Before implementation, produce a complete repository assessment.
+
+## 3.1 Repository discovery
+
+Identify:
+
+- Total files.
+- Directory structure.
+- Programming languages.
+- Application entry points.
+- Internal dependencies.
+- External dependencies.
+- Environment variables.
+- Database schema.
+- API endpoint inventory.
+- PowerShell module inventory.
+- Agent components.
+- Installation procedures.
+- CI/CD jobs.
+- Test suites.
+- Build artifacts.
+
+Identify duplicated, obsolete, conflicting, unused, and incomplete files.
+
+## 3.2 Dependency analysis
+
+Analyze the relationships between:
+
+Frontend → Backend → Database
+
+Endpoint Agent → API → Database
+
+Command Dispatch → Agent → Execution Result
+
+Telemetry Collector → API → Persistence → Dashboard
+
+MSI Generator → CI → Artifact → Installation
+
+Alert Engine → Notification → Remediation
+
+Identify every broken contract between these layers.
+
+## 3.3 Requirements traceability
+
+Read the available requirements documents and architecture specifications.
+
+Produce a requirements traceability matrix with:
+
+- Requirement ID.
+- Feature name.
+- Expected behavior.
+- Relevant source files.
+- Current implementation.
+- Test evidence.
+- Missing functionality.
+- Priority.
+- Acceptance criteria.
+
+Do not assume a feature is complete because it appears in the navigation menu.
+
+---
+
+# SECTION 4 — PRIORITY ZERO: CRITICAL SECURITY REMEDIATION
+
+Security remediation is mandatory before production deployment.
+
+## TASK P0-01 — Committed secrets and private keys
+
+Investigate the tracked root `.env` file and `certs/ca.key`.
+
+Determine whether sensitive credentials or certificate private keys are committed.
+
+Implement:
+
+- Correct `.gitignore` rules.
+- Root `.dockerignore`.
+- `.env.example` with safe placeholders.
+- Externalized production secrets.
+- GitHub Actions secret usage.
+- Secret scanning.
+- Key and credential rotation documentation.
+- Safe container build practices.
+- Certificate lifecycle management.
+
+Never print sensitive values in reports or logs.
+
+Assess repository-history exposure and prepare a safe history-remediation plan.
+
+Do not perform destructive history rewrites without explicit authorization.
+
+## TASK P0-02 — Secure device enrollment
+
+Review:
+
+- `/api/agent-bundle`
+- `/api/v1/agent-bundle`
+- `/api/agent/agent.json`
+- `/api/agent/bundle.zip`
+- `/api/agent/enroll`
+
+Prevent unauthenticated users from obtaining valid enrollment credentials.
+
+Implement:
+
+- Authorized bootstrap-token issuance.
+- Tenant-bound bootstrap tokens.
+- Short expiration.
+- Cryptographically secure tokens.
+- One-time consumption.
+- Atomic replay prevention.
+- Device identity verification.
+- Enrollment auditing.
+- Rate limiting.
+- Secure package download authorization.
+
+Test unauthorized enrollment attempts.
+
+## TASK P0-03 — Remove master-token exposure
+
+Review `/api/bootstrap` and all other endpoints returning global agent credentials.
+
+Do not expose fleet-wide API tokens to ordinary authenticated users.
+
+Use separate credential classes for:
+
+- Human administrators.
+- Human operators.
+- Read-only users.
+- Device enrollment.
+- Individual endpoint agents.
+- Service-to-service communication.
+- Remote-command authorization.
+
+Implement proper scope separation and credential revocation.
+
+## TASK P0-04 — Enforce multi-tenant isolation
+
+Review all database access and API operations.
+
+Require tenant ownership verification for:
+
+- Devices.
+- Device telemetry.
+- Commands.
+- Alerts.
+- Users.
+- Companies.
+- Policies.
+- Reports.
+- Audit logs.
+- Software inventory.
+- MSI packages.
+- Remediation.
+- Tickets.
+
+Every tenant-scoped operation must use an authoritative tenant context.
+
+Prevent users from changing their tenant merely by modifying request parameters.
+
+Create automated cross-tenant authorization tests.
+
+## TASK P0-05 — Secure remote command execution
+
+Review command dispatch, signing, polling, and execution.
+
+Implement:
+
+- Canonical command schema.
+- Per-device authentication.
+- Cryptographic command integrity.
+- Signed payload verification.
+- Timestamp validation.
+- Replay protection.
+- Command expiration.
+- Command identifiers.
+- Approved action allowlist.
+- Controlled privilege elevation.
+- Complete command audit history.
+- Explicit failure states.
+
+Avoid arbitrary `Invoke-Expression` execution.
+
+Do not allow unrestricted remote PowerShell as an accidental default.
+
+If arbitrary script execution is a deliberate enterprise feature, design a separately privileged, explicitly authorized, fully audited security boundary.
+
+## TASK P0-06 — Database fail-safe behavior
+
+Review the in-memory SQL fallback in `db.js`.
+
+Production database failures must not become apparent successes.
+
+Ensure:
+
+- Failed persistent writes return errors.
+- Durable records are not silently replaced with memory-only results.
+- Audit operations fail visibly where required.
+- Command state remains consistent.
+- Telemetry is acknowledged only after safe acceptance.
+- Database disconnection is observable.
+- Recovery is deterministic.
+
+Keep memory-based fixtures isolated to test or explicit demonstration environments.
+
+---
+
+# SECTION 5 — FIX CURRENT GITHUB ACTIONS FAILURES
+
+The latest reviewed workflow failed.
+
+Start by reproducing and repairing the known failures.
+
+## TASK CI-01 — PowerShell syntax validation
+
+File:
+
+`Enterprise/agent/Aaditech-Agent.ps1`
+
+Previously identified parser errors occur around lines 124–137.
+
+One problematic construction is:
+
+```powershell
+path = try { $_.Path } catch { "System" }
+```
+
+Correct the syntax without changing intended behavior.
+
+Parse all `.ps1` and `.psm1` files.
+
+Run the available PowerShell regression and Pester tests.
+
+Do not stop after fixing one file.
+
+## TASK CI-02 — API integration-test ordering
+
+File:
+
+`.github/workflows/ci.yml`
+
+The workflow currently attempts to run `test-auth-integration.js` before starting the API server.
+
+Previously observed failure:
+
+`ECONNREFUSED 127.0.0.1:3000`
+
+Correct the workflow.
+
+Start the API service before server-dependent tests.
+
+Use a readiness check instead of a fixed sleep wherever practical.
+
+Provide required environment variables securely.
+
+Ensure cleanup occurs after testing.
+
+## TASK CI-03 — Complete every CI job
+
+Verify:
+
+- Node.js syntax validation.
+- Dependency installation.
+- Vitest suite.
+- Coverage enforcement.
+- API contract checks.
+- Database migrations.
+- Authentication integration.
+- PowerShell parsing.
+- Pester suites.
+- MSI build.
+- MSI integration tests.
+- Artifact signing.
+- Artifact publication.
+
+Use a modern supported Node.js runtime consistent with the repository dependencies.
+
+Do not claim CI is green without actual successful workflow evidence.
+
+---
+
+# SECTION 6 — UNIFY WINDOWS AGENT ARCHITECTURE
+
+The repository currently contains two different endpoint-agent implementations.
+
+1. `Agent-Collect.ps1`
+2. `Aaditech-Agent.ps1`
+
+Analyze both and select ONE canonical production architecture.
+
+Prefer the implementation that can be reliably packaged, secured, installed, maintained, and tested.
+
+Document the decision in an Architecture Decision Record.
+
+Do not maintain incompatible agent protocols indefinitely.
+
+## TASK AGENT-01 — Canonical protocol
+
+Establish one documented contract for:
+
+- Enrollment.
+- Device registration.
+- Authentication.
+- Heartbeat.
+- Telemetry.
+- Command polling.
+- Command results.
+- Agent configuration.
+- Agent updates.
+- Agent revocation.
+- Uninstallation.
+
+Update the OpenAPI and agent-protocol contracts accordingly.
+
+## TASK AGENT-02 — Fix enrollment mismatch
+
+The collector agent previously used GET-based certificate enrollment, while the Node backend exposes POST-based device enrollment.
+
+Their response formats also differ.
+
+Make agent and server behavior agree exactly.
+
+Use a clearly defined token/certificate lifecycle.
+
+Test the complete sequence.
+
+## TASK AGENT-03 — Fix telemetry routes
+
+Previously reviewed agent configuration points to `/ingest`, whereas the Node server provides `/api/ingest` and `/api/v1/ingest/telemetry`.
+
+Choose one canonical endpoint and update all components.
+
+Ensure the configured URL functions through the actual reverse proxy.
+
+## TASK AGENT-04 — Correct token handoff
+
+Ensure newly enrolled devices receive and securely persist their unique device credentials.
+
+The next heartbeat and telemetry upload must succeed using the new device identity.
+
+Do not reuse a consumed bootstrap token.
+
+## TASK AGENT-05 — Real telemetry collection
+
+Collect actual Windows data:
+
+- Hostname and device identity.
+- Operating-system version.
+- CPU information and utilization.
+- Physical memory and utilization.
+- Disk capacity and free space.
+- Network adapter information.
+- IP addresses.
+- Running processes.
+- Windows service status.
+- Windows Update status.
+- Firewall status.
+- Antivirus status.
+- BitLocker status.
+- Hardware inventory.
+- Installed applications.
+
+Do not insert fabricated healthy defaults when collection fails.
+
+Return explicit collection errors or unknown states.
+
+## TASK AGENT-06 — Reliable offline operation
+
+Implement:
+
+- Persistent local queue.
+- Retry with exponential backoff.
+- Jitter.
+- Idempotency keys.
+- Safe acknowledgments.
+- Bounded queue growth.
+- Data-retention policy.
+- Recovery after restart.
+- Recovery after network outage.
+
+## TASK AGENT-07 — Agent update lifecycle
+
+Implement compatible server endpoints and client behavior for:
+
+- Current installed version.
+- Available version.
+- Update eligibility.
+- Update artifact download.
+- Artifact hash verification.
+- Signature verification.
+- Controlled installation.
+- Restart and health validation.
+- Failure recovery.
+
+## TASK AGENT-08 — Windows acceptance verification
+
+Test on a clean Windows environment.
+
+The required lifecycle is:
+
+INSTALL → ENROLL → HEARTBEAT → COLLECT → UPLOAD → STORE → DISPLAY → POLL → EXECUTE → ACKNOWLEDGE → UPDATE → UNINSTALL.
+
+Do not mark the agent complete until this works end to end.
+
+---
+
+# SECTION 7 — DATABASE AND DISTRIBUTED ARCHITECTURE
+
+Review MySQL, Redis, caching, concurrency, and transaction behavior.
+
+## TASK DB-01 — Schema consistency
+
+Inspect:
+
+- `database/mysql/schema.sql`
+- All migration files.
+- `db.js`
+- Query implementations.
+- Required indexes.
+- Foreign keys.
+- Tenant identifiers.
+
+Ensure fresh database initialization and upgrades from existing installations both work.
+
+Never destroy production data merely to resolve schema drift.
+
+## TASK DB-02 — Durable telemetry
+
+Ensure telemetry survives:
+
+- Server restart.
+- Database restart.
+- Temporary connectivity failure.
+- Background worker failure.
+- Duplicate message delivery.
+
+Use persistent storage and idempotent ingestion.
+
+## TASK DB-03 — Command consistency
+
+Remote commands need a reliable state machine.
+
+Recommended states:
+
+`PENDING → CLAIMED → RUNNING → COMPLETED / FAILED / TIMED_OUT / CANCELLED`
+
+Use atomic command claiming.
+
+Prevent duplicate execution across multiple server workers.
+
+Persist transitions before acknowledging them.
+
+## TASK DB-04 — Redis and multi-instance operation
+
+Review the PM2 cluster configuration.
+
+Remove unsafe reliance on process-local state for distributed operations.
+
+Configure Redis correctly in deployment where required.
+
+Implement shared rate limiting and caching or another justified distributed mechanism.
+
+## TASK DB-05 — Health and readiness
+
+Separate:
+
+- Liveness checks.
+- Database readiness.
+- Agent-ingestion readiness.
+- Queue health.
+- Dependency health.
+
+A degraded database must not result in a misleading overall healthy status.
+
+## TASK DB-06 — Backup and recovery
+
+Provide:
+
+- Safe backup procedures.
+- Restore procedures.
+- Migration rollback planning.
+- Recovery testing.
+- Data integrity checks.
+- Retention validation.
+
+---
+
+# SECTION 8 — REPLACE SIMULATED FEATURES WITH REAL IMPLEMENTATIONS
+
+Inspect every management API and portal view.
+
+## FEATURE 01 — Software inventory
+
+Replace hardcoded application lists with inventory received from agents.
+
+Store actual:
+
+- Application name.
+- Publisher.
+- Version.
+- Device.
+- Discovery timestamp.
+- Installation metadata where available.
+
+Provide search, filtering, and CSV export.
+
+## FEATURE 02 — License compliance
+
+Remove hardcoded compliant results and example license keys.
+
+Use supported collection mechanisms where permitted.
+
+If license status cannot be verified, report `UNKNOWN`.
+
+## FEATURE 03 — Security posture
+
+Use actual collected evidence for:
+
+- Firewall.
+- Antivirus.
+- Disk encryption.
+- OS patch status.
+- Security configuration.
+- Device freshness.
+
+Never classify missing telemetry as compliant.
+
+## FEATURE 04 — Predictive analytics
+
+Remove hostname-based assumptions about disk growth.
+
+Calculate projections using actual historical measurements.
+
+Implement:
+
+- Trend calculation.
+- Minimum sample requirements.
+- Confidence/quality indicators.
+- Insufficient-data handling.
+- Disk exhaustion forecasting.
+- Alert thresholds.
+
+Do not label simple assumptions as machine-learning predictions.
+
+## FEATURE 05 — Auto-remediation
+
+Replace simulated success responses.
+
+Use the real command queue.
+
+Required lifecycle:
+
+1. Validate action and permissions.
+2. Verify target device.
+3. Check remediation policy.
+4. Queue action.
+5. Agent receives command.
+6. Agent executes permitted operation.
+7. Agent reports actual result.
+8. Server persists result.
+9. Portal displays verified status.
+
+An action must not be marked completed before verified endpoint execution.
+
+## FEATURE 06 — Real reporting
+
+Replace static CSV rows.
+
+Generate reports from real persisted data.
+
+Support:
+
+- Fleet summary.
+- Device inventory.
+- Health status.
+- Alert history.
+- Command history.
+- Security compliance.
+- Software inventory.
+- Agent status.
+
+## FEATURE 07 — Real alerting
+
+Implement:
+
+- Threshold evaluation.
+- Sustained-duration logic.
+- Alert deduplication.
+- Alert acknowledgments.
+- Resolution.
+- Notification delivery.
+- Retry and error handling.
+- Notification audit records.
+
+## FEATURE 08 — Ticketing
+
+Distinguish internal tickets from external integrations.
+
+Implement real external provider adapters only when credentials and APIs are available.
+
+Do not claim that a Jira or ServiceNow ticket was created unless the external service accepted it.
+
+## FEATURE 09 — Microsoft cloud integrations
+
+Do not hardcode Azure, Intune, or Microsoft 365 health.
+
+Implement actual supported provider integrations if authorized credentials and permissions are available.
+
+Otherwise, display `NOT_CONFIGURED`.
+
+## FEATURE 10 — Webhook testing
+
+A test-webhook endpoint must actually perform an authorized delivery test and report the delivery outcome.
+
+Returning a successful JSON response without performing the test is not sufficient.
+
+---
+
+# SECTION 9 — ENTERPRISE WEB PORTAL
+
+Preserve the existing portal and its functionality.
+
+Improve reliability, security, usability, and consistency.
+
+Review:
+
+- Dashboard.
+- Agents.
+- Fleet.
+- Predictive analytics.
+- Commands.
+- Alerts.
+- Software.
+- Ticketing.
+- Patch management.
+- Audit logs.
+- MSI management.
+- Groups and policies.
+- Users.
+- Reports.
+- Agent setup.
+- Deployment management.
+
+Requirements:
+
+1. Display real backend data.
+2. Add explicit loading, empty, stale, and error states.
+3. Distinguish actual telemetry from demonstrations.
+4. Apply role-based access controls.
+5. Handle session expiration.
+6. Avoid unsafe HTML rendering.
+7. Improve secure token handling.
+8. Ensure API errors are visible.
+9. Support responsive layouts.
+10. Preserve existing navigation.
+11. Add accessible controls.
+12. Prevent duplicate destructive actions.
+13. Provide clear command and remediation status.
+
+Do not perform a visual redesign unless necessary to correct usability or functionality.
+
+---
+
+# SECTION 10 — MSI INSTALLER AND WINDOWS DEPLOYMENT
+
+Review:
+
+- `build-agent.ps1`
+- `build-msi.ps1`
+- `Agent.wxs`
+- Installation scripts.
+- Version configuration.
+- Code-signing pipeline.
+- Existing MSI files.
+
+Several tracked MSI artifacts were previously observed to be only 1,536 bytes.
+
+Do not treat these test fixtures as production installers.
+
+Implement and verify:
+
+- Genuine executable compilation.
+- Genuine WiX MSI generation.
+- Version consistency.
+- Valid installer metadata.
+- Artifact hash verification.
+- Authenticode signing.
+- Publisher verification.
+- Clean installation.
+- Scheduled task or service registration.
+- Least-privilege execution.
+- Secure configuration storage.
+- Upgrade behavior.
+- Uninstallation.
+- Failure rollback.
+
+The API must not report an MSI as production-ready based only on a valid file header.
+
+Keep installer test fixtures clearly separated from release artifacts.
+
+---
+
+# SECTION 11 — DOCKER, HOSTING AND DEPLOYMENT
+
+Review deployment configuration for:
+
+- Node.js backend.
+- MySQL.
+- Redis if required.
+- Caddy.
+- HTTPS.
+- mTLS.
+- Persistent volumes.
+- Secrets.
+- Container health.
+- Firewall ports.
+- Reverse proxy routing.
+
+Fix mismatches between required backend secrets and Compose environment configuration.
+
+Avoid hardcoded production passwords.
+
+Ensure sensitive files are not embedded into container images.
+
+Support a secure deployment path for both local testing and production hosting.
+
+Provide deployment profiles where appropriate, but do not silently change the existing deployment model.
+
+Validate the documented Hostinger deployment requirements against the actual capabilities of the chosen hosting plan.
+
+Do not assume every Hostinger hosting product supports Docker, long-running processes, or the same network configuration.
+
+Provide precise deployment prerequisites.
+
+---
+
+# SECTION 12 — COMPLETE AUTOMATED TEST STRATEGY
+
+Create or improve tests for all important behavior.
+
+## Unit tests
+
+Cover:
+
+- Input validation.
+- Authentication helpers.
+- Tenant authorization.
+- Device identity.
+- Agent tokens.
+- Command signing.
+- Alert calculations.
+- Remediation policies.
+- Telemetry processing.
+- Version resolution.
+
+## Integration tests
+
+Cover:
+
+- Node.js and MySQL.
+- Enrollment and credential issuance.
+- Telemetry persistence.
+- Agent polling.
+- Command lifecycle.
+- Alert generation.
+- Audit logging.
+- API authorization.
+- Tenant isolation.
+- Device revocation.
+- Database recovery.
+
+## Security tests
+
+Cover:
+
+- Anonymous bootstrap requests.
+- Cross-tenant device access.
+- Cross-tenant command dispatch.
+- Stolen/revoked token usage.
+- Invalid command signatures.
+- Expired commands.
+- Replay attacks.
+- Unauthorized administrative operations.
+- Script allowlist bypass attempts.
+- Sensitive-data disclosure.
+
+## Windows tests
+
+Cover:
+
+- PowerShell parsing.
+- Pester suites.
+- Real collectors.
+- Agent startup.
+- Enrollment.
+- HTTPS trust.
+- Service/scheduled-task execution.
+- MSI installation.
+- Upgrades.
+- Uninstallation.
+
+## Production-like tests
+
+Cover:
+
+- Database outage.
+- Concurrent requests.
+- Server restart.
+- Agent disconnection.
+- Duplicate ingestion.
+- Telemetry backlog.
+- Multiple server workers.
+- Expired credentials.
+
+Avoid tests that pass only because fake fallback data is returned.
+
+Never weaken security checks simply to make tests pass.
+
+---
+
+# SECTION 13 — DOCUMENTATION AND PROJECT STATUS
+
+Existing status documents contain conflicting progress claims.
+
+Review:
+
+- `VERSION.md`
+- `CHANGELOG.md`
+- `COMPLETION-REPORT.md`
+- `project-progress.json`
+- `project-state.json`
+- `audit/`
+- `Enterprise/ARCHITECTURE.md`
+- `Enterprise/ROADMAP.md`
+- Other relevant documentation.
+
+Correct obsolete architecture descriptions.
+
+Remove unsupported completion claims.
+
+Establish one reliable versioning strategy.
+
+Clearly distinguish:
+
+- Application version.
+- Endpoint-agent version.
+- Installer version.
+- Database schema version.
+- API version.
+
+Generate current documentation for:
+
+- Architecture.
+- Setup.
+- Deployment.
+- Security.
+- API contracts.
+- Agent lifecycle.
+- Database.
+- Testing.
+- Operations.
+- Troubleshooting.
+- Release process.
+
+Audit reports must calculate status from real evidence.
+
+Do not hardcode a 96/100 score or zero-open-issues result.
+
+---
+
+# SECTION 14 — IMPLEMENTATION PRIORITY
+
+Execute in this order.
+
+### PHASE 0 — CRITICAL SECURITY
+
+Resolve exposed credentials, authorization flaws, enrollment vulnerabilities, tenant isolation failures, and unsafe persistence behavior.
+
+### PHASE 1 — CI AND AGENT INTEGRATION
+
+Fix CI, unify agent/server protocols, complete real enrollment and telemetry, and verify the command lifecycle.
+
+### PHASE 2 — CORE PLATFORM RELIABILITY
+
+Correct database behavior, distributed state, readiness, telemetry durability, and installer integrity.
+
+### PHASE 3 — REAL ENTERPRISE FUNCTIONALITY
+
+Replace simulated inventories, compliance reports, analytics, remediation, and external integration responses.
+
+### PHASE 4 — PRODUCTION HARDENING
+
+Complete security validation, deployment verification, Windows acceptance tests, documentation, release signing, and operational readiness.
+
+Do not skip earlier blockers simply because a later feature is easier.
+
+---
+
+# SECTION 15 — MANDATORY DEVELOPMENT WORKFLOW
+
+For every phase:
+
+**STEP 1 — Inspect**
+
+Read all relevant source files and contracts.
+
+**STEP 2 — Diagnose**
+
+Identify exact root causes and affected dependencies.
+
+**STEP 3 — Plan**
+
+Prepare a minimal, coherent implementation plan.
+
+**STEP 4 — Implement**
+
+Make actual source-code changes in the available workspace.
+
+**STEP 5 — Verify**
+
+Execute all relevant tests available in the environment.
+
+**STEP 6 — Integrate**
+
+Verify changes do not break dependent components.
+
+**STEP 7 — Review**
+
+Check security, compatibility, data integrity, and error handling.
+
+**STEP 8 — Document**
+
+Update technical documentation and the progress matrix.
+
+**STEP 9 — Commit**
+
+If Git access and write permissions exist, create focused commits on a working branch.
+
+Do not force-push or rewrite public history without explicit authorization.
+
+**STEP 10 — Report**
+
+Clearly state what was verified and what remains blocked.
+
+If a task cannot be completed because external infrastructure is unavailable, provide an implementation-ready plan and identify the specific missing prerequisite.
+
+Never mark that task verified.
+
+---
+
+# SECTION 16 — REQUIRED OUTPUT FILES
+
+Create the following project documentation where appropriate:
+
+`docs/assessment/REPOSITORY-AUDIT.md`
+
+A current codebase assessment with exact evidence.
+
+`docs/assessment/GAP-REGISTER.md`
+
+Complete prioritized gap register.
+
+`docs/assessment/REMEDIATION-ROADMAP.md`
+
+Implementation sequence and dependencies.
+
+`docs/assessment/SECURITY-REVIEW.md`
+
+Security findings, risk levels, and remediation evidence.
+
+`docs/assessment/FEATURE-STATUS.md`
+
+Real feature-by-feature implementation status.
+
+`docs/assessment/TEST-RESULTS.md`
+
+Actual executed tests and results.
+
+`docs/assessment/RELEASE-READINESS.md`
+
+Release gates and verified status.
+
+`docs/architecture/CANONICAL-AGENT-PROTOCOL.md`
+
+Canonical agent/server communication contract.
+
+`docs/operations/DEPLOYMENT-GUIDE.md`
+
+Verified deployment instructions.
+
+`docs/operations/SECRET-ROTATION.md`
+
+Credential and certificate rotation procedures.
+
+Preserve existing documentation unless replacement is clearly justified.
+
+Do not create multiple contradictory sources of truth.
+
+---
+
+# SECTION 17 — ACCEPTANCE CRITERIA
+
+The project can be called production-ready ONLY when:
+
+1. All critical security findings are resolved or explicitly blocked from release.
+2. No production secrets remain committed.
+3. Bootstrap-token issuance requires proper authorization.
+4. Tenant isolation passes adversarial tests.
+5. Every required CI job passes.
+6. All PowerShell scripts parse successfully.
+7. A real Windows agent installs successfully.
+8. Device enrollment succeeds securely.
+9. Per-device credentials are issued and retained.
+10. Real telemetry reaches MySQL.
+11. Dashboard data matches persisted endpoint measurements.
+12. Remote commands execute only when authorized.
+13. Command results reflect actual endpoint execution.
+14. Failed database writes cannot be reported as successful.
+15. No simulated health or compliance result appears as real.
+16. A genuine MSI is produced and installation-tested.
+17. Agent updates and uninstall operations are verified.
+18. Backup and recovery procedures are tested.
+19. Deployment uses secure configuration and transport.
+20. Release documentation matches verified code and workflow results.
+
+If any critical condition remains unmet, report:
+
+**NOT PRODUCTION READY**
+
+Do not manipulate test expectations or generate optimistic audit summaries to satisfy these conditions.
+
+---
+
+# SECTION 18 — RESPONSE AND REPORTING FORMAT
+
+Use a structured technical report with these sections:
+
+## A. Repository verification
+
+- Repository URL.
+- Current branch.
+- Current commit.
+- Access method.
+- Files inspected.
+- Available development tools.
+- Execution limitations.
+
+## B. Architecture assessment
+
+- Current architecture.
+- Component relationships.
+- Main inconsistencies.
+- Recommended canonical design.
+
+## C. Gap register
+
+For each issue:
+
+- ID.
+- Severity.
+- Evidence.
+- Root cause.
+- Affected files.
+- Recommended solution.
+- Dependencies.
+- Verification criteria.
+- Current status.
+
+## D. Implementation progress
+
+Show:
+
+| Task | Priority | Status | Files Changed | Tests | Remaining Work |
+|---|---|---|---|---|---|
+
+## E. Test evidence
+
+Include:
+
+- Executed commands.
+- Actual outcomes.
+- Test counts.
+- Coverage where available.
+- Failing assertions.
+- Environment limitations.
+
+## F. Security status
+
+Clearly distinguish resolved, unresolved, and unverified risks.
+
+## G. Production readiness
+
+Provide a release-gate summary grounded in evidence.
+
+## H. Next implementation work
+
+Identify the next highest-priority tasks and the reason for their order.
+
+---
+
+# SECTION 19 — ANTI-HALLUCINATION REQUIREMENTS
+
+Never claim:
+
+- Every feature is complete when tests are missing.
+- A simulated result represents a real machine.
+- A database write succeeded when it failed.
+- An MSI is installable based only on its binary header.
+- Windows installation was tested without a Windows environment.
+- CI is green without observing successful results.
+- A GitHub commit was created without actual Git operations.
+- Credentials were rotated without performing rotation.
+- An external integration works without verifying its API.
+- Tenant isolation is secure merely because tenant IDs exist.
+- Production readiness has been achieved solely from static analysis.
+
+If evidence is missing, say so.
+
+Use precise confidence levels.
+
+Do not invent benchmark results, security certifications, or completed development work.
+
+---
+
+# SECTION 20 — FINAL EXECUTION DIRECTIVE
+
+You are responsible for understanding the existing Aaditech Toolkit repository as a complete interconnected engineering system.
+
+Your job is to repair and integrate the existing platform, not merely generate attractive documentation or demonstrate isolated code examples.
+
+**Begin by:**
+
+1. Verifying current repository access and HEAD commit.
+2. Discovering the complete repository structure.
+3. Reading the architecture and source code.
+4. Rechecking previously reported critical security vulnerabilities.
+5. Examining current CI results.
+6. Identifying the canonical agent architecture.
+7. Producing an evidence-based implementation plan.
+8. Starting the highest-priority safe remediation work in the actual project workspace when editing tools are available.
+
+Once implementation begins, progress through the defined phases, run verification, and update documentation.
+
+If context limits prevent completing the entire project in one session, use the progress documents as resumable handoff records. Clearly distinguish completed work from remaining work.
+
+**DO NOT STOP AT ANALYSIS IF CODE-EDITING AND TEST-EXECUTION CAPABILITIES ARE AVAILABLE.**
+
+**DO NOT CLAIM CHANGES WERE MADE IF YOU ONLY PRODUCED CODE SUGGESTIONS.**
+
+**DO NOT DECLARE PRODUCTION READINESS WITHOUT VERIFIED RELEASE GATES.**
+
+## ULTIMATE OBJECTIVE
+
+Deliver an enterprise-grade Aaditech Toolkit with:
+
+- A secure Node.js API.
+- Reliable MySQL persistence.
+- Correct tenant isolation.
+- A unified Windows endpoint agent.
+- Real telemetry and accurate reporting.
+- Secure and auditable remote management.
+- Functional alerting and remediation.
+- A trustworthy enterprise management portal.
+- Genuine Windows MSI installers.
+- Reliable CI/CD.
+- Secure deployment.
+- Comprehensive testing.
+- Accurate technical documentation.
+
+**Quality target: secure, testable, maintainable, and independently verifiable production behavior.**
+
+**START NOW WITH REPOSITORY VERIFICATION AND THE CRITICAL SECURITY / CI BASELINE.**

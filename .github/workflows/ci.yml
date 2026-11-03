@@ -173,16 +173,6 @@ jobs:
           NODE_ENV: test
         run: node test-migrations-runner.js
 
-      - name: Run Auth & RBAC integration test suite
-        env:
-          DB_HOST: 127.0.0.1
-          DB_PORT: 3306
-          DB_USER: itk_user
-          DB_PASSWORD: itk_password_ci
-          DB_NAME: it_toolkit
-          NODE_ENV: test
-        run: node test-auth-integration.js
-
       - name: Start Background Server for API verification
         env:
           DB_HOST: 127.0.0.1
@@ -192,14 +182,53 @@ jobs:
           DB_NAME: it_toolkit
           PORT: 3000
           NODE_ENV: test
+          API_TOKEN: itk_agent_sec_token_998877
+          JWT_SECRET: aaditech_enterprise_jwt_super_secret_key_2026_dev
+          HMAC_SECRET: aaditech_hmac_secret_key_dev_2026
+          BOOTSTRAP_SECRET: aaditech_bootstrap_master_secret_2026_prod_sec
+          COMMAND_SIGNING_KEY: aaditech_cmd_signing_master_key_2026_sec
         run: |
           node server.js &
-          sleep 4
+          echo $! > /tmp/server_pid
+          READY=0
+          for i in $(seq 1 30); do
+            if node -e "fetch('http://127.0.0.1:3000/healthz').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"; then
+              echo "Server ready on port 3000 (attempt $i)"
+              READY=1
+              break
+            fi
+            sleep 1
+          done
+          if [ "$READY" -ne 1 ]; then
+            echo "Server failed to start within 30 seconds"
+            exit 1
+          fi
+
+      - name: Run Auth & RBAC integration test suite
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_USER: itk_user
+          DB_PASSWORD: itk_password_ci
+          DB_NAME: it_toolkit
+          API_TOKEN: itk_agent_sec_token_998877
+          JWT_SECRET: aaditech_enterprise_jwt_super_secret_key_2026_dev
+          HMAC_SECRET: aaditech_hmac_secret_key_dev_2026
+          NODE_ENV: test
+        run: node test-auth-integration.js
 
       - name: Run MSI packaging & artifact streaming integration suite
+        env:
+          BASE_URL: http://127.0.0.1:3000
+          NODE_ENV: test
         run: node test-msi-packaging-integration.js
 
       - name: Refresh repository audit reports
+        env:
+          API_TOKEN: itk_agent_sec_token_998877
+          JWT_SECRET: aaditech_enterprise_jwt_super_secret_key_2026_dev
+          HMAC_SECRET: aaditech_hmac_secret_key_dev_2026
+          NODE_ENV: test
         run: node audit/scanner.cjs
 
   agent-build:

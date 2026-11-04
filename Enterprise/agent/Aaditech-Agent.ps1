@@ -88,7 +88,11 @@ function Get-LiveTelemetry {
             $cpuMetric = [math]::Round($cpuSamples.CounterSamples[0].CookedValue, 1)
         }
     } catch {
-        $cpuMetric = [math]::Round((Get-Random -Minimum 3.0 -Maximum 15.0), 1)
+        $cpuMetric = 0.0
+        $cimCpu = Get-CimInstance Win32_Processor -ErrorAction SilentlyContinue | Measure-Object -Property LoadPercentage -Average
+        if ($cimCpu -and $cimCpu.Average -ne $null) {
+            $cpuMetric = [math]::Round([double]$cimCpu.Average, 1)
+        }
     }
 
     # RAM Metric
@@ -109,12 +113,22 @@ function Get-LiveTelemetry {
            Select-Object -ExpandProperty IPAddress -First 1)
     if (-not $ip) { $ip = "127.0.0.1" }
 
+    # Real network latency
+    $netLatency = 0
+    try {
+        $pingTarget = if ($Endpoint) { ([System.Uri]$Endpoint).Host } else { "1.1.1.1" }
+        $ping = Test-Connection -ComputerName $pingTarget -Count 1 -ErrorAction SilentlyContinue
+        if ($ping -and $ping.ResponseTime -ne $null) {
+            $netLatency = [int]$ping.ResponseTime
+        }
+    } catch {}
+
     return @{
         ip_address = $ip
         cpu = @{ utilization_pct = $cpuMetric }
         ram = @{ utilization_pct = $ramPct; free_mb = [math]::Round($freeRamMB, 0) }
         disk = @{ free_gb = $diskFreeGB; total_gb = $diskTotalGB }
-        network = @{ latency_ms = 18 }
+        network = @{ latency_ms = $netLatency }
     }
 }
 
@@ -154,12 +168,29 @@ function Get-SecurityPosture {
         $avName = "Windows Defender"
     }
 
+    $fwStatus = "DISABLED"
+    try {
+        $fwProfiles = Get-NetFirewallProfile -ErrorAction SilentlyContinue
+        if ($fwProfiles -and ($fwProfiles | Where-Object { $_.Enabled -eq $true })) {
+            $fwStatus = "ENABLED"
+        }
+    } catch {
+        $fwStatus = "UNKNOWN"
+    }
+
+    # Deterministic posture scoring based on real telemetry
+    $score = 100
+    if ($bitlocker -ne "PROTECTED") { $score -= 30 }
+    if ($antivirus -ne "ACTIVE") { $score -= 30 }
+    if ($fwStatus -ne "ENABLED") { $score -= 20 }
+    if ($score -lt 0) { $score = 0 }
+
     return @{
-        firewall_status   = "ENABLED"
+        firewall_status   = $fwStatus
         antivirus_name    = $avName
         antivirus_status  = $antivirus
         bitlocker_status  = $bitlocker
-        security_score    = 96
+        security_score    = $score
     }
 }
 
@@ -282,12 +313,8 @@ function Poll-And-Execute-Commands {
                             $output = "Reboot scheduled in 60 seconds."
                         }
                         default {
-                            if ($cmd.payload -and $cmd.payload.script) {
-                                $res = Invoke-Expression $cmd.payload.script 2>&1
-                                $output = $res | Out-String
-                            } else {
-                                $output = "Executed $($cmd.kind) on $($env:COMPUTERNAME)."
-                            }
+                            $output = "Arbitrary remote script execution is disabled for zero-trust compliance. Unapproved command kind '$($cmd.kind)' rejected."
+                            $exitCode = 1
                         }
                     }
                 } catch {

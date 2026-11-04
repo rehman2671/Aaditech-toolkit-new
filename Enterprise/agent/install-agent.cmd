@@ -31,6 +31,8 @@ if not exist "%TARGET_DIR%" mkdir "%TARGET_DIR%"
 :: 2. Copy Agent and Configuration
 echo [*] Deploying agent script and configuration...
 copy /y "%SCRIPT_DIR%Aaditech-Agent.ps1" "%TARGET_DIR%\Aaditech-Agent.ps1" >nul
+if exist "%SCRIPT_DIR%Agent-Collect.ps1" copy /y "%SCRIPT_DIR%Agent-Collect.ps1" "%TARGET_DIR%\Agent-Collect.ps1" >nul
+if exist "%SCRIPT_DIR%collectors" xcopy /y /e /i "%SCRIPT_DIR%collectors" "%TARGET_DIR%\collectors" >nul
 copy /y "%SCRIPT_DIR%agent.json" "%TARGET_DIR%\agent.json" >nul
 
 if exist "%SCRIPT_DIR%ca.crt" (

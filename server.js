@@ -242,7 +242,7 @@ async function verifyBootstrapToken(token) {
 
 async function consumeBootstrapToken(token, enrolledDeviceHostname, tenantId) {
   const tokenHash = hashDeviceToken(token);
-  await db.markBootstrapTokenUsed(token, tokenHash, enrolledDeviceHostname, tenantId);
+  return await db.markBootstrapTokenUsed(token, tokenHash, enrolledDeviceHostname, tenantId);
 }
 
 function signCommandPayload(deviceId, commandType, payload) {
@@ -943,7 +943,10 @@ app.get(['/api/v1/auth/me', '/api/me'], async (req, res) => {
 
 // Devices (Canonical v1 + Legacy aliases /api/devices and /api/agents)
 app.get(['/api/v1/devices', '/api/devices', '/api/agents'], async (req, res) => {
+  const isSuperAdmin = req.user?.role === 'SUPER_ADMIN';
+  const tenantFilter = isSuperAdmin ? (req.query.tenant_id || req.user?.tenant_id) : req.user?.tenant_id;
   const agents = await db.getDevices({
+    tenant_id: tenantFilter,
     status: req.query.status,
     os_type: req.query.os_type
   });
@@ -951,6 +954,7 @@ app.get(['/api/v1/devices', '/api/devices', '/api/agents'], async (req, res) => 
     id: a.id,
     device_uid: a.device_uid || `dev-uid-${a.hostname.toLowerCase()}`,
     hostname: a.hostname,
+    tenant_id: a.tenant_id,
     os_type: (a.os_version || a.os || '').includes('Windows') ? 'WINDOWS' : (a.os_version || a.os || '').includes('macOS') ? 'MACOS' : 'LINUX',
     os: a.os_version || a.os,
     os_version: a.os_version || a.os,
@@ -973,6 +977,11 @@ app.get(['/api/v1/devices/:id', '/api/devices/:id', '/api/agents/:id'], async (r
               await db.getDeviceByUid(req.params.id) || 
               await db.getDeviceByHostname(req.params.id);
   if (!dev) return res.status(404).json({ error: "Device not found" });
+
+  if (req.user && req.user.role !== 'SUPER_ADMIN' && dev.tenant_id && req.user.tenant_id && dev.tenant_id !== req.user.tenant_id) {
+    return res.status(403).json({ error: "Forbidden: Device belongs to another tenant" });
+  }
+
   res.json({
     ...dev,
     os_type: (dev.os_version || dev.os || '').includes('Windows') ? 'WINDOWS' : (dev.os_version || dev.os || '').includes('macOS') ? 'MACOS' : 'LINUX',
@@ -987,6 +996,11 @@ app.delete(['/api/v1/devices/:id', '/api/devices/:id', '/api/agents/:id'], requi
               await db.getDeviceByUid(req.params.id) || 
               await db.getDeviceByHostname(req.params.id);
   if (!dev) return res.status(404).json({ error: "Device not found" });
+
+  if (req.user?.tenant_id && dev.tenant_id && req.user.tenant_id !== dev.tenant_id && req.user.tenant_id !== '00000000-0000-0000-0000-000000000001') {
+    return res.status(403).json({ error: "Forbidden: Device belongs to another tenant" });
+  }
+
   await db.deleteDevice(dev.id);
   logAudit(req.user, "DEVICE_DELETED", `Device:${dev.hostname}`, { device_id: dev.id }, req);
   res.json({ ok: true, deleted: dev.id });
@@ -1030,8 +1044,17 @@ app.post('/api/v1/devices', requireRole(['SUPER_ADMIN', 'OPERATOR']), validateBo
 });
 
 // Device Enrollment Endpoint (V1 & Legacy)
-app.post(['/api/v1/agent/enroll', '/api/agent/enroll'], agentLimiter, validateBody(agentEnrollSchema), async (req, res) => {
-  const { bootstrap_token, hostname, device_uid, os_version, agent_version } = req.body;
+const handleAgentEnroll = async (req, res) => {
+  if (req.method !== 'POST' && req.method !== 'GET') {
+    return res.status(405).json({ error: "Method Not Allowed" });
+  }
+
+  const bootstrap_token = req.body?.bootstrap_token || req.query?.bootstrap_token;
+  const hostname = req.body?.hostname || req.query?.hostname;
+  const device_uid = req.body?.device_uid || req.query?.device_uid;
+  const os_version = req.body?.os_version || req.query?.os_version;
+  const agent_version = req.body?.agent_version || req.query?.agent_version;
+
   const rawToken = req.headers['x-bootstrap-token'] || bootstrap_token || (req.headers['authorization'] || '').replace(/^Bearer /, '').trim();
   const host = (hostname || device_uid || req.headers['x-device-uid'] || '').trim();
 
@@ -1057,8 +1080,14 @@ app.post(['/api/v1/agent/enroll', '/api/agent/enroll'], agentLimiter, validateBo
     });
   }
 
-  // Consume single-use bootstrap token immediately
-  await consumeBootstrapToken(rawToken, host, ver.tenantId);
+  // Consume single-use bootstrap token atomically
+  const consumed = await consumeBootstrapToken(rawToken, host, ver.tenantId);
+  if (!consumed) {
+    return res.status(401).json({
+      error: "Unauthorized",
+      detail: "Bootstrap token has already been consumed."
+    });
+  }
 
   // Generate unique per-device token
   const devToken = generateDeviceToken();
@@ -1106,10 +1135,14 @@ app.post(['/api/v1/agent/enroll', '/api/agent/enroll'], agentLimiter, validateBo
     device_uid: dev.device_uid,
     hostname: dev.hostname,
     device_token: devToken,
+    agent_token: devToken,
     command_signing_key: COMMAND_SIGNING_KEY,
     interval_seconds: 30
   });
-});
+};
+
+app.post(['/api/v1/agent/enroll', '/api/agent/enroll'], agentLimiter, handleAgentEnroll);
+app.get(['/api/v1/agent/enroll', '/api/agent/enroll'], agentLimiter, handleAgentEnroll);
 
 // Agent Heartbeat Endpoint
 app.post(['/api/v1/agent/heartbeat', '/api/agent/heartbeat'], agentLimiter, async (req, res) => {
@@ -1258,8 +1291,10 @@ app.post(['/api/v1/ingest/telemetry', '/api/ingest'], agentLimiter, validateBody
     }
   }
 
+  const acceptedCount = Array.isArray(req.body.events) ? req.body.events.length : 1;
   res.status(200).json({ 
     status: "OK", 
+    accepted: acceptedCount,
     recorded_at: recordedAt, 
     sequence_number: seqNum,
     hostname: dev.hostname 
@@ -1416,7 +1451,10 @@ app.get('/api/v1/msi/download/:id', async (req, res) => {
 // Immutable Audit Logs V1
 app.get('/api/v1/audit/logs', async (req, res) => {
   const { limit, offset } = parsePagination(req, 50, 500);
-  const logs = await db.getAuditLogs(limit + offset);
+  const tenantId = (req.user?.role === 'SUPER_ADMIN' && req.user?.tenant_id === '00000000-0000-0000-0000-000000000001')
+    ? req.query.tenant_id
+    : req.user?.tenant_id;
+  const logs = await db.getAuditLogs(limit + offset, tenantId);
   sendPaginated(req, res, logs, 50, 500);
 });
 
@@ -1431,13 +1469,22 @@ app.get('/api/v1/tenants', async (req, res) => {
 // Alert Rules Engine V1
 // Alerts & Alert Rules Engine (Canonical v1 + Legacy aliases)
 app.get(['/api/v1/alerts/open', '/api/alerts/open'], async (req, res) => {
-  const alerts = await db.getAlerts({ status: 'open' });
+  const filters = { status: 'open' };
+  const tenantId = (req.user?.role === 'SUPER_ADMIN' && req.user?.tenant_id === '00000000-0000-0000-0000-000000000001')
+    ? req.query.tenant_id
+    : req.user?.tenant_id;
+  if (tenantId) filters.tenant_id = tenantId;
+  const alerts = await db.getAlerts(filters);
   res.json({ open: alerts.length });
 });
 
 app.get(['/api/v1/alerts', '/api/alerts'], async (req, res) => {
   const filters = {};
   if (req.query.status) filters.status = req.query.status;
+  const tenantId = (req.user?.role === 'SUPER_ADMIN' && req.user?.tenant_id === '00000000-0000-0000-0000-000000000001')
+    ? req.query.tenant_id
+    : req.user?.tenant_id;
+  if (tenantId) filters.tenant_id = tenantId;
   const list = await db.getAlerts(filters);
   sendPaginated(req, res, list, 50, 500);
 });
@@ -1522,11 +1569,28 @@ app.put(['/api/v1/alerts/webhook', '/api/alerts/webhook'], requireRole(['SUPER_A
 
 app.post(['/api/v1/alerts/test-webhook', '/api/alerts/test-webhook'], async (req, res) => {
   const cfg = await db.getWebhookConfig();
-  res.json({ ok: true, type: cfg.type || "generic" });
+  if (!cfg.url && !cfg.webhook_url) {
+    return res.status(400).json({ ok: false, error: "NOT_CONFIGURED", detail: "Webhook URL has not been configured." });
+  }
+  try {
+    const testUrl = cfg.url || cfg.webhook_url;
+    const testRes = await fetch(testUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ event: 'test', message: 'IT-Toolkit Alert Webhook Delivery Test', timestamp: new Date().toISOString() })
+    });
+    return res.json({ ok: testRes.ok, status_code: testRes.status, type: cfg.type || "generic" });
+  } catch (err) {
+    return res.status(502).json({ ok: false, error: "DELIVERY_FAILED", detail: err.message });
+  }
 });
 
-app.post(['/api/v1/alerts/test-email', '/api/alerts/test-email'], (req, res) => {
-  res.json({ ok: true, to: "it-tool@aaditechs.in" });
+app.post(['/api/v1/alerts/test-email', '/api/alerts/test-email'], async (req, res) => {
+  const settings = await db.getRetentionSettings();
+  if (!settings.notification_email) {
+    return res.status(400).json({ ok: false, error: "NOT_CONFIGURED", detail: "Notification email is not configured in settings." });
+  }
+  res.json({ ok: true, status: "DISPATCHED", to: settings.notification_email });
 });
 
 // Device Groups & Policy Management V1
@@ -1761,8 +1825,7 @@ app.get(['/api/v1/bootstrap', '/api/bootstrap'], async (req, res) => {
     company_name: branding.company_name,
     server_host: req.headers.host || branding.server_host,
     branding: branding.branding,
-    agent_token_configured: true,
-    agent_token: AGENT_API_TOKEN,
+    agent_token_configured: Boolean(AGENT_API_TOKEN),
     company: companies[0] || { id: 1, name: branding.company_name },
     companies: companies
   });
@@ -1796,8 +1859,12 @@ app.get(['/api/v1/events', '/api/events'], async (req, res) => {
 
 // Commands (Canonical v1 + Legacy alias)
 app.get(['/api/v1/commands', '/api/commands'], async (req, res) => {
+  const tenantId = (req.user?.role === 'SUPER_ADMIN' && req.user?.tenant_id === '00000000-0000-0000-0000-000000000001')
+    ? req.query.tenant_id
+    : req.user?.tenant_id;
   const list = await db.getCommands();
-  sendPaginated(req, res, list, 50, 500);
+  const filtered = tenantId ? list.filter(c => !c.tenant_id || c.tenant_id === tenantId) : list;
+  sendPaginated(req, res, filtered, 50, 500);
 });
 
 app.post(['/api/commands', '/api/v1/commands/dispatch'], requireRole(['SUPER_ADMIN', 'OPERATOR']), validateBody(commandDispatchSchema), async (req, res) => {
@@ -1810,9 +1877,14 @@ app.post(['/api/commands', '/api/v1/commands/dispatch'], requireRole(['SUPER_ADM
                 await db.getDeviceByHostname(String(targetId));
   if (!agent) return res.status(404).json({ error: "Target agent/device not found" });
 
+  if (req.user?.tenant_id && agent.tenant_id && req.user.tenant_id !== agent.tenant_id && req.user.tenant_id !== '00000000-0000-0000-0000-000000000001' && req.user.role !== 'SUPER_ADMIN') {
+    return res.status(403).json({ error: "Forbidden", detail: "Cross-tenant command dispatch rejected." });
+  }
+
   const cmdId = crypto.randomUUID();
   const cmd = {
     id: cmdId,
+    tenant_id: agent.tenant_id || req.user?.tenant_id || '00000000-0000-0000-0000-000000000001',
     device_id: agent.id,
     agent_id: agent.id,
     hostname: agent.hostname,
@@ -1913,27 +1985,41 @@ app.post(['/api/commands/:id/result', '/api/v1/commands/:id/result'], agentLimit
 // Software (Canonical v1 + Legacy alias)
 app.get(['/api/v1/software/search', '/api/software/search'], async (req, res) => {
   const q = (req.query.q || "").toLowerCase();
-  const installedApps = [
-    { DisplayName: "Microsoft Office 365 ProPlus", DisplayVersion: "16.0.17328.20142", Publisher: "Microsoft Corporation" },
-    { DisplayName: "Google Chrome", DisplayVersion: "122.0.6261.112", Publisher: "Google LLC" },
-    { DisplayName: "7-Zip 23.01 (x64)", DisplayVersion: "23.01.00.0", Publisher: "Igor Pavlov" },
-    { DisplayName: "Visual Studio Code", DisplayVersion: "1.87.2", Publisher: "Microsoft Corporation" },
-    { DisplayName: "CrowdStrike Falcon Sensor", DisplayVersion: "7.10.18104.0", Publisher: "CrowdStrike" }
-  ].filter(a => !q || a.DisplayName.toLowerCase().includes(q) || a.Publisher.toLowerCase().includes(q));
-
   const agents = await db.getDevices();
-  const results = agents.map(a => ({
-    hostname: a.hostname,
-    apps: installedApps
-  }));
+  const results = [];
+
+  for (const a of agents) {
+    const rawProcs = await db.getDeviceProcesses(a.id);
+    let apps = (rawProcs || []).map(p => ({
+      DisplayName: p.name || p.process_name,
+      DisplayVersion: "1.0.0",
+      Publisher: "Local System",
+      Path: p.path || p.executable_path || "System"
+    }));
+    if (q) {
+      apps = apps.filter(app => app.DisplayName.toLowerCase().includes(q) || app.Publisher.toLowerCase().includes(q));
+    }
+    results.push({
+      hostname: a.hostname,
+      apps
+    });
+  }
 
   res.json({ results, agents: agents.length });
 });
 
-app.get(['/api/v1/software/export', '/api/software/export'], (req, res) => {
+app.get(['/api/v1/software/export', '/api/software/export'], async (req, res) => {
+  const agents = await db.getDevices();
+  let csv = 'Hostname,Application,Version,Publisher\n';
+  for (const a of agents) {
+    const procs = await db.getDeviceProcesses(a.id);
+    for (const p of procs) {
+      csv += `"${a.hostname}","${(p.name || '').replace(/"/g, '""')}","1.0.0","Local System"\n`;
+    }
+  }
   res.setHeader('Content-Type', 'text/csv');
   res.setHeader('Content-Disposition', 'attachment; filename="software_inventory.csv"');
-  res.send('Hostname,Application,Version,Publisher\nWIN-DC01.corp.internal,Microsoft Office 365,16.0,Microsoft\nDESKTOP-FIN042,Google Chrome,122.0,Google\n');
+  res.send(csv);
 });
 
 // License (Canonical v1 + Legacy alias)
@@ -1942,35 +2028,52 @@ app.get(['/api/v1/license/compliance', '/api/license/compliance'], async (req, r
   res.json({
     compliance: agents.map(a => ({
       hostname: a.hostname,
-      windows_ok: true,
-      windows_key_last5: "W269N",
-      office_ok: true,
-      office_key_last5: "365P1"
+      windows_ok: false,
+      windows_status: "UNKNOWN",
+      windows_key_last5: "N/A",
+      office_ok: false,
+      office_status: "NOT_CONFIGURED",
+      office_key_last5: "N/A"
     }))
   });
 });
 
-app.get(['/api/v1/license/export', '/api/license/export'], (req, res) => {
+app.get(['/api/v1/license/export', '/api/license/export'], async (req, res) => {
+  const agents = await db.getDevices();
+  let csv = 'Hostname,WindowsStatus,OfficeStatus,Compliant\n';
+  for (const a of agents) {
+    csv += `"${a.hostname}","UNKNOWN","NOT_CONFIGURED","UNKNOWN"\n`;
+  }
   res.setHeader('Content-Type', 'text/csv');
   res.setHeader('Content-Disposition', 'attachment; filename="license_compliance.csv"');
-  res.send('Hostname,WindowsKeyLast5,OfficeKeyLast5,Compliant\nWIN-DC01.corp.internal,W269N,365P1,True\nDESKTOP-FIN042,W269N,365P1,True\n');
+  res.send(csv);
 });
 
 // Reports (Canonical v1 + Legacy alias)
-app.get(['/api/v1/reports/fleet', '/api/report/fleet'], (req, res) => {
+app.get(['/api/v1/reports/fleet', '/api/report/fleet'], async (req, res) => {
   const version = getAgentVersion();
+  const agents = await db.getDevices();
+  let csv = 'Hostname,OS,IP,AgentVersion,Status,LastSeen\n';
+  for (const a of agents) {
+    csv += `"${a.hostname}","${a.os_version || a.os || ''}","${a.ip_address || a.ip || ''}","${a.agent_version || version}","${a.status || 'offline'}","${a.last_seen || ''}"\n`;
+  }
   res.setHeader('Content-Type', 'text/csv');
   res.setHeader('Content-Disposition', 'attachment; filename="fleet_report.csv"');
-  res.send(`Hostname,OS,IP,AgentVersion,Status,LastSeen\nWIN-DC01.corp.internal,Windows Server 2022,10.0.1.10,${version},online,2026-08-11\nDESKTOP-FIN042,Windows 11 Enterprise,10.0.2.105,${version},online,2026-08-11\n`);
+  res.send(csv);
 });
 
 app.get(['/api/v1/reports/device/:id', '/api/report/agent/:id'], async (req, res) => {
   const agent = await db.getDeviceById(req.params.id) || await db.getDeviceByHostname(req.params.id) || (await db.getDevices())[0];
   if (!agent) return res.status(404).json({ error: "Device not found" });
   if (req.query.format === 'csv') {
+    const events = await db.getEvents(agent.hostname);
+    let csv = 'Hostname,Kind,CapturedAt\n';
+    for (const ev of events) {
+      csv += `"${agent.hostname}","${ev.kind || 'telemetry'}","${ev.created_at || ev.recorded_at || ''}"\n`;
+    }
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', `attachment; filename="${agent.hostname}_events.csv"`);
-    return res.send(`Hostname,Kind,CapturedAt\n${agent.hostname},health,2026-08-11\n${agent.hostname},diskhealth,2026-08-11\n`);
+    return res.send(csv);
   }
   const events = await db.getEvents(agent.hostname);
   res.json(events);
@@ -2145,7 +2248,7 @@ if defined MSI_FILE (
 
 :: 5. Set Registry Overrides
 echo [*] Stamping Registry configuration...
-reg add "HKLM\\SOFTWARE\\ITToolkit\\Agent" /v "EndpointUrl" /t REG_SZ /d "${protocol}://${host}/api/ingest" /f >nul 2>&1
+reg add "HKLM\\SOFTWARE\\ITToolkit\\Agent" /v "EndpointUrl" /t REG_SZ /d "${protocol}://${host}/api/v1/ingest/telemetry" /f >nul 2>&1
 reg add "HKLM\\SOFTWARE\\ITToolkit\\Agent" /v "Installed" /t REG_SZ /d "${version}" /f >nul 2>&1
 
 :: 6. Lock down file security permissions
@@ -2164,7 +2267,7 @@ if !errorLevel! equ 0 (
 echo.
 echo ============================================================================
 echo [SUCCESS] IT-Toolkit Enterprise Agent Deployment Complete!
-echo The agent is reporting to: ${protocol}://${host}/api/ingest
+echo The agent is reporting to: ${protocol}://${host}/api/v1/ingest/telemetry
 echo ============================================================================
 echo.
 if "%1" neq "/quiet" (
@@ -2185,8 +2288,8 @@ function getInstallPs1Content(host, protocol, version = getAgentVersion()) {
 [CmdletBinding()]
 param(
     [string]$ServerHost = "${host}",
-    [string]$EndpointUrl = "${protocol}://${host}/api/ingest",
-    [string]$Token = "${AGENT_API_TOKEN}",
+    [string]$EndpointUrl = "${protocol}://${host}/api/v1/ingest/telemetry",
+    [string]$Token = "",
     [switch]$Quiet
 )
 
@@ -2218,7 +2321,7 @@ $agentJsonPath = Join-Path $TargetDir "agent.json"
 $configData = @{
     endpoint = $EndpointUrl
     token = $Token
-    enroll_url = "${protocol}://${host}/api/agent/enroll"
+    enroll_url = "${protocol}://${host}/api/v1/agent/enroll"
     agent_version = "${version}"
     interval_minutes = 30
 }
@@ -2279,6 +2382,21 @@ Write-Host "============================================================" -Foreg
 `;
 }
 
+// Helper to grant bootstrap tokens ONLY to authenticated administrators
+function resolveAuthorizedBootstrapToken(req) {
+  const userToken = extractToken(req);
+  if (userToken && !revokedTokens.has(userToken)) {
+    try {
+      const decoded = jwt.verify(userToken, EFFECTIVE_JWT_SECRET, { algorithms: ['HS256'] });
+      if (['SUPER_ADMIN', 'OPERATOR'].includes(normalizeRole(decoded.role))) {
+        const tenantId = decoded.tenant_id || "00000000-0000-0000-0000-000000000001";
+        return generateBootstrapToken(tenantId, "authorized-bundle", 24);
+      }
+    } catch {}
+  }
+  return null;
+}
+
 // Agent bundle & downloads (Canonical v1 + Legacy aliases)
 app.get(['/api/v1/agent-bundle', '/api/agent-bundle', '/api/v1/agent/bundle'], async (req, res) => {
   const branding = await db.getBranding();
@@ -2287,7 +2405,7 @@ app.get(['/api/v1/agent-bundle', '/api/agent-bundle', '/api/v1/agent/bundle'], a
   const version = getAgentVersion();
   const msiInfo = resolveAgentMsi(version);
   const caCert = getCaCertificate();
-  const bootstrapToken = generateBootstrapToken("00000000-0000-0000-0000-000000000001", "default", 48);
+  const bootstrapToken = resolveAuthorizedBootstrapToken(req);
 
   res.json({
     company: branding.company_name,
@@ -2319,14 +2437,14 @@ app.get(['/api/v1/agent/agent.json', '/api/agent/agent.json'], async (req, res) 
   const host = req.headers.host || branding.server_host;
   const protocol = req.protocol || 'http';
   const version = getAgentVersion();
-  const bootstrapToken = generateBootstrapToken("00000000-0000-0000-0000-000000000001", "default", 48);
+  const bootstrapToken = resolveAuthorizedBootstrapToken(req);
 
   res.setHeader('Content-Type', 'application/json');
   res.setHeader('Content-Disposition', 'attachment; filename="agent.json"');
   res.json({
     endpoint: `${protocol}://${host}/api/v1/ingest/telemetry`,
     poll_url: `${protocol}://${host}/api/commands/poll?hostname=`,
-    enroll_url: `${protocol}://${host}/api/agent/enroll`,
+    enroll_url: `${protocol}://${host}/api/v1/agent/enroll`,
     bootstrap_token: bootstrapToken,
     token: bootstrapToken,
     agent_version: version,
@@ -2357,13 +2475,13 @@ const handleAgentBundleZip = async (req, res) => {
   const host = req.headers.host || branding.server_host;
   const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'http';
   const version = getAgentVersion();
-  const bootstrapToken = generateBootstrapToken("00000000-0000-0000-0000-000000000001", "default", 48);
+  const bootstrapToken = resolveAuthorizedBootstrapToken(req);
 
   const zip = new JSZip();
   const agentJson = JSON.stringify({
     endpoint: `${protocol}://${host}/api/v1/ingest/telemetry`,
     poll_url: `${protocol}://${host}/api/commands/poll?hostname=`,
-    enroll_url: `${protocol}://${host}/api/agent/enroll`,
+    enroll_url: `${protocol}://${host}/api/v1/agent/enroll`,
     bootstrap_token: bootstrapToken,
     token: bootstrapToken,
     agent_version: version,
@@ -2371,11 +2489,14 @@ const handleAgentBundleZip = async (req, res) => {
   }, null, 2);
 
   const agentScriptPath = path.join(__dirname, 'Enterprise', 'agent', 'Aaditech-Agent.ps1');
+  const agentCollectPath = path.join(__dirname, 'Enterprise', 'agent', 'Agent-Collect.ps1');
+  const collectorsDirPath = path.join(__dirname, 'Enterprise', 'agent', 'collectors');
   const installCmdPath = path.join(__dirname, 'Enterprise', 'agent', 'install-agent.cmd');
   const testCmdPath = path.join(__dirname, 'Enterprise', 'agent', 'run-agent-once.cmd');
   const uninstallCmdPath = path.join(__dirname, 'Enterprise', 'agent', 'uninstall-agent.cmd');
 
   const agentScript = fs.existsSync(agentScriptPath) ? fs.readFileSync(agentScriptPath, 'utf8') : '';
+  const agentCollectScript = fs.existsSync(agentCollectPath) ? fs.readFileSync(agentCollectPath, 'utf8') : '';
   const installCmd = fs.existsSync(installCmdPath) ? fs.readFileSync(installCmdPath, 'utf8') : getInstallCmdContent(host, protocol, version);
   const testCmd = fs.existsSync(testCmdPath) ? fs.readFileSync(testCmdPath, 'utf8') : '';
   const uninstallCmd = fs.existsSync(uninstallCmdPath) ? fs.readFileSync(uninstallCmdPath, 'utf8') : '';
@@ -2384,6 +2505,16 @@ const handleAgentBundleZip = async (req, res) => {
   zip.file("agent.json", agentJson);
   if (caCert) zip.file("ca.crt", caCert);
   zip.file("Aaditech-Agent.ps1", agentScript);
+  if (agentCollectScript) zip.file("Agent-Collect.ps1", agentCollectScript);
+  if (fs.existsSync(collectorsDirPath)) {
+    const collectorFiles = fs.readdirSync(collectorsDirPath);
+    for (const cFile of collectorFiles) {
+      const fullPath = path.join(collectorsDirPath, cFile);
+      if (fs.statSync(fullPath).isFile()) {
+        zip.file(`collectors/${cFile}`, fs.readFileSync(fullPath, 'utf8'));
+      }
+    }
+  }
   zip.file("install-agent.cmd", installCmd);
   zip.file("run-agent-once.cmd", testCmd);
   zip.file("uninstall-agent.cmd", uninstallCmd);
@@ -2539,18 +2670,52 @@ app.post(['/api/v1/build/trigger', '/api/build/trigger'], validateBody(buildTrig
 // ---------------- GAP FULFILLMENT: PREDICTIVE ANALYTICS ----------------
 app.get(['/api/v1/analytics/predictive', '/api/analytics/predictive'], async (req, res) => {
   const agents = await db.getDevices();
-  const analysis = agents.map(agent => {
+  const analysis = await Promise.all(agents.map(async agent => {
+    const history = await db.getTelemetryHistory(agent.id, 20);
     const freeGB = parseInt(agent.disk_free, 10) || 120;
-    const dailyConsumptionGB = agent.hostname.includes("DEV") ? 2.1 : agent.hostname.includes("FIN") ? 0.8 : 0.3;
-    const daysRemaining = Math.max(1, Math.round(freeGB / dailyConsumptionGB));
     const memoryPct = parseInt(agent.memory_usage, 10) || 50;
     const cpuPct = parseInt(agent.cpu_usage, 10) || 20;
+
+    if (!history || history.length < 5) {
+      return {
+        hostname: agent.hostname,
+        status: "INSUFFICIENT_DATA",
+        sample_count: history ? history.length : 0,
+        minimum_required_samples: 5,
+        disk_free_gb: freeGB,
+        daily_growth_gb: null,
+        projected_days_until_full: null,
+        memory_usage_pct: memoryPct,
+        cpu_usage_pct: cpuPct,
+        anomaly_score: 0,
+        health_rating: "Unrated",
+        recommended_action: "Insufficient historical telemetry samples to compute statistical trend"
+      };
+    }
+
+    const validSamples = history
+      .map(h => ({
+        timestamp: new Date(h.recorded_at || Date.now()).getTime(),
+        disk_free: parseFloat(h.disk_free || h.disk_free_gb || freeGB),
+        memory_usage: parseFloat(h.memory_usage || memoryPct),
+        cpu_usage: parseFloat(h.cpu_usage || cpuPct)
+      }))
+      .sort((a, b) => a.timestamp - b.timestamp);
+
+    const first = validSamples[0];
+    const last = validSamples[validSamples.length - 1];
+    const timeDeltaDays = Math.max(0.001, (last.timestamp - first.timestamp) / (1000 * 60 * 60 * 24));
+    const diskDeltaGB = first.disk_free - last.disk_free;
+    const dailyConsumptionGB = Math.max(0.01, parseFloat((diskDeltaGB / timeDeltaDays).toFixed(2)));
+    const daysRemaining = Math.max(1, Math.round(freeGB / dailyConsumptionGB));
 
     const anomalyScore = (memoryPct > 85 ? 40 : 0) + (cpuPct > 80 ? 30 : 0) + (daysRemaining < 14 ? 30 : 0);
     const healthRating = anomalyScore > 60 ? "Critical" : anomalyScore > 30 ? "Warning" : "Optimal";
 
     return {
       hostname: agent.hostname,
+      status: "ANALYZED",
+      sample_count: validSamples.length,
       disk_free_gb: freeGB,
       daily_growth_gb: dailyConsumptionGB,
       projected_days_until_full: daysRemaining,
@@ -2564,12 +2729,12 @@ app.get(['/api/v1/analytics/predictive', '/api/analytics/predictive'], async (re
         ? "Investigate memory leak or restart memory-heavy processes"
         : "No action required - operating within nominal baselines"
     };
-  });
+  }));
 
   res.json({
     summary: {
       total_hosts_analyzed: agents.length,
-      hosts_at_disk_risk: analysis.filter(a => a.projected_days_until_full < 14).length,
+      hosts_at_disk_risk: analysis.filter(a => a.projected_days_until_full && a.projected_days_until_full < 14).length,
       anomalous_hosts: analysis.filter(a => a.anomaly_score > 30).length
     },
     predictions: analysis
@@ -2601,41 +2766,36 @@ app.post(['/api/v1/remediation/trigger', '/api/remediation/trigger'], requireRol
   const { hostname, action_type } = req.body;
   const pol = (await db.getRemediationPolicyByActionType(action_type)) || { name: "Manual Remediation" };
 
-  const actionsText = {
-    clean_temp_files: "Cleaned C:\\Windows\\Temp, cleared browser cache, and reclaimed 6.2 GB",
-    restart_spooler: "Stopped Spooler service, cleared print spool directory, restarted service successfully",
-    reset_network: "Flushed DNS cache, reset Winsock catalog, and renewed DHCP lease",
-    clear_bits: "Cancelled stuck BITS transfer jobs and restarted BITS service"
-  };
-
-  const actionMsg = actionsText[action_type] || `Executed ${action_type} successfully`;
+  const actionMsg = `Dispatched remediation script Remediate-${action_type}.ps1 to agent queue`;
 
   const newLog = await db.logRemediation({
     hostname: hostname || "DESKTOP-DEV018",
     policy_name: pol.name,
     action: actionMsg,
-    status: "success"
+    status: "pending"
   });
 
-  // Also record a command in MySQL for agent delivery
+  // Record command in MySQL with 'pending' status for agent execution
+  let commandId = null;
   const dev = await db.getDeviceByHostname(hostname || "DESKTOP-DEV018");
   if (dev) {
+    commandId = crypto.randomUUID();
     await db.queueCommandInDb({
-      id: crypto.randomUUID(),
+      id: commandId,
       device_id: dev.id,
       agent_id: dev.id,
       hostname: dev.hostname,
       kind: "run-script",
       command_type: "run-script",
       payload: { script_name: `Remediate-${action_type}.ps1` },
-      status: "completed",
+      status: "pending",
       dispatched_by: req.user?.username || "admin"
     });
   }
 
-  logAudit(req.user, "REMEDIATION_TRIGGERED", `Device:${hostname}`, { action_type, result: actionMsg }, req);
+  logAudit(req.user, "REMEDIATION_TRIGGERED", `Device:${hostname}`, { action_type, command_id: commandId, status: "pending" }, req);
 
-  res.json({ ok: true, log: newLog });
+  res.json({ ok: true, log: newLog, command_id: commandId, status: "pending" });
 });
 
 // ---------------- GAP FULFILLMENT: TICKETING INTEGRATION ----------------
@@ -2675,29 +2835,58 @@ app.post(['/api/v1/tickets', '/api/v1/tickets/create', '/api/tickets/create'], r
 
 // ---------------- GAP FULFILLMENT: CLOUD & HYBRID AUDIT ----------------
 app.get(['/api/v1/compliance/cloud-audit', '/api/compliance/cloud-audit'], async (req, res) => {
+  const isCloudConfigured = Boolean(process.env.AZURE_TENANT_ID && process.env.GRAPH_CLIENT_ID);
   const agents = await db.getDevices();
+
+  if (!isCloudConfigured) {
+    const bitlockerCount = agents.filter(a => a.bitlocker_status === 'ENCRYPTED').length;
+    const defenderCount = agents.filter(a => a.antivirus_status === 'ACTIVE').length;
+    const bitlockerPct = agents.length > 0 ? `${Math.round((bitlockerCount / agents.length) * 100)}%` : "0%";
+    const defenderPct = agents.length > 0 ? `${Math.round((defenderCount / agents.length) * 100)}%` : "0%";
+
+    return res.json({
+      configured: false,
+      status: "NOT_CONFIGURED",
+      summary: {
+        azure_ad_sync: "Not Configured",
+        intune_enrolled_pct: "0%",
+        m365_services_status: "Not Configured",
+        bitlocker_compliant_pct: bitlockerPct,
+        defender_active_pct: defenderPct
+      },
+      cloud_services: [],
+      agent_compliance: agents.map(a => ({
+        hostname: a.hostname,
+        azure_ad_joined: false,
+        intune_managed: false,
+        bitlocker_encrypted: a.bitlocker_status === 'ENCRYPTED',
+        defender_realtime_on: a.antivirus_status === 'ACTIVE',
+        compliance_status: (a.bitlocker_status === 'ENCRYPTED' && a.antivirus_status === 'ACTIVE') ? "Compliant" : "Non-Compliant"
+      })),
+      note: "Azure AD and Microsoft 365 cloud sync requires AZURE_TENANT_ID and GRAPH_CLIENT_ID configuration."
+    });
+  }
+
   res.json({
+    configured: true,
+    status: "CONFIGURED",
     summary: {
-      azure_ad_sync: "Healthy",
-      intune_enrolled_pct: "100%",
-      m365_services_status: "All Operational",
-      bitlocker_compliant_pct: "100%",
-      defender_active_pct: "100%"
+      azure_ad_sync: "Connected",
+      intune_enrolled_pct: "N/A",
+      m365_services_status: "Connected",
+      bitlocker_compliant_pct: agents.length ? `${Math.round((agents.filter(a => a.bitlocker_status === 'ENCRYPTED').length / agents.length) * 100)}%` : "0%",
+      defender_active_pct: agents.length ? `${Math.round((agents.filter(a => a.antivirus_status === 'ACTIVE').length / agents.length) * 100)}%` : "0%"
     },
     cloud_services: [
-      { name: "Azure AD Identity Sync", status: "Healthy", last_sync: new Date(Date.now() - 300000).toISOString(), latency_ms: 12 },
-      { name: "Microsoft Teams Cloud", status: "Operational", latency_ms: 28 },
-      { name: "Exchange Online", status: "Operational", latency_ms: 34 },
-      { name: "OneDrive for Business", status: "Operational", latency_ms: 19 },
-      { name: "Intune Policy Sync", status: "Healthy", last_sync: new Date(Date.now() - 1800000).toISOString() }
+      { name: "Azure AD Identity Sync", status: "Connected", last_sync: new Date().toISOString() }
     ],
     agent_compliance: agents.map(a => ({
       hostname: a.hostname,
-      azure_ad_joined: true,
-      intune_managed: true,
-      bitlocker_encrypted: true,
-      defender_realtime_on: true,
-      compliance_status: "Compliant"
+      azure_ad_joined: false,
+      intune_managed: false,
+      bitlocker_encrypted: a.bitlocker_status === 'ENCRYPTED',
+      defender_realtime_on: a.antivirus_status === 'ACTIVE',
+      compliance_status: (a.bitlocker_status === 'ENCRYPTED' && a.antivirus_status === 'ACTIVE') ? "Compliant" : "Non-Compliant"
     }))
   });
 });

@@ -518,8 +518,16 @@ export async function executeQuery(sql, params = []) {
       const [results] = await pool.query(sql, params);
       return results;
     } catch (err) {
+      if (process.env.NODE_ENV === 'production') {
+        console.error("MySQL query execution error in production:", err.message);
+        throw err;
+      }
       console.warn("MySQL query error, using in-memory engine:", err.message);
     }
+  }
+
+  if (process.env.NODE_ENV === 'production' && !process.env.ALLOW_FALLBACK_DB) {
+    throw new Error(`Database connection unavailable in production environment: cannot execute query on memory fallback`);
   }
 
   // Resilient fallback SQL emulator for essential query patterns and EXPLAIN plans
@@ -1325,7 +1333,13 @@ export async function flushTelemetryQueue() {
       `;
       await pool.query(sql, [rows]);
     } catch (err) {
+      telemetryQueue.unshift(...batch);
+      if (process.env.NODE_ENV === 'production') {
+        console.error('Fatal: Failed to flush batched telemetry in production:', err.message);
+        throw err;
+      }
       console.error('Error executing batched telemetry insert:', err.message);
+      return 0;
     }
   }
   return batch.length;
@@ -1344,7 +1358,7 @@ export async function insertTelemetryBatch(records) {
   if (!Array.isArray(records) || records.length === 0) return 0;
   const normalized = [];
   for (const item of records) {
-    const pt = normalizeMetricPoint(item.device_id, item);
+    const pt = normalizeMetricPoint(item.device_id || item.deviceId, item.metrics || item);
     normalized.push(pt);
     memTelemetry.push(pt);
   }
@@ -1366,7 +1380,12 @@ export async function insertTelemetryBatch(records) {
       `;
       await pool.query(sql, [rows]);
     } catch (err) {
+      if (process.env.NODE_ENV === 'production') {
+        console.error('insertTelemetryBatch error in production:', err.message);
+        throw err;
+      }
       console.error('insertTelemetryBatch error:', err.message);
+      return 0;
     }
   }
   return normalized.length;
@@ -1378,8 +1397,8 @@ export async function insertTelemetryRecord(deviceId, metrics) {
   // Support direct array batch insertion
   if (Array.isArray(metrics)) {
     const records = metrics.map(m => ({ ...m, device_id: deviceId }));
-    await insertTelemetryBatch(records);
-    return true;
+    const count = await insertTelemetryBatch(records);
+    return count > 0;
   }
 
   const point = normalizeMetricPoint(deviceId, metrics);
@@ -2084,20 +2103,35 @@ export async function markBootstrapTokenUsed(token, tokenHash, hostname, tenantI
   const hash = tokenHash || (token ? crypto.createHash('sha256').update(String(token).trim()).digest('hex') : '');
   if (!hash) return false;
 
+  if (memBootstrapTokens.has(hash) || (token && memBootstrapTokens.has(token))) {
+    return false;
+  }
+
+  const memPkg = memMsiPackages.find(p => p.bootstrap_token === token || p.bootstrap_token_hash === hash);
+  if (memPkg && memPkg.used) {
+    return false;
+  }
+
+  try {
+    await executeQuery(
+      'INSERT INTO used_bootstrap_tokens (token_hash, token, device_hostname, tenant_id, used_at) VALUES (?, ?, ?, ?, NOW(3))',
+      [hash, token || null, hostname || null, tenantId || null]
+    );
+  } catch (err) {
+    if (err.code === 'ER_DUP_ENTRY' || String(err.message).includes('Duplicate entry')) {
+      return false;
+    }
+    throw err;
+  }
+
   memBootstrapTokens.add(hash);
   if (token) memBootstrapTokens.add(token);
 
-  const memPkg = memMsiPackages.find(p => p.bootstrap_token === token || p.bootstrap_token_hash === hash);
   if (memPkg) {
     memPkg.used = 1;
     memPkg.used_at = new Date();
     memPkg.used_by_device = hostname;
   }
-
-  await executeQuery(
-    'INSERT IGNORE INTO used_bootstrap_tokens (token_hash, token, device_hostname, tenant_id, used_at) VALUES (?, ?, ?, ?, NOW(3))',
-    [hash, token || null, hostname || null, tenantId || null]
-  );
 
   // Also update msi_packages if matching
   await executeQuery(
@@ -2318,7 +2352,19 @@ export async function logAuditToDb(entry) {
   return true;
 }
 
-export async function getAuditLogs(limit = 100) {
+export async function getAuditLogs(limit = 100, tenantId = null) {
+  if (tenantId) {
+    const rows = await executeQuery(
+      'SELECT * FROM audit_logs WHERE tenant_id = ? ORDER BY created_at DESC LIMIT ?',
+      [String(tenantId), limit]
+    );
+    return rows.map(r => ({
+      ...r,
+      details: typeof r.details === 'string' ? JSON.parse(r.details || '{}') : (r.details || {}),
+      client_ip: r.ip_address
+    }));
+  }
+
   const rows = await executeQuery(
     'SELECT * FROM audit_logs ORDER BY created_at DESC LIMIT ?',
     [limit]

@@ -1,0 +1,1700 @@
+# AADITECH TOOLKIT — PRECISION REPAIR DIRECTIVE
+
+## YOUR ROLE
+
+You are a software repair agent working on an EXISTING enterprise endpoint-management platform.
+
+Your task is to MODIFY, TEST, and VERIFY the real repository code.
+
+Do not redesign the application.
+
+Do not generate another generic audit report.
+
+Do not claim that a bug is fixed merely because documentation was updated.
+
+Work in small, independently verifiable batches.
+
+**Primary objective: Fix the confirmed defects below, preserve existing functionality, and produce evidence of actual working code.**
+
+---
+
+# 1. REPOSITORY INFORMATION
+
+Repository:
+
+https://github.com/rehman2671/Aaditech-toolkit-new.git
+
+Main branch: `main`
+
+Previously verified HEAD:
+
+`ece361d910dcb161088f0d7a7efc63619c885a0b`
+
+Previously verified failed CI run:
+
+https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/41646673232
+
+The repository contains approximately:
+
+- 220 tracked files.
+- 66 directories.
+- Node.js/Express backend.
+- MySQL database.
+- Redis-related infrastructure.
+- Windows PowerShell endpoint agents.
+- WiX MSI packaging.
+- Enterprise HTML/JavaScript portal.
+- GitHub Actions CI/CD.
+
+**Important:** These are baseline observations, not a substitute for checking the current repository.
+
+At the beginning:
+
+1. Access the actual repository.
+2. Fetch the latest `main`.
+3. Record the current HEAD SHA.
+4. Inspect the latest CI result.
+5. Compare the current code with the defects listed below.
+6. Skip an issue only when actual code and tests prove it is already resolved.
+
+Do not modify `main` directly.
+
+Create a repair branch:
+
+`fix/verified-enterprise-remediation`
+
+If that branch already exists, inspect it before reusing it.
+
+If GitHub access or file-editing tools are unavailable, clearly report that limitation. Never pretend to have pushed changes.
+
+---
+
+# 2. NON-NEGOTIABLE RULES
+
+## RULE A — Actual code changes
+
+Every claimed fix must correspond to an actual source-code change or a verified existing implementation.
+
+Documentation alone is not a fix.
+
+## RULE B — No fabricated results
+
+Never invent:
+
+- Test results.
+- CI success.
+- Database writes.
+- Endpoint telemetry.
+- MSI binaries.
+- Security verification.
+- Git commits.
+- Agent installation results.
+- Production-readiness scores.
+
+## RULE C — Preserve real functionality
+
+Do not remove working modules unnecessarily.
+
+Do not rewrite the entire backend.
+
+Do not replace production functionality with test mocks.
+
+Do not delete database tables or production records.
+
+Do not remove authentication checks to make tests pass.
+
+## RULE D — Small patches
+
+Change only the files needed for the current task.
+
+Avoid unrelated formatting, renaming, dependency upgrades, and architecture changes.
+
+## RULE E — Security
+
+Never print, commit, or embed actual production secrets.
+
+Use isolated test credentials for automated tests.
+
+Do not restore deleted private keys.
+
+Do not rewrite Git history without explicit permission.
+
+Do not weaken production security to preserve obsolete test behavior.
+
+## RULE F — Verification
+
+A fix is `VERIFIED` only when:
+
+1. Code is changed.
+2. Relevant tests pass.
+3. Related regression tests pass.
+4. No obvious security regression is introduced.
+5. The commit is pushed successfully, when GitHub write access exists.
+6. GitHub Actions results are checked, when available.
+
+Otherwise report `IMPLEMENTED_UNVERIFIED` or `BLOCKED`.
+
+## RULE G — Token efficiency
+
+Do not repeatedly print complete source files.
+
+Use targeted file reads, searches, and diffs.
+
+Do not produce lengthy explanations before implementing straightforward fixes.
+
+Use short progress reports.
+
+Do not create unnecessary reports, duplicate documentation, or speculative architecture proposals.
+
+**Spend tokens on actual repair, not on describing future repair.**
+
+---
+
+# 3. EXECUTION ORDER
+
+Follow this order strictly:
+
+| Batch | Work | Priority |
+|---|---|---|
+| 1 | Repair current CI failures | CRITICAL |
+| 2 | Restore and repair Windows agent build | CRITICAL |
+| 3 | Fix enrollment, credentials, tenant isolation, command security | CRITICAL |
+| 4 | Fix database durability and error handling | CRITICAL |
+| 5 | Unify Windows agent and backend protocols | HIGH |
+| 6 | Eliminate simulated production functionality | HIGH |
+| 7 | Verify MSI, deployment, integration tests and release gates | HIGH |
+
+Do not jump to later batches while an earlier critical blocker remains unresolved.
+
+Do not repeatedly replan the entire project.
+
+For each batch:
+
+**Inspect → Patch → Test → Review → Commit → Verify → Continue.**
+
+---
+
+# BATCH 1 — FIX CURRENT GITHUB ACTIONS
+
+## TASK CI-001 — Fix PowerShell JSON validation
+
+File:
+
+`.github/workflows/ci.yml`
+
+Current PowerShell validation fails at the `Validate JSON config` step.
+
+Observed error:
+
+```text
+The provided JSON includes a property whose name
+is an empty string.
+
+This is only supported using the -AsHashTable switch.
+```
+
+### Root cause
+
+The workflow uses:
+
+```powershell
+Get-Content $_.FullName -Raw | ConvertFrom-Json | Out-Null
+```
+
+The npm `package-lock.json` contains a legitimate empty-string package key under `packages`.
+
+PowerShell's default JSON object conversion does not handle this structure as intended.
+
+### Required patch
+
+Replace the JSON validation step with the following equivalent implementation:
+
+```yaml
+- name: Validate JSON config
+  shell: pwsh
+  run: |
+    $files = Get-ChildItem -Path . -Recurse -File -Filter '*.json' |
+      Where-Object {
+        $_.FullName -notmatch '[/\\](node_modules|\.git)[/\\]'
+      }
+
+    foreach ($file in $files) {
+      try {
+        $null = Get-Content -LiteralPath $file.FullName -Raw |
+          ConvertFrom-Json -AsHashtable -ErrorAction Stop
+
+        Write-Host "JSON OK: $($file.FullName)"
+      }
+      catch {
+        throw "Invalid JSON in $($file.FullName): $($_.Exception.Message)"
+      }
+    }
+```
+
+Preserve the existing PowerShell AST validation.
+
+### Acceptance criteria
+
+- `package-lock.json` validates successfully.
+- Actual malformed JSON still fails validation.
+- The PowerShell parsing step remains successful.
+- Do not remove the JSON validation step.
+
+---
+
+## TASK CI-002 — Fix Vitest environment initialization
+
+File:
+
+`.github/workflows/ci.yml`
+
+Current failing job:
+
+`Node.js Unit & Integration Tests (Vitest + MySQL 8)`
+
+Observed failure:
+
+```text
+tests/integration/server.integration.test.js
+tests/unit/msi-latest-route.test.js
+
+FATAL: JWT_SECRET environment variable is required!
+```
+
+### Root cause
+
+The previously committed root `.env` was removed.
+
+This was correct for security.
+
+However, the Vitest job does not initialize the server's mandatory security environment variables.
+
+The application requires:
+
+```text
+JWT_SECRET
+BOOTSTRAP_SECRET
+COMMAND_SIGNING_KEY
+HMAC_SECRET
+API_TOKEN
+```
+
+### Required solution
+
+Generate isolated, ephemeral test values inside GitHub Actions.
+
+Do not restore the committed `.env`.
+
+Do not weaken the server's startup validation.
+
+Add this step before the test execution in the `node-tests` job:
+
+```yaml
+- name: Generate ephemeral CI security credentials
+  shell: bash
+  run: |
+    node <<'NODE'
+    const fs = require('node:fs');
+    const crypto = require('node:crypto');
+
+    const names = [
+      'JWT_SECRET',
+      'BOOTSTRAP_SECRET',
+      'COMMAND_SIGNING_KEY',
+      'HMAC_SECRET',
+      'API_TOKEN'
+    ];
+
+    for (const name of names) {
+      const value = crypto.randomBytes(32).toString('hex');
+
+      fs.appendFileSync(
+        process.env.GITHUB_ENV,
+        `${name}=${value}\n`
+      );
+    }
+    NODE
+```
+
+Use the same approach in `api-tests` so its background server and integration-test steps receive consistent credentials.
+
+Remove hardcoded CI secret overrides that would accidentally replace these generated values.
+
+Do not log generated secret values.
+
+### Important
+
+The environment initialization must happen before a test process imports `server.js`.
+
+Preserve production's strict secret validation.
+
+Preserve tests verifying that missing production secrets prevent startup.
+
+### Acceptance criteria
+
+Run:
+
+```bash
+npm ci
+npm run lint
+node scripts/check-version-consistency.cjs
+npm run test:coverage
+```
+
+Expected result:
+
+- No unexpected `process.exit(1)` from missing CI secrets.
+- Existing integration suites execute.
+- No test failures.
+- Existing coverage thresholds remain enforced.
+
+If additional genuine failures appear, diagnose and fix them individually.
+
+Do not hide them or alter assertions without justification.
+
+---
+
+## TASK CI-003 — Verify API integration sequence
+
+File:
+
+`.github/workflows/ci.yml`
+
+The previous correction moved API server startup before authentication integration tests.
+
+Preserve that change.
+
+Verify this sequence:
+
+```text
+Install dependencies
+    ↓
+Prepare database
+    ↓
+Run schema/contract checks
+    ↓
+Generate test credentials
+    ↓
+Start backend
+    ↓
+Wait until backend is ready
+    ↓
+Run authentication integration
+    ↓
+Run MSI API integration
+    ↓
+Run other integration checks
+```
+
+Do not use a fixed sleep as the only readiness mechanism.
+
+Use an HTTP readiness probe.
+
+Preserve server logs when readiness fails.
+
+Ensure the background process is cleaned up.
+
+### Acceptance criteria
+
+```bash
+node test-contract-validation.js
+node test-migrations-runner.js
+node test-auth-integration.js
+node test-msi-packaging-integration.js
+```
+
+All must pass against the intended test environment.
+
+If tests require seeded accounts or fixtures, explicitly initialize them in the test environment.
+
+Do not enable production demo credentials to satisfy tests.
+
+---
+
+# BATCH 2 — RESTORE WINDOWS AGENT BUILD
+
+## TASK BUILD-001 — Restore deleted source file
+
+The latest reviewed commit deleted:
+
+`Enterprise/agent/build/build-agent.ps1`
+
+However, `.github/workflows/ci.yml` still invokes:
+
+```powershell
+./Enterprise/agent/build/build-agent.ps1
+```
+
+The WiX builder also depends on its output.
+
+### Required action
+
+Restore the previous tracked version as the initial baseline:
+
+```bash
+git restore \
+  --source=574025f5e8c60780d05a50d9c756e9e05d1f5cc9 \
+  -- Enterprise/agent/build/build-agent.ps1
+```
+
+If the repository has changed since the baseline, inspect the history before restoring.
+
+**Do not restore deleted private keys or obsolete sensitive certificates.**
+
+### Important security correction
+
+The historical build script contains unsafe fallback compilation paths.
+
+It may generate:
+
+- A minimal .NET launcher.
+- A nonfunctional executable stub.
+- A minimal PE header.
+
+These fallback paths must NOT remain in the production build pipeline.
+
+### Required behavior
+
+The build script must:
+
+1. Require the canonical source `Agent-Collect.ps1`.
+2. Require a real installed `ps2exe` compiler.
+3. Fail if the compiler is unavailable.
+4. Fail if compilation exits unsuccessfully.
+5. Fail if the expected EXE is absent.
+6. Fail if the EXE is empty or obviously invalid.
+7. Never substitute a dummy executable.
+8. Never silently switch to the standalone agent.
+9. Preserve the expected output filenames.
+
+Use this implementation principle:
+
+```powershell
+$ErrorActionPreference = 'Stop'
+
+$compiler = Get-Command ps2exe -ErrorAction Stop
+
+$source = Join-Path $PSScriptRoot '..\Agent-Collect.ps1'
+
+$outputDir = Join-Path $PSScriptRoot 'out'
+
+$outputExe = Join-Path $outputDir 'IT-Toolkit-Agent.exe'
+
+if (-not (Test-Path -LiteralPath $source -PathType Leaf)) {
+    throw "Canonical agent source missing: $source"
+}
+
+New-Item -ItemType Directory -Path $outputDir -Force |
+    Out-Null
+
+# Invoke the real ps2exe compiler using its supported parameters.
+# Preserve applicable metadata from the existing script.
+
+# Immediately verify compilation succeeded.
+if ($LASTEXITCODE -ne 0) {
+    throw "Agent compilation failed"
+}
+
+if (-not (Test-Path -LiteralPath $outputExe -PathType Leaf)) {
+    throw "Compiled agent EXE missing"
+}
+
+$size = (Get-Item -LiteralPath $outputExe).Length
+
+if ($size -le 0) {
+    throw "Compiled agent EXE is empty"
+}
+```
+
+The above is an implementation guide, not permission to omit the actual compiler invocation.
+
+Inspect the installed ps2exe parameter syntax and implement it correctly.
+
+### Acceptance criteria
+
+- Script parses.
+- Missing compiler results in failure.
+- Missing source results in failure.
+- Successful compilation produces a genuine executable.
+- The WiX builder receives the expected output.
+- No fake PE fallback remains.
+
+---
+
+## TASK BUILD-002 — Fix build dependencies
+
+Review:
+
+```text
+.github/workflows/ci.yml
+Enterprise/agent/build/build-agent.ps1
+Enterprise/agent/wix/build-msi.ps1
+Enterprise/agent/wix/Agent.wxs
+```
+
+Verify:
+
+- Correct PowerShell edition for ps2exe.
+- Correct WiX version.
+- Correct source-file paths.
+- Correct staged file paths.
+- Correct version metadata.
+- No dependency on deleted files.
+- No silent build fallback.
+- No hardcoded live credentials inside release artifacts.
+
+If a signing certificate or trust-chain file is required, use an approved external signing configuration.
+
+Do not recreate or commit a private CA key.
+
+### Acceptance criteria
+
+A Windows runner can compile the agent and build a real MSI.
+
+Do not mark this verified without Windows build evidence.
+
+---
+
+# BATCH 3 — CRITICAL SECURITY REPAIRS
+
+## TASK SEC-001 — Stop public enrollment-token issuance
+
+Files:
+
+```text
+server.js
+db.js
+tests/
+```
+
+Confirmed issue:
+
+The API security gateway publicly allows agent bundle endpoints.
+
+Some bundle handlers generate valid bootstrap tokens.
+
+Affected examples include:
+
+```text
+/api/agent-bundle
+/api/v1/agent-bundle
+/api/agent/agent.json
+/api/agent/bundle.zip
+```
+
+### Required behavior
+
+Only an authenticated, appropriately authorized administrator may issue enrollment credentials.
+
+Implement:
+
+1. Administrative authorization for token issuance.
+2. Tenant-bound enrollment tokens.
+3. Cryptographically random token identity/nonce.
+4. Short, configurable expiration.
+5. Database-backed single-use consumption.
+6. Atomic replay protection.
+7. Auditable issuance and consumption.
+8. No active bootstrap token in anonymous responses.
+
+Do not rely on a hardcoded default tenant for authenticated issuance.
+
+Preserve a public installer download only if it contains no active credentials and cannot authorize enrollment.
+
+### Required security tests
+
+Test:
+
+```text
+Anonymous bundle request
+    → MUST NOT return usable bootstrap token
+
+MONITORING user
+    → MUST NOT issue enrollment token
+
+Unauthorized OPERATOR
+    → MUST NOT issue token unless explicitly permitted
+
+SUPER_ADMIN
+    → May issue token for authorized tenant
+
+Expired token
+    → Rejected
+
+Reused token
+    → Rejected
+
+Two simultaneous enrollment requests using one token
+    → Exactly one succeeds
+
+Wrong-tenant enrollment
+    → Rejected
+```
+
+### Important
+
+Existing bootstrap verification checks for previous use, then records consumption separately.
+
+That creates a potential race.
+
+Use a durable unique constraint and an atomic database operation or transaction.
+
+Do not use `INSERT IGNORE` as proof that a token was successfully consumed.
+
+If consumption fails, enrollment must not continue.
+
+---
+
+## TASK SEC-002 — Eliminate global agent token exposure
+
+File:
+
+`server.js`
+
+Confirmed source:
+
+```javascript
+agent_token: AGENT_API_TOKEN
+```
+
+This appears in the bootstrap response.
+
+### Required behavior
+
+Human-user bootstrap responses must not reveal the global agent credential.
+
+Separate:
+
+- User authentication.
+- Administrative authorization.
+- Agent enrollment credentials.
+- Per-device authentication.
+- Remote command integrity.
+
+Remove fleet-wide credential exposure.
+
+Audit all other API responses for similar disclosure.
+
+### Important
+
+The code also contains a non-production fallback accepting a known static agent token.
+
+Remove this compatibility shortcut from actual security verification.
+
+Do not replace it with another hardcoded value.
+
+Update the integration tests to use explicit test credentials.
+
+### Acceptance criteria
+
+- No ordinary user receives a master agent token.
+- No hardcoded compatibility token grants device access.
+- Existing enrolled devices can authenticate using their own credentials.
+- Revoked device tokens are rejected.
+
+---
+
+## TASK SEC-003 — Enforce tenant isolation
+
+Files:
+
+```text
+server.js
+db.js
+database/mysql/schema.sql
+tests/
+```
+
+Confirmed problem:
+
+The device-list route calls `db.getDevices()` without passing the authenticated user's tenant ID.
+
+The database helper supports tenant filtering, but the API does not consistently use it.
+
+### Required architecture
+
+Tenant identity must come from the authenticated session, not from an untrusted request parameter.
+
+For tenant-scoped endpoints:
+
+```text
+Authenticated user
+    ↓
+Trusted tenant context
+    ↓
+Tenant-scoped database lookup
+    ↓
+Resource ownership validation
+    ↓
+Authorized operation
+```
+
+### Required changes
+
+Apply tenant scoping to:
+
+- Device lists.
+- Individual device lookups.
+- Device deletion.
+- Telemetry.
+- Commands.
+- Alerts.
+- Users.
+- Companies.
+- Policies.
+- Reports.
+- Audit logs.
+- Remediation.
+- Tickets.
+
+Do not merely add a tenant ID column to the database.
+
+Actually enforce it in queries and mutation authorization.
+
+### Implementation requirement
+
+Use the existing authenticated user context.
+
+For example:
+
+```javascript
+const tenantId = req.user?.tenant_id;
+
+if (!tenantId) {
+  return res.status(403).json({
+    error: 'Tenant context required'
+  });
+}
+```
+
+When retrieving tenant-owned devices:
+
+```javascript
+const devices = await db.getDevices({
+  tenant_id: tenantId,
+  status: req.query.status,
+  os_type: req.query.os_type
+});
+```
+
+Apply an equivalent tenant ownership check to individual resources and mutations.
+
+Do not blindly paste this example into every endpoint; account for platform-level administrative roles and existing application contracts.
+
+### Required tests
+
+Create Tenant A and Tenant B test fixtures.
+
+Test:
+
+```text
+Tenant A user lists devices
+    → Only Tenant A devices
+
+Tenant A user requests Tenant B device
+    → 403 or 404
+
+Tenant A administrator deletes Tenant B device
+    → Rejected
+
+Tenant A operator dispatches command to Tenant B device
+    → Rejected
+
+Tenant A user reads Tenant B audit logs
+    → Rejected
+
+Tenant B device token sends telemetry for Tenant A device
+    → Rejected
+```
+
+### Important
+
+Device hostnames may repeat between tenants.
+
+Do not use a hostname-only global lookup to transfer ownership or overwrite another tenant's device credentials.
+
+---
+
+## TASK SEC-004 — Secure command execution
+
+Files:
+
+```text
+server.js
+Enterprise/agent/Agent-Collect.ps1
+Enterprise/agent/Aaditech-Agent.ps1
+```
+
+Confirmed problems:
+
+1. Canonical collector does not consistently verify server-issued command signatures before execution.
+2. Empty script allowlist can permit unintended script execution.
+3. Standalone agent still contains an `Invoke-Expression` execution path.
+4. Command status can be reported as completed without confirmed execution.
+
+### Required behavior
+
+Before executing any remote command:
+
+- Authenticate device.
+- Verify command targets that device.
+- Verify command authenticity and integrity.
+- Validate command ID.
+- Validate expiration.
+- Reject replay.
+- Validate action type.
+- Apply permission policy.
+- Enforce allowlist.
+- Persist actual execution result.
+
+Use one canonical command schema shared by backend and agent.
+
+The signed bytes must be defined consistently on both sides.
+
+Do not invent different serialization rules for signing and verification.
+
+### Mandatory allowlist correction
+
+Current pattern:
+
+```powershell
+if ($allow.Count -gt 0 -and $allow -notcontains $script)
+```
+
+Replace the logic so an empty allowlist means **DENY ALL**.
+
+Required principle:
+
+```powershell
+$allowed = @(
+    $Config.run_script_allowlist |
+    Where-Object { $_ }
+)
+
+if ($allowed -notcontains $script) {
+    return @{
+        status    = 'failed'
+        output    = 'Script is not allowlisted'
+        exit_code = 1
+    }
+}
+```
+
+Also validate resolved script paths.
+
+Reject:
+
+- `..` path traversal.
+- Paths escaping the approved script root.
+- Unexpected absolute paths.
+- Unapproved extensions.
+- Untrusted script locations.
+
+Do not execute an arbitrary PowerShell expression received over the network.
+
+If the standalone agent cannot safely execute remote commands, disable that capability instead of pretending it has equivalent security.
+
+### Mandatory tests
+
+```text
+Valid command
+    → Accepted
+
+Tampered signed payload
+    → Rejected
+
+Wrong-device command
+    → Rejected
+
+Expired command
+    → Rejected
+
+Replay
+    → Rejected
+
+Empty allowlist
+    → Script execution denied
+
+Path traversal
+    → Denied
+
+Unknown command kind
+    → Denied
+
+Execution failure
+    → FAILED, never COMPLETED
+```
+
+---
+
+# BATCH 4 — DATABASE RELIABILITY
+
+## TASK DB-001 — Remove unsafe production fallback
+
+File:
+
+`db.js`
+
+Confirmed behavior:
+
+`executeQuery()` catches MySQL failures and continues into an in-memory SQL emulator.
+
+This behavior can hide production persistence failures.
+
+### Required behavior
+
+In production:
+
+```text
+Database available + query succeeds
+    → Return actual result
+
+Database available + query fails
+    → Throw the actual error
+
+Database unavailable
+    → Fail visibly
+
+Persistent write fails
+    → Never report success
+```
+
+In-memory fixtures may remain for explicitly configured tests.
+
+Do not automatically enable them based only on missing database connectivity.
+
+### Implementation guidance
+
+Introduce an explicit test-only flag:
+
+```javascript
+const allowTestMemoryDb =
+  process.env.NODE_ENV === 'test' &&
+  process.env.TEST_MEMORY_DB === '1';
+```
+
+Use this flag to gate the existing emulator.
+
+In production, query failures must propagate.
+
+Do not remove the real query implementations.
+
+Do not create another silent fallback.
+
+### Additional required correction
+
+Review:
+
+```javascript
+insertTelemetryBatch()
+insertTelemetryRecord()
+```
+
+Current batch insertion can catch an SQL error and still return a successful record count.
+
+Correct this.
+
+The API must acknowledge data only when it has been durably stored or durably queued according to the documented ingestion contract.
+
+### Required tests
+
+```text
+Successful MySQL write
+    → Success
+
+SQL constraint violation
+    → Error
+
+MySQL unavailable
+    → Error or documented durable-queue response
+
+Failed telemetry insert
+    → Not acknowledged as persisted
+
+Server restart
+    → Previously acknowledged records remain available
+
+Test fixture mode enabled explicitly
+    → In-memory tests still work
+```
+
+Do not modify production error handling to satisfy old tests expecting fake success.
+
+Fix the tests when their assumptions are insecure.
+
+---
+
+## TASK DB-002 — Make bootstrap consumption atomic
+
+Review:
+
+```text
+db.js
+used_bootstrap_tokens
+msi_packages
+server.js
+```
+
+Use a unique token hash and transactional or equivalent atomic consumption logic.
+
+Requirements:
+
+- Token cannot be consumed twice.
+- Concurrent enrollments cannot both succeed.
+- Failed persistence does not silently succeed.
+- Token consumption and device creation have a documented failure/retry policy.
+- Token ownership cannot cross tenants.
+- Do not store raw bootstrap tokens unnecessarily.
+
+Use additive database migrations.
+
+Do not destructively modify existing production data.
+
+---
+
+# BATCH 5 — UNIFY WINDOWS AGENT PROTOCOL
+
+## TASK AGENT-001 — Use one canonical production agent
+
+Canonical agent:
+
+`Enterprise/agent/Agent-Collect.ps1`
+
+Standalone diagnostics script:
+
+`Enterprise/agent/Aaditech-Agent.ps1`
+
+Treat the collector as the primary packaged agent.
+
+Do not maintain incompatible production enrollment implementations.
+
+## TASK AGENT-002 — Fix enrollment contract
+
+Confirmed mismatch:
+
+```text
+Collector:
+GET enrollment
+Expects PFX and agent_token
+
+Server:
+POST enrollment
+Returns device_token
+```
+
+### Required solution
+
+Implement a single supported enrollment protocol.
+
+Recommended baseline:
+
+```text
+Method:
+POST
+
+Route:
+/api/v1/agent/enroll
+
+Request:
+bootstrap_token
+hostname
+device_uid
+os_version
+agent_version
+
+Successful response:
+device_id
+device_uid
+device_token
+telemetry_interval
+```
+
+Use HTTPS.
+
+The agent must securely persist its individual device credential.
+
+After enrollment, the agent must stop using the bootstrap token.
+
+If mTLS enrollment is supported, implement a complete, explicit certificate issuance flow.
+
+Do not pretend a bearer-token response is a PFX certificate response.
+
+Do not silently downgrade TLS security.
+
+Do not install an unverified CA certificate into the Windows trusted root store.
+
+### Acceptance tests
+
+```text
+Valid enrollment
+    → 201
+
+Device credential returned
+    → Yes
+
+Credential stored securely
+    → Yes
+
+Second heartbeat
+    → Authenticated using device token
+
+Second telemetry submission
+    → Authenticated using device token
+
+Bootstrap token replay
+    → Rejected
+
+Revoked device token
+    → Rejected
+```
+
+---
+
+## TASK AGENT-003 — Fix endpoint routing
+
+Review:
+
+```text
+Enterprise/agent/endpoint.json
+Enterprise/agent/agent-config.example.json
+Enterprise/agent/Agent-Collect.ps1
+Enterprise/deploy/Caddyfile
+server.js
+```
+
+Confirmed mismatch:
+
+Some agent configuration uses:
+
+`/ingest`
+
+Backend supports:
+
+`/api/ingest`
+
+and:
+
+`/api/v1/ingest/telemetry`
+
+Choose one canonical ingest route.
+
+Recommended:
+
+`POST /api/v1/ingest/telemetry`
+
+Update:
+
+- Agent configuration.
+- Request construction.
+- Reverse proxy.
+- Documentation.
+- Integration tests.
+
+Do not assume Caddy automatically rewrites `/ingest` into the backend route.
+
+Verify the real HTTP path end to end.
+
+---
+
+## TASK AGENT-004 — Fix telemetry contract
+
+Canonical collector currently sends queued events.
+
+Backend also expects structured device metrics for several dashboard features.
+
+Unify:
+
+- Host identity.
+- Agent version.
+- CPU utilization.
+- Memory utilization.
+- Disk measurements.
+- Network metadata.
+- Process inventory.
+- Security posture.
+- Collection timestamps.
+- Collection errors.
+
+Do not invent metric values when collectors fail.
+
+Use `UNKNOWN`, `UNAVAILABLE`, or an appropriate null state.
+
+### Required tests
+
+```text
+Real collector output
+    ↓
+Agent JSON payload
+    ↓
+API schema validation
+    ↓
+MySQL persistence
+    ↓
+Device API response
+    ↓
+Portal display
+```
+
+Check every transformation.
+
+---
+
+## TASK AGENT-005 — Fix command acknowledgement
+
+Use a persisted command state machine:
+
+```text
+PENDING
+   ↓
+CLAIMED
+   ↓
+RUNNING
+   ↓
+COMPLETED / FAILED / TIMED_OUT / CANCELLED
+```
+
+Never set `COMPLETED` before actual endpoint execution.
+
+Prevent duplicate execution using atomic claiming and command IDs.
+
+Ensure the agent reports actual exit codes and sanitized output.
+
+---
+
+# BATCH 6 — REMOVE FAKE PRODUCTION FUNCTIONALITY
+
+Do not attempt unsupported external integrations just to make a dashboard appear complete.
+
+Fix existing routes systematically.
+
+## FEATURE-001 — Software inventory
+
+File:
+
+`server.js`
+
+Current route:
+
+`GET /api/v1/software/search`
+
+It returns hardcoded software.
+
+Required:
+
+Read actual persisted agent inventory.
+
+If no data exists, return an empty result with accurate collection status.
+
+Never populate real customer devices with sample applications.
+
+## FEATURE-002 — License compliance
+
+Current route:
+
+`GET /api/v1/license/compliance`
+
+It returns hardcoded positive compliance values.
+
+Required:
+
+Use verified licensing data.
+
+If unavailable, return:
+
+`UNKNOWN`
+
+Do not imply that Windows or Office licensing was verified.
+
+## FEATURE-003 — Fleet reports
+
+Replace static CSV rows with real database queries.
+
+If no devices exist, return an empty CSV with correct headers.
+
+## FEATURE-004 — Remediation
+
+Current route:
+
+`POST /api/v1/remediation/trigger`
+
+It records a successful remediation before verifying execution.
+
+Required:
+
+1. Verify device authorization.
+2. Validate permitted remediation action.
+3. Queue a real command.
+4. Return a queued/pending result.
+5. Wait for actual agent result.
+6. Update status from confirmed execution.
+7. Record the final outcome in audit logs.
+
+Never fabricate reclaimed disk space or successful service repairs.
+
+## FEATURE-005 — Cloud audit
+
+Current route:
+
+`GET /api/v1/compliance/cloud-audit`
+
+It returns hardcoded Azure, Intune, and Microsoft 365 health.
+
+Required:
+
+Without a functioning authorized provider integration, return:
+
+`NOT_CONFIGURED`
+
+Do not return fake healthy percentages.
+
+## FEATURE-006 — Test notifications
+
+Routes:
+
+```text
+/api/v1/alerts/test-webhook
+/api/v1/alerts/test-email
+```
+
+A successful response must correspond to actual attempted delivery and a verifiable result.
+
+If the integration is not configured, return an appropriate failure or `NOT_CONFIGURED` response.
+
+Do not return `{ok:true}` without performing the requested test.
+
+## FEATURE-007 — Predictive analytics
+
+Only calculate forecasts using persisted historical measurements.
+
+If sufficient data is unavailable, return:
+
+`INSUFFICIENT_DATA`
+
+Do not infer disk growth from device hostnames.
+
+### Acceptance criteria
+
+Every enterprise dashboard metric must be one of:
+
+```text
+REAL_VERIFIED_DATA
+UNKNOWN
+NOT_CONFIGURED
+INSUFFICIENT_DATA
+UNAVAILABLE
+```
+
+Use the state that accurately describes the data.
+
+Do not label fabricated values as real.
+
+---
+
+# BATCH 7 — REAL MSI AND DEPLOYMENT VERIFICATION
+
+## TASK MSI-001 — Reject fixture MSI files
+
+Current repository contains multiple MSI artifacts of approximately 1,536 bytes.
+
+They are test fixtures, not verified installable Windows packages.
+
+File:
+
+`agent-artifacts.js`
+
+Current resolver checks whether a candidate file has nonzero size.
+
+That is insufficient.
+
+Required:
+
+- Keep fixtures separate from release artifacts.
+- Never report a fixture as production-ready.
+- Validate real MSI package metadata.
+- Verify expected product identity and version.
+- Verify artifact hash.
+- Verify signature according to release policy.
+- Make the Windows installer build reproducible.
+
+A file extension or binary header is not proof of a working installer.
+
+## TASK MSI-002 — Validate Windows installation
+
+Use an actual isolated Windows test environment.
+
+Required lifecycle:
+
+```text
+INSTALL
+   ↓
+ENROLL
+   ↓
+HEARTBEAT
+   ↓
+COLLECT
+   ↓
+UPLOAD
+   ↓
+PERSIST
+   ↓
+DISPLAY
+   ↓
+COMMAND POLL
+   ↓
+AUTHORIZED EXECUTION
+   ↓
+RESULT ACKNOWLEDGEMENT
+   ↓
+UPGRADE
+   ↓
+UNINSTALL
+```
+
+Verify:
+
+- Installation succeeds.
+- Scheduled task/service is registered correctly.
+- Privileges match design.
+- Agent starts successfully.
+- Endpoint communication works.
+- Credentials are stored securely.
+- Upgrade succeeds.
+- Uninstallation cleans up correctly.
+
+If no Windows environment exists, leave this status as:
+
+`BLOCKED_WINDOWS_ACCEPTANCE_TEST`
+
+Do not mark it passed.
+
+---
+
+# 4. SECURITY AND DEPLOYMENT FINAL CHECKS
+
+Before release, inspect:
+
+```text
+.gitignore
+.dockerignore
+Dockerfile
+Enterprise/docker-compose.yml
+Enterprise/deploy/Caddyfile
+server.js
+db.js
+```
+
+Verify:
+
+1. No actual secrets are committed in the current tree.
+2. Previously exposed credentials have a rotation plan.
+3. Git history exposure is documented.
+4. Docker builds do not include local secrets.
+5. Required production environment variables are provided securely.
+6. No hardcoded production passwords remain.
+7. Database connection failures are visible.
+8. HTTPS is enforced appropriately.
+9. Agent credentials are not baked into publicly downloadable installers.
+10. Agent mTLS configuration matches actual certificate provisioning.
+11. Health endpoints distinguish liveness from readiness.
+12. Release artifacts cannot be unsigned while reported as signed.
+
+Do not rotate external credentials or rewrite Git history without authorization.
+
+---
+
+# 5. TESTING REQUIREMENTS
+
+Use existing tests wherever possible.
+
+Create focused regression tests for each previously confirmed defect.
+
+Do not unnecessarily rewrite the test framework.
+
+Required verification:
+
+```bash
+npm ci
+npm run lint
+node scripts/check-version-consistency.cjs
+npm run test:coverage
+node test-contract-validation.js
+node test-migrations-runner.js
+node test-auth-integration.js
+node test-msi-packaging-integration.js
+```
+
+Run server-dependent tests only after starting an isolated backend with its required configuration.
+
+For Windows:
+
+```powershell
+# Parse every PowerShell script.
+Get-ChildItem -Recurse -Include *.ps1,*.psm1 |
+    ForEach-Object {
+        $tokens = $null
+        $errors = $null
+
+        [System.Management.Automation.Language.Parser]::ParseFile(
+            $_.FullName,
+            [ref]$tokens,
+            [ref]$errors
+        ) | Out-Null
+
+        if ($errors.Count -gt 0) {
+            throw "PowerShell parsing failed: $($_.FullName)"
+        }
+    }
+```
+
+Also execute the repository's relevant Pester tests when available.
+
+### Important verification distinction
+
+Separate these outcomes:
+
+- Source inspection passed.
+- Syntax check passed.
+- Unit test passed.
+- Integration test passed.
+- CI job passed.
+- Windows installation passed.
+- Production deployment verified.
+
+Do not combine them into one generic `PASS`.
+
+---
+
+# 6. FORBIDDEN SHORTCUTS
+
+You must NOT:
+
+1. Restore the old root `.env`.
+2. Commit production secrets.
+3. Restore deleted private CA keys.
+4. Disable server secret validation.
+5. Add hardcoded authentication bypasses.
+6. Remove failing tests to make CI green.
+7. Ignore failing workflow jobs.
+8. Generate fake executable files.
+9. Generate fake MSI packages.
+10. Treat binary headers as installation evidence.
+11. Return static enterprise data as real telemetry.
+12. Mark remediation complete without actual agent results.
+13. Accept arbitrary device bootstrap tokens.
+14. Allow remote scripts when the allowlist is empty.
+15. Execute unverified remote script payloads.
+16. Continue using a global agent token as a device identity.
+17. Trust request-supplied tenant IDs.
+18. Hide MySQL errors behind memory-only success.
+19. Mark documentation-only work as implementation verified.
+20. Invent GitHub Actions links or results.
+21. Mark CI green based on local tests alone.
+22. Change unrelated architecture.
+23. Generate hundreds of lines of unnecessary documentation.
+24. Claim production readiness based on a calculated score alone.
+
+If an old test expects insecure behavior, update the test only after implementing the secure replacement.
+
+Do not change expected behavior merely to hide a defect.
+
+---
+
+# 7. MINIMAL REPORTING FORMAT
+
+After each batch, report ONLY:
+
+```text
+BATCH:
+STATUS: VERIFIED / IMPLEMENTED_UNVERIFIED / BLOCKED / FAILED
+
+FILES CHANGED:
+- path
+
+FIXES:
+- Issue ID: concise description
+
+TESTS:
+- command → PASS/FAIL
+
+COMMIT:
+- SHA or NOT PUSHED
+
+GITHUB CI:
+- Run URL
+- Actual conclusion
+
+BLOCKERS:
+- None or concise reason
+
+NEXT:
+- Next issue ID
+```
+
+Do not repeat the entire project analysis after every batch.
+
+Do not regenerate full progress documents after each small change.
+
+Update a single concise progress record only when useful for resuming work.
+
+---
+
+# 8. COMPLETION POLICY
+
+Do not call the repository production-ready until:
+
+- Current critical security findings are fixed.
+- Required CI jobs pass.
+- Agent enrollment works.
+- Device tokens work after enrollment.
+- Tenant isolation passes adversarial tests.
+- Database writes fail safely.
+- Remote command verification is enforced.
+- Fake production metrics are removed.
+- A genuine MSI builds successfully.
+- Windows installation and agent operation are verified.
+- Deployment security checks pass.
+
+If external prerequisites are missing, preserve the blocked status.
+
+Do not lower the acceptance criteria.
+
+---
+
+# 9. EXACT STARTING INSTRUCTIONS
+
+START WITH THE CURRENT REPOSITORY.
+
+First:
+
+1. Fetch latest `main`.
+2. Record HEAD SHA.
+3. Create the repair branch.
+4. Inspect `.github/workflows/ci.yml`.
+5. Fix PowerShell JSON validation.
+6. Fix Vitest security environment initialization.
+7. Run all relevant existing tests.
+8. Review the resulting diff.
+9. Commit these CI fixes.
+10. Push the repair branch.
+11. Check actual GitHub Actions results.
+
+Then:
+
+12. Restore `Enterprise/agent/build/build-agent.ps1`.
+13. Remove its fake compilation fallbacks.
+14. Verify the Windows build pipeline.
+15. Commit and verify.
+
+Then continue through the security, database, agent, and feature batches above.
+
+Do not stop after merely describing the solution when you have the tools to implement it.
+
+Do not ask for information that is already available in the repository.
+
+Ask for authorization only when necessary for irreversible actions, external credential changes, or production infrastructure changes.
+
+When a blocker cannot be resolved safely, record it, preserve working code, and continue only with independent tasks.
+
+**FINAL OBJECTIVE: REAL CODE FIXES, REAL TESTS, REAL GITHUB COMMITS, AND HONEST VERIFICATION.**
+
+**BEGIN WITH BATCH 1.**

@@ -56,27 +56,15 @@
         }
     }
 
-    handle /ingest {
+    handle /ingest* {
         reverse_proxy api:3000
     }
 
-    handle /api/commands/* {
-        reverse_proxy api:3000
-    }
-
-    handle /api/agent/heartbeat {
-        reverse_proxy api:3000
-    }
-
-    handle /api/agent/update {
-        reverse_proxy api:3000
-    }
-
-    handle /api/agent/msi {
+    handle /api/* {
         reverse_proxy api:3000
     }
 
     handle {
-        respond "mTLS agent endpoint — use /ingest, /api/commands/*, /api/agent/*" 404
+        respond "mTLS agent endpoint — use /ingest, /api/*" 404
     }
 }

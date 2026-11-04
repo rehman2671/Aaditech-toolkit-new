@@ -200,25 +200,47 @@ function Ensure-ClientCert {
         }
     }
 
-    Write-AgentLog "Enrolling for mTLS client cert from $($Config.enroll_url)"
+    Write-AgentLog "Enrolling for device credentials from $($Config.enroll_url)"
     try {
-        $resp = Invoke-RestMethod -Uri $Config.enroll_url -Method Get `
-            -Headers @{ Authorization = "Bearer $($Config.token)" }
-        if (-not $resp.pfx) { throw "enroll returned no pfx" }
-        [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($resp.pfx))
-        if ($resp.agent_token) {
-            [IO.File]::WriteAllText($tokenPath, [string]$resp.agent_token)
-            Write-AgentLog "Per-agent token persisted (B6)"
+        $hn = (Get-AgentHostname)
+        $enrollBody = @{
+            bootstrap_token = $Config.token
+            hostname        = $hn
+            device_uid      = "dev-uid-$($hn.ToLower())"
+            os_version      = [System.Environment]::OSVersion.VersionString
+            agent_version   = (Get-InstalledAgentVersion)
+        } | ConvertTo-Json -Compress
+
+        $resp = $null
+        try {
+            $resp = Invoke-RestMethod -Uri $Config.enroll_url -Method Post `
+                -Headers @{ 
+                    Authorization       = "Bearer $($Config.token)"
+                    "X-Bootstrap-Token" = $Config.token
+                } -ContentType 'application/json' -Body $enrollBody
+        } catch {
+            $resp = Invoke-RestMethod -Uri $Config.enroll_url -Method Get `
+                -Headers @{ Authorization = "Bearer $($Config.token)" }
+        }
+
+        $issuedToken = if ($resp.device_token) { $resp.device_token } elseif ($resp.agent_token) { $resp.agent_token } else { $null }
+        if ($issuedToken) {
+            [IO.File]::WriteAllText($tokenPath, [string]$issuedToken)
+            Write-AgentLog "Per-agent device token persisted successfully"
+        }
+
+        if ($resp.pfx) {
+            [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($resp.pfx))
+            Write-AgentLog "Client cert saved to $pfx"
         }
         if ($resp.ca) {
             [IO.File]::WriteAllText($caPath, $resp.ca)
             Install-ServerCa $resp.ca
         }
-        Write-AgentLog "Client cert saved to $pfx"
         return $pfx
     }
     catch {
-        Write-AgentLog "mTLS enroll failed: $($_.Exception.Message) — falling back to bearer auth"
+        Write-AgentLog "Enrollment failed: $($_.Exception.Message) — falling back to configured token"
         return $null
     }
 }
@@ -694,8 +716,9 @@ function Update-AgentIfNeeded {
 # ------------------------------------------------------------------ commands (P5)
 
 function Get-CommandsApiRoot {
-    # same origin as the ingest endpoint, minus the /ingest suffix
-    return ($Config.endpoint -replace '/ingest\s*$', '')
+    # Strip any telemetry ingest path suffix to resolve base origin
+    $ep = [string]$Config.endpoint
+    return ($ep -replace '(/api/v1/ingest/telemetry|/api/ingest|/ingest)\s*$', '')
 }
 
 function Get-PendingCommands {
@@ -774,12 +797,19 @@ function Invoke-RemoteCommand {
             # C5: agent-side allowlist defense-in-depth. Even if a rogue server
             # (or a replayed/mutated command) asks for a script, only scripts the
             # operator allowlisted at deploy time run here.
-            $allow = @($Config.run_script_allowlist | Where-Object { $_ })
-            if ($allow.Count -gt 0 -and $allow -notcontains $script) {
-                return @{ status = 'failed'; output = "Script '$script' is not in the agent allowlist"; exit_code = 1 }
+            $allowed = @($Config.run_script_allowlist | Where-Object { $_ })
+            if ($allowed.Count -eq 0 -or $allowed -notcontains $script) {
+                return @{ status = 'failed'; output = "Script '$script' is not in the agent allowlist (empty or unauthorized)"; exit_code = 1 }
             }
-            $path = Join-Path $script:RepoRoot $script
-            if (-not (Test-Path $path)) { return @{ status = 'failed'; output = "Script not found: $script"; exit_code = 1 } }
+            if ($script -match '\.\.' -or $script -match '^[/\\]' -or $script -match '^[A-Za-z]:') {
+                return @{ status = 'failed'; output = "Invalid script path or path traversal detected: $script"; exit_code = 1 }
+            }
+            $path = [System.IO.Path]::GetFullPath((Join-Path $script:RepoRoot $script))
+            $rootFullPath = [System.IO.Path]::GetFullPath($script:RepoRoot)
+            if (-not $path.StartsWith($rootFullPath, [System.StringComparison]::OrdinalIgnoreCase)) {
+                return @{ status = 'failed'; output = "Path traversal escaping script root: $script"; exit_code = 1 }
+            }
+            if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { return @{ status = 'failed'; output = "Script not found: $script"; exit_code = 1 } }
             try {
                 $out = (& $path 2>&1 | Out-String)
                 return @{ status = 'completed'; output = $out; exit_code = $LASTEXITCODE }

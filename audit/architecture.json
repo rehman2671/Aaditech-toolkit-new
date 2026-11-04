@@ -1,6 +1,6 @@
 {
   "path": "/audit/architecture.json",
-  "generated": "2026-11-03T13:38:24.880Z",
+  "generated": "2026-11-04T21:02:26.134Z",
   "topology": "Enterprise Modular Monolith + In-Memory Caching & Partitioned Storage",
   "layers": {
     "frontend": {

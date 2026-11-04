@@ -1,22 +1,22 @@
 {
   "path": "/audit/statistics.json",
-  "generated": "2026-11-03T13:38:24.879Z",
+  "generated": "2026-11-04T21:02:26.134Z",
   "method": "computed dynamically",
-  "total_files": 212,
+  "total_files": 227,
   "total_source_files": 84,
-  "total_test_files": 30,
-  "total_documentation_files": 53,
+  "total_test_files": 31,
+  "total_documentation_files": 63,
   "total_configuration_files": 7,
   "total_images": 2,
   "total_scripts": 53,
-  "total_directories": 63,
-  "total_loc": 71622,
-  "average_file_size_bytes": 17511.580188679247,
+  "total_directories": 69,
+  "total_loc": 74267,
+  "average_file_size_bytes": 16745.86343612335,
   "breakdown_by_language": {
     "JavaScript": 27,
     "TypeScript": 0,
     "PowerShell": 44,
-    "Markdown": 53,
+    "Markdown": 63,
     "JSON": 21,
     "SQL": 4,
     "YAML": 3,
@@ -27,12 +27,12 @@
     {
       "path": "/coverage/server.js.html",
       "lines": 8278,
-      "bytes": 408805
+      "bytes": 408901
     },
     {
       "path": "/coverage/db.js.html",
       "lines": 8164,
-      "bytes": 403965
+      "bytes": 403689
     },
     {
       "path": "/package-lock.json",
@@ -41,18 +41,18 @@
     },
     {
       "path": "/audit/index.json",
-      "lines": 2938,
-      "bytes": 81234
+      "lines": 3113,
+      "bytes": 86400
     },
     {
       "path": "/server.js",
-      "lines": 2732,
-      "bytes": 105254
+      "lines": 2921,
+      "bytes": 113094
     },
     {
       "path": "/db.js",
-      "lines": 2694,
-      "bytes": 99722
+      "lines": 2740,
+      "bytes": 101248
     },
     {
       "path": "/Enterprise/portal/index.html",
@@ -70,9 +70,9 @@
       "bytes": 50402
     },
     {
-      "path": "/public/assets/aistudio/Paste_November_03__2026_-_6_59PM_c4c14beb",
-      "lines": 1389,
-      "bytes": 35309
+      "path": "/public/assets/aistudio/Paste_November_03__2026_-_8_39PM_d3f61445",
+      "lines": 1700,
+      "bytes": 36810
     }
   ],
   "largest_folders": [
@@ -113,7 +113,7 @@
       "files": 7
     },
     {
-      "folder": "/Enterprise/agent/collectors",
+      "folder": "/docs/assessment",
       "files": 7
     }
   ]

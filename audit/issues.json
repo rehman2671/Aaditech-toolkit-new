@@ -1,6 +1,6 @@
 {
   "path": "/audit/issues.json",
-  "generated": "2026-11-03T13:38:28.398Z",
+  "generated": "2026-11-04T21:02:29.357Z",
   "total_issues": 3,
   "by_severity": {
     "CRITICAL": 1,

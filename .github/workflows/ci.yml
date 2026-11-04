@@ -37,13 +37,22 @@ jobs:
           Write-Host "All PowerShell files parse cleanly."
 
       - name: Validate JSON config
+        shell: pwsh
         run: |
-          Get-ChildItem -Recurse -Include *.json | Where-Object { $_.FullName -notmatch 'node_modules' } | ForEach-Object {
+          $files = Get-ChildItem -Path . -Recurse -File -Filter '*.json' |
+            Where-Object {
+              $_.FullName -notmatch '[/\\](node_modules|\.git)[/\\]'
+            }
+
+          foreach ($file in $files) {
             try {
-              Get-Content $_.FullName -Raw | ConvertFrom-Json | Out-Null
-              Write-Host "JSON OK: $($_.Name)"
-            } catch {
-              throw "Invalid JSON in $($_.Name): $_"
+              $null = Get-Content -LiteralPath $file.FullName -Raw |
+                ConvertFrom-Json -AsHashtable -ErrorAction Stop
+
+              Write-Host "JSON OK: $($file.FullName)"
+            }
+            catch {
+              throw "Invalid JSON in $($file.FullName): $($_.Exception.Message)"
             }
           }
 
@@ -110,6 +119,31 @@ jobs:
       - name: Install dependencies
         run: npm ci || npm install
 
+      - name: Generate ephemeral CI security credentials
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const crypto = require('node:crypto');
+
+          const names = [
+            'JWT_SECRET',
+            'BOOTSTRAP_SECRET',
+            'COMMAND_SIGNING_KEY',
+            'HMAC_SECRET',
+            'API_TOKEN'
+          ];
+
+          for (const name of names) {
+            const value = crypto.randomBytes(32).toString('hex');
+
+            fs.appendFileSync(
+              process.env.GITHUB_ENV,
+              `${name}=${value}\n`
+            );
+          }
+          NODE
+
       - name: Lint and syntax validation
         run: npm run lint
 
@@ -157,6 +191,31 @@ jobs:
       - name: Install dependencies
         run: npm ci || npm install
 
+      - name: Generate ephemeral CI security credentials
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const crypto = require('node:crypto');
+
+          const names = [
+            'JWT_SECRET',
+            'BOOTSTRAP_SECRET',
+            'COMMAND_SIGNING_KEY',
+            'HMAC_SECRET',
+            'API_TOKEN'
+          ];
+
+          for (const name of names) {
+            const value = crypto.randomBytes(32).toString('hex');
+
+            fs.appendFileSync(
+              process.env.GITHUB_ENV,
+              `${name}=${value}\n`
+            );
+          }
+          NODE
+
       - name: Lint and syntax validation
         run: npm run lint
 
@@ -182,11 +241,6 @@ jobs:
           DB_NAME: it_toolkit
           PORT: 3000
           NODE_ENV: test
-          API_TOKEN: itk_agent_sec_token_998877
-          JWT_SECRET: aaditech_enterprise_jwt_super_secret_key_2026_dev
-          HMAC_SECRET: aaditech_hmac_secret_key_dev_2026
-          BOOTSTRAP_SECRET: aaditech_bootstrap_master_secret_2026_prod_sec
-          COMMAND_SIGNING_KEY: aaditech_cmd_signing_master_key_2026_sec
         run: |
           node server.js &
           echo $! > /tmp/server_pid
@@ -211,9 +265,6 @@ jobs:
           DB_USER: itk_user
           DB_PASSWORD: itk_password_ci
           DB_NAME: it_toolkit
-          API_TOKEN: itk_agent_sec_token_998877
-          JWT_SECRET: aaditech_enterprise_jwt_super_secret_key_2026_dev
-          HMAC_SECRET: aaditech_hmac_secret_key_dev_2026
           NODE_ENV: test
         run: node test-auth-integration.js
 
@@ -225,9 +276,6 @@ jobs:
 
       - name: Refresh repository audit reports
         env:
-          API_TOKEN: itk_agent_sec_token_998877
-          JWT_SECRET: aaditech_enterprise_jwt_super_secret_key_2026_dev
-          HMAC_SECRET: aaditech_hmac_secret_key_dev_2026
           NODE_ENV: test
         run: node audit/scanner.cjs
 

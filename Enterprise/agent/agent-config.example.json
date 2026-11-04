@@ -1,8 +1,8 @@
 {
-  "endpoint": "https://CHANGE-ME:9443/ingest",
-  "enroll_url": "https://CHANGE-ME/api/agent/enroll",
+  "endpoint": "https://CHANGE-ME:9443/api/v1/ingest/telemetry",
+  "enroll_url": "https://CHANGE-ME/api/v1/agent/enroll",
   "token": "CHANGE-ME",
-  "agent_version": "1.0.0",
+  "agent_version": "1.1.2",
   "interval_minutes": 30,
   "run_script_allowlist": [],
   "features": [

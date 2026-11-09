@@ -221,6 +221,7 @@
       <button data-view="features"><svg class="ic" aria-hidden="true"><use href="#ic-sliders"/></svg>Features</button>
       <button data-view="retention"><svg class="ic" aria-hidden="true"><use href="#ic-sliders"/></svg>Retention & Webhooks</button>
       <button data-view="users"><svg class="ic" aria-hidden="true"><use href="#ic-users"/></svg>Users</button>
+      <button data-view="system"><svg class="ic" aria-hidden="true"><use href="#ic-sliders"/></svg>System Settings</button>
       <div class="nav-label">Deployment</div>
       <button data-view="reports"><svg class="ic" aria-hidden="true"><use href="#ic-file-text"/></svg>Reports</button>
       <button data-view="agent"><svg class="ic" aria-hidden="true"><use href="#ic-download"/></svg>Agent Setup</button>
@@ -254,6 +255,7 @@
   </div>
 </div>
 
+<script src="/phase-h-ui.js"></script>
 <script>
 const app = document.getElementById('app');
 let view = 'dashboard';
@@ -299,6 +301,7 @@ const VIEW_META = {
   reports: ['Reports', 'Fleet and per-agent CSV / JSON export', 'file-text'],
   features: ['Features', 'Enable, disable and configure collector modules', 'sliders'],
   users: ['Users', 'Team accounts, roles and companies / tenants', 'users'],
+  system: ['System Settings', 'Editable server and integration configuration', 'sliders'],
   agent: ['Agent Setup', 'Company bundle, MSI build and rollout target', 'download'],
   deploy: ['Deploy Guide', 'Agent rollout: MSI-only vs full bundle, step by step', 'package'],
 };
@@ -381,7 +384,17 @@ function applyBranding(b) {
 // ---------------------------------------------------------------- flow
 
 async function start() {
-  const status = await fetch('/api/setup/status').then(r => r.json()).catch(() => ({ setup_complete: false }));
+  let status;
+  try {
+    const response = await fetch('/api/setup/status', { cache:'no-store' });
+    if (!response.ok) throw new Error('Setup status HTTP ' + response.status);
+    status = await response.json();
+  } catch (e) {
+    app.innerHTML = '<div class="center card"><h2>Setup status unavailable</h2>' +
+      '<p class="error">Database or server configuration could not be checked safely.</p>' +
+      '<button class="action" onclick="start()">Retry</button></div>';
+    return;
+  }
   window.__defaultBuildMode = status.default_build_mode || 'manual';
   if (!status.setup_complete) return renderSetup();
   let boot;
@@ -428,7 +441,7 @@ function setupNav() {
   const isAdmin = role === 'SUPER_ADMIN' || role === 'ADMIN';
   const canAgentSetup = isAdmin || role === 'OPERATOR' || role === 'OPERATION';
   document.querySelectorAll('nav button').forEach(b => {
-    if (b.dataset.view === 'users') b.style.display = isAdmin ? '' : 'none';
+    if (b.dataset.view === 'users' || b.dataset.view === 'system') b.style.display = isAdmin ? '' : 'none';
     if (b.dataset.view === 'agent' || b.dataset.view === 'deploy') b.style.display = canAgentSetup ? '' : 'none';
   });
 }
@@ -436,76 +449,12 @@ function setupNav() {
 // ---------------------------------------------------------------- setup wizard
 
 function renderSetup() {
-  const host = window.location.hostname || 'localhost';
-  app.innerHTML = `
-    <div class="center card">
-      <h2>IT-Toolkit Enterprise setup</h2>
-      <p class="muted">First-time configuration — done once on the server. Certs and secrets are generated here and kept on this machine.</p>
-      <label>Company name</label><input id="company_name" placeholder="Acme Inc." />
-      <label>Server address (used for agent connections)</label><input id="server_host" value="${esc(host)}" />
-      <div class="row">
-        <div style="flex:1"><label>Admin username</label><input id="admin_username" value="admin" /></div>
-        <div style="flex:1"><label>Brand color</label><input id="branding_color" type="color" value="#38bdf8" style="padding:2px;height:38px" /></div>
-      </div>
-      <label>Admin password (min 8 chars)</label><input id="admin_password" type="password" />
-      <label>Repeat password</label><input id="admin_password2" type="password" />
-
-      <div style="margin-top:22px;border-top:1px solid var(--line);padding-top:8px">
-        <label style="font-size:14px;color:var(--text);font-weight:600">Alert email (SMTP) — optional</label>
-        <p class="muted">Send alert notifications by email. Pick your hosting provider or use custom settings.</p>
-        <label>Email provider</label>
-        <select id="smtp_provider" onchange="smtpProviderChange()">
-          <option value="none">Don't send email alerts</option>
-          <option value="hostinger">Hostinger</option>
-          <option value="office365">Office 365</option>
-          <option value="gmail">Gmail</option>
-          <option value="hotmail">Hotmail / Outlook</option>
-          <option value="custom">Custom SMTP</option>
-        </select>
-        <div id="smtp_fields" style="display:none">
-          <label>Email address</label><input id="smtp_email" value="it-tool@aaditechs.in" />
-          <label>Email password (or app password)</label><input id="smtp_password" type="password" />
-          <label>Alert recipient (defaults to the email above)</label><input id="smtp_recipient" value="it-tool@aaditechs.in" />
-          <div id="smtp_custom" style="display:none">
-            <div class="row">
-              <div style="flex:2"><label>SMTP host</label><input id="smtp_host" placeholder="smtp.example.com" /></div>
-              <div style="flex:1"><label>Port</label><input id="smtp_port" value="587" /></div>
-            </div>
-            <label>Encryption</label>
-            <select id="smtp_encryption">
-              <option value="starttls">STARTTLS</option>
-              <option value="ssl">SSL/TLS</option>
-              <option value="none">None</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
-      <div style="margin-top:22px;border-top:1px solid var(--line);padding-top:8px">
-        <label style="font-size:14px;color:var(--text);font-weight:600">Agent MSI build</label>
-        <p class="muted">How the Windows agent installer gets built. Windows Server builds locally (fully automatic). A Linux server can trigger this repo's GitHub Actions and pull the signed MSI back automatically.</p>
-        <select id="build_mode" onchange="buildModeChange()">
-          <option value="local_windows">Windows Server — build locally here (automatic)</option>
-          <option value="github">GitHub Actions — remote build (Linux server)</option>
-          <option value="manual">Manual — I'll build/upload the MSI myself</option>
-        </select>
-        <div id="github_fields" style="display:none">
-          <label>GitHub repo (owner/repo)</label><input id="github_repo" placeholder="j9619655391-max/Aaditech-ToolKit" />
-          <label>Personal access token (PAT — needs actions:write + actions:read)</label><input id="github_token" type="password" placeholder="ghp_..." />
-          <p class="muted">After setup, the Agent Setup page can trigger the build and download the MSI. Create a PAT at github.com → Settings → Developer settings → Personal access tokens → fine-grained (repo + actions) with Actions: Read/Write.</p>
-        </div>
-      </div>
-
-      <div class="error" id="setup_err"></div>
-      <div style="margin-top:18px"><button class="action" style="width:100%" onclick="doSetup()">Finish setup</button></div>
-    </div>`;
-  const sel = document.getElementById('build_mode');
-  if (sel) {
-    if (window.__defaultBuildMode && sel.querySelector(`option[value="${esc(window.__defaultBuildMode)}"]`)) {
-      sel.value = window.__defaultBuildMode;
-    }
-    buildModeChange();
+  // Phase H wizard is implemented in a separate static browser module.
+  if (!window.phaseHRenderSetup) {
+    app.innerHTML = '<div class="center card error">Setup wizard unavailable; check portal asset deployment.</div>';
+    return;
   }
+  return window.phaseHRenderSetup();
 }
 
 function smtpProviderChange() {
@@ -531,7 +480,7 @@ async function doSetup() {
   const err = document.getElementById('setup_err');
   const p1 = document.getElementById('admin_password')?.value || '';
   const p2 = document.getElementById('admin_password2')?.value || '';
-  if (p1.length < 8) { if (err) err.textContent = 'Password must be at least 8 characters.'; return; }
+  if (p1.length < 12) { if (err) err.textContent = 'Password must be at least 12 characters.'; return; }
   if (p1 !== p2) { if (err) err.textContent = 'Passwords do not match.'; return; }
   const provider = document.getElementById('smtp_provider')?.value || 'none';
   const smtp = { provider };
@@ -549,6 +498,7 @@ async function doSetup() {
     company_name: (document.getElementById('company_name')?.value || '').trim(),
     server_host: (document.getElementById('server_host')?.value || '').trim(),
     admin_username: (document.getElementById('admin_username')?.value || '').trim(),
+    admin_email: (document.getElementById('admin_email')?.value || '').trim(),
     admin_password: p1,
     branding: { color: document.getElementById('branding_color')?.value || '#38bdf8', logo_text: (document.getElementById('company_name')?.value || '').trim() },
     smtp,
@@ -556,8 +506,22 @@ async function doSetup() {
     github_repo: (document.getElementById('github_repo')?.value || '').trim(),
     github_token: (document.getElementById('github_token')?.value || '').trim(),
   };
-  const res = await fetch('/api/setup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-  if (!res.ok) { if (err) err.textContent = (await res.json()).detail || 'Setup failed'; return; }
+  const code = (document.getElementById('setup_code')?.value || '').trim();
+  if (!code) { if (err) err.textContent = 'Local server setup code is required.'; return; }
+  let res;
+  try {
+    res = await fetch('/api/setup', { method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Setup-Code': code },
+      body: JSON.stringify(body) });
+  } catch (e) {
+    if (err) err.textContent = 'Unable to contact setup server: ' + e.message;
+    return;
+  }
+  if (!res.ok) {
+    const problem = await res.json().catch(() => ({}));
+    if (err) err.textContent = problem.detail || problem.error || 'Setup failed';
+    return;
+  }
   const data = await res.json();
   if (data.session_secret) return renderSecretBackup(data.session_secret);
   start();
@@ -596,12 +560,7 @@ function renderLogin() {
       <label>Password</label><input id="login_pass" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()" />
       <div class="error" id="login_err" style="margin-top:8px"></div>
       <div style="margin-top:18px"><button class="action" style="width:100%" onclick="doLogin()">Sign in</button></div>
-      <div style="margin-top:20px;padding:12px;background:#0f172a;border:1px solid var(--line);border-radius:6px;font-size:12px;color:var(--muted)">
-        <div style="font-weight:600;color:var(--text);margin-bottom:6px">Default Seeded Credentials:</div>
-        <div>• <b>admin</b> / <code>Admin123!</code> (Super Admin)</div>
-        <div>• <b>ops_lead</b> / <code>Operator123!</code> (Operator)</div>
-        <div>• <b>sec_monitor</b> / <code>Monitor123!</code> (Auditor / Viewer)</div>
-      </div>
+
     </div>`;
 }
 
@@ -678,6 +637,7 @@ async function render() {
   if (view === 'reports') return renderReports();
   if (view === 'features') return renderFeatures();
   if (view === 'users') return renderUsers();
+  if (view === 'system') return window.phaseHRenderSystemSettings();
   if (view === 'deploy') return renderDeploy();
   renderAgentSetup();
 }

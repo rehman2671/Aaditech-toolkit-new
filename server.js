@@ -24,6 +24,8 @@ import helmet from 'helmet';
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 import * as db from './db.js';
+import { installFirstRunRoutes, getStrictSetupState, readConfiguredGitHubToken } from './first-run-routes.js';
+import { ensureSetupCode } from './setup-security.js';
 import {
   getAgentVersion,
   getAgentVersionInfo,
@@ -51,6 +53,8 @@ import {
   assignPolicySchema,
   updateRetentionSchema,
   setupSchema,
+  systemConfigSchema,
+  systemConfigTestSchema,
   createUserSchema,
   updateUserSchema,
   createCompanySchema,
@@ -78,6 +82,7 @@ const {
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+ensureSetupCode(); // Local host code; never expose it via an HTTP endpoint.
 
 // Security Environment Verification (Strict: required in ALL environments, no hardcoded fallback defaults)
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -822,9 +827,11 @@ app.use(async (req, res, next) => {
 
   // Initial setup is allowed only before setup is marked complete
   if (p === '/api/setup' || p === '/api/v1/setup') {
-    const branding = await db.getBranding();
-    if (!branding.setup_complete) {
-      return next();
+    try {
+      const state = await getStrictSetupState(db);
+      if (!state.setup_complete && req.method === 'POST') return next();
+    } catch (_) {
+      return res.status(503).json({error:'SETUP_DATABASE_UNAVAILABLE'});
     }
   }
 
@@ -859,6 +866,13 @@ async function handleLogin(req, res) {
     });
   }
 
+  if (process.env.NODE_ENV === 'production') {
+    try {
+      if (!(await getStrictSetupState(db)).setup_complete) {
+        return res.status(403).json({error:'SETUP_REQUIRED',detail:'Complete the first-run wizard before signing in.'});
+      }
+    } catch (_) { return res.status(503).json({error:'SETUP_DATABASE_UNAVAILABLE'}); }
+  }
   const user = await db.getUserByUsernameOrEmail(target);
 
   if (!user) {
@@ -1334,7 +1348,7 @@ app.post('/api/v1/msi/generate', requireRole(['SUPER_ADMIN']), validateBody(msiG
     // If GitHub actions configured, dispatch workflow
     const branding = await db.getBranding();
     const repo = branding.github_repo || "rehman2671/Aaditech-toolkit";
-    const token = branding.github_token || process.env.GITHUB_TOKEN || process.env.API_TOKEN;
+    const token = await readConfiguredGitHubToken(db);
 
     if (token) {
       try {
@@ -1759,58 +1773,10 @@ app.post('/api/v1/settings/retention/run', requireRole(['SUPER_ADMIN', 'OPERATOR
 
 // ---------------- API ROUTES ----------------
 
-// Setup status (Canonical v1 + Legacy alias)
-app.get(['/api/v1/setup/status', '/api/setup/status'], async (req, res) => {
-  const branding = await db.getBranding();
-  res.json({
-    setup_complete: branding.setup_complete,
-    default_build_mode: branding.build_mode,
-    company_name: branding.company_name,
-    server_host: branding.server_host,
-    branding: branding.branding,
-    build_mode: branding.build_mode,
-    github_repo: branding.github_repo
-  });
-});
-
-// Run setup (Canonical v1 + Legacy alias)
-app.post(['/api/v1/setup', '/api/setup'], validateBody(setupSchema), async (req, res) => {
-  const { company_name, server_host, admin_username, admin_password, branding, build_mode, github_repo, github_token } = req.body;
-  const updates = { setup_complete: true };
-  if (company_name) updates.company_name = company_name;
-  if (server_host) updates.server_host = server_host;
-  if (branding) updates.branding = branding;
-  if (build_mode) updates.build_mode = build_mode;
-  if (github_repo) updates.github_repo = github_repo;
-  if (github_token) updates.github_token = github_token;
-
-  await db.updateBranding(updates);
-
-  let adminUser = await db.getUserByUsername('admin') || (await db.getUsers())[0];
-  if (adminUser) {
-    const userUpdates = {};
-    if (admin_username) userUpdates.username = admin_username;
-    if (admin_password) userUpdates.password_hash = await bcrypt.hash(admin_password, 10);
-    if (Object.keys(userUpdates).length > 0) {
-      await db.updateUser(adminUser.id, userUpdates);
-      adminUser = await db.getUserById(adminUser.id);
-    }
-  }
-
-  const token = issueUserToken(adminUser || { id: 1, username: admin_username || 'admin', role: 'SUPER_ADMIN' });
-  res.cookie('auth_token', token, { httpOnly: true, sameSite: 'lax', maxAge: 8 * 3600 * 1000 });
-  res.cookie('itk_session', token, { httpOnly: true, sameSite: 'lax', maxAge: 8 * 3600 * 1000 });
-
-  res.json({
-    company: updates.company_name || "Aaditech Enterprise",
-    server_host: updates.server_host || "localhost",
-    admin: {
-      id: adminUser?.id || 1,
-      username: adminUser?.username || "admin",
-      role: normalizeRole(adminUser?.role || "SUPER_ADMIN")
-    },
-    token
-  });
+// Setup status, first-run initialization, and editable system configuration.
+installFirstRunRoutes(app, {
+  db, requireRole, validateBody, setupSchema, systemConfigSchema, systemConfigTestSchema,
+  issueUserToken, logAudit
 });
 
 // Bootstrap (Canonical v1 + Legacy alias)
@@ -2554,7 +2520,7 @@ app.put(['/api/v1/agent/update-target', '/api/agent/update-target'], validateBod
 app.get(['/api/v1/build/status', '/api/build/status'], async (req, res) => {
   const branding = await db.getBranding();
   const repo = branding.github_repo || "rehman2671/Aaditech-toolkit";
-  const token = branding.github_token || process.env.GITHUB_TOKEN || process.env.API_TOKEN;
+  const token = await readConfiguredGitHubToken(db);
   const lastBuildStatus = await db.getSetting('last_build_status', {});
   const version = getAgentVersion();
   const msiInfo = resolveAgentMsi(version);
@@ -2611,7 +2577,7 @@ app.post(['/api/v1/build/trigger', '/api/build/trigger'], validateBody(buildTrig
   const branding = await db.getBranding();
   const repo = req.body.repo || branding.github_repo || "rehman2671/Aaditech-toolkit";
   const branch = req.body.branch || "main";
-  const token = req.body.token || branding.github_token || process.env.GITHUB_TOKEN || process.env.API_TOKEN;
+  const token = req.body.token || await readConfiguredGitHubToken(db);
   const lastBuildStatus = await db.getSetting('last_build_status', {});
 
   if (!token) {

@@ -241,16 +241,35 @@ export const updateRetentionSchema = z.object({
   notification_email: z.string().email().or(z.literal("")).optional()
 });
 
-export const setupSchema = z.object({
-  company_name: z.string().optional(),
-  server_host: z.string().optional(),
-  admin_username: z.string().min(3, "Admin username must be at least 3 characters").optional(),
-  admin_password: z.string().min(8, "Admin password must be at least 8 characters").optional(),
-  branding: z.record(z.any()).optional(),
-  build_mode: z.string().optional(),
-  github_repo: z.string().optional(),
-  github_token: z.string().optional()
+const hostSchema = z.string().trim().min(1).max(253).regex(/^[a-zA-Z0-9.[\]:-]+$/, 'Enter a hostname or IP, without protocol or path');
+const smtpConfigurationSchema = z.object({
+  provider: z.enum(['none','hostinger','office365','gmail','custom']).default('none'),
+  email: z.union([z.string().email(),z.literal('')]).optional(),
+  recipient: z.union([z.string().email(),z.literal('')]).optional(),
+  host: z.string().max(253).optional(),
+  port: z.number().int().min(1).max(65535).nullable().optional(),
+  encryption: z.enum(['starttls','ssl','none']).optional(),
+  password: z.string().max(2048).optional()
+}).strict();
+const sharedSetupFields = z.object({
+  company_name: z.string().trim().min(2).max(120),
+  server_host: hostSchema,
+  branding: z.object({color:z.string().regex(/^#[0-9a-fA-F]{6}$/),logo_text:z.string().trim().min(1).max(80)}).strict().optional(),
+  build_mode: z.enum(['manual','github','local_windows']).optional(),
+  github_repo: z.union([z.literal(''),z.string().regex(/^[\w.-]+\/[\w.-]+$/)]).optional(),
+  github_token: z.string().max(512).optional(),
+  smtp: smtpConfigurationSchema.optional()
 });
+export const setupSchema = sharedSetupFields.extend({
+  admin_username: z.string().trim().min(3).max(64),
+  admin_email: z.union([z.string().email(),z.literal('')]).optional(),
+  admin_password: z.string().min(12).max(256)
+}).strict();
+export const systemConfigSchema = sharedSetupFields.partial().extend({
+  clear_github_token: z.boolean().optional(),
+  clear_smtp_password: z.boolean().optional()
+}).strict();
+export const systemConfigTestSchema = z.object({kind:z.enum(['database','smtp','server_url'])}).strict();
 
 export const createUserSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters"),

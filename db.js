@@ -2389,7 +2389,6 @@ export async function getSetting(key, defaultValue = null) {
 }
 
 export async function setSetting(key, value) {
-  memSettings.set(key, value);
   const sql = `
     INSERT INTO system_settings (setting_key, setting_value, updated_at)
     VALUES (?, ?, NOW(3))
@@ -2398,6 +2397,7 @@ export async function setSetting(key, value) {
       updated_at = NOW(3)
   `;
   await executeQuery(sql, [key, JSON.stringify(value)]);
+  memSettings.set(key, value);
   return true;
 }
 
@@ -2634,20 +2634,21 @@ export async function getBranding() {
     company_name: 'Aaditech Enterprise',
     server_host: 'localhost',
     branding: { color: '#38bdf8', logo_text: 'IT-Toolkit' },
-    build_mode: 'github',
-    github_repo: 'rehman2671/Aaditech-toolkit',
-    github_token: process.env.GITHUB_TOKEN || process.env.API_TOKEN || '',
+    build_mode: 'manual', // Unverified builder must not be selected by default
+    github_repo: 'rehman2671/Aaditech-toolkit-new',
+    github_token: '', // Secrets never belong in branding JSON
     rollout_target: '',
     default_company_id: 1,
-    setup_complete: true
+    setup_complete: false
   };
   const saved = await getSetting('branding', defaults);
   return { ...defaults, ...saved };
 }
 
 export async function updateBranding(updates) {
-  const current = await getBranding();
-  const merged = { ...current, ...updates };
+  const { github_token: _legacy, github_pat: _oldPat, ...current } = await getBranding();
+  const { github_token: _rejected, github_pat: _rejectedPat, ...safeUpdates } = updates;
+  const merged = { ...current, ...safeUpdates };
   await setSetting('branding', merged);
   return merged;
 }

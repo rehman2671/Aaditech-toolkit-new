@@ -25,7 +25,14 @@ async function runContractValidation() {
 
   const serverJsPath = path.join(__dirname, 'server.js');
   assert.ok(fs.existsSync(serverJsPath), 'server.js must exist');
-  const serverCode = fs.readFileSync(serverJsPath, 'utf8');
+  // Scan only route modules which the main server actually imports and mounts.
+  const coreServerCode = fs.readFileSync(serverJsPath, 'utf8');
+  const phaseHPath = path.join(__dirname, 'first-run-routes.js');
+  const moduleMounted = coreServerCode.includes('installFirstRunRoutes(app,') &&
+    coreServerCode.includes("from './first-run-routes.js'");
+  const phaseHCode = moduleMounted && fs.existsSync(phaseHPath)
+    ? fs.readFileSync(phaseHPath, 'utf8') : '';
+  const serverCode = coreServerCode + '\n' + phaseHCode;
 
   // Extract all route registrations from server.js
   const routeRegex = /app\.(get|post|put|delete|patch)\(\s*(\[[^\]]+\]|'[^']+'|\"[^\"]+\")/g;

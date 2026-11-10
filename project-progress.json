@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-10T20:52:32+00:00",
-  "last_verified_commit": "6aa799b5d2f43fe52f5a65b2e0a5e6265fd6b960",
-  "last_verified_date": "2026-11-11T02:22:15+05:30",
+  "generated": "2026-11-10T20:55:20+00:00",
+  "last_verified_commit": "7bc4c1e7dac256a7a11dddb2da725f43e048e818",
+  "last_verified_date": "2026-11-11T02:25:08+05:30",
   "overall_progress_percent": 100.0,
   "issue_progress": {
     "total": 17,
@@ -14,22 +14,10 @@
   "latest_delta": {
     "added": 0,
     "removed": 0,
-    "changed": 1,
-    "unchanged": 220
+    "changed": 2,
+    "unchanged": 219
   },
   "delta_history": [
-    {
-      "detected_at": "2026-08-10T18:25:50+00:00",
-      "added": [
-        "Enterprise/deploy/Install-Prereqs.ps1"
-      ],
-      "removed": [],
-      "changed": [
-        "VERSION.md",
-        "Documentation/Deployment-AI-Runbook.md"
-      ],
-      "unchanged_count": 126
-    },
     {
       "detected_at": "2026-08-10T23:42:31+00:00",
       "added": [],
@@ -399,6 +387,16 @@
         "Scripts/verify-first-run-docker.mjs"
       ],
       "unchanged_count": 220
+    },
+    {
+      "detected_at": "2026-11-10T20:55:20+00:00",
+      "added": [],
+      "removed": [],
+      "changed": [
+        "docs/deployment/FIRST-RUN-SETUP.md",
+        "docs/assessment/RELEASE-READINESS.md"
+      ],
+      "unchanged_count": 219
     }
   ],
   "next_recommended_tasks": [

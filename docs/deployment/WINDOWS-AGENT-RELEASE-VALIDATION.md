@@ -16,6 +16,20 @@ Windows runner [run 42907807995](https://github.com/rehman2671/Aaditech-toolkit-
 
 Current installer evidence is from a GitHub Windows runner and must be repeated on disposable Windows 10/11 VMs with snapshots before release.
 
+## Signed release distribution (deliberately disabled by default)
+
+Production installer downloads **must remain unavailable** until the operator has verified a trusted signed release. The `agent-artifacts.js` resolver rejects all 1,536-byte fixtures, files smaller than 65,536 bytes, invalid CFB headers and invalid version strings. The stored package-ID route also rejects PENDING packages or changed SHA-256 hashes.
+
+The manual `agent-build` GitHub workflow now fails if the authorized code-signing PFX/password or timestamp is unavailable, and requires successful trusted Authenticode checks for both EXE and MSI. On success the workflow generates `release-manifest.json` with version, MSI filename, SHA-256, publisher, certificate thumbprint and timestamp-verification flags alongside the signed MSI. No automatic release occurs on a regular push.
+
+A release administrator must deploy the **signed MSI plus its matching release manifest** to the persistent Docker artifacts volume:
+- `/artifacts/msi/IT-Toolkit-Agent-<version>.msi`
+- `/artifacts/msi/release-manifest.json`
+
+Review the publisher and hash independently first. Only then set `ENABLE_SIGNED_MSI_DISTRIBUTION=true` in `Enterprise/.env` and restart the Docker API service. This flag defaults to **false**. API production downloads remain blocked until the manifest metadata and exact MSI SHA-256 match. The artifacts volume and release manifest need administrator-only write permissions.
+
+The manifest is a host-controlled release attestation, not itself a cryptographic signature; the actual MSI and EXE must have a trusted Authenticode signature and timestamp verified independently on the intended Windows endpoints. Never activate the flag to publish the unsigned Windows CI test MSI.
+
 ## Safe installation and enrollment design
 
 1. Build and **trusted-code-sign** the agent EXE and MSI with approved signing credentials outside the repository.

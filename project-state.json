@@ -1,23 +1,23 @@
 {
   "state_version": "1.0",
   "path": "project-state.json",
-  "generated": "2026-11-10T20:49:22+00:00",
+  "generated": "2026-11-10T20:50:08+00:00",
   "phase": "RELEASE BLOCKED / REMEDIATION IN PROGRESS",
-  "last_verified_commit": "b32476f015a26e58ad702e26c008b8a79c99ec10",
-  "last_verified_date": "2026-11-11T02:19:06+05:30",
+  "last_verified_commit": "017e87e7a17b364645701b2e5378db816db7f2c4",
+  "last_verified_date": "2026-11-11T02:19:52+05:30",
   "git": {
     "branch": "feat/phase-h-first-run-setup-20261110-2",
     "commit_count": 1,
     "clean_working_tree": true,
-    "head": "b32476f015a26e58ad702e26c008b8a79c99ec10"
+    "head": "017e87e7a17b364645701b2e5378db816db7f2c4"
   },
   "latest_delta": {
-    "detected_at": "2026-11-10T20:49:22+00:00",
-    "added": [
-      "Scripts/verify-first-run-docker.mjs"
-    ],
+    "detected_at": "2026-11-10T20:50:08+00:00",
+    "added": [],
     "removed": [],
-    "changed": [],
+    "changed": [
+      ".dockerignore"
+    ],
     "unchanged_count": 219
   },
   "module_state": {

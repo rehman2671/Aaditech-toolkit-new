@@ -1452,25 +1452,33 @@ app.get('/api/v1/msi/download/:id', async (req, res) => {
   const pkg = await db.getMsiPackageById(req.params.id);
   if (!pkg) return res.status(404).json({ error: "MSI Package not found or expired" });
 
-  let realFilePath = pkg.file_path;
-  if (!realFilePath || !fs.existsSync(realFilePath)) {
-    const resolved = resolveAgentMsi(pkg.version);
-    if (resolved.found) {
-      realFilePath = resolved.path;
-    }
-  }
-
-  if (!realFilePath || !fs.existsSync(realFilePath)) {
+  // A package may have been generated when only a 1,536-byte mock fixture
+  // existed. Never serve saved paths blindly, even after later upgrades.
+  if (String(pkg.status).toUpperCase() !== 'READY' ||
+      !/^[a-f0-9]{64}$/i.test(pkg.file_hash_sha256 || '')) {
     return res.status(404).json({
-      error: "MSI artifact not found. The package build is PENDING or has not been uploaded.",
+      error: 'Verified MSI release is not ready.',
       package_id: pkg.id,
       version: pkg.version,
-      status: pkg.status || 'PENDING'
+      status: 'PENDING'
     });
   }
-
+  const verified = resolveAgentMsi(pkg.version);
+  if (!verified.found) {
+    return res.status(404).json({
+      error: 'A verified signed MSI is unavailable for download.',
+      package_id: pkg.id,
+      version: pkg.version,
+      status: 'UNAVAILABLE'
+    });
+  }
+  const realFilePath = verified.path;
+  const digest = crypto.createHash('sha256').update(fs.readFileSync(realFilePath)).digest('hex');
+  if (digest.toLowerCase() !== pkg.file_hash_sha256.toLowerCase()) {
+    return res.status(409).json({error:'MSI_ARTIFACT_HASH_CHANGED'});
+  }
   const stat = fs.statSync(realFilePath);
-  const msiFilename = `${pkg.package_name || 'IT-Toolkit-Agent'}-${pkg.version || getAgentVersion()}.msi`;
+  const msiFilename = path.basename(verified.filename);
 
   await db.incrementMsiDownloads(pkg.id);
 

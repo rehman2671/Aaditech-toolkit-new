@@ -25,6 +25,11 @@ if (-not (Test-Path (Join-Path $BuildOut 'agent-config.json'))) {
     throw "build/out/agent-config.json missing. Run build-agent.ps1 first."
 }
 
+# Security release gate: installers may not carry fleet API keys, device
+# credentials or bootstrap tokens. Provision each endpoint after installation.
+& (Join-Path $PSScriptRoot 'Assert-PackagingConfig.ps1') -ConfigFile (Join-Path $BuildOut 'agent-config.json')
+
+
 $Stage = Join-Path $WixDir 'stage'
 if (Test-Path $Stage) { Remove-Item $Stage -Recurse -Force }
 New-Item -ItemType Directory -Path $Stage -Force | Out-Null

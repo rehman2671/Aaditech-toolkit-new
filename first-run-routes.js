@@ -6,7 +6,20 @@ import {encryptSecret,mergeSmtp,safeSmtp,stripLegacySecrets,effectiveGitHubToken
 export async function getStrictSetupState(db) {
   if(process.env.NODE_ENV==='production'&&!db.isMysqlConnected())throw new Error('SETUP_DATABASE_UNAVAILABLE');
   const rows=await db.executeQuery('SELECT setting_value FROM system_settings WHERE setting_key = ? LIMIT 1',['branding']);
-  if(!rows[0])return {setup_complete:false};
+  if(!rows[0]) {
+    // Upgrade protection: an existing deployment may predate the branding
+    // setup_complete flag. Do NOT reset its owner to a known seeded account.
+    // Only the untouched shipped demo owner is eligible for first-run setup.
+    const legacyAdmins=await db.executeQuery(
+      "SELECT username,password_hash FROM users WHERE role IN ('SUPER_ADMIN','ADMIN') AND active=1 ORDER BY id ASC LIMIT 1");
+    if(legacyAdmins[0]) {
+      const existing=legacyAdmins[0];
+      const untouchedSeed=existing.username==='admin' &&
+        await bcrypt.compare('Admin123!',existing.password_hash);
+      if(!untouchedSeed)return {setup_complete:true,legacy_installation:true};
+    }
+    return {setup_complete:false};
+  }
   const v=rows[0].setting_value;
   const obj=typeof v==='string'?JSON.parse(v):v;
   return {setup_complete:obj?.setup_complete===true};
@@ -163,10 +176,13 @@ export function installFirstRunRoutes(app,{db,requireRole,validateBody,setupSche
       return res.status(409).json({error:'GitHub token is host-managed'});
     try {
       if(process.env.NODE_ENV==='production'&&!db.isMysqlConnected())throw new Error('Database unavailable');
+      const previousSetup=await getStrictSetupState(db);
+      if(!previousSetup.setup_complete)
+        return res.status(409).json({error:'SETUP_REQUIRED'});
       const old=await db.getBranding(),updates={};
       for(const key of ['company_name','server_host','branding','build_mode','github_repo'])
         if(x[key]!==undefined)updates[key]=x[key];
-      const items={branding:stripLegacySecrets({...old,...updates})};
+      const items={branding:stripLegacySecrets({...old,...updates,setup_complete:true})};
       if(x.smtp||x.clear_smtp_password) {
         const prev=await db.getSetting('smtpSettings',{});
         const smtp=x.smtp?mergeSmtp(prev,x.smtp):{...prev};

@@ -22,3 +22,16 @@ Enterprise/agent/wix/*.msi
 tests
 *.tmp
 *.log
+
+# First-run host credentials and persistent data must NEVER enter build context
+Enterprise/.env
+**/.env
+**/.env.local
+**/.env.*.local
+data/
+Enterprise/data/
+**/first-run-setup-code
+**/generated-*
+**/*.pfx
+**/*.key
+**/*.pem

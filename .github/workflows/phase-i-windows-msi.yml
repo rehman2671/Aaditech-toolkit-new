@@ -1,0 +1,74 @@
+name: Phase I Windows agent EXE and MSI validation
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows-installer:
+    name: Build genuine Windows EXE/MSI, install and uninstall (test only)
+    runs-on: windows-latest
+    timeout-minutes: 35
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Stage NON-PRODUCTION config without permanent credentials
+        shell: pwsh
+        run: |
+          $meta = Get-Content Enterprise/agent/agent-version.json -Raw | ConvertFrom-Json
+          $cfg = [ordered]@{
+            endpoint = 'https://127.0.0.1:9443/api/v1/ingest/telemetry'
+            enroll_url = ''
+            token = ''
+            agent_version = [string]$meta.agent_version
+            interval_minutes = 30
+            run_script_allowlist = @()
+            features = @()
+            deployment_state = 'UNENROLLED'
+          }
+          $cfg | ConvertTo-Json -Depth 8 | Set-Content Enterprise/agent/agent-config.json -Encoding UTF8
+
+      - name: Install PowerShell ps2exe compiler
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Install-Module -Name ps2exe -RequiredVersion '1.0.18' -Force -Scope CurrentUser -SkipPublisherCheck
+          if (-not (Get-Command ps2exe -ErrorAction SilentlyContinue)) { throw 'ps2exe unavailable' }
+
+      - name: Build authentic agent EXE with Windows PowerShell 5.1
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          & ./Enterprise/agent/build/build-agent.ps1
+          if (-not $?) { throw 'EXE compilation failed' }
+
+      - name: Install WiX v5
+        shell: pwsh
+        run: |
+          dotnet tool install --global wix --version '5.*'
+          if ($LASTEXITCODE -ne 0) { throw 'WiX installation failed' }
+
+      - name: Build authentic MSI with WiX
+        shell: pwsh
+        run: |
+          $env:PATH = "$env:USERPROFILE\.dotnet\tools;$env:PATH"
+          & ./Enterprise/agent/wix/build-msi.ps1
+          if (-not $?) { throw 'MSI compilation failed' }
+
+      - name: Validate MSI format and installation lifecycle
+        shell: pwsh
+        run: |
+          & ./Enterprise/agent/wix/verify-msi-lifecycle.ps1
+          if (-not $?) { throw 'Installer lifecycle validation failed' }
+
+      - name: Confirm unsigned test artifacts were NOT published
+        shell: pwsh
+        run: |
+          Write-Host 'This job intentionally does NOT upload unsigned EXE/MSI artifacts.'
+          Write-Host 'Release requires trusted code-signing and separate security gates.'

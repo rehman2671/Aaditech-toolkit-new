@@ -556,6 +556,10 @@ async function verifyDeviceCredential(req, targetDeviceIdentifier) {
 
   if (rawToken) {
     isMasterAgentToken = (rawToken === AGENT_API_TOKEN || (process.env.NODE_ENV !== 'production' && rawToken === 'itk_agent_sec_token_998877'));
+    if (isMasterAgentToken && process.env.NODE_ENV === 'production') {
+      return {authenticated:false,status:401,error:'DEVICE_ENROLLMENT_REQUIRED',
+        detail:'Shared fleet token cannot authenticate devices; enroll with a unique device credential.'};
+    }
     const tokenHash = hashDeviceToken(rawToken);
 
     if (isMasterAgentToken) {
@@ -589,6 +593,11 @@ async function verifyDeviceCredential(req, targetDeviceIdentifier) {
 
     // 2. Check if this is an initial bootstrap token enrollment/check-in
     if (!matchedDevice) {
+      // Production bootstrap tokens authorize enrollment only; never accept
+      // them as telemetry, heartbeat or command authentication credentials.
+      if (process.env.NODE_ENV === 'production') {
+        return {authenticated:false,status:401,error:'DEVICE_ENROLLMENT_REQUIRED'};
+      }
       const bVer = await verifyBootstrapToken(rawToken);
       if (bVer.valid) {
         const targetHost = (targetDeviceIdentifier || req.body?.hostname || req.body?.device_uid || "NEW-AGENT").trim();
@@ -636,6 +645,10 @@ async function verifyDeviceCredential(req, targetDeviceIdentifier) {
       }
     }
   } else if (signature && deviceUid && timestamp) {
+    // Global HMAC-only device impersonation is legacy/test-only.
+    if (process.env.NODE_ENV === 'production') {
+      return {authenticated:false,status:401,error:'DEVICE_ENROLLMENT_REQUIRED'};
+    }
     const timeDiff = Math.abs(Date.now() - parseInt(timestamp, 10));
     if (timeDiff >= 600000) {
       return {
@@ -1159,7 +1172,10 @@ const handleAgentEnroll = async (req, res) => {
 };
 
 app.post(['/api/v1/agent/enroll', '/api/agent/enroll'], agentLimiter, handleAgentEnroll);
-// Removed legacy GET enrollment to prevent token exposure through query strings.
+// Return explicit 405, not the portal fallback HTML, for old GET enroll clients.
+app.get(['/api/v1/agent/enroll', '/api/agent/enroll'], (_req,res) => {
+  res.status(405).json({error:'METHOD_NOT_ALLOWED',detail:'Use authenticated HTTPS POST enrollment.'});
+});
 
 // Agent Heartbeat Endpoint
 app.post(['/api/v1/agent/heartbeat', '/api/agent/heartbeat'], agentLimiter, async (req, res) => {
@@ -1886,7 +1902,10 @@ app.get(['/api/commands/poll', '/api/v1/commands/poll'], async (req, res) => {
   // Executable commands require a unique enrolled device token; the shared
   // fleet master token and unsigned HMAC-only requests cannot poll commands.
   const credential = req.headers['x-device-token'] || req.headers['x-agent-token'];
-  if (typeof credential !== 'string' || !credential || credential === AGENT_API_TOKEN) {
+  if (typeof credential !== 'string' || !credential) {
+    return res.status(401).json({error:'DEVICE_CREDENTIAL_REQUIRED'});
+  }
+  if (credential === AGENT_API_TOKEN) {
     return res.status(403).json({error:'DEVICE_ENROLLMENT_REQUIRED'});
   }
   const target = (req.query.hostname || req.query.device_id || '').trim();

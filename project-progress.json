@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-10T20:47:37+00:00",
-  "last_verified_commit": "09be4d97966956d0af6d5e59fe37ccd88f6ffaf7",
-  "last_verified_date": "2026-11-11T02:17:19+05:30",
+  "generated": "2026-11-10T20:49:22+00:00",
+  "last_verified_commit": "b32476f015a26e58ad702e26c008b8a79c99ec10",
+  "last_verified_date": "2026-11-11T02:19:06+05:30",
   "overall_progress_percent": 100.0,
   "issue_progress": {
     "total": 17,
@@ -12,42 +12,12 @@
     "percent": 100.0
   },
   "latest_delta": {
-    "added": 0,
+    "added": 1,
     "removed": 0,
-    "changed": 1,
-    "unchanged": 218
+    "changed": 0,
+    "unchanged": 219
   },
   "delta_history": [
-    {
-      "detected_at": "2026-08-10T15:23:09+00:00",
-      "added": [
-        "Enterprise/api/.dockerignore"
-      ],
-      "removed": [],
-      "changed": [
-        "COMPLETION-REPORT.md",
-        "Enterprise/api/app/main.py",
-        "Enterprise/agent/wix/Agent.wxs",
-        "Documentation/README.md",
-        "Enterprise/agent/wix/build-msi.ps1",
-        "Remote-Tools/README.md",
-        "QUICK-SUMMARY.md",
-        "Enterprise/agent/agent-config.example.json",
-        "Enterprise/agent/build/build-agent.ps1",
-        "Enterprise/agent/Agent-Collect.ps1",
-        "Scripts/Tests/Phase2-Modules.Tests.ps1",
-        "Enterprise/deploy/deploy.ps1",
-        "Enterprise/api/tests/conftest.py",
-        "Scripts/Modules/SanitizeEngine.psm1",
-        "Enterprise/api/schema.sql",
-        ".github/workflows/ci.yml",
-        "VERSION.md",
-        "Enterprise/api/app/logging_setup.py",
-        "Enterprise/agent/build/new-codesign-cert.ps1",
-        "Documentation/Setup-Guide.md"
-      ],
-      "unchanged_count": 107
-    },
     {
       "detected_at": "2026-08-10T15:31:43+00:00",
       "added": [],
@@ -426,6 +396,15 @@
         "Enterprise/docker-compose.yml"
       ],
       "unchanged_count": 218
+    },
+    {
+      "detected_at": "2026-11-10T20:49:22+00:00",
+      "added": [
+        "Scripts/verify-first-run-docker.mjs"
+      ],
+      "removed": [],
+      "changed": [],
+      "unchanged_count": 219
     }
   ],
   "next_recommended_tasks": [

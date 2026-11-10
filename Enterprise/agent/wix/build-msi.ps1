@@ -114,7 +114,9 @@ try {
     # Versioned artifact name so every build is distinguishable at a glance:
     # IT-Toolkit-Agent-<semver>.msi (semver, NOT the 4-part upgrade revision).
     $MsiName = "IT-Toolkit-Agent-$AgentVersion.msi"
-    & $wix.Source build 'Agent.wxs' -o "$(Join-Path $BuildOut $MsiName)" -d "AgentVersion=$MsiVersion" -d "AgentInterval=$AgentInterval"
+    # WiX defaults to x86 unless -arch is specified. The agent's ProgramFiles64Folder
+    # layout requires an x64 MSI or Windows Installer redirects to Program Files (x86).
+    & $wix.Source build 'Agent.wxs' -arch x64 -o "$(Join-Path $BuildOut $MsiName)" -d "AgentVersion=$MsiVersion" -d "AgentInterval=$AgentInterval"
     if ($LASTEXITCODE -ne 0) { throw "WiX build failed with exit code $LASTEXITCODE (see output above)" }
 }
 finally {

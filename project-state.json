@@ -1,24 +1,24 @@
 {
   "state_version": "1.0",
   "path": "project-state.json",
-  "generated": "2026-11-10T22:00:43+00:00",
+  "generated": "2026-11-10T22:01:04+00:00",
   "phase": "RELEASE BLOCKED / REMEDIATION IN PROGRESS",
-  "last_verified_commit": "90e13a6ffda666d8d463e982830851c92c684873",
-  "last_verified_date": "2026-11-11T03:30:25+05:30",
+  "last_verified_commit": "166d0d977ce0be707fd15362f076be586309a9b2",
+  "last_verified_date": "2026-11-11T03:30:48+05:30",
   "git": {
     "branch": "feat/phase-i-windows-agent-hardening-20261111",
     "commit_count": 1,
     "clean_working_tree": true,
-    "head": "90e13a6ffda666d8d463e982830851c92c684873"
+    "head": "166d0d977ce0be707fd15362f076be586309a9b2"
   },
   "latest_delta": {
-    "detected_at": "2026-11-10T22:00:43+00:00",
-    "added": [],
-    "removed": [],
-    "changed": [
-      ".github/workflows/ci.yml"
+    "detected_at": "2026-11-10T22:01:04+00:00",
+    "added": [
+      "tests/unit/msi-artifact-security.test.js"
     ],
-    "unchanged_count": 230
+    "removed": [],
+    "changed": [],
+    "unchanged_count": 231
   },
   "module_state": {
     "working": [

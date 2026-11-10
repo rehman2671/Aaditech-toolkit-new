@@ -26,6 +26,7 @@ import rateLimit from 'express-rate-limit';
 import * as db from './db.js';
 import { installFirstRunRoutes, getStrictSetupState, readConfiguredGitHubToken } from './first-run-routes.js';
 import { ensureSetupCode } from './setup-security.js';
+import { deriveDeviceCommandKey, signCommandForDevice } from './agent-command-security.js';
 import {
   getAgentVersion,
   getAgentVersionInfo,
@@ -250,11 +251,7 @@ async function consumeBootstrapToken(token, enrolledDeviceHostname, tenantId) {
   return await db.markBootstrapTokenUsed(token, tokenHash, enrolledDeviceHostname, tenantId);
 }
 
-function signCommandPayload(deviceId, commandType, payload) {
-  const content = `${deviceId}:${commandType}:${JSON.stringify(payload || {})}:${Date.now()}`;
-  const signature = crypto.createHmac('sha256', COMMAND_SIGNING_KEY).update(content).digest('hex');
-  return { content, signature };
-}
+// Command envelopes are device-scoped, expiring and signed by agent-command-security.js.
 
 // ---------------- OUTBOUND WEBHOOK DISPATCHER ----------------
 async function dispatchWebhookNotification(title, message, severity = "info", details = {}) {
@@ -1053,14 +1050,19 @@ app.post('/api/v1/devices', requireRole(['SUPER_ADMIN', 'OPERATOR']), validateBo
   res.status(201).json({
     ...createdDev,
     device_token: devToken,
-    command_signing_key: COMMAND_SIGNING_KEY
+    command_signing_key: deriveDeviceCommandKey(COMMAND_SIGNING_KEY, createdDev.id)
   });
 });
 
 // Device Enrollment Endpoint (V1 & Legacy)
 const handleAgentEnroll = async (req, res) => {
-  if (req.method !== 'POST' && req.method !== 'GET') {
+  // GET enrollment leaks short-lived bootstrap tokens into URLs, browser history
+  // and proxy logs. Only POST with a trusted TLS transport is supported.
+  if (req.method !== 'POST') {
     return res.status(405).json({ error: "Method Not Allowed" });
+  }
+  if (process.env.NODE_ENV === 'production' && !req.secure) {
+    return res.status(403).json({error:'ENROLLMENT_REQUIRES_TLS'});
   }
 
   const bootstrap_token = req.body?.bootstrap_token || req.query?.bootstrap_token;
@@ -1150,13 +1152,14 @@ const handleAgentEnroll = async (req, res) => {
     hostname: dev.hostname,
     device_token: devToken,
     agent_token: devToken,
-    command_signing_key: COMMAND_SIGNING_KEY,
+    command_signing_key: deriveDeviceCommandKey(COMMAND_SIGNING_KEY, dev.id),
+    command_signing_version: 1,
     interval_seconds: 30
   });
 };
 
 app.post(['/api/v1/agent/enroll', '/api/agent/enroll'], agentLimiter, handleAgentEnroll);
-app.get(['/api/v1/agent/enroll', '/api/agent/enroll'], agentLimiter, handleAgentEnroll);
+// Removed legacy GET enrollment to prevent token exposure through query strings.
 
 // Agent Heartbeat Endpoint
 app.post(['/api/v1/agent/heartbeat', '/api/agent/heartbeat'], agentLimiter, async (req, res) => {
@@ -1880,6 +1883,12 @@ app.post(['/api/commands', '/api/v1/commands/dispatch'], requireRole(['SUPER_ADM
 
 // Polling endpoint used by real Windows Agents (every 15-30s)
 app.get(['/api/commands/poll', '/api/v1/commands/poll'], async (req, res) => {
+  // Executable commands require a unique enrolled device token; the shared
+  // fleet master token and unsigned HMAC-only requests cannot poll commands.
+  const credential = req.headers['x-device-token'] || req.headers['x-agent-token'];
+  if (typeof credential !== 'string' || !credential || credential === AGENT_API_TOKEN) {
+    return res.status(403).json({error:'DEVICE_ENROLLMENT_REQUIRED'});
+  }
   const target = (req.query.hostname || req.query.device_id || '').trim();
   if (!target) {
     return res.status(400).json({ error: "Missing required query parameter: hostname or device_id" });
@@ -1903,14 +1912,12 @@ app.get(['/api/commands/poll', '/api/v1/commands/poll'], async (req, res) => {
 
   const signedPending = [];
   for (const c of pending) {
-    const kind = c.kind || c.command_type || "EXEC_POWERSHELL";
-    const sig = signCommandPayload(device.hostname, kind, c.payload);
+    const signed = signCommandForDevice(COMMAND_SIGNING_KEY, device, c);
     await db.markCommandPickedUp(c.id);
     signedPending.push({
       ...c,
       status: "running",
-      signed_content: sig.content,
-      signature: sig.signature
+      ...signed
     });
   }
 

@@ -12,7 +12,7 @@ The workflow deliberately does **not** publish or distribute unsigned test binar
 
 ### CI evidence (test-only)
 
-Windows runner [run 42907807995](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/42907807995) compiled a 67,584-byte genuine ps2exe EXE and a 1,478,656-byte MSI (not the 1,536-byte fixtures) and logged successful install/uninstall and scheduled-task cleanup. That job **reported failure** after the lifecycle script because the expected non-zero `schtasks /Query` result after uninstall left a process exit status of 1. A later commit resets the expected native exit code; its CI result must be checked independently.
+Windows runner [run 42907807995](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/42907807995) compiled a 67,584-byte genuine ps2exe EXE and a 1,478,656-byte MSI (not the 1,536-byte fixtures) and logged successful install/uninstall and scheduled-task cleanup. The initial job logged a passing install/uninstall but reported a failed process status because the expected native `schtasks /Query` result after uninstall was nonzero. A later Windows run **[42908567117](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/42908567117) completed SUCCESSFULLY** after resetting the expected native exit code. This verifies a genuine 64-bit Windows runner EXE/MSI build, silent install, scheduled task creation, uninstall and task cleanup. **The installer remains unsigned and test-only.**
 
 Current installer evidence is from a GitHub Windows runner and must be repeated on disposable Windows 10/11 VMs with snapshots before release.
 

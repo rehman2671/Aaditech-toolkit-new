@@ -136,6 +136,14 @@ function Get-AgentTokenPath {
     return Join-Path $dir 'agent.token'
 }
 
+function Get-AgentCommandKeyPath {
+    return (Join-Path (Split-Path $ConfigPath -Parent) 'command.key')
+}
+
+function Get-AgentEnrolledDeviceIdPath {
+    return (Join-Path (Split-Path $ConfigPath -Parent) 'agent.device_id')
+}
+
 function Get-AgentToken {
     # Prefer the per-agent token from enroll (B6); fall back to the shared
     # config token (bootstrap / pre-B6 agents).
@@ -175,6 +183,15 @@ function Ensure-ClientCert {
     $dir = Split-Path $ConfigPath -Parent
     $caPath = Join-Path $dir 'ca.crt'
     $tokenPath = Get-AgentTokenPath
+    $keyPath = Get-AgentCommandKeyPath
+    $deviceIdPath = Get-AgentEnrolledDeviceIdPath
+
+    # Without optional client-cert mTLS, a verified enrollment persists a
+    # unique device token and command signing identity across check-ins.
+    if ((Test-Path $tokenPath) -and (Test-Path $keyPath) -and
+        (Test-Path $deviceIdPath) -and (-not $Config.require_mtls)) {
+        return $null
+    }
 
     # If a CA was already bundled (e.g. copied by install.cmd) or previously
     # enrolled, make sure it is trusted before the first mTLS call. Pre-B6
@@ -184,7 +201,8 @@ function Ensure-ClientCert {
         # C6: cert exists but is near expiry / missing token -> renew. The server
         # re-issues a fresh cert (issue_client_cert renews expiring ones), so we
         # drop the old cert and re-enroll below.
-        if ((Test-ClientCertExpiry -PfXPath $pfx) -or (-not (Test-Path $tokenPath))) {
+        if ((Test-ClientCertExpiry -PfXPath $pfx) -or (-not (Test-Path $tokenPath)) -or
+            (-not (Test-Path $keyPath)) -or (-not (Test-Path $deviceIdPath))) {
             Write-AgentLog "Client cert expired/near-expiry or token missing — renewing cert (C6)"
             Remove-Item $pfx -Force -ErrorAction SilentlyContinue
             Remove-Item $tokenPath -Force -ErrorAction SilentlyContinue
@@ -195,11 +213,19 @@ function Ensure-ClientCert {
                 $cand = Join-Path $dir2 'ca.crt'
                 if (Test-Path $cand) { Copy-Item $cand $caPath -Force }
             }
-            if (Test-Path $caPath) { Install-ServerCa (Get-Content $caPath -Raw) }
+            # Root trust must be provisioned separately by a trusted admin.
             return $pfx
         }
     }
 
+    if ($Config.enroll_url -notmatch '^https://') {
+        Write-AgentLog 'Refused enrollment over HTTP'
+        return $null
+    }
+    if (-not $Config.token) {
+        Write-AgentLog 'Enrollment requires a one-time operator bootstrap token'
+        return $null
+    }
     Write-AgentLog "Enrolling for device credentials from $($Config.enroll_url)"
     try {
         $hn = (Get-AgentHostname)
@@ -211,36 +237,40 @@ function Ensure-ClientCert {
             agent_version   = (Get-InstalledAgentVersion)
         } | ConvertTo-Json -Compress
 
-        $resp = $null
-        try {
-            $resp = Invoke-RestMethod -Uri $Config.enroll_url -Method Post `
-                -Headers @{ 
-                    Authorization       = "Bearer $($Config.token)"
-                    "X-Bootstrap-Token" = $Config.token
-                } -ContentType 'application/json' -Body $enrollBody
-        } catch {
-            $resp = Invoke-RestMethod -Uri $Config.enroll_url -Method Get `
-                -Headers @{ Authorization = "Bearer $($Config.token)" }
-        }
+        # No GET fallback; bootstrap credentials must never enter URLs/logs.
+        $resp = Invoke-RestMethod -Uri $Config.enroll_url -Method Post `
+            -Headers @{
+                Authorization       = "Bearer $($Config.token)"
+                "X-Bootstrap-Token" = $Config.token
+            } -ContentType 'application/json' -Body $enrollBody
 
         $issuedToken = if ($resp.device_token) { $resp.device_token } elseif ($resp.agent_token) { $resp.agent_token } else { $null }
-        if ($issuedToken) {
-            [IO.File]::WriteAllText($tokenPath, [string]$issuedToken)
-            Write-AgentLog "Per-agent device token persisted successfully"
+        if ([string]$issuedToken -notmatch '^itk_dev_' -or
+            [string]$resp.command_signing_key -notmatch '^[a-fA-F0-9]{64}$' -or
+            [string]::IsNullOrWhiteSpace([string]$resp.device_id)) {
+            throw 'Enrollment requires a unique device token, ID and command key'
         }
+        [IO.File]::WriteAllText($tokenPath, [string]$issuedToken)
+        [IO.File]::WriteAllText($keyPath, [string]$resp.command_signing_key)
+        [IO.File]::WriteAllText($deviceIdPath, [string]$resp.device_id)
+        # Prevent post-enrollment bootstrap token replay from agent.json.
+        $Config.token = ''
+        $Config | Add-Member -MemberType NoteProperty -Name 'deployment_state' -Value 'ENROLLED' -Force
+        $Config | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $ConfigPath -Encoding UTF8
+        Write-AgentLog 'Enrolled per-device credential and command key saved'
 
         if ($resp.pfx) {
             [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($resp.pfx))
             Write-AgentLog "Client cert saved to $pfx"
         }
         if ($resp.ca) {
+            # Network-delivered CA is never automatically trusted by Windows.
             [IO.File]::WriteAllText($caPath, $resp.ca)
-            Install-ServerCa $resp.ca
         }
         return $pfx
     }
     catch {
-        Write-AgentLog "Enrollment failed: $($_.Exception.Message) — falling back to configured token"
+        Write-AgentLog "Enrollment failed: $($_.Exception.Message); commands remain blocked"
         return $null
     }
 }
@@ -300,6 +330,7 @@ function Import-ToolkitModules {
     Add-BundledSqliteToPath
     Import-Module (Join-Path $script:ModulesPath 'SanitizeEngine.psm1') -Force
     Import-Module (Join-Path $script:ModulesPath 'ToolkitData.psm1') -Force
+    Import-Module (Join-Path $script:ModulesPath 'AgentCommandTrust.psm1') -Force
 }
 
 function Initialize-Queue {
@@ -723,6 +754,12 @@ function Get-CommandsApiRoot {
 
 function Get-PendingCommands {
     param($Config)
+    if ((-not (Test-Path (Get-AgentTokenPath))) -or
+        (-not (Test-Path (Get-AgentCommandKeyPath))) -or
+        (-not (Test-Path (Get-AgentEnrolledDeviceIdPath)))) {
+        Write-AgentLog 'Command poll blocked: device signing identity unavailable'
+        return @()
+    }
     $hn = [uri]::EscapeDataString((Get-AgentHostname))
     $uri = "$(Get-CommandsApiRoot)/api/commands/poll?hostname=$hn"
     try {
@@ -763,8 +800,21 @@ function Send-WakeOnLan {
 
 function Invoke-RemoteCommand {
     param($Config, $Cmd)
-    $kind = $Cmd.kind
-    $payload = $Cmd.payload
+    # Never execute an unverified command. Only authenticated signed content
+    # may select an executable action or payload.
+    try {
+        $key = (Get-Content (Get-AgentCommandKeyPath) -Raw -ErrorAction Stop).Trim()
+        $devId = (Get-Content (Get-AgentEnrolledDeviceIdPath) -Raw -ErrorAction Stop).Trim()
+        $verified = Test-AgentSignedCommand -Command $Cmd -CommandKey $key `
+            -DeviceId $devId -Hostname (Get-AgentHostname)
+    }
+    catch { $verified = $null }
+    if ($null -eq $verified) {
+        Write-AgentLog "Command $($Cmd.id) rejected: invalid, missing or expired signature"
+        return @{ status='failed'; output='Rejected unverified command'; exit_code=1 }
+    }
+    $kind = [string]$verified.kind
+    $payload = $verified.payload
     switch ($kind) {
         'reboot' {
             $delay = [int]$payload.delay_seconds
@@ -862,6 +912,19 @@ function Send-CommandResult {
 Import-ToolkitModules
 Initialize-Queue
 $Config = Read-AgentConfig
+
+# Unsigned CI installer contains no permanent device credential or live bootstrap.
+if ($Config.deployment_state -eq 'UNENROLLED' -and
+    (-not (Test-Path (Get-AgentTokenPath))) -and
+    [string]::IsNullOrWhiteSpace([string]$Config.token)) {
+    Write-AgentLog 'Agent un-enrolled: operator must provision HTTPS and bootstrap token'
+    return
+}
+if ($Config.endpoint -notmatch '^https://' -or
+    ($Config.enroll_url -and $Config.enroll_url -notmatch '^https://')) {
+    Write-AgentLog 'Non-TLS endpoint refused'
+    return
+}
 
 Write-AgentLog "Agent cycle start (endpoint: $($Config.endpoint))"
 

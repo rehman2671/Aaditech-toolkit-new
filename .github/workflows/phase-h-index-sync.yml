@@ -1,4 +1,4 @@
-name: Phase H index snapshot sync (scoped PR)
+name: Phase H/I project snapshot sync (scoped PR)
 on:
   pull_request:
     types: [opened, synchronize, reopened]
@@ -6,14 +6,14 @@ permissions:
   contents: read
 jobs:
   sync-phase-h-index:
-    if: github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'feat/phase-h-first-run-setup-20261110-2'
+    if: github.event.pull_request.head.repo.full_name == github.repository && (github.head_ref == 'feat/phase-h-first-run-setup-20261110-2' || github.head_ref == 'feat/phase-i-windows-agent-hardening-20261111')
     permissions:
       contents: write
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: feat/phase-h-first-run-setup-20261110-2
+          ref: ${{ github.head_ref }}
           persist-credentials: true
       - name: Check and commit generated project-index snapshots only when stale
         shell: pwsh
@@ -35,6 +35,6 @@ jobs:
           }
           git commit -m 'chore(index): regenerate tracked project snapshots for Phase H'
           if ($LASTEXITCODE -ne 0) { throw 'Commit failed.' }
-          git push origin HEAD:refs/heads/feat/phase-h-first-run-setup-20261110-2
+          git push origin HEAD:refs/heads/${{ github.head_ref }}
           if ($LASTEXITCODE -ne 0) { throw 'Index push failed. Check GitHub Actions workflow token permissions.' }
           Write-Host 'Committed generated project indexes to the feature branch.'

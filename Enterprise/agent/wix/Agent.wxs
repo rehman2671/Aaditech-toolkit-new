@@ -64,6 +64,9 @@
           <Component Id="ElevTaskHelper" Guid="B2C3D4E5-7777-7777-7777-777777777777">
             <File Id="CreateElevatedTask" Name="Create-ElevatedTask.ps1" Source="stage\Scripts\Create-ElevatedTask.ps1" KeyPath="yes" />
           </Component>
+          <Component Id="ProvisionDevice" Guid="B2C3D4E5-8888-8888-8888-888888888888">
+            <File Id="ProvisionDeviceScript" Name="Provision-Device.ps1" Source="stage\Scripts\Provision-Device.ps1" KeyPath="yes" />
+          </Component>
           <Component Id="ScriptUsers" Guid="B2C3D4E5-5555-5555-5555-555555555555">
             <File Id="Users" Name="User-Inventory.ps1" Source="stage\Scripts\User-Inventory.ps1" KeyPath="yes" />
           </Component>
@@ -95,6 +98,9 @@
             </Component>
             <Component Id="ModLogManager" Guid="C3D4E5F6-8888-8888-8888-888888888888">
               <File Id="LogManager" Name="LogManager.psm1" Source="stage\Scripts\Modules\LogManager.psm1" KeyPath="yes" />
+            </Component>
+            <Component Id="ModAgentCommandTrust" Guid="C3D4E5F6-9999-9999-9999-999999999999">
+              <File Id="AgentCommandTrustModule" Name="AgentCommandTrust.psm1" Source="stage\Scripts\Modules\AgentCommandTrust.psm1" KeyPath="yes" />
             </Component>
           </Directory>
         </Directory>
@@ -235,6 +241,7 @@
       <ComponentRef Id="ScriptNetwork" />
       <ComponentRef Id="ScriptFirewall" />
       <ComponentRef Id="ElevTaskHelper" />
+      <ComponentRef Id="ProvisionDevice" />
       <ComponentRef Id="ScriptUsers" />
       <ComponentRef Id="ScriptPrinters" />
       <ComponentRef Id="ModSanitize" />
@@ -245,6 +252,7 @@
       <ComponentRef Id="ModAlertEngine" />
       <ComponentRef Id="ModReportGenerator" />
       <ComponentRef Id="ModLogManager" />
+      <ComponentRef Id="ModAgentCommandTrust" />
       <ComponentRef Id="ConfigFile" />
       <ComponentRef Id="AgentConfig" />
       <ComponentRef Id="RegistryConfig" />

@@ -26,6 +26,7 @@ import rateLimit from 'express-rate-limit';
 import * as db from './db.js';
 import { installFirstRunRoutes, getStrictSetupState, readConfiguredGitHubToken } from './first-run-routes.js';
 import { ensureSetupCode } from './setup-security.js';
+import { deriveDeviceCommandKey, signCommandForDevice } from './agent-command-security.js';
 import {
   getAgentVersion,
   getAgentVersionInfo,
@@ -250,11 +251,7 @@ async function consumeBootstrapToken(token, enrolledDeviceHostname, tenantId) {
   return await db.markBootstrapTokenUsed(token, tokenHash, enrolledDeviceHostname, tenantId);
 }
 
-function signCommandPayload(deviceId, commandType, payload) {
-  const content = `${deviceId}:${commandType}:${JSON.stringify(payload || {})}:${Date.now()}`;
-  const signature = crypto.createHmac('sha256', COMMAND_SIGNING_KEY).update(content).digest('hex');
-  return { content, signature };
-}
+// Command envelopes are device-scoped, expiring and signed by agent-command-security.js.
 
 // ---------------- OUTBOUND WEBHOOK DISPATCHER ----------------
 async function dispatchWebhookNotification(title, message, severity = "info", details = {}) {
@@ -559,6 +556,10 @@ async function verifyDeviceCredential(req, targetDeviceIdentifier) {
 
   if (rawToken) {
     isMasterAgentToken = (rawToken === AGENT_API_TOKEN || (process.env.NODE_ENV !== 'production' && rawToken === 'itk_agent_sec_token_998877'));
+    if (isMasterAgentToken && process.env.NODE_ENV === 'production') {
+      return {authenticated:false,status:401,error:'DEVICE_ENROLLMENT_REQUIRED',
+        detail:'Shared fleet token cannot authenticate devices; enroll with a unique device credential.'};
+    }
     const tokenHash = hashDeviceToken(rawToken);
 
     if (isMasterAgentToken) {
@@ -592,6 +593,11 @@ async function verifyDeviceCredential(req, targetDeviceIdentifier) {
 
     // 2. Check if this is an initial bootstrap token enrollment/check-in
     if (!matchedDevice) {
+      // Production bootstrap tokens authorize enrollment only; never accept
+      // them as telemetry, heartbeat or command authentication credentials.
+      if (process.env.NODE_ENV === 'production') {
+        return {authenticated:false,status:401,error:'DEVICE_ENROLLMENT_REQUIRED'};
+      }
       const bVer = await verifyBootstrapToken(rawToken);
       if (bVer.valid) {
         const targetHost = (targetDeviceIdentifier || req.body?.hostname || req.body?.device_uid || "NEW-AGENT").trim();
@@ -639,6 +645,10 @@ async function verifyDeviceCredential(req, targetDeviceIdentifier) {
       }
     }
   } else if (signature && deviceUid && timestamp) {
+    // Global HMAC-only device impersonation is legacy/test-only.
+    if (process.env.NODE_ENV === 'production') {
+      return {authenticated:false,status:401,error:'DEVICE_ENROLLMENT_REQUIRED'};
+    }
     const timeDiff = Math.abs(Date.now() - parseInt(timestamp, 10));
     if (timeDiff >= 600000) {
       return {
@@ -1053,14 +1063,19 @@ app.post('/api/v1/devices', requireRole(['SUPER_ADMIN', 'OPERATOR']), validateBo
   res.status(201).json({
     ...createdDev,
     device_token: devToken,
-    command_signing_key: COMMAND_SIGNING_KEY
+    command_signing_key: deriveDeviceCommandKey(COMMAND_SIGNING_KEY, createdDev.id)
   });
 });
 
 // Device Enrollment Endpoint (V1 & Legacy)
 const handleAgentEnroll = async (req, res) => {
-  if (req.method !== 'POST' && req.method !== 'GET') {
+  // GET enrollment leaks short-lived bootstrap tokens into URLs, browser history
+  // and proxy logs. Only POST with a trusted TLS transport is supported.
+  if (req.method !== 'POST') {
     return res.status(405).json({ error: "Method Not Allowed" });
+  }
+  if (process.env.NODE_ENV === 'production' && !req.secure) {
+    return res.status(403).json({error:'ENROLLMENT_REQUIRES_TLS'});
   }
 
   const bootstrap_token = req.body?.bootstrap_token || req.query?.bootstrap_token;
@@ -1150,13 +1165,17 @@ const handleAgentEnroll = async (req, res) => {
     hostname: dev.hostname,
     device_token: devToken,
     agent_token: devToken,
-    command_signing_key: COMMAND_SIGNING_KEY,
+    command_signing_key: deriveDeviceCommandKey(COMMAND_SIGNING_KEY, dev.id),
+    command_signing_version: 1,
     interval_seconds: 30
   });
 };
 
 app.post(['/api/v1/agent/enroll', '/api/agent/enroll'], agentLimiter, handleAgentEnroll);
-app.get(['/api/v1/agent/enroll', '/api/agent/enroll'], agentLimiter, handleAgentEnroll);
+// Return explicit 405, not the portal fallback HTML, for old GET enroll clients.
+app.get(['/api/v1/agent/enroll', '/api/agent/enroll'], (_req,res) => {
+  res.status(405).json({error:'METHOD_NOT_ALLOWED',detail:'Use authenticated HTTPS POST enrollment.'});
+});
 
 // Agent Heartbeat Endpoint
 app.post(['/api/v1/agent/heartbeat', '/api/agent/heartbeat'], agentLimiter, async (req, res) => {
@@ -1335,12 +1354,10 @@ app.post('/api/v1/msi/generate', requireRole(['SUPER_ADMIN']), validateBody(msiG
   let msiSize = 0;
 
   if (msiResolved.found) {
-    const targetDir = path.join(__dirname, 'artifacts', 'msi', pkgId);
-    fs.mkdirSync(targetDir, { recursive: true });
-    targetFilePath = path.join(targetDir, `${pkgName}-${pkgVer}.msi`);
-    fs.copyFileSync(msiResolved.path, targetFilePath);
-
-    const fileBytes = fs.readFileSync(targetFilePath);
+    // Reuse the approved, hash-pinned signed release from the host-owned
+    // artifacts volume. Do not copy binaries to a writable source checkout.
+    targetFilePath = msiResolved.path;
+    const fileBytes = fs.readFileSync(msiResolved.path);
     fileHash = crypto.createHash('sha256').update(fileBytes).digest('hex');
     msiSize = fileBytes.length;
     packageStatus = 'READY';
@@ -1433,25 +1450,33 @@ app.get('/api/v1/msi/download/:id', async (req, res) => {
   const pkg = await db.getMsiPackageById(req.params.id);
   if (!pkg) return res.status(404).json({ error: "MSI Package not found or expired" });
 
-  let realFilePath = pkg.file_path;
-  if (!realFilePath || !fs.existsSync(realFilePath)) {
-    const resolved = resolveAgentMsi(pkg.version);
-    if (resolved.found) {
-      realFilePath = resolved.path;
-    }
-  }
-
-  if (!realFilePath || !fs.existsSync(realFilePath)) {
+  // A package may have been generated when only a 1,536-byte mock fixture
+  // existed. Never serve saved paths blindly, even after later upgrades.
+  if (String(pkg.status).toUpperCase() !== 'READY' ||
+      !/^[a-f0-9]{64}$/i.test(pkg.file_hash_sha256 || '')) {
     return res.status(404).json({
-      error: "MSI artifact not found. The package build is PENDING or has not been uploaded.",
+      error: 'Verified MSI release is not ready.',
       package_id: pkg.id,
       version: pkg.version,
-      status: pkg.status || 'PENDING'
+      status: 'PENDING'
     });
   }
-
+  const verified = resolveAgentMsi(pkg.version);
+  if (!verified.found) {
+    return res.status(404).json({
+      error: 'A verified signed MSI is unavailable for download.',
+      package_id: pkg.id,
+      version: pkg.version,
+      status: 'UNAVAILABLE'
+    });
+  }
+  const realFilePath = verified.path;
+  const digest = crypto.createHash('sha256').update(fs.readFileSync(realFilePath)).digest('hex');
+  if (digest.toLowerCase() !== pkg.file_hash_sha256.toLowerCase()) {
+    return res.status(409).json({error:'MSI_ARTIFACT_HASH_CHANGED'});
+  }
   const stat = fs.statSync(realFilePath);
-  const msiFilename = `${pkg.package_name || 'IT-Toolkit-Agent'}-${pkg.version || getAgentVersion()}.msi`;
+  const msiFilename = path.basename(verified.filename);
 
   await db.incrementMsiDownloads(pkg.id);
 
@@ -1880,6 +1905,15 @@ app.post(['/api/commands', '/api/v1/commands/dispatch'], requireRole(['SUPER_ADM
 
 // Polling endpoint used by real Windows Agents (every 15-30s)
 app.get(['/api/commands/poll', '/api/v1/commands/poll'], async (req, res) => {
+  // Executable commands require a unique enrolled device token; the shared
+  // fleet master token and unsigned HMAC-only requests cannot poll commands.
+  const credential = req.headers['x-device-token'] || req.headers['x-agent-token'];
+  if (typeof credential !== 'string' || !credential) {
+    return res.status(401).json({error:'DEVICE_CREDENTIAL_REQUIRED'});
+  }
+  if (credential === AGENT_API_TOKEN) {
+    return res.status(403).json({error:'DEVICE_ENROLLMENT_REQUIRED'});
+  }
   const target = (req.query.hostname || req.query.device_id || '').trim();
   if (!target) {
     return res.status(400).json({ error: "Missing required query parameter: hostname or device_id" });
@@ -1903,14 +1937,12 @@ app.get(['/api/commands/poll', '/api/v1/commands/poll'], async (req, res) => {
 
   const signedPending = [];
   for (const c of pending) {
-    const kind = c.kind || c.command_type || "EXEC_POWERSHELL";
-    const sig = signCommandPayload(device.hostname, kind, c.payload);
+    const signed = signCommandForDevice(COMMAND_SIGNING_KEY, device, c);
     await db.markCommandPickedUp(c.id);
     signedPending.push({
       ...c,
       status: "running",
-      signed_content: sig.content,
-      signature: sig.signature
+      ...signed
     });
   }
 

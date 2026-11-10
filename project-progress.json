@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-10T20:55:20+00:00",
-  "last_verified_commit": "7bc4c1e7dac256a7a11dddb2da725f43e048e818",
-  "last_verified_date": "2026-11-11T02:25:08+05:30",
+  "generated": "2026-11-10T22:02:55+00:00",
+  "last_verified_commit": "e0d21f358e2e1f12469f8d712955021c17b551b7",
+  "last_verified_date": "2026-11-11T03:32:39+05:30",
   "overall_progress_percent": 100.0,
   "issue_progress": {
     "total": 17,
@@ -14,380 +14,10 @@
   "latest_delta": {
     "added": 0,
     "removed": 0,
-    "changed": 2,
-    "unchanged": 219
+    "changed": 1,
+    "unchanged": 231
   },
   "delta_history": [
-    {
-      "detected_at": "2026-08-10T23:42:31+00:00",
-      "added": [],
-      "removed": [],
-      "changed": [
-        "Enterprise/portal/index.html",
-        "VERSION.md",
-        "Enterprise/api/app/config.py",
-        "Enterprise/api/app/db.py",
-        "Enterprise/api/tests/test_smoke.py",
-        "Enterprise/api/schema.sql",
-        "Enterprise/api/app/rules.py",
-        "Enterprise/api/app/main.py",
-        "CHANGELOG.md"
-      ],
-      "unchanged_count": 120
-    },
-    {
-      "detected_at": "2026-08-11T00:02:29+00:00",
-      "added": [],
-      "removed": [],
-      "changed": [
-        "Enterprise/ROADMAP.md",
-        "Documentation/Windows-Smoke-Run.md",
-        "QUICK-SUMMARY.md",
-        "ANALYSIS-RECOMMENDATIONS.md",
-        "Enterprise/docker-compose.yml",
-        "Enterprise/README.md",
-        "Scaling Plan/PROGRESS-TRACKING.md",
-        "Documentation/README.md",
-        "Scaling Plan/IMPLEMENTATION-PLAN.md",
-        "Enterprise/.env.example",
-        "COMPLETION-REPORT.md",
-        "IT-TOOLKIT-GAP-ANALYSIS.md",
-        "Enterprise/SCALING-PLAN.md",
-        "Documentation/Deployment-AI-Runbook.md",
-        "Enterprise/ARCHITECTURE.md"
-      ],
-      "unchanged_count": 114
-    },
-    {
-      "detected_at": "2026-08-11T18:51:43+00:00",
-      "added": [
-        "Documentation/PROJECT-SPEC.md",
-        "Documentation/Local-E2E-Test.md"
-      ],
-      "removed": [],
-      "changed": [
-        "Documentation/README.md",
-        "CHANGELOG.md",
-        "Enterprise/api/tests/test_smoke.py",
-        "Enterprise/api/app/main.py",
-        "Enterprise/api/app/github.py",
-        "Documentation/Deployment-AI-Runbook.md"
-      ],
-      "unchanged_count": 123
-    },
-    {
-      "detected_at": "2026-08-11T21:42:26+00:00",
-      "added": [],
-      "removed": [],
-      "changed": [
-        "Enterprise/agent/agent-version.json",
-        "Enterprise/agent/wix/Agent.wxs",
-        "Enterprise/portal/index.html"
-      ],
-      "unchanged_count": 128
-    },
-    {
-      "detected_at": "2026-08-11T22:40:08+00:00",
-      "added": [],
-      "removed": [],
-      "changed": [
-        "Enterprise/agent/wix/Agent.wxs",
-        "Enterprise/agent/agent-version.json"
-      ],
-      "unchanged_count": 129
-    },
-    {
-      "detected_at": "2026-08-11T22:47:04+00:00",
-      "added": [],
-      "removed": [],
-      "changed": [
-        "Enterprise/api/app/main.py",
-        "Enterprise/README.md",
-        "Enterprise/agent/wix/build-msi.ps1",
-        ".github/workflows/ci.yml",
-        "Enterprise/api/app/github.py",
-        "Enterprise/api/app/bundle.py",
-        "Enterprise/deploy/deploy.sh",
-        "Enterprise/deploy/deploy.ps1"
-      ],
-      "unchanged_count": 123
-    },
-    {
-      "detected_at": "2026-08-11T22:59:10+00:00",
-      "added": [],
-      "removed": [],
-      "changed": [
-        "Enterprise/agent/agent-version.json",
-        "Enterprise/agent/wix/Agent.wxs"
-      ],
-      "unchanged_count": 129
-    },
-    {
-      "detected_at": "2026-08-11T23:26:59+00:00",
-      "added": [
-        "Enterprise/agent/endpoint.json"
-      ],
-      "removed": [],
-      "changed": [
-        ".github/workflows/ci.yml"
-      ],
-      "unchanged_count": 130
-    },
-    {
-      "detected_at": "2026-11-09T23:00:23+00:00",
-      "added": [
-        "coverage/sort-arrow-sprite.png",
-        "docs/assessment/GAP-REGISTER.md",
-        "setup-security.js",
-        "Aaditech_Master_Development_Directive_Go_Edition_updated.docx",
-        "test-query-performance-indexing.js",
-        "database/migrations/002_partitioning.sql",
-        "test-database-resilience.js",
-        "Dockerfile",
-        "tests/integration/cloud-audit-status.test.js",
-        "Enterprise/agent/features.json",
-        "docs/architecture/CANONICAL-AGENT-PROTOCOL.md",
-        "docs/architecture/ADR-001-service-topology.md",
-        "tests/integration/server.integration.test.js",
-        "coverage/favicon.png",
-        "artifacts/msi/18f72100-0e95-4ca1-ac4b-8659207b4335/IT-Toolkit-Agent-Enterprise-1.1.2.msi",
-        "test-data-retention.js",
-        "artifacts/msi/5562742b-ef4e-4c8c-b699-593042e71c11/IT-Toolkit-Agent-Enterprise-1.1.2.msi",
-        "Enterprise/agent/fixtures/IT-Toolkit-Agent-1.1.2.msi",
-        "artifacts/msi/297e37ed-5e3c-430c-b7b2-cd39f0179e96/IT-Toolkit-Agent-Enterprise-1.1.2.msi",
-        "Enterprise/agent/run-agent-once.cmd",
-        "database/migrations/003_rbac_and_audit.sql",
-        "Enterprise/deploy/bootstrap-secrets.cjs",
-        "coverage/prettify.js",
-        "artifacts/msi/IT-Toolkit-Agent-1.1.2.msi",
-        "artifacts/msi/57604147-5f39-420e-b7d8-ed1bfd3cb03b/IT-Toolkit-Agent-Enterprise-1.1.2.msi",
-        "agent-artifacts.js",
-        "Enterprise/agent/Aaditech-Agent.ps1",
-        "test-contract-validation.js",
-        "coverage/db.js.html",
-        "Enterprise/deploy/first-run.ps1",
-        "doc1_full.txt",
-        "coverage/index.html",
-        "artifacts/msi/9338e056-4977-40b2-98f9-ff8bef7f493f/IT-Toolkit-Agent-Enterprise-1.1.2.msi",
-        "artifacts/msi/a4b6b717-efee-471b-914d-994eeec2ca70/IT-Toolkit-Agent-Enterprise-1.1.2.msi",
-        "docs/architecture/ADR-002-msi-package-builder.md",
-        "coverage/coverage-final.json",
-        ".env.example",
-        "artifacts/msi/43bf3827-0164-4e3c-bc41-9d4824b0bff5/IT-Toolkit-Agent-Enterprise-1.1.2.msi",
-        "tests/unit/validation.unit.test.js",
-        "validation.js",
-        "artifacts/msi/a50699ec-e0b7-4f7a-9f49-81308aa1156e/IT-Toolkit-Agent-Enterprise-1.1.2.msi",
-        "coverage/sorter.js",
-        "tests/unit/first-run-setup.test.js",
-        "coverage/prettify.css",
-        "docs/operations/DEPLOYMENT-GUIDE.md",
-        "contracts/agent-protocol/agent-protocol.json",
-        "public/assets/aistudio/Paste_November_03__2026_-_6_59PM_c4c14beb",
-        "tests/integration/first-run-config.test.js",
-        "Enterprise/agent/install-agent.cmd",
-        "public/assets/aistudio/Paste_November_03__2026_-_8_39PM_d3f61445",
-        "package.json",
-        "tests/unit/db.unit.test.js",
-        "artifacts/msi/d5a936f0-fa60-4a32-92ec-9cf37983cd98/IT-Toolkit-Agent-Enterprise-1.1.2.msi",
-        "docs/operations/SECRET-ROTATION.md",
-        "database/mysql/schema.sql",
-        "database/migrations/README.md",
-        "config-secrets.js",
-        "artifacts/msi/60e6be69-8a5d-48dd-9fde-cc9be47873e2/IT-Toolkit-Agent-Enterprise-1.1.2.msi",
-        "HOSTINGER_DEPLOYMENT_GUIDE.md",
-        "coverage/base.css",
-        "server.js",
-        "test-auth-integration.js",
-        "Enterprise/deploy/first-run.sh",
-        "db.js",
-        ".dockerignore",
-        "artifacts/msi/3ed63471-a6f5-408d-8b17-07bb0c10dea1/IT-Toolkit-Agent-Enterprise-1.1.2.msi",
-        "test-device-auth-deep.js",
-        "coverage/block-navigation.js",
-        "ecosystem.config.cjs",
-        "package-lock.json",
-        "Aaditech_Endpoint_Monitoring_Management_Final_Requirements.docx",
-        "database/migrations/001_init_schema.sql",
-        "coverage/server.js.html",
-        "docs/assessment/FEATURE-STATUS.md",
-        "artifacts/msi/b465f41d-4927-4e39-af8b-db7e4c277785/test-agent-1.1.2.msi",
-        ".github/workflows/phase-h-index-sync.yml",
-        "docs/architecture/RTM.md",
-        "first-run-routes.js",
-        "vitest.config.js",
-        "artifacts/msi/662ac363-597c-427a-aa7b-3db3bb8c086d/IT-Toolkit-Agent-Enterprise-1.1.2.msi",
-        "Enterprise/deploy/start.cjs",
-        "test-msi-packaging-integration.js",
-        "docs/deployment/FIRST-RUN-SETUP.md",
-        "artifacts/msi/f68bc54b-9596-462a-8d43-531c48fe1cdf/IT-Toolkit-Agent-Enterprise-1.1.2.msi",
-        "artifacts/msi/57cac912-a0bc-4a2f-90a3-10abadf10d45/IT-Toolkit-Agent-Enterprise-1.1.2.msi",
-        "tests/unit/sync-device-processes.test.js",
-        "doc2_full.txt",
-        "tests/unit/bootstrap-secrets.test.js",
-        "Enterprise/portal/phase-h-ui.js",
-        "tests/unit/boot-security.test.js",
-        "certs/ca.crt",
-        "tests/unit/setup-schema.test.js",
-        "Enterprise/agent/uninstall-agent.cmd",
-        "test-id-generation-race.js",
-        "test-migrations-runner.js",
-        "artifacts/msi/51e7acd3-98d4-4f63-ac0c-7aae35853728/IT-Toolkit-Agent-Enterprise-1.1.2.msi",
-        "docs/assessment/REPOSITORY-AUDIT.md",
-        "docs/architecture/ADR-003-no-mock-telemetry.md",
-        "coverage/validation.js.html",
-        "tests/unit/port-configuration.test.js",
-        "metadata.json",
-        "docs/architecture/Technical-Architecture-Spec.md",
-        "contracts/openapi/openapi.yaml",
-        "docs/assessment/SECURITY-REVIEW.md",
-        "tests/unit/msi-latest-route.test.js",
-        "artifacts/msi/8600bfa1-0be3-4184-b870-94a4555ef182/IT-Toolkit-Agent-Enterprise-1.1.2.msi",
-        "docs/assessment/TEST-RESULTS.md",
-        "artifacts/msi/8e58fa75-231e-4433-bca1-7007194724d2/IT-Toolkit-Agent-Enterprise-1.1.2.msi",
-        "docs/assessment/RELEASE-READINESS.md",
-        "artifacts/msi/bca6a12d-1c60-4985-8f27-528331d72022/IT-Toolkit-Agent-Enterprise-1.1.2.msi",
-        "docs/assessment/REMEDIATION-ROADMAP.md",
-        "Scripts/check-version-consistency.cjs"
-      ],
-      "removed": [
-        "Enterprise/agent/build/codesign/IT-Toolkit-CodeSign-Root.cer",
-        "Enterprise/api/app/config.py",
-        "Enterprise/api/app/db.py",
-        "Enterprise/api/Dockerfile",
-        "Enterprise/api/app/rules.py",
-        "Enterprise/api/app/vault.py",
-        "Enterprise/api/requirements.txt",
-        "Enterprise/api/app/certs.py",
-        "Enterprise/api/.dockerignore",
-        "Enterprise/api/app/main.py",
-        "Enterprise/api/tests/conftest.py",
-        "Enterprise/api/app/github.py",
-        "Enterprise/api/schema.sql",
-        "Enterprise/api/app/__init__.py",
-        "Enterprise/agent/build/codesign/IT-Toolkit-CodeSign-CA.cer",
-        "Enterprise/api/app/logging_setup.py",
-        "Enterprise/api/requirements-dev.txt",
-        "Enterprise/api/app/bundle.py",
-        "Enterprise/.env.example",
-        "Enterprise/api/app/metrics.py",
-        "Enterprise/api/tests/test_smoke.py",
-        "Logs/README.txt",
-        "Enterprise/api/tests/__init__.py",
-        "Enterprise/api/app/ratelimit.py",
-        "Enterprise/api/app/auth.py",
-        "Enterprise/agent/build/new-codesign-cert.ps1"
-      ],
-      "changed": [
-        "Enterprise/docker-compose.yml",
-        "Scripts/Index/Update-ProjectIndex.ps1",
-        "Enterprise/agent/Agent-Collect.ps1",
-        "CHANGELOG.md",
-        "Enterprise/README.md",
-        "Enterprise/ROADMAP.md",
-        ".github/workflows/ci.yml",
-        "Enterprise/ARCHITECTURE.md",
-        "COMPLETION-REPORT.md",
-        "Enterprise/SCALING-PLAN.md",
-        "Enterprise/agent/build/build-agent.ps1",
-        "Enterprise/api/features.json",
-        "Enterprise/agent/agent-config.example.json",
-        "Enterprise/portal/index.html",
-        "Enterprise/deploy/Caddyfile",
-        ".gitignore",
-        "Enterprise/agent/endpoint.json"
-      ],
-      "unchanged_count": 89
-    },
-    {
-      "detected_at": "2026-11-09T23:02:57+00:00",
-      "added": [],
-      "removed": [],
-      "changed": [
-        "Scripts/Index/Update-ProjectIndex.ps1"
-      ],
-      "unchanged_count": 217
-    },
-    {
-      "detected_at": "2026-11-09T23:06:12+00:00",
-      "added": [],
-      "removed": [],
-      "changed": [
-        "Enterprise/agent/build/build-agent.ps1"
-      ],
-      "unchanged_count": 217
-    },
-    {
-      "detected_at": "2026-11-10T20:44:51+00:00",
-      "added": [],
-      "removed": [],
-      "changed": [
-        "Scripts/Index/Update-ProjectIndex.ps1"
-      ],
-      "unchanged_count": 217
-    },
-    {
-      "detected_at": "2026-11-10T20:46:05+00:00",
-      "added": [],
-      "removed": [],
-      "changed": [
-        "first-run-routes.js"
-      ],
-      "unchanged_count": 217
-    },
-    {
-      "detected_at": "2026-11-10T20:46:35+00:00",
-      "added": [
-        "tests/unit/first-run-legacy-admin.test.js"
-      ],
-      "removed": [],
-      "changed": [],
-      "unchanged_count": 218
-    },
-    {
-      "detected_at": "2026-11-10T20:47:37+00:00",
-      "added": [],
-      "removed": [],
-      "changed": [
-        "Enterprise/docker-compose.yml"
-      ],
-      "unchanged_count": 218
-    },
-    {
-      "detected_at": "2026-11-10T20:49:22+00:00",
-      "added": [
-        "Scripts/verify-first-run-docker.mjs"
-      ],
-      "removed": [],
-      "changed": [],
-      "unchanged_count": 219
-    },
-    {
-      "detected_at": "2026-11-10T20:50:08+00:00",
-      "added": [],
-      "removed": [],
-      "changed": [
-        ".dockerignore"
-      ],
-      "unchanged_count": 219
-    },
-    {
-      "detected_at": "2026-11-10T20:50:40+00:00",
-      "added": [
-        ".github/workflows/phase-h-docker-smoke.yml"
-      ],
-      "removed": [],
-      "changed": [],
-      "unchanged_count": 220
-    },
-    {
-      "detected_at": "2026-11-10T20:52:32+00:00",
-      "added": [],
-      "removed": [],
-      "changed": [
-        "Scripts/verify-first-run-docker.mjs"
-      ],
-      "unchanged_count": 220
-    },
     {
       "detected_at": "2026-11-10T20:55:20+00:00",
       "added": [],
@@ -397,6 +27,194 @@
         "docs/assessment/RELEASE-READINESS.md"
       ],
       "unchanged_count": 219
+    },
+    {
+      "detected_at": "2026-11-10T21:42:18+00:00",
+      "added": [
+        "Enterprise/agent/wix/verify-msi-lifecycle.ps1",
+        "Scripts/Tests/AgentCommandTrust.Tests.ps1",
+        ".github/workflows/phase-i-windows-msi.yml",
+        "Scripts/Modules/AgentCommandTrust.psm1",
+        "tests/unit/agent-command-security.test.js",
+        "agent-command-security.js",
+        "Enterprise/agent/wix/Assert-PackagingConfig.ps1"
+      ],
+      "removed": [],
+      "changed": [
+        "Enterprise/agent/wix/build-msi.ps1",
+        "Enterprise/agent/Agent-Collect.ps1",
+        ".github/workflows/ci.yml",
+        "Enterprise/agent/wix/Agent.wxs",
+        ".github/workflows/phase-h-index-sync.yml",
+        "server.js"
+      ],
+      "unchanged_count": 215
+    },
+    {
+      "detected_at": "2026-11-10T21:43:11+00:00",
+      "added": [],
+      "removed": [],
+      "changed": [
+        "Enterprise/agent/wix/build-msi.ps1"
+      ],
+      "unchanged_count": 227
+    },
+    {
+      "detected_at": "2026-11-10T21:43:45+00:00",
+      "added": [],
+      "removed": [],
+      "changed": [
+        "Scripts/Tests/AgentCommandTrust.Tests.ps1"
+      ],
+      "unchanged_count": 227
+    },
+    {
+      "detected_at": "2026-11-10T21:44:49+00:00",
+      "added": [],
+      "removed": [],
+      "changed": [
+        "server.js"
+      ],
+      "unchanged_count": 227
+    },
+    {
+      "detected_at": "2026-11-10T21:45:54+00:00",
+      "added": [
+        "Enterprise/agent/Provision-Device.ps1"
+      ],
+      "removed": [],
+      "changed": [
+        "Enterprise/agent/wix/build-msi.ps1"
+      ],
+      "unchanged_count": 227
+    },
+    {
+      "detected_at": "2026-11-10T21:46:07+00:00",
+      "added": [],
+      "removed": [],
+      "changed": [
+        "Enterprise/agent/wix/Agent.wxs"
+      ],
+      "unchanged_count": 228
+    },
+    {
+      "detected_at": "2026-11-10T21:48:30+00:00",
+      "added": [],
+      "removed": [],
+      "changed": [
+        "Enterprise/agent/wix/verify-msi-lifecycle.ps1"
+      ],
+      "unchanged_count": 228
+    },
+    {
+      "detected_at": "2026-11-10T21:49:49+00:00",
+      "added": [
+        "docs/deployment/WINDOWS-AGENT-RELEASE-VALIDATION.md"
+      ],
+      "removed": [],
+      "changed": [],
+      "unchanged_count": 229
+    },
+    {
+      "detected_at": "2026-11-10T21:50:43+00:00",
+      "added": [
+        "tests/integration/device-command-envelope.test.js"
+      ],
+      "removed": [],
+      "changed": [],
+      "unchanged_count": 230
+    },
+    {
+      "detected_at": "2026-11-10T21:51:51+00:00",
+      "added": [],
+      "removed": [],
+      "changed": [
+        "docs/deployment/WINDOWS-AGENT-RELEASE-VALIDATION.md"
+      ],
+      "unchanged_count": 230
+    },
+    {
+      "detected_at": "2026-11-10T21:52:42+00:00",
+      "added": [],
+      "removed": [],
+      "changed": [
+        "docs/assessment/RELEASE-READINESS.md"
+      ],
+      "unchanged_count": 230
+    },
+    {
+      "detected_at": "2026-11-10T21:54:42+00:00",
+      "added": [],
+      "removed": [],
+      "changed": [
+        ".github/workflows/ci.yml"
+      ],
+      "unchanged_count": 230
+    },
+    {
+      "detected_at": "2026-11-10T21:58:35+00:00",
+      "added": [],
+      "removed": [],
+      "changed": [
+        "agent-artifacts.js"
+      ],
+      "unchanged_count": 230
+    },
+    {
+      "detected_at": "2026-11-10T21:59:23+00:00",
+      "added": [],
+      "removed": [],
+      "changed": [
+        "server.js"
+      ],
+      "unchanged_count": 230
+    },
+    {
+      "detected_at": "2026-11-10T22:00:01+00:00",
+      "added": [],
+      "removed": [],
+      "changed": [
+        "test-msi-packaging-integration.js"
+      ],
+      "unchanged_count": 230
+    },
+    {
+      "detected_at": "2026-11-10T22:00:43+00:00",
+      "added": [],
+      "removed": [],
+      "changed": [
+        ".github/workflows/ci.yml"
+      ],
+      "unchanged_count": 230
+    },
+    {
+      "detected_at": "2026-11-10T22:01:04+00:00",
+      "added": [
+        "tests/unit/msi-artifact-security.test.js"
+      ],
+      "removed": [],
+      "changed": [],
+      "unchanged_count": 231
+    },
+    {
+      "detected_at": "2026-11-10T22:02:25+00:00",
+      "added": [],
+      "removed": [],
+      "changed": [
+        "agent-artifacts.js",
+        "Enterprise/docker-compose.yml",
+        "server.js"
+      ],
+      "unchanged_count": 229
+    },
+    {
+      "detected_at": "2026-11-10T22:02:55+00:00",
+      "added": [],
+      "removed": [],
+      "changed": [
+        "docs/deployment/WINDOWS-AGENT-RELEASE-VALIDATION.md"
+      ],
+      "unchanged_count": 231
     }
   ],
   "next_recommended_tasks": [

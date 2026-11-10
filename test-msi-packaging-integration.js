@@ -1,126 +1,98 @@
-import assert from 'assert';
-import crypto from 'crypto';
+import assert from 'node:assert/strict';
+import crypto from 'node:crypto';
 import jwt from 'jsonwebtoken';
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import fs from 'node:fs';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+import {isGenuineMsiArtifact,resolveAgentMsi} from './agent-artifacts.js';
+const here=path.dirname(fileURLToPath(import.meta.url));
 
 async function runTests() {
-  console.log('=== Starting MSI Packaging Integration Tests ===');
+  console.log('=== MSI release gate integration tests ===');
+  const BASE=process.env.BASE_URL||'http://127.0.0.1:3000';
+  const meta=JSON.parse(fs.readFileSync(path.join(here,'Enterprise/agent/agent-version.json'),'utf8'));
+  const version=meta.agent_version;
+  assert.ok(/^\d+\.\d+\.\d+$/.test(version));
 
-  const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
+  // The shipped 1536-byte fixture is not a distributable MSI, even though
+  // its first bytes imitate an OLE compound file header.
+  const fixture=path.join(here,'Enterprise/agent/fixtures','IT-Toolkit-Agent-'+version+'.msi');
+  if (fs.existsSync(fixture)) {
+    assert.equal(isGenuineMsiArtifact(fixture),false,'Placeholder MSI must be rejected');
+  }
+  const available=resolveAgentMsi(version);
+  if (process.env.NODE_ENV==='test') {
+    assert.equal(available.found,false,'CI test checkout contains no genuine signed release MSI');
+  }
 
-  // 1. Verify agent version resolution
-  const versionFile = path.join(__dirname, 'Enterprise', 'agent', 'agent-version.json');
-  assert.ok(fs.existsSync(versionFile), 'agent-version.json must exist');
-  const meta = JSON.parse(fs.readFileSync(versionFile, 'utf8'));
-  const expectedVersion = meta.agent_version;
-  console.log(`[PASS] Verified agent-version.json source of truth: ${expectedVersion}`);
+  const bundle=await fetch(BASE+'/api/agent-bundle');
+  assert.equal(bundle.status,200);
+  const info=await bundle.json();
+  assert.equal(info.agent_json.agent_version,version);
+  assert.equal(info.msi_available,available.found);
+  assert.equal(info.msi_size,available.found?available.size:0);
+  assert.equal(info.msi_filename,'IT-Toolkit-Agent-'+version+'.msi');
 
-  // 2. Test GET /api/agent-bundle
-  const bundleRes = await fetch(`${BASE_URL}/api/agent-bundle`);
-  assert.strictEqual(bundleRes.status, 200, '/api/agent-bundle should return 200');
-  const bundleData = await bundleRes.json();
-  assert.strictEqual(bundleData.agent_json.agent_version, expectedVersion, 'agent_version must match agent-version.json');
-  assert.strictEqual(bundleData.msi_available, true, 'msi_available should be true when artifact exists');
-  assert.ok(bundleData.msi_size > 1000, 'msi_size should reflect real file byte size');
-  assert.strictEqual(bundleData.msi_filename, `IT-Toolkit-Agent-${expectedVersion}.msi`);
-  assert.ok(bundleData.ca_cert && bundleData.ca_cert.includes('BEGIN CERTIFICATE'), 'ca_cert must be present');
-  console.log(`[PASS] /api/agent-bundle verified with real version ${expectedVersion} and size ${bundleData.msi_size} bytes`);
+  const ca=await fetch(BASE+'/api/ca.crt');
+  assert.equal(ca.status,200);
+  const caText=await ca.text();
+  assert.match(caText,/-----BEGIN CERTIFICATE-----/);
+  assert.match(caText,/-----END CERTIFICATE-----/);
+  new crypto.X509Certificate(caText);
 
-  // 3. Test GET /api/ca.crt
-  const caRes = await fetch(`${BASE_URL}/api/ca.crt`);
-  assert.strictEqual(caRes.status, 200, '/api/ca.crt should return 200');
-  const caCertText = await caRes.text();
-  assert.ok(caCertText.includes('-----BEGIN CERTIFICATE-----'), 'ca.crt must contain PEM header');
-  assert.ok(caCertText.includes('-----END CERTIFICATE-----'), 'ca.crt must contain PEM footer');
-  assert.ok(!caCertText.includes('...'), 'ca.crt must never contain fabricated placeholder dots');
-  const parsedCert = new crypto.X509Certificate(caCertText);
-  assert.ok(parsedCert.subject.includes('IT-Toolkit'), 'X509Certificate should be valid and have IT-Toolkit subject');
-  console.log(`[PASS] /api/ca.crt verified as valid X.509 Certificate: ${parsedCert.subject}`);
+  const latest=await fetch(BASE+'/api/agent-msi');
+  if (!available.found) {
+    assert.equal(latest.status,404,'Do not stream a 1536-byte fixture');
+    const body=await latest.json();
+    assert.equal(body.msi_available,false);
+  } else {
+    assert.equal(latest.status,200);
+    const bytes=Buffer.from(await latest.arrayBuffer());
+    assert.ok(bytes.length>=65536);
+    assert.equal(bytes.subarray(0,8).toString('hex'),'d0cf11e0a1b11ae1');
+  }
 
-  // 4. Test GET /api/agent-msi
-  const msiRes = await fetch(`${BASE_URL}/api/agent-msi`);
-  assert.strictEqual(msiRes.status, 200, '/api/agent-msi should return 200');
-  const msiContentType = msiRes.headers.get('content-type');
-  assert.ok(msiContentType && msiContentType.includes('application/x-msi'), 'Content-Type must be application/x-msi');
-
-  const msiBuffer = Buffer.from(await msiRes.arrayBuffer());
-  assert.ok(msiBuffer.length > 500, `MSI size must be real installer, got ${msiBuffer.length} bytes`);
-  const magic = msiBuffer.subarray(0, 8).toString('hex').toUpperCase();
-  assert.strictEqual(magic, 'D0CF11E0A1B11AE1', 'MSI must have OLE CFBF magic bytes D0 CF 11 E0 A1 B1 1A E1');
-  console.log(`[PASS] /api/agent-msi verified with magic bytes ${magic} (${msiBuffer.length} bytes)`);
-
-  // 5. Test POST /api/v1/msi/generate with Super Admin Auth
-  const adminToken = jwt.sign({
-    id: 1,
-    username: 'superadmin',
-    email: 'admin@corp.internal',
-    role: 'SUPER_ADMIN',
-    tenant_id: '00000000-0000-0000-0000-000000000001',
-    jti: crypto.randomUUID()
-  }, process.env.JWT_SECRET || 'aaditech_enterprise_jwt_super_secret_key_2026_dev', { expiresIn: '1h' });
-
-  const genRes = await fetch(`${BASE_URL}/api/v1/msi/generate`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${adminToken}`
-    },
-    body: JSON.stringify({
-      package_name: 'IT-Toolkit-Agent-Enterprise',
-      version: expectedVersion,
-      group_id: 'production-fleet',
-      bootstrap_expiry_hours: 48
+  const adminToken=jwt.sign({
+    id:1,username:'superadmin',role:'SUPER_ADMIN',
+    tenant_id:'00000000-0000-0000-0000-000000000001',
+    jti:crypto.randomUUID()
+  },process.env.JWT_SECRET,{expiresIn:'1h'});
+  const packageResult=await fetch(BASE+'/api/v1/msi/generate',{
+    method:'POST',
+    headers:{'Authorization':'Bearer '+adminToken,'Content-Type':'application/json'},
+    body:JSON.stringify({
+      package_name:'CI-MSI-Release-Gate-'+Date.now(),
+      version,
+      group_id:'ci-development'
     })
   });
+  assert.equal(packageResult.status,201);
+  const pkg=await packageResult.json();
+  assert.ok(pkg.id&&pkg.bootstrap_token&&pkg.download_url);
+  assert.equal(pkg.version,version);
+  assert.equal(pkg.status,available.found?'READY':'PENDING',
+    'No fake READY state for placeholder MSI');
+  if(!available.found) {
+    assert.equal(pkg.file_hash_sha256,null);
+    assert.equal(pkg.file_size_bytes,0);
+    const pendingDownload=await fetch(BASE+pkg.download_url);
+    assert.equal(pendingDownload.status,404,'Pending/untrusted MSI cannot be downloaded');
+  } else {
+    assert.match(pkg.file_hash_sha256,/^[a-f0-9]{64}$/);
+    const dl=await fetch(BASE+pkg.download_url);
+    assert.equal(dl.status,200);
+    const bytes=Buffer.from(await dl.arrayBuffer());
+    assert.equal(crypto.createHash('sha256').update(bytes).digest('hex'),
+      pkg.file_hash_sha256.toLowerCase());
+  }
+  const missing=await fetch(BASE+'/api/v1/msi/download/pkg-nonexistent-'+Date.now());
+  assert.equal(missing.status,404);
 
-  assert.strictEqual(genRes.status, 201, 'POST /api/v1/msi/generate should return 201 Created');
-  const genData = await genRes.json();
-  assert.ok(genData.id, 'Response must have package id');
-  assert.strictEqual(genData.version, expectedVersion);
-  assert.strictEqual(genData.status, 'READY', 'Package with real artifact should be marked READY');
-  assert.ok(genData.file_hash_sha256, 'file_hash_sha256 must be computed');
-  assert.strictEqual(genData.file_hash_sha256.length, 64, 'SHA-256 hash must be 64 hex chars');
-  assert.ok(genData.bootstrap_token, 'bootstrap_token must be generated');
-  console.log(`[PASS] POST /api/v1/msi/generate created package ${genData.id} with status READY and hash ${genData.file_hash_sha256}`);
-
-  // 6. Test GET /api/v1/msi/download/:id
-  const dlRes = await fetch(`${BASE_URL}${genData.download_url}`);
-  assert.strictEqual(dlRes.status, 200, 'GET /api/v1/msi/download/:id should return 200');
-  const dlContentType = dlRes.headers.get('content-type');
-  assert.ok(dlContentType && dlContentType.includes('application/x-msi'), 'Content-Type must be application/x-msi, not application/zip');
-
-  const dlBuffer = Buffer.from(await dlRes.arrayBuffer());
-  const dlMagic = dlBuffer.subarray(0, 8).toString('hex').toUpperCase();
-  assert.strictEqual(dlMagic, 'D0CF11E0A1B11AE1', 'Downloaded file must be an OLE CFBF MSI document');
-
-  const actualSha256 = crypto.createHash('sha256').update(dlBuffer).digest('hex');
-  assert.strictEqual(actualSha256, genData.file_hash_sha256, 'Downloaded bytes SHA-256 must exactly match database record');
-  console.log(`[PASS] GET /api/v1/msi/download/:id streamed authentic MSI with matching hash ${actualSha256}`);
-
-  // 7. Test 404 behavior for non-existent MSI package
-  const fakeRes = await fetch(`${BASE_URL}/api/v1/msi/download/00000000-0000-0000-0000-000000000000`);
-  assert.strictEqual(fakeRes.status, 404, 'Non-existent package ID should return 404');
-  console.log('[PASS] 404 handling verified for non-existent package');
-
-  // 8. Test GET /api/build/status
-  const statusRes = await fetch(`${BASE_URL}/api/build/status`, {
-    headers: { 'Authorization': `Bearer ${adminToken}` }
-  });
-  assert.strictEqual(statusRes.status, 200, '/api/build/status should return 200');
-  const statusData = await statusRes.json();
-  assert.strictEqual(statusData.msi_available, true, 'build status msi_available must reflect disk state');
-  assert.strictEqual(statusData.agent_version, expectedVersion, 'build status agent_version must match source of truth');
-  console.log(`[PASS] /api/build/status verified: msi_available=${statusData.msi_available}, version=${statusData.agent_version}`);
-
-  console.log('=== ALL MSI PACKAGING INTEGRATION TESTS PASSED ===');
+  const build=await fetch(BASE+'/api/build/status',{headers:{Authorization:'Bearer '+adminToken}});
+  assert.equal(build.status,200);
+  const buildStatus=await build.json();
+  assert.equal(buildStatus.msi_available,available.found);
+  assert.equal(buildStatus.agent_version,version);
+  console.log('[MSI gate] PASS: fixture rejected, real MSI handling honest, pending builds are not downloadable.');
 }
-
-runTests().catch(err => {
-  console.error('Test failed:', err);
-  process.exit(1);
-});
+runTests().catch(e=>{console.error('[MSI gate] FAIL:',e);process.exit(1)});

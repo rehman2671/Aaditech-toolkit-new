@@ -1,28 +1,28 @@
 {
   "state_version": "1.0",
   "path": "project-state.json",
-  "generated": "2026-11-10T20:55:20+00:00",
+  "generated": "2026-11-10T22:02:55+00:00",
   "phase": "RELEASE BLOCKED / REMEDIATION IN PROGRESS",
-  "last_verified_commit": "7bc4c1e7dac256a7a11dddb2da725f43e048e818",
-  "last_verified_date": "2026-11-11T02:25:08+05:30",
+  "last_verified_commit": "e0d21f358e2e1f12469f8d712955021c17b551b7",
+  "last_verified_date": "2026-11-11T03:32:39+05:30",
   "git": {
-    "branch": "feat/phase-h-first-run-setup-20261110-2",
+    "branch": "feat/phase-i-windows-agent-hardening-20261111",
     "commit_count": 1,
     "clean_working_tree": true,
-    "head": "7bc4c1e7dac256a7a11dddb2da725f43e048e818"
+    "head": "e0d21f358e2e1f12469f8d712955021c17b551b7"
   },
   "latest_delta": {
-    "detected_at": "2026-11-10T20:55:20+00:00",
+    "detected_at": "2026-11-10T22:02:55+00:00",
     "added": [],
     "removed": [],
     "changed": [
-      "docs/deployment/FIRST-RUN-SETUP.md",
-      "docs/assessment/RELEASE-READINESS.md"
+      "docs/deployment/WINDOWS-AGENT-RELEASE-VALIDATION.md"
     ],
-    "unchanged_count": 219
+    "unchanged_count": 231
   },
   "module_state": {
     "working": [
+      "AgentCommandTrust.psm1",
       "AlertEngine.psm1",
       "CredentialManager.psm1",
       "ExportEngine.psm1",

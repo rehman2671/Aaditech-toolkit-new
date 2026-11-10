@@ -25,6 +25,11 @@ if (-not (Test-Path (Join-Path $BuildOut 'agent-config.json'))) {
     throw "build/out/agent-config.json missing. Run build-agent.ps1 first."
 }
 
+# Security release gate: installers may not carry fleet API keys, device
+# credentials or bootstrap tokens. Provision each endpoint after installation.
+& (Join-Path $PSScriptRoot 'Assert-PackagingConfig.ps1') -ConfigFile (Join-Path $BuildOut 'agent-config.json')
+
+
 $Stage = Join-Path $WixDir 'stage'
 if (Test-Path $Stage) { Remove-Item $Stage -Recurse -Force }
 New-Item -ItemType Directory -Path $Stage -Force | Out-Null
@@ -68,6 +73,10 @@ Copy-Item (Join-Path $RepoRoot 'Config')  (Join-Path $Stage 'Config')  -Recurse 
 # security descriptor that lets the NETWORK SERVICE agent trigger it).
 Copy-Item (Join-Path $WixDir 'Create-ElevatedTask.ps1') (Join-Path $Stage 'Scripts\Create-ElevatedTask.ps1') -Force
 
+# A credential-free MSI needs an explicit operator-controlled enrollment step.
+# This helper requests the single-use bootstrap token interactively AFTER install.
+Copy-Item (Join-Path $RepoRoot 'Enterprise\agent\Provision-Device.ps1') (Join-Path $Stage 'Scripts\Provision-Device.ps1') -Force
+
 # bundle the support-engineer collectors (installed as <root>\Enterprise\agent\collectors\,
 # same relative path the agent.json feature scripts use in the repo)
 $collectors = Join-Path $RepoRoot 'Enterprise\agent\collectors'
@@ -109,7 +118,9 @@ try {
     # Versioned artifact name so every build is distinguishable at a glance:
     # IT-Toolkit-Agent-<semver>.msi (semver, NOT the 4-part upgrade revision).
     $MsiName = "IT-Toolkit-Agent-$AgentVersion.msi"
-    & $wix.Source build 'Agent.wxs' -o "$(Join-Path $BuildOut $MsiName)" -d "AgentVersion=$MsiVersion" -d "AgentInterval=$AgentInterval"
+    # WiX defaults to x86 unless -arch is specified. The agent's ProgramFiles64Folder
+    # layout requires an x64 MSI or Windows Installer redirects to Program Files (x86).
+    & $wix.Source build 'Agent.wxs' -arch x64 -o "$(Join-Path $BuildOut $MsiName)" -d "AgentVersion=$MsiVersion" -d "AgentInterval=$AgentInterval"
     if ($LASTEXITCODE -ne 0) { throw "WiX build failed with exit code $LASTEXITCODE (see output above)" }
 }
 finally {

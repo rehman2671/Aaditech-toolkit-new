@@ -1,23 +1,23 @@
 {
   "state_version": "1.0",
   "path": "project-state.json",
-  "generated": "2026-11-10T20:46:35+00:00",
+  "generated": "2026-11-10T20:47:37+00:00",
   "phase": "RELEASE BLOCKED / REMEDIATION IN PROGRESS",
-  "last_verified_commit": "583bfa7c3f9f13dd133ead545bd8874b4d8de2e4",
-  "last_verified_date": "2026-11-11T02:16:17+05:30",
+  "last_verified_commit": "09be4d97966956d0af6d5e59fe37ccd88f6ffaf7",
+  "last_verified_date": "2026-11-11T02:17:19+05:30",
   "git": {
     "branch": "feat/phase-h-first-run-setup-20261110-2",
     "commit_count": 1,
     "clean_working_tree": true,
-    "head": "583bfa7c3f9f13dd133ead545bd8874b4d8de2e4"
+    "head": "09be4d97966956d0af6d5e59fe37ccd88f6ffaf7"
   },
   "latest_delta": {
-    "detected_at": "2026-11-10T20:46:35+00:00",
-    "added": [
-      "tests/unit/first-run-legacy-admin.test.js"
-    ],
+    "detected_at": "2026-11-10T20:47:37+00:00",
+    "added": [],
     "removed": [],
-    "changed": [],
+    "changed": [
+      "Enterprise/docker-compose.yml"
+    ],
     "unchanged_count": 218
   },
   "module_state": {

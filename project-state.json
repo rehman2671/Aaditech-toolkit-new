@@ -1,37 +1,24 @@
 {
   "state_version": "1.0",
   "path": "project-state.json",
-  "generated": "2026-11-10T21:42:18+00:00",
+  "generated": "2026-11-10T21:43:11+00:00",
   "phase": "RELEASE BLOCKED / REMEDIATION IN PROGRESS",
-  "last_verified_commit": "b1b84475dd77974b55e42dc3738d6b68ce3d82aa",
-  "last_verified_date": "2026-11-11T03:12:03+05:30",
+  "last_verified_commit": "2716a2fabd77ad40aa554236bd921a8a8169481e",
+  "last_verified_date": "2026-11-11T03:12:55+05:30",
   "git": {
     "branch": "feat/phase-i-windows-agent-hardening-20261111",
     "commit_count": 1,
     "clean_working_tree": true,
-    "head": "b1b84475dd77974b55e42dc3738d6b68ce3d82aa"
+    "head": "2716a2fabd77ad40aa554236bd921a8a8169481e"
   },
   "latest_delta": {
-    "detected_at": "2026-11-10T21:42:18+00:00",
-    "added": [
-      "Enterprise/agent/wix/verify-msi-lifecycle.ps1",
-      "Scripts/Tests/AgentCommandTrust.Tests.ps1",
-      ".github/workflows/phase-i-windows-msi.yml",
-      "Scripts/Modules/AgentCommandTrust.psm1",
-      "tests/unit/agent-command-security.test.js",
-      "agent-command-security.js",
-      "Enterprise/agent/wix/Assert-PackagingConfig.ps1"
-    ],
+    "detected_at": "2026-11-10T21:43:11+00:00",
+    "added": [],
     "removed": [],
     "changed": [
-      "Enterprise/agent/wix/build-msi.ps1",
-      "Enterprise/agent/Agent-Collect.ps1",
-      ".github/workflows/ci.yml",
-      "Enterprise/agent/wix/Agent.wxs",
-      ".github/workflows/phase-h-index-sync.yml",
-      "server.js"
+      "Enterprise/agent/wix/build-msi.ps1"
     ],
-    "unchanged_count": 215
+    "unchanged_count": 227
   },
   "module_state": {
     "working": [

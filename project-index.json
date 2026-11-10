@@ -1,9 +1,9 @@
 {
   "index_version": "2.0",
   "path": "project-index.json",
-  "generated": "2026-11-10T21:42:18+00:00",
-  "last_verified_commit": "b1b84475dd77974b55e42dc3738d6b68ce3d82aa",
-  "last_verified_date": "2026-11-11T03:12:03+05:30",
+  "generated": "2026-11-10T21:43:11+00:00",
+  "last_verified_commit": "2716a2fabd77ad40aa554236bd921a8a8169481e",
+  "last_verified_date": "2026-11-11T03:12:55+05:30",
   "auto_indexed": true,
   "indexer": "Scripts/Index/Update-ProjectIndex.ps1",
   "repository": {
@@ -20,1912 +20,1876 @@
   "current_state": {
     "total_files": 228,
     "extension_counts": {
-      ".bat": 3,
-      ".sql": 4,
-      "(none)": 5,
-      ".msi": 21,
-      ".wxs": 1,
-      ".md": 54,
-      ".crt": 1,
-      ".css": 2,
-      ".png": 2,
-      ".dockerignore": 1,
-      ".ps1": 38,
       ".js": 36,
-      ".sh": 4,
-      ".cmd": 3,
-      ".yaml": 1,
       ".cjs": 4,
       ".gitattributes": 1,
-      ".psm1": 11,
-      ".yml": 5,
-      ".template": 1,
-      ".html": 6,
-      ".docx": 2,
-      ".txt": 7,
-      ".gitignore": 1,
-      ".example": 1,
+      ".ps1": 38,
       ".mjs": 1,
+      ".gitignore": 1,
+      ".png": 2,
+      ".yml": 5,
+      ".wxs": 1,
+      ".txt": 7,
+      ".bat": 3,
+      ".template": 1,
+      ".cmd": 3,
+      ".docx": 2,
+      ".crt": 1,
+      ".msi": 21,
+      ".sql": 4,
+      ".css": 2,
+      ".dockerignore": 1,
+      ".example": 1,
+      ".psm1": 11,
+      ".xlsx": 1,
       ".json": 11,
-      ".xlsx": 1
+      ".html": 6,
+      ".md": 54,
+      ".sh": 4,
+      "(none)": 5,
+      ".yaml": 1
     }
   },
   "file_inventory": {
     "scan_basis": "audit/index.json (pre-remediation, 59 files) + delta detection at 2026-08-05T23:15:00",
     "current_snapshot": {
-      "public/assets/aistudio/Paste_November_03__2026_-_6_59PM_c4c14beb": "C4C14BEBFE989ED0",
-      "vitest.config.js": "C002D0288319936C",
-      "Enterprise/agent/wix/Create-ElevatedTask.ps1": "5EF3362E7202813B",
-      "Enterprise/portal/index.html": "2B54EE684D0E342E",
+      "Aaditech_Endpoint_Monitoring_Management_Final_Requirements.docx": "BF2252276700A6B2",
+      "artifacts/msi/57cac912-a0bc-4a2f-90a3-10abadf10d45/IT-Toolkit-Agent-Enterprise-1.1.2.msi": "FB66AE38BA5834A1",
+      "Scaling Plan/PROGRESS-TRACKING.md": "4F1EAF8DE32F36C5",
+      "Documentation/PROJECT-SPEC.md": "AF1548C1481C7662",
+      "Enterprise/agent/collectors/Get-SystemHealth.ps1": "4E15C63CE677F492",
+      "ecosystem.config.cjs": "30AAA1F04E35D42A",
+      "Scaling Plan/DOCUMENTATION-INDEX.md": "64A600DB89C864EC",
+      "COMPLETION-REPORT.md": "681EB9A3D5D7E919",
+      "Scaling Plan/QUICK-REFERENCE.md": "F4D84638A578C75E",
+      "test-msi-packaging-integration.js": "84C706CF2583B15F",
+      "Scripts/Modules/LogManager.psm1": "2D51E3B8CFD9D742",
+      "docs/assessment/RELEASE-READINESS.md": "E48882197D141510",
       "Scripts/Tests/Phase2-Modules.Tests.ps1": "A17955AF4677DC03",
-      "Software/Portable-Software-Links.md": "9132209449371D1C",
-      "Scripts/Modules/CredentialManager.psm1": "38D20C7DB00ADA33",
+      "Config/CONFIG-GUIDE.md": "8FEAD3227F92E747",
+      "Scripts/Modules/AlertEngine.psm1": "8A4356B2CAE9433F",
+      "artifacts/msi/5562742b-ef4e-4c8c-b699-593042e71c11/IT-Toolkit-Agent-Enterprise-1.1.2.msi": "FB66AE38BA5834A1",
+      "Enterprise/deploy/Caddyfile": "0BD3EEB4CF147C54",
+      "config-secrets.js": "07D5DB78301BD059",
+      "Enterprise/deploy/bootstrap-secrets.cjs": "22FA5B7DAAD3C6B1",
+      "Enterprise/agent/wix/verify-msi-lifecycle.ps1": "5E8DB3EE6F309B6A",
+      "coverage/sorter.js": "E281B0B47445030F",
+      "artifacts/msi/43bf3827-0164-4e3c-bc41-9d4824b0bff5/IT-Toolkit-Agent-Enterprise-1.1.2.msi": "FB66AE38BA5834A1",
+      "test-data-retention.js": "693D90762037E0D1",
+      "Scripts/check-version-consistency.cjs": "3478C11035E0B2CF",
+      "Enterprise/agent/collectors/Get-LicenseInfo.ps1": "461C7CB7946A24C2",
+      "tests/integration/cloud-audit-status.test.js": "C6EBC81EA77D2C3D",
+      "artifacts/msi/9338e056-4977-40b2-98f9-ff8bef7f493f/IT-Toolkit-Agent-Enterprise-1.1.2.msi": "FB66AE38BA5834A1",
+      "HOSTINGER_DEPLOYMENT_GUIDE.md": "6AEB79967BBD3DC6",
+      "docs/assessment/REPOSITORY-AUDIT.md": "1C99C0CAA106D749",
+      "Scripts/Tests/RemoteToolkit.tests.ps1": "2C436539C5FB9D97",
+      "Scripts/Modules/ToolkitConfig.psm1": "0C2734BE83029928",
+      "ANALYSIS-RECOMMENDATIONS.md": "7CE88D83C18DC08E",
+      "docs/assessment/REMEDIATION-ROADMAP.md": "C999DD8BFD5F207F",
+      "Scaling Plan/ARCHITECTURE.md": "2AA4CFDBF7BBDA02",
+      "Scripts/Remote/BatchScan.ps1": "90393C433ED0F7EC",
+      "docs/architecture/ADR-003-no-mock-telemetry.md": "5C6C68C579FC9108",
+      "Enterprise/deploy/Caddyfile.template": "808822E5B8D99041",
+      "artifacts/msi/a4b6b717-efee-471b-914d-994eeec2ca70/IT-Toolkit-Agent-Enterprise-1.1.2.msi": "FB66AE38BA5834A1",
+      "Enterprise/agent/wix/build-msi.ps1": "E33E662DA9714A93",
+      "Enterprise/README.md": "8BC30EC6D00C01C5",
+      "QUICK-SUMMARY.md": "FFA5E9CA93790BC2",
+      "Scripts/Printer-Fix.ps1": "A153029A777F5F41",
+      "Enterprise/deploy/deploy.ps1": "FE41F8E1171F28E0",
+      "doc2_full.txt": "CECEF6630F98A914",
+      "Enterprise/agent/features.json": "48690542DE7A3501",
+      "Remote-Tools/Generate-RDP-Shortcuts.ps1": "C7FACEF5AAB50C19",
+      "artifacts/msi/8e58fa75-231e-4433-bca1-7007194724d2/IT-Toolkit-Agent-Enterprise-1.1.2.msi": "FB66AE38BA5834A1",
+      "Scripts/Modules/AgentCommandTrust.psm1": "E75C259742E94DE0",
+      "Scripts/Tests/AgentCommandTrust.Tests.ps1": "7B768F4166533755",
+      "Enterprise/agent/agent-version.json": "CE7BCC4E82E8019D",
+      "Scripts/Modules/SCHEDULE-GUIDE.md": "6CC8E4746ADE0859",
+      "IT-TOOLKIT-GAP-ANALYSIS.md": "FC9BEB673DD9457E",
+      "artifacts/msi/297e37ed-5e3c-430c-b7b2-cd39f0179e96/IT-Toolkit-Agent-Enterprise-1.1.2.msi": "FB66AE38BA5834A1",
+      "artifacts/msi/d5a936f0-fa60-4a32-92ec-9cf37983cd98/IT-Toolkit-Agent-Enterprise-1.1.2.msi": "FB66AE38BA5834A1",
+      "Enterprise/deploy/Install-Prereqs.ps1": "6B3AED59DF3E469B",
+      "coverage/index.html": "4503CF89346B297E",
+      "Enterprise/agent/collectors/Get-WindowsUpdateStatus.ps1": "B17D601DC896E55D",
+      "metadata.json": "681880F5061E73A8",
+      ".github/workflows/phase-h-index-sync.yml": "3C6EFCD59C110165",
+      "database/migrations/002_partitioning.sql": "558DD901193535E6",
+      "validation.js": "20AB9670DBDBC42D",
+      ".github/workflows/ci.yml": "24B8F3895C21BF23",
+      "docs/architecture/CANONICAL-AGENT-PROTOCOL.md": "F281084886298D82",
+      "Data/DATABASE-GUIDE.md": "4C083B1653236947",
+      "Scripts/Modules/ReportGenerator.psm1": "9F944735E7A1968F",
+      "artifacts/msi/b465f41d-4927-4e39-af8b-db7e4c277785/test-agent-1.1.2.msi": "FB66AE38BA5834A1",
+      "Enterprise/agent/collectors/Get-SoftwareInventory.ps1": "517E7EADEF082D2F",
+      "VERSION.md": "B2DBF498D84D8821",
+      "artifacts/msi/f68bc54b-9596-462a-8d43-531c48fe1cdf/IT-Toolkit-Agent-Enterprise-1.1.2.msi": "FB66AE38BA5834A1",
+      "Scripts/Tests/Phase1-Regression.Tests.ps1": "A65CA83589FAAAEC",
+      ".gitignore": "763D712F07382641",
+      "CHANGELOG.md": "99B247046B76C538",
+      "Enterprise/agent/collectors/Get-BitLockerStatus.ps1": "D063787464E05F04",
+      "Documentation/Local-E2E-Test.md": "57D32FB981B3E6C4",
       "contracts/agent-protocol/agent-protocol.json": "3FD30BE24AC61933",
       "Scripts/Remote/README.md": "617FD53DD38EA499",
-      "Scripts/Tests/Phase1-Regression.Tests.ps1": "A65CA83589FAAAEC",
-      "metadata.json": "681880F5061E73A8",
-      "Scripts/Modules/AlertEngine.psm1": "8A4356B2CAE9433F",
-      "Config/config.json": "22F398E6B911FFE0",
-      "Documentation/Local-E2E-Test.md": "57D32FB981B3E6C4",
-      "Enterprise/agent/wix/build-msi.ps1": "8B8D36BBF3EC46CA",
-      "Scripts/Modules/ToolkitConfig.psm1": "0C2734BE83029928",
-      "Scripts/Tests/BatchLauncher.Tests.ps1": "6B266E017144421B",
-      "docs/assessment/TEST-RESULTS.md": "2E543B06BBDB1A29",
-      "Scripts/Templates/Report-Template.html": "AD42679B20E7E25F",
-      "Enterprise/agent/Agent-Collect.ps1": "C0774E0B911F6AD5",
-      "Enterprise/deploy/deploy.ps1": "FE41F8E1171F28E0",
-      "Enterprise/agent/uninstall-agent.cmd": "4E546B7002955AD8",
-      "Scripts/Remote/BatchScan.ps1": "90393C433ED0F7EC",
-      "Enterprise/deploy/Caddyfile": "0BD3EEB4CF147C54",
-      "test-migrations-runner.js": "5CB452D7080787A0",
-      "Scripts/Tests/RemoteToolkit.tests.ps1": "2C436539C5FB9D97",
-      "docs/assessment/REPOSITORY-AUDIT.md": "1C99C0CAA106D749",
-      "Data/DATABASE-GUIDE.md": "4C083B1653236947",
-      "public/assets/aistudio/Paste_November_03__2026_-_8_39PM_d3f61445": "D3F61445C583AE06",
-      ".github/workflows/ci.yml": "24B8F3895C21BF23",
-      "Enterprise/agent/agent-version.json": "CE7BCC4E82E8019D",
-      "validation.js": "20AB9670DBDBC42D",
-      "Scaling Plan/START-HERE.md": "1C20761210783D23",
-      "HOSTINGER_DEPLOYMENT_GUIDE.md": "6AEB79967BBD3DC6",
-      "Scripts/Remote/Invoke-RemoteNetworkDiagnostic.ps1": "600F8663B519C2A4",
-      "artifacts/msi/9338e056-4977-40b2-98f9-ff8bef7f493f/IT-Toolkit-Agent-Enterprise-1.1.2.msi": "FB66AE38BA5834A1",
-      "docs/deployment/FIRST-RUN-SETUP.md": "FA968B898110A736",
-      "artifacts/msi/8e58fa75-231e-4433-bca1-7007194724d2/IT-Toolkit-Agent-Enterprise-1.1.2.msi": "FB66AE38BA5834A1",
-      ".gitattributes": "3A68D96E89F3BDF7",
-      "Scripts/Firewall-Test.ps1": "BCD2E24F539A8DBD",
-      "Enterprise/agent/fixtures/IT-Toolkit-Agent-1.1.2.msi": "FB66AE38BA5834A1",
-      "artifacts/msi/f68bc54b-9596-462a-8d43-531c48fe1cdf/IT-Toolkit-Agent-Enterprise-1.1.2.msi": "FB66AE38BA5834A1",
-      ".dockerignore": "999912902299A49E",
-      "tests/unit/port-configuration.test.js": "E26628D6BA4D0C6E",
-      "Enterprise/agent/wix/Agent.wxs": "B017E0A9E22B24FC",
-      "Aaditech_Master_Development_Directive_Go_Edition_updated.docx": "BEC8C0D8D08B5ECF",
-      "Documentation/Cheat-Sheet.md": "5AEF066924286207",
-      "Enterprise/deploy/start.cjs": "CB97D2698195034C",
-      "Scaling Plan/ARCHITECTURE.md": "2AA4CFDBF7BBDA02",
-      "coverage/base.css": "75168965707CF359",
-      ".env.example": "756501499190883F",
-      "Aaditech_Endpoint_Monitoring_Management_Final_Requirements.docx": "BF2252276700A6B2",
-      "Scripts/verify-first-run-docker.mjs": "3EE1880F1BB3D8E8",
-      "Enterprise/agent/Aaditech-Agent.ps1": "232EDE3723DEFCBA",
-      "Enterprise/agent/wix/verify-msi-lifecycle.ps1": "5E8DB3EE6F309B6A",
-      "Documentation/PROJECT-SPEC.md": "AF1548C1481C7662",
-      "Scaling Plan/PROGRESS-TRACKING.md": "4F1EAF8DE32F36C5",
-      "QUICK-SUMMARY.md": "FFA5E9CA93790BC2",
-      "docs/operations/DEPLOYMENT-GUIDE.md": "F132423AB23D7AB1",
-      "tests/unit/validation.unit.test.js": "AAFD8E76FE8E981A",
-      "artifacts/msi/57cac912-a0bc-4a2f-90a3-10abadf10d45/IT-Toolkit-Agent-Enterprise-1.1.2.msi": "FB66AE38BA5834A1",
-      "Enterprise/agent/build/build-agent.ps1": "470205D0E203FE9F",
-      "Enterprise/README.md": "8BC30EC6D00C01C5",
-      ".github/workflows/phase-h-docker-smoke.yml": "258043877DFEF571",
-      "Drivers/README.txt": "FFE4F43CAEBDCFF3",
-      "artifacts/msi/d5a936f0-fa60-4a32-92ec-9cf37983cd98/IT-Toolkit-Agent-Enterprise-1.1.2.msi": "FB66AE38BA5834A1",
-      "Scaling Plan/DELIVERY-SUMMARY.md": "E9E9C7352013146E",
-      "Enterprise/deploy/bootstrap-secrets.cjs": "22FA5B7DAAD3C6B1",
-      "coverage/index.html": "4503CF89346B297E",
-      "ecosystem.config.cjs": "30AAA1F04E35D42A",
-      "Scripts/Modules/SCHEDULE-GUIDE.md": "6CC8E4746ADE0859",
-      "test-id-generation-race.js": "C6ABCB15BA66EAC4",
-      "Enterprise/SCALING-PLAN.md": "52E2C0A85C850707",
-      "Scripts/Modules/LogManager.psm1": "2D51E3B8CFD9D742",
-      "Scripts/Tests/Run-RemoteToolkit-Tests.ps1": "2CEA9159CA89D51C",
-      "Enterprise/deploy/restore.sh": "A78FCF7FCF32AEE9",
-      "doc1_full.txt": "C01BE61FF230FE71",
-      "tests/unit/first-run-setup.test.js": "30FC615E1EA9DB51",
-      "Enterprise/api/features.json": "48690542DE7A3501",
-      "test-query-performance-indexing.js": "6E084AC39B444D75",
-      ".gitignore": "763D712F07382641",
-      ".github/workflows/phase-h-index-sync.yml": "3C6EFCD59C110165",
-      "VERSION.md": "B2DBF498D84D8821",
-      "coverage/server.js.html": "40981AF23B70F0C2",
-      "Scripts/Tests/AgentCommandTrust.Tests.ps1": "7B768F4166533755",
-      "database/migrations/002_partitioning.sql": "558DD901193535E6",
-      "Config/CONFIG-GUIDE.md": "8FEAD3227F92E747",
-      "Scripts/README.md": "798CD3C7EBCB6F2B",
-      "test-device-auth-deep.js": "8008C71D729ECBEA",
-      "tests/unit/bootstrap-secrets.test.js": "3C7839E45DF33F58",
-      "test-msi-packaging-integration.js": "84C706CF2583B15F",
-      "artifacts/msi/60e6be69-8a5d-48dd-9fde-cc9be47873e2/IT-Toolkit-Agent-Enterprise-1.1.2.msi": "FB66AE38BA5834A1",
-      "test-contract-validation.js": "261133F8648C52D7",
-      "Enterprise/portal/phase-h-ui.js": "2A5D82AA91CABBC6",
-      "Enterprise/agent/endpoint.json": "DFC4277C1169D5CF",
-      "CHANGELOG.md": "99B247046B76C538",
-      "artifacts/msi/a50699ec-e0b7-4f7a-9f49-81308aa1156e/IT-Toolkit-Agent-Enterprise-1.1.2.msi": "FB66AE38BA5834A1",
-      "artifacts/msi/8600bfa1-0be3-4184-b870-94a4555ef182/IT-Toolkit-Agent-Enterprise-1.1.2.msi": "FB66AE38BA5834A1",
-      "ANALYSIS-RECOMMENDATIONS.md": "7CE88D83C18DC08E",
-      "coverage/prettify.css": "31C66A00EDE9F0A6",
-      "Remote-Tools/Generate-RDP-Shortcuts.ps1": "C7FACEF5AAB50C19",
-      "coverage/validation.js.html": "E25F0EB15B4BD52A",
-      "Scaling Plan/DOCUMENTATION-INDEX.md": "64A600DB89C864EC",
-      "test-auth-integration.js": "A75BF8D44ED5B607",
-      ".githooks/pre-commit": "7C10E966D139FDAB",
-      "Enterprise/deploy/Caddyfile.template": "808822E5B8D99041",
-      "docs/assessment/GAP-REGISTER.md": "03EBC0B562A23D5F",
-      "Enterprise/deploy/Install-Prereqs.ps1": "6B3AED59DF3E469B",
-      "Scripts/Network-Diagnostic.ps1": "C4A5F3BF447FF16B",
-      "Scaling Plan/IMPLEMENTATION-PLAN.md": "F37777614506DAB9",
-      "Scripts/Modules/TaskScheduler.psm1": "6C1225E38F64D450",
-      "config-secrets.js": "07D5DB78301BD059",
-      "artifacts/msi/IT-Toolkit-Agent-1.1.2.msi": "FB66AE38BA5834A1",
-      "package.json": "A914FE6DBE832CD3",
-      "database/migrations/README.md": "030EC74F30E6CD67",
       "database/migrations/001_init_schema.sql": "9CE76B2BB26BD350",
-      "Enterprise/agent/collectors/Get-SoftwareInventory.ps1": "517E7EADEF082D2F",
-      "Scripts/Modules/RemoteToolkit.psm1": "C3F1BCC274A20EB8",
-      "Enterprise/agent/collectors/Get-SystemHealth.ps1": "4E15C63CE677F492",
-      "Enterprise/deploy/backup.sh": "BDE7F6CB1E8A99F9",
-      "artifacts/msi/5562742b-ef4e-4c8c-b699-593042e71c11/IT-Toolkit-Agent-Enterprise-1.1.2.msi": "FB66AE38BA5834A1",
-      "Data/README.txt": "A18E8A08272C1161",
-      "Scripts/Modules/ToolkitData.psm1": "7315F1C2DBC2F656",
-      "Enterprise/agent/agent-config.example.json": "F4AD2E0A5B4777B5",
-      "Documentation/Troubleshooting-Flowcharts.md": "FC7D660B6003DE36",
-      "Scaling Plan/QUICK-REFERENCE.md": "F4D84638A578C75E",
-      "Scripts/Export-EventLogs.ps1": "10748DE50BE4476D",
-      "Scripts/Tests/README.md": "92C6A4FFCC10F389",
-      "certs/ca.crt": "6F38EEE1B7FB5F6B",
-      "tests/unit/boot-security.test.js": "73EAD5B4B8F0186F",
-      "Enterprise/ROADMAP.md": "8831C699238B1865",
-      "tests/unit/setup-schema.test.js": "FE3FC3CB372F235E",
-      "artifacts/msi/43bf3827-0164-4e3c-bc41-9d4824b0bff5/IT-Toolkit-Agent-Enterprise-1.1.2.msi": "FB66AE38BA5834A1",
-      "docs/architecture/RTM.md": "CE1EB8287D645935",
-      "server.js": "DD6ABDA17C8D1AE7",
-      "Enterprise/ARCHITECTURE.md": "E16D36A3B945F3A8",
-      "docs/operations/SECRET-ROTATION.md": "34094BD59EC5C700",
-      "Documentation/Windows-Smoke-Run.md": "5C1B7FB5C15303A0",
-      "docs/assessment/REMEDIATION-ROADMAP.md": "C999DD8BFD5F207F",
-      "Enterprise/agent/features.json": "48690542DE7A3501",
-      "tests/integration/server.integration.test.js": "8B5126E785012C15",
-      "Scripts/Remote/Invoke-RemoteQuickCheck.ps1": "9076A751DEFC1627",
-      "artifacts/msi/a4b6b717-efee-471b-914d-994eeec2ca70/IT-Toolkit-Agent-Enterprise-1.1.2.msi": "FB66AE38BA5834A1",
-      "artifacts/msi/662ac363-597c-427a-aa7b-3db3bb8c086d/IT-Toolkit-Agent-Enterprise-1.1.2.msi": "FB66AE38BA5834A1",
-      "Enterprise/agent/collectors/Get-DiskHealth.ps1": "C169CC17996E8506",
-      "Remote-Tools/README.md": "D362AE00EDFC96F1",
-      "first-run-routes.js": "418ECD663DCE62C1",
-      "Scaling Plan/README-IMPLEMENTATION.md": "3D09B658CF73DA5A",
-      "Scripts/Modules/SanitizeEngine.psm1": "5E8D578FA6B052BB",
-      "Scripts/QuickCheck.ps1": "081186741B8CBDF5",
-      "Scripts/GUI/DASHBOARD-GUIDE.md": "ECED19D49DB25F1C",
-      "artifacts/msi/18f72100-0e95-4ca1-ac4b-8659207b4335/IT-Toolkit-Agent-Enterprise-1.1.2.msi": "FB66AE38BA5834A1",
-      "Enterprise/agent/collectors/Get-HardwareInventory.ps1": "6DFA3FFCACE21861",
-      "artifacts/msi/51e7acd3-98d4-4f63-ac0c-7aae35853728/IT-Toolkit-Agent-Enterprise-1.1.2.msi": "FB66AE38BA5834A1",
-      ".github/workflows/phase-i-windows-msi.yml": "44D31A2F7C7FFEBB",
-      "coverage/sorter.js": "E281B0B47445030F",
-      "coverage/db.js.html": "3B89F7D284E59D70",
-      "Scripts/User-Inventory.ps1": "304B5225DED0D8F2",
-      "database/mysql/schema.sql": "58DD93A28314F982",
-      "Enterprise/agent/install-agent.cmd": "D6C403BBE7F79202",
-      "database/migrations/003_rbac_and_audit.sql": "DA3812265F1FE9CD",
-      "artifacts/msi/b465f41d-4927-4e39-af8b-db7e4c277785/test-agent-1.1.2.msi": "FB66AE38BA5834A1",
-      "artifacts/msi/57604147-5f39-420e-b7d8-ed1bfd3cb03b/IT-Toolkit-Agent-Enterprise-1.1.2.msi": "FB66AE38BA5834A1",
-      "Scripts/Modules/ExportEngine.psm1": "F9DE33C74893F279",
-      "Scripts/Pin-QuickAccess-Folders.ps1": "A9CD9431CC4FDED7",
-      "Scripts/Run-QuickCheck.bat": "B7A5EAF5466D88AC",
-      "Scripts/Printer-Fix.ps1": "A153029A777F5F41",
-      "docs/architecture/CANONICAL-AGENT-PROTOCOL.md": "F281084886298D82",
-      "tests/unit/db.unit.test.js": "D170B51A80599D8A",
-      "Scripts/Modules/ReportGenerator.psm1": "9F944735E7A1968F",
-      "db.js": "85CC4EE17C08362A",
-      "Templates/Knowledge-Base.xlsx": "1ADC69E3731A1801",
-      "Documentation/README.md": "9AB74F54AE70218D",
-      "setup-security.js": "1CAC066147FB7D64",
-      "Enterprise/deploy/first-run.sh": "AE7E5CD30BF26489",
-      "coverage/prettify.js": "5B36332F32C5A478",
-      "test-data-retention.js": "693D90762037E0D1",
-      "coverage/block-navigation.js": "C964530B19F1FD32",
-      "Setup-Wizard.bat": "EAF6EF8B41AD1A84",
-      "docs/architecture/ADR-003-no-mock-telemetry.md": "5C6C68C579FC9108",
-      "tests/unit/sync-device-processes.test.js": "F924094005A5414E",
-      "Enterprise/agent/collectors/Get-LicenseInfo.ps1": "461C7CB7946A24C2",
-      "Scripts/Index/Install-GitHook.ps1": "4297737FFE05AD6C",
-      "Enterprise/docker-compose.yml": "56E60CE9432C1AAE",
-      "docs/architecture/ADR-002-msi-package-builder.md": "D2054C97C79965D4",
-      "Enterprise/agent/run-agent-once.cmd": "C8397462BDB3BF25",
-      "Enterprise/deploy/deploy.sh": "6911D9D6BFD7F3ED",
-      "coverage/coverage-final.json": "8B796792ACA3FA5C",
-      "coverage/sort-arrow-sprite.png": "2F6685BB282F68AF",
-      "Enterprise/tests/Check-Deploy-Prereqs.ps1": "CABC527DFAF34EBE",
-      "Documentation/Setup-Guide.md": "16DA3DFE5FFCFCA0",
-      "artifacts/msi/bca6a12d-1c60-4985-8f27-528331d72022/IT-Toolkit-Agent-Enterprise-1.1.2.msi": "FB66AE38BA5834A1",
-      "tests/integration/first-run-config.test.js": "C288FEF4EC3BA4C5",
-      "Enterprise_Audit_Prompt.md": "1A76EA837F17543A",
-      "Dockerfile": "2DDE08593AD85465",
-      "Enterprise/agent/collectors/Get-BitLockerStatus.ps1": "D063787464E05F04",
-      "Enterprise/deploy/first-run.ps1": "293A677B52F81112",
-      "docs/architecture/ADR-001-service-topology.md": "9167BD195635F80E",
-      "Toolkit-Menu.bat": "3AFBA39E9AD7CFC5",
-      "doc2_full.txt": "CECEF6630F98A914",
-      "Scripts/Modules/AgentCommandTrust.psm1": "E75C259742E94DE0",
-      "tests/unit/msi-latest-route.test.js": "3816565F41F310C3",
-      "agent-artifacts.js": "32F1991F2A1E2691",
-      "IT-TOOLKIT-GAP-ANALYSIS.md": "FC9BEB673DD9457E",
-      "coverage/favicon.png": "C18704E8B9965A71",
-      "docs/assessment/RELEASE-READINESS.md": "E48882197D141510",
-      "artifacts/msi/3ed63471-a6f5-408d-8b17-07bb0c10dea1/IT-Toolkit-Agent-Enterprise-1.1.2.msi": "FB66AE38BA5834A1",
-      "Scripts/Index/Update-ProjectIndex.ps1": "B65CA73AB494357B",
-      "Templates/CMD-Commands-Reference.txt": "B95C18F99396DCBD",
-      "tests/unit/agent-command-security.test.js": "DA19FC7AEB008BB2",
-      "docs/architecture/Technical-Architecture-Spec.md": "ECE6B5760400C202",
-      "tests/integration/cloud-audit-status.test.js": "C6EBC81EA77D2C3D",
-      "Scripts/GUI/Toolkit-GUI.ps1": "625D7AA765C4D46C",
-      "artifacts/msi/297e37ed-5e3c-430c-b7b2-cd39f0179e96/IT-Toolkit-Agent-Enterprise-1.1.2.msi": "FB66AE38BA5834A1",
-      "Enterprise/agent/collectors/Get-WindowsUpdateStatus.ps1": "B17D601DC896E55D",
-      "COMPLETION-REPORT.md": "681EB9A3D5D7E919",
-      "docs/assessment/FEATURE-STATUS.md": "9AA4F43F1A901A22",
-      "Documentation/Deployment-AI-Runbook.md": "E87C3B166245798B",
+      "Scripts/Tests/Run-RemoteToolkit-Tests.ps1": "2CEA9159CA89D51C",
       "Templates/AI-Assistant-Prompts.txt": "24917D3B26468BBF",
-      "contracts/openapi/openapi.yaml": "C63E6D703AF1E88A",
-      "package-lock.json": "1A176295BA08F768",
+      ".dockerignore": "999912902299A49E",
+      "artifacts/msi/a50699ec-e0b7-4f7a-9f49-81308aa1156e/IT-Toolkit-Agent-Enterprise-1.1.2.msi": "FB66AE38BA5834A1",
+      "Enterprise/portal/index.html": "2B54EE684D0E342E",
+      "coverage/block-navigation.js": "C964530B19F1FD32",
+      "Enterprise/agent/agent-config.example.json": "F4AD2E0A5B4777B5",
+      "Scripts/verify-first-run-docker.mjs": "3EE1880F1BB3D8E8",
+      "docs/architecture/ADR-001-service-topology.md": "9167BD195635F80E",
+      "Enterprise/agent/run-agent-once.cmd": "C8397462BDB3BF25",
+      "tests/unit/db.unit.test.js": "D170B51A80599D8A",
+      "Toolkit-Menu.bat": "3AFBA39E9AD7CFC5",
+      "Scaling Plan/README-IMPLEMENTATION.md": "3D09B658CF73DA5A",
+      "tests/unit/msi-latest-route.test.js": "3816565F41F310C3",
+      "Scripts/Modules/CredentialManager.psm1": "38D20C7DB00ADA33",
+      "coverage/prettify.css": "31C66A00EDE9F0A6",
       "agent-command-security.js": "C94C26017A5F7F8E",
+      "public/assets/aistudio/Paste_November_03__2026_-_6_59PM_c4c14beb": "C4C14BEBFE989ED0",
+      "test-query-performance-indexing.js": "6E084AC39B444D75",
+      "Scripts/Index/Update-ProjectIndex.ps1": "B65CA73AB494357B",
+      "test-device-auth-deep.js": "8008C71D729ECBEA",
+      "tests/unit/boot-security.test.js": "73EAD5B4B8F0186F",
+      "Scripts/Run-QuickCheck.bat": "B7A5EAF5466D88AC",
+      "Scaling Plan/IMPLEMENTATION-PLAN.md": "F37777614506DAB9",
+      "test-migrations-runner.js": "5CB452D7080787A0",
+      "Enterprise/agent/Agent-Collect.ps1": "C0774E0B911F6AD5",
+      "tests/unit/first-run-setup.test.js": "30FC615E1EA9DB51",
+      "tests/unit/port-configuration.test.js": "E26628D6BA4D0C6E",
+      "Enterprise/agent/wix/Create-ElevatedTask.ps1": "5EF3362E7202813B",
+      "Enterprise/agent/endpoint.json": "DFC4277C1169D5CF",
+      "Scripts/Network-Diagnostic.ps1": "C4A5F3BF447FF16B",
+      "database/migrations/README.md": "030EC74F30E6CD67",
+      "test-contract-validation.js": "261133F8648C52D7",
+      "Enterprise/tests/Check-Deploy-Prereqs.ps1": "CABC527DFAF34EBE",
       "tests/unit/first-run-legacy-admin.test.js": "F413D88214815922",
-      "Scripts/check-version-consistency.cjs": "3478C11035E0B2CF",
-      "test-database-resilience.js": "C81AE31102EF2938",
+      "public/assets/aistudio/Paste_November_03__2026_-_8_39PM_d3f61445": "D3F61445C583AE06",
+      "Setup-Wizard.bat": "EAF6EF8B41AD1A84",
+      "artifacts/msi/8600bfa1-0be3-4184-b870-94a4555ef182/IT-Toolkit-Agent-Enterprise-1.1.2.msi": "FB66AE38BA5834A1",
+      "Enterprise/agent/fixtures/IT-Toolkit-Agent-1.1.2.msi": "FB66AE38BA5834A1",
+      "docs/operations/DEPLOYMENT-GUIDE.md": "F132423AB23D7AB1",
+      "Enterprise/deploy/start.cjs": "CB97D2698195034C",
+      "Enterprise/api/features.json": "48690542DE7A3501",
+      "Scripts/Modules/SanitizeEngine.psm1": "5E8D578FA6B052BB",
+      "Documentation/Windows-Smoke-Run.md": "5C1B7FB5C15303A0",
+      "Documentation/Setup-Guide.md": "16DA3DFE5FFCFCA0",
+      "coverage/validation.js.html": "E25F0EB15B4BD52A",
+      "contracts/openapi/openapi.yaml": "C63E6D703AF1E88A",
+      "Drivers/README.txt": "FFE4F43CAEBDCFF3",
+      "Enterprise/agent/collectors/Get-DiskHealth.ps1": "C169CC17996E8506",
+      "Enterprise/SCALING-PLAN.md": "52E2C0A85C850707",
       "Enterprise/agent/wix/Assert-PackagingConfig.ps1": "F999F37D764E19B0",
+      "Scripts/Index/Install-GitHook.ps1": "4297737FFE05AD6C",
+      "coverage/sort-arrow-sprite.png": "2F6685BB282F68AF",
+      "docs/assessment/GAP-REGISTER.md": "03EBC0B562A23D5F",
+      "docs/architecture/ADR-002-msi-package-builder.md": "D2054C97C79965D4",
+      "Scripts/Pin-QuickAccess-Folders.ps1": "A9CD9431CC4FDED7",
+      "Scripts/GUI/Toolkit-GUI.ps1": "625D7AA765C4D46C",
+      "first-run-routes.js": "418ECD663DCE62C1",
+      "Config/config.json": "22F398E6B911FFE0",
+      "artifacts/msi/3ed63471-a6f5-408d-8b17-07bb0c10dea1/IT-Toolkit-Agent-Enterprise-1.1.2.msi": "FB66AE38BA5834A1",
+      "package.json": "A914FE6DBE832CD3",
+      "artifacts/msi/IT-Toolkit-Agent-1.1.2.msi": "FB66AE38BA5834A1",
+      ".github/workflows/phase-i-windows-msi.yml": "44D31A2F7C7FFEBB",
+      "Documentation/README.md": "9AB74F54AE70218D",
+      "Templates/Knowledge-Base.xlsx": "1ADC69E3731A1801",
+      "Scaling Plan/DELIVERY-SUMMARY.md": "E9E9C7352013146E",
+      "artifacts/msi/18f72100-0e95-4ca1-ac4b-8659207b4335/IT-Toolkit-Agent-Enterprise-1.1.2.msi": "FB66AE38BA5834A1",
+      "tests/unit/validation.unit.test.js": "AAFD8E76FE8E981A",
+      "Templates/CMD-Commands-Reference.txt": "B95C18F99396DCBD",
+      "certs/ca.crt": "6F38EEE1B7FB5F6B",
+      "Scripts/GUI/DASHBOARD-GUIDE.md": "ECED19D49DB25F1C",
+      "Scripts/Templates/Report-Template.html": "AD42679B20E7E25F",
+      "Documentation/Troubleshooting-Flowcharts.md": "FC7D660B6003DE36",
+      "tests/unit/bootstrap-secrets.test.js": "3C7839E45DF33F58",
+      "tests/unit/agent-command-security.test.js": "DA19FC7AEB008BB2",
+      "Scripts/Firewall-Test.ps1": "BCD2E24F539A8DBD",
+      "Scripts/Tests/BatchLauncher.Tests.ps1": "6B266E017144421B",
+      "Enterprise/docker-compose.yml": "56E60CE9432C1AAE",
+      "doc1_full.txt": "C01BE61FF230FE71",
+      "Enterprise/deploy/backup.sh": "BDE7F6CB1E8A99F9",
+      "Scripts/QuickCheck.ps1": "081186741B8CBDF5",
+      "Enterprise/ARCHITECTURE.md": "E16D36A3B945F3A8",
+      "Enterprise/ROADMAP.md": "8831C699238B1865",
+      "Documentation/Deployment-AI-Runbook.md": "E87C3B166245798B",
+      "Scripts/Tests/README.md": "92C6A4FFCC10F389",
+      "database/mysql/schema.sql": "58DD93A28314F982",
+      "server.js": "DD6ABDA17C8D1AE7",
+      "Scaling Plan/START-HERE.md": "1C20761210783D23",
+      "artifacts/msi/60e6be69-8a5d-48dd-9fde-cc9be47873e2/IT-Toolkit-Agent-Enterprise-1.1.2.msi": "FB66AE38BA5834A1",
+      "tests/unit/sync-device-processes.test.js": "F924094005A5414E",
+      "Scripts/README.md": "798CD3C7EBCB6F2B",
+      "artifacts/msi/662ac363-597c-427a-aa7b-3db3bb8c086d/IT-Toolkit-Agent-Enterprise-1.1.2.msi": "FB66AE38BA5834A1",
+      ".githooks/pre-commit": "7C10E966D139FDAB",
+      "test-database-resilience.js": "C81AE31102EF2938",
+      "Scripts/Remote/Invoke-RemoteNetworkDiagnostic.ps1": "600F8663B519C2A4",
+      "tests/integration/first-run-config.test.js": "C288FEF4EC3BA4C5",
+      "Dockerfile": "2DDE08593AD85465",
+      "Aaditech_Master_Development_Directive_Go_Edition_updated.docx": "BEC8C0D8D08B5ECF",
+      "agent-artifacts.js": "32F1991F2A1E2691",
       "docs/assessment/SECURITY-REVIEW.md": "1DB51F00809B0064",
-      "Templates/Ticket-Reply-Templates.txt": "22B5CF98150035E4"
+      "Scripts/Modules/ToolkitData.psm1": "7315F1C2DBC2F656",
+      "database/migrations/003_rbac_and_audit.sql": "DA3812265F1FE9CD",
+      "Enterprise_Audit_Prompt.md": "1A76EA837F17543A",
+      "docs/deployment/FIRST-RUN-SETUP.md": "FA968B898110A736",
+      "Scripts/Remote/Invoke-RemoteQuickCheck.ps1": "9076A751DEFC1627",
+      "Enterprise/agent/build/build-agent.ps1": "470205D0E203FE9F",
+      "docs/architecture/Technical-Architecture-Spec.md": "ECE6B5760400C202",
+      "Enterprise/deploy/first-run.ps1": "293A677B52F81112",
+      "Data/README.txt": "A18E8A08272C1161",
+      "docs/operations/SECRET-ROTATION.md": "34094BD59EC5C700",
+      "tests/integration/server.integration.test.js": "8B5126E785012C15",
+      ".github/workflows/phase-h-docker-smoke.yml": "258043877DFEF571",
+      "coverage/prettify.js": "5B36332F32C5A478",
+      "setup-security.js": "1CAC066147FB7D64",
+      "docs/assessment/TEST-RESULTS.md": "2E543B06BBDB1A29",
+      "Remote-Tools/README.md": "D362AE00EDFC96F1",
+      "docs/architecture/RTM.md": "CE1EB8287D645935",
+      "Scripts/User-Inventory.ps1": "304B5225DED0D8F2",
+      "Scripts/Modules/ExportEngine.psm1": "F9DE33C74893F279",
+      "Scripts/Modules/TaskScheduler.psm1": "6C1225E38F64D450",
+      "test-id-generation-race.js": "C6ABCB15BA66EAC4",
+      "Enterprise/agent/wix/Agent.wxs": "B017E0A9E22B24FC",
+      "artifacts/msi/57604147-5f39-420e-b7d8-ed1bfd3cb03b/IT-Toolkit-Agent-Enterprise-1.1.2.msi": "FB66AE38BA5834A1",
+      "tests/unit/setup-schema.test.js": "FE3FC3CB372F235E",
+      ".env.example": "756501499190883F",
+      "artifacts/msi/bca6a12d-1c60-4985-8f27-528331d72022/IT-Toolkit-Agent-Enterprise-1.1.2.msi": "FB66AE38BA5834A1",
+      "Templates/Ticket-Reply-Templates.txt": "22B5CF98150035E4",
+      "db.js": "85CC4EE17C08362A",
+      "Scripts/Export-EventLogs.ps1": "10748DE50BE4476D",
+      "coverage/base.css": "75168965707CF359",
+      "Enterprise/deploy/restore.sh": "A78FCF7FCF32AEE9",
+      "Enterprise/agent/install-agent.cmd": "D6C403BBE7F79202",
+      "coverage/favicon.png": "C18704E8B9965A71",
+      "coverage/db.js.html": "3B89F7D284E59D70",
+      "coverage/server.js.html": "40981AF23B70F0C2",
+      "Enterprise/deploy/first-run.sh": "AE7E5CD30BF26489",
+      "artifacts/msi/51e7acd3-98d4-4f63-ac0c-7aae35853728/IT-Toolkit-Agent-Enterprise-1.1.2.msi": "FB66AE38BA5834A1",
+      "Software/Portable-Software-Links.md": "9132209449371D1C",
+      "test-auth-integration.js": "A75BF8D44ED5B607",
+      "Enterprise/portal/phase-h-ui.js": "2A5D82AA91CABBC6",
+      ".gitattributes": "3A68D96E89F3BDF7",
+      "Documentation/Cheat-Sheet.md": "5AEF066924286207",
+      "vitest.config.js": "C002D0288319936C",
+      "Enterprise/deploy/deploy.sh": "6911D9D6BFD7F3ED",
+      "package-lock.json": "1A176295BA08F768",
+      "Enterprise/agent/uninstall-agent.cmd": "4E546B7002955AD8",
+      "Enterprise/agent/collectors/Get-HardwareInventory.ps1": "6DFA3FFCACE21861",
+      "coverage/coverage-final.json": "8B796792ACA3FA5C",
+      "docs/assessment/FEATURE-STATUS.md": "9AA4F43F1A901A22",
+      "Enterprise/agent/Aaditech-Agent.ps1": "232EDE3723DEFCBA",
+      "Scripts/Modules/RemoteToolkit.psm1": "C3F1BCC274A20EB8"
     },
     "files": [
       {
         "path": ".dockerignore",
         "size_bytes": 505,
         "lines": 38,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "999912902299A49E"
       },
       {
         "path": ".env.example",
         "size_bytes": 711,
         "lines": 31,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "756501499190883F"
       },
       {
         "path": ".gitattributes",
         "size_bytes": 241,
         "lines": 7,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "3A68D96E89F3BDF7"
       },
       {
         "path": ".githooks/pre-commit",
         "size_bytes": 813,
         "lines": 25,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "7C10E966D139FDAB"
       },
       {
         "path": ".github/workflows/ci.yml",
         "size_bytes": 15769,
         "lines": 410,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "24B8F3895C21BF23"
       },
       {
         "path": ".github/workflows/phase-h-docker-smoke.yml",
         "size_bytes": 1614,
         "lines": 47,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "258043877DFEF571"
       },
       {
         "path": ".github/workflows/phase-h-index-sync.yml",
         "size_bytes": 2157,
         "lines": 41,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "3C6EFCD59C110165"
       },
       {
         "path": ".github/workflows/phase-i-windows-msi.yml",
         "size_bytes": 2601,
         "lines": 75,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "44D31A2F7C7FFEBB"
       },
       {
         "path": ".gitignore",
         "size_bytes": 580,
         "lines": 37,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "763D712F07382641"
       },
       {
         "path": "Aaditech_Endpoint_Monitoring_Management_Final_Requirements.docx",
         "size_bytes": 79225,
         "lines": 180,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "BF2252276700A6B2"
       },
       {
         "path": "Aaditech_Master_Development_Directive_Go_Edition_updated.docx",
         "size_bytes": 43919,
         "lines": 114,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "BEC8C0D8D08B5ECF"
       },
       {
         "path": "agent-artifacts.js",
         "size_bytes": 5434,
         "lines": 159,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "32F1991F2A1E2691"
       },
       {
         "path": "agent-command-security.js",
         "size_bytes": 3164,
         "lines": 68,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "C94C26017A5F7F8E"
       },
       {
         "path": "ANALYSIS-RECOMMENDATIONS.md",
         "size_bytes": 48885,
         "lines": 1372,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "7CE88D83C18DC08E"
       },
       {
         "path": "artifacts/msi/18f72100-0e95-4ca1-ac4b-8659207b4335/IT-Toolkit-Agent-Enterprise-1.1.2.msi",
         "size_bytes": 3482,
         "lines": 1,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "FB66AE38BA5834A1"
       },
       {
         "path": "artifacts/msi/297e37ed-5e3c-430c-b7b2-cd39f0179e96/IT-Toolkit-Agent-Enterprise-1.1.2.msi",
         "size_bytes": 3482,
         "lines": 1,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "FB66AE38BA5834A1"
       },
       {
         "path": "artifacts/msi/3ed63471-a6f5-408d-8b17-07bb0c10dea1/IT-Toolkit-Agent-Enterprise-1.1.2.msi",
         "size_bytes": 3482,
         "lines": 1,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "FB66AE38BA5834A1"
       },
       {
         "path": "artifacts/msi/43bf3827-0164-4e3c-bc41-9d4824b0bff5/IT-Toolkit-Agent-Enterprise-1.1.2.msi",
         "size_bytes": 3482,
         "lines": 1,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "FB66AE38BA5834A1"
       },
       {
         "path": "artifacts/msi/51e7acd3-98d4-4f63-ac0c-7aae35853728/IT-Toolkit-Agent-Enterprise-1.1.2.msi",
         "size_bytes": 3482,
         "lines": 1,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "FB66AE38BA5834A1"
       },
       {
         "path": "artifacts/msi/5562742b-ef4e-4c8c-b699-593042e71c11/IT-Toolkit-Agent-Enterprise-1.1.2.msi",
         "size_bytes": 3482,
         "lines": 1,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "FB66AE38BA5834A1"
       },
       {
         "path": "artifacts/msi/57604147-5f39-420e-b7d8-ed1bfd3cb03b/IT-Toolkit-Agent-Enterprise-1.1.2.msi",
         "size_bytes": 3482,
         "lines": 1,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "FB66AE38BA5834A1"
       },
       {
         "path": "artifacts/msi/57cac912-a0bc-4a2f-90a3-10abadf10d45/IT-Toolkit-Agent-Enterprise-1.1.2.msi",
         "size_bytes": 3482,
         "lines": 1,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "FB66AE38BA5834A1"
       },
       {
         "path": "artifacts/msi/60e6be69-8a5d-48dd-9fde-cc9be47873e2/IT-Toolkit-Agent-Enterprise-1.1.2.msi",
         "size_bytes": 3482,
         "lines": 1,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "FB66AE38BA5834A1"
       },
       {
         "path": "artifacts/msi/662ac363-597c-427a-aa7b-3db3bb8c086d/IT-Toolkit-Agent-Enterprise-1.1.2.msi",
         "size_bytes": 3482,
         "lines": 1,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "FB66AE38BA5834A1"
       },
       {
         "path": "artifacts/msi/8600bfa1-0be3-4184-b870-94a4555ef182/IT-Toolkit-Agent-Enterprise-1.1.2.msi",
         "size_bytes": 3482,
         "lines": 1,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "FB66AE38BA5834A1"
       },
       {
         "path": "artifacts/msi/8e58fa75-231e-4433-bca1-7007194724d2/IT-Toolkit-Agent-Enterprise-1.1.2.msi",
         "size_bytes": 3482,
         "lines": 1,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "FB66AE38BA5834A1"
       },
       {
         "path": "artifacts/msi/9338e056-4977-40b2-98f9-ff8bef7f493f/IT-Toolkit-Agent-Enterprise-1.1.2.msi",
         "size_bytes": 3482,
         "lines": 1,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "FB66AE38BA5834A1"
       },
       {
         "path": "artifacts/msi/a4b6b717-efee-471b-914d-994eeec2ca70/IT-Toolkit-Agent-Enterprise-1.1.2.msi",
         "size_bytes": 3482,
         "lines": 1,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "FB66AE38BA5834A1"
       },
       {
         "path": "artifacts/msi/a50699ec-e0b7-4f7a-9f49-81308aa1156e/IT-Toolkit-Agent-Enterprise-1.1.2.msi",
         "size_bytes": 3482,
         "lines": 1,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "FB66AE38BA5834A1"
       },
       {
         "path": "artifacts/msi/b465f41d-4927-4e39-af8b-db7e4c277785/test-agent-1.1.2.msi",
         "size_bytes": 3482,
         "lines": 1,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "FB66AE38BA5834A1"
       },
       {
         "path": "artifacts/msi/bca6a12d-1c60-4985-8f27-528331d72022/IT-Toolkit-Agent-Enterprise-1.1.2.msi",
         "size_bytes": 3482,
         "lines": 1,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "FB66AE38BA5834A1"
       },
       {
         "path": "artifacts/msi/d5a936f0-fa60-4a32-92ec-9cf37983cd98/IT-Toolkit-Agent-Enterprise-1.1.2.msi",
         "size_bytes": 3482,
         "lines": 1,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "FB66AE38BA5834A1"
       },
       {
         "path": "artifacts/msi/f68bc54b-9596-462a-8d43-531c48fe1cdf/IT-Toolkit-Agent-Enterprise-1.1.2.msi",
         "size_bytes": 3482,
         "lines": 1,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "FB66AE38BA5834A1"
       },
       {
         "path": "artifacts/msi/IT-Toolkit-Agent-1.1.2.msi",
         "size_bytes": 3482,
         "lines": 1,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "FB66AE38BA5834A1"
       },
       {
         "path": "certs/ca.crt",
         "size_bytes": 1302,
         "lines": 23,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "6F38EEE1B7FB5F6B"
       },
       {
         "path": "CHANGELOG.md",
         "size_bytes": 31286,
         "lines": 447,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "99B247046B76C538"
       },
       {
         "path": "COMPLETION-REPORT.md",
         "size_bytes": 18717,
         "lines": 558,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "681EB9A3D5D7E919"
       },
       {
         "path": "config-secrets.js",
         "size_bytes": 1825,
         "lines": 39,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "07D5DB78301BD059"
       },
       {
         "path": "Config/CONFIG-GUIDE.md",
         "size_bytes": 2177,
         "lines": 48,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "8FEAD3227F92E747"
       },
       {
         "path": "Config/config.json",
         "size_bytes": 4555,
         "lines": 170,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "22F398E6B911FFE0"
       },
       {
         "path": "contracts/agent-protocol/agent-protocol.json",
         "size_bytes": 1694,
         "lines": 49,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "3FD30BE24AC61933"
       },
       {
         "path": "contracts/openapi/openapi.yaml",
         "size_bytes": 29848,
         "lines": 1237,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "C63E6D703AF1E88A"
       },
       {
         "path": "coverage/base.css",
         "size_bytes": 5494,
         "lines": 363,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "75168965707CF359"
       },
       {
         "path": "coverage/block-navigation.js",
         "size_bytes": 2336,
         "lines": 83,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "C964530B19F1FD32"
       },
       {
         "path": "coverage/coverage-final.json",
         "size_bytes": 739545,
         "lines": 5,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "8B796792ACA3FA5C"
       },
       {
         "path": "coverage/db.js.html",
         "size_bytes": 403689,
         "lines": 8164,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "3B89F7D284E59D70"
       },
       {
         "path": "coverage/favicon.png",
         "size_bytes": 790,
         "lines": 3,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "C18704E8B9965A71"
       },
       {
         "path": "coverage/index.html",
         "size_bytes": 5835,
         "lines": 146,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "4503CF89346B297E"
       },
       {
         "path": "coverage/prettify.css",
         "size_bytes": 1060,
         "lines": 102,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "31C66A00EDE9F0A6"
       },
       {
         "path": "coverage/prettify.js",
         "size_bytes": 26708,
         "lines": 938,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "5B36332F32C5A478"
       },
       {
         "path": "coverage/server.js.html",
         "size_bytes": 408901,
         "lines": 8278,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "40981AF23B70F0C2"
       },
       {
         "path": "coverage/sort-arrow-sprite.png",
         "size_bytes": 201,
         "lines": 3,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "2F6685BB282F68AF"
       },
       {
         "path": "coverage/sorter.js",
         "size_bytes": 5744,
         "lines": 206,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "E281B0B47445030F"
       },
       {
         "path": "coverage/validation.js.html",
         "size_bytes": 43005,
         "lines": 1024,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "E25F0EB15B4BD52A"
       },
       {
         "path": "Data/DATABASE-GUIDE.md",
         "size_bytes": 2771,
         "lines": 84,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "4C083B1653236947"
       },
       {
         "path": "Data/README.txt",
         "size_bytes": 122,
         "lines": 3,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "A18E8A08272C1161"
       },
       {
         "path": "database/migrations/001_init_schema.sql",
         "size_bytes": 10205,
         "lines": 258,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "9CE76B2BB26BD350"
       },
       {
         "path": "database/migrations/002_partitioning.sql",
         "size_bytes": 1374,
         "lines": 33,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "558DD901193535E6"
       },
       {
         "path": "database/migrations/003_rbac_and_audit.sql",
         "size_bytes": 8316,
         "lines": 139,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "DA3812265F1FE9CD"
       },
       {
         "path": "database/migrations/README.md",
         "size_bytes": 1332,
         "lines": 18,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "030EC74F30E6CD67"
       },
       {
         "path": "database/mysql/schema.sql",
         "size_bytes": 22576,
         "lines": 467,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "58DD93A28314F982"
       },
       {
         "path": "db.js",
         "size_bytes": 101439,
         "lines": 2741,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "85CC4EE17C08362A"
       },
       {
         "path": "doc1_full.txt",
         "size_bytes": 17507,
         "lines": 271,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "C01BE61FF230FE71"
       },
       {
         "path": "doc2_full.txt",
         "size_bytes": 30279,
         "lines": 905,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "CECEF6630F98A914"
       },
       {
         "path": "Dockerfile",
         "size_bytes": 729,
         "lines": 28,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "2DDE08593AD85465"
       },
       {
         "path": "docs/architecture/ADR-001-service-topology.md",
         "size_bytes": 2226,
         "lines": 35,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "9167BD195635F80E"
       },
       {
         "path": "docs/architecture/ADR-002-msi-package-builder.md",
         "size_bytes": 2242,
         "lines": 32,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "D2054C97C79965D4"
       },
       {
         "path": "docs/architecture/ADR-003-no-mock-telemetry.md",
         "size_bytes": 1493,
         "lines": 22,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "5C6C68C579FC9108"
       },
       {
         "path": "docs/architecture/CANONICAL-AGENT-PROTOCOL.md",
         "size_bytes": 4223,
         "lines": 109,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "F281084886298D82"
       },
       {
         "path": "docs/architecture/RTM.md",
         "size_bytes": 5901,
         "lines": 30,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "CE1EB8287D645935"
       },
       {
         "path": "docs/architecture/Technical-Architecture-Spec.md",
         "size_bytes": 9676,
         "lines": 220,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "ECE6B5760400C202"
       },
       {
         "path": "docs/assessment/FEATURE-STATUS.md",
         "size_bytes": 2006,
         "lines": 20,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "9AA4F43F1A901A22"
       },
       {
         "path": "docs/assessment/GAP-REGISTER.md",
         "size_bytes": 2534,
         "lines": 19,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "03EBC0B562A23D5F"
       },
       {
         "path": "docs/assessment/RELEASE-READINESS.md",
         "size_bytes": 3412,
         "lines": 40,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "E48882197D141510"
       },
       {
         "path": "docs/assessment/REMEDIATION-ROADMAP.md",
         "size_bytes": 2229,
         "lines": 34,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "C999DD8BFD5F207F"
       },
       {
         "path": "docs/assessment/REPOSITORY-AUDIT.md",
         "size_bytes": 4402,
         "lines": 76,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "1C99C0CAA106D749"
       },
       {
         "path": "docs/assessment/SECURITY-REVIEW.md",
         "size_bytes": 2013,
         "lines": 38,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "1DB51F00809B0064"
       },
       {
         "path": "docs/assessment/TEST-RESULTS.md",
         "size_bytes": 1314,
         "lines": 32,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "2E543B06BBDB1A29"
       },
       {
         "path": "docs/deployment/FIRST-RUN-SETUP.md",
         "size_bytes": 4528,
         "lines": 56,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "FA968B898110A736"
       },
       {
         "path": "docs/operations/DEPLOYMENT-GUIDE.md",
         "size_bytes": 1291,
         "lines": 57,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "F132423AB23D7AB1"
       },
       {
         "path": "docs/operations/SECRET-ROTATION.md",
         "size_bytes": 1328,
         "lines": 32,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "34094BD59EC5C700"
       },
       {
         "path": "Documentation/Cheat-Sheet.md",
         "size_bytes": 3042,
         "lines": 63,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "5AEF066924286207"
       },
       {
         "path": "Documentation/Deployment-AI-Runbook.md",
         "size_bytes": 13892,
         "lines": 308,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "E87C3B166245798B"
       },
       {
         "path": "Documentation/Local-E2E-Test.md",
         "size_bytes": 6812,
         "lines": 163,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "57D32FB981B3E6C4"
       },
       {
         "path": "Documentation/PROJECT-SPEC.md",
         "size_bytes": 18943,
         "lines": 396,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "AF1548C1481C7662"
       },
       {
         "path": "Documentation/README.md",
         "size_bytes": 15407,
         "lines": 458,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "9AB74F54AE70218D"
       },
       {
         "path": "Documentation/Setup-Guide.md",
         "size_bytes": 7020,
         "lines": 122,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "16DA3DFE5FFCFCA0"
       },
       {
         "path": "Documentation/Troubleshooting-Flowcharts.md",
         "size_bytes": 2472,
         "lines": 137,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "FC7D660B6003DE36"
       },
       {
         "path": "Documentation/Windows-Smoke-Run.md",
         "size_bytes": 4912,
         "lines": 125,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "5C1B7FB5C15303A0"
       },
       {
         "path": "Drivers/README.txt",
         "size_bytes": 136,
         "lines": 2,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "FFE4F43CAEBDCFF3"
       },
       {
         "path": "ecosystem.config.cjs",
         "size_bytes": 1003,
         "lines": 34,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "30AAA1F04E35D42A"
       },
       {
         "path": "Enterprise_Audit_Prompt.md",
         "size_bytes": 9403,
         "lines": 831,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "1A76EA837F17543A"
       },
       {
         "path": "Enterprise/agent/Aaditech-Agent.ps1",
         "size_bytes": 14978,
         "lines": 360,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "232EDE3723DEFCBA"
       },
       {
         "path": "Enterprise/agent/Agent-Collect.ps1",
         "size_bytes": 44877,
         "lines": 1040,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "C0774E0B911F6AD5"
       },
       {
         "path": "Enterprise/agent/agent-config.example.json",
         "size_bytes": 1911,
         "lines": 24,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "F4AD2E0A5B4777B5"
       },
       {
         "path": "Enterprise/agent/agent-version.json",
         "size_bytes": 57,
         "lines": 5,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "CE7BCC4E82E8019D"
       },
       {
         "path": "Enterprise/agent/build/build-agent.ps1",
         "size_bytes": 3779,
         "lines": 98,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "470205D0E203FE9F"
       },
       {
         "path": "Enterprise/agent/collectors/Get-BitLockerStatus.ps1",
         "size_bytes": 648,
         "lines": 19,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "D063787464E05F04"
       },
       {
         "path": "Enterprise/agent/collectors/Get-DiskHealth.ps1",
         "size_bytes": 2226,
         "lines": 60,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "C169CC17996E8506"
       },
       {
         "path": "Enterprise/agent/collectors/Get-HardwareInventory.ps1",
         "size_bytes": 2547,
         "lines": 60,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "6DFA3FFCACE21861"
       },
       {
         "path": "Enterprise/agent/collectors/Get-LicenseInfo.ps1",
         "size_bytes": 1877,
         "lines": 53,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "461C7CB7946A24C2"
       },
       {
         "path": "Enterprise/agent/collectors/Get-SoftwareInventory.ps1",
         "size_bytes": 705,
         "lines": 19,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "517E7EADEF082D2F"
       },
       {
         "path": "Enterprise/agent/collectors/Get-SystemHealth.ps1",
         "size_bytes": 1754,
         "lines": 35,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "4E15C63CE677F492"
       },
       {
         "path": "Enterprise/agent/collectors/Get-WindowsUpdateStatus.ps1",
         "size_bytes": 1210,
         "lines": 26,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "B17D601DC896E55D"
       },
       {
         "path": "Enterprise/agent/endpoint.json",
         "size_bytes": 121,
         "lines": 5,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "DFC4277C1169D5CF"
       },
       {
         "path": "Enterprise/agent/features.json",
         "size_bytes": 1786,
         "lines": 18,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "48690542DE7A3501"
       },
       {
         "path": "Enterprise/agent/fixtures/IT-Toolkit-Agent-1.1.2.msi",
         "size_bytes": 3482,
         "lines": 1,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "FB66AE38BA5834A1"
       },
       {
         "path": "Enterprise/agent/install-agent.cmd",
         "size_bytes": 3129,
         "lines": 71,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "D6C403BBE7F79202"
       },
       {
         "path": "Enterprise/agent/run-agent-once.cmd",
         "size_bytes": 496,
         "lines": 13,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "C8397462BDB3BF25"
       },
       {
         "path": "Enterprise/agent/uninstall-agent.cmd",
         "size_bytes": 662,
         "lines": 22,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "4E546B7002955AD8"
       },
       {
         "path": "Enterprise/agent/wix/Agent.wxs",
         "size_bytes": 15958,
         "lines": 266,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "B017E0A9E22B24FC"
       },
       {
         "path": "Enterprise/agent/wix/Assert-PackagingConfig.ps1",
         "size_bytes": 1562,
         "lines": 37,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "F999F37D764E19B0"
       },
       {
         "path": "Enterprise/agent/wix/build-msi.ps1",
-        "size_bytes": 6768,
-        "lines": 131,
-        "last_modified": "2026-11-10T21:42:17",
-        "sha256_short": "8B8D36BBF3EC46CA"
+        "size_bytes": 6952,
+        "lines": 133,
+        "last_modified": "2026-11-10T21:43:10",
+        "sha256_short": "E33E662DA9714A93"
       },
       {
         "path": "Enterprise/agent/wix/Create-ElevatedTask.ps1",
         "size_bytes": 2947,
         "lines": 63,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "5EF3362E7202813B"
       },
       {
         "path": "Enterprise/agent/wix/verify-msi-lifecycle.ps1",
         "size_bytes": 4907,
         "lines": 104,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "5E8DB3EE6F309B6A"
       },
       {
         "path": "Enterprise/api/features.json",
         "size_bytes": 1786,
         "lines": 18,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "48690542DE7A3501"
       },
       {
         "path": "Enterprise/ARCHITECTURE.md",
         "size_bytes": 15602,
         "lines": 254,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "E16D36A3B945F3A8"
       },
       {
         "path": "Enterprise/deploy/backup.sh",
         "size_bytes": 1675,
         "lines": 51,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "BDE7F6CB1E8A99F9"
       },
       {
         "path": "Enterprise/deploy/bootstrap-secrets.cjs",
         "size_bytes": 1279,
         "lines": 25,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "22FA5B7DAAD3C6B1"
       },
       {
         "path": "Enterprise/deploy/Caddyfile",
         "size_bytes": 1912,
         "lines": 70,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "0BD3EEB4CF147C54"
       },
       {
         "path": "Enterprise/deploy/Caddyfile.template",
         "size_bytes": 1945,
         "lines": 72,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "808822E5B8D99041"
       },
       {
         "path": "Enterprise/deploy/deploy.ps1",
         "size_bytes": 18600,
         "lines": 458,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "FE41F8E1171F28E0"
       },
       {
         "path": "Enterprise/deploy/deploy.sh",
         "size_bytes": 12917,
         "lines": 318,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "6911D9D6BFD7F3ED"
       },
       {
         "path": "Enterprise/deploy/first-run.ps1",
         "size_bytes": 1899,
         "lines": 35,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "293A677B52F81112"
       },
       {
         "path": "Enterprise/deploy/first-run.sh",
         "size_bytes": 1117,
         "lines": 26,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "AE7E5CD30BF26489"
       },
       {
         "path": "Enterprise/deploy/Install-Prereqs.ps1",
         "size_bytes": 12927,
         "lines": 300,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "6B3AED59DF3E469B"
       },
       {
         "path": "Enterprise/deploy/restore.sh",
         "size_bytes": 2418,
         "lines": 73,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "A78FCF7FCF32AEE9"
       },
       {
         "path": "Enterprise/deploy/start.cjs",
         "size_bytes": 281,
         "lines": 6,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "CB97D2698195034C"
       },
       {
         "path": "Enterprise/docker-compose.yml",
         "size_bytes": 2716,
         "lines": 93,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "56E60CE9432C1AAE"
       },
       {
         "path": "Enterprise/portal/index.html",
         "size_bytes": 131053,
         "lines": 2378,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "2B54EE684D0E342E"
       },
       {
         "path": "Enterprise/portal/phase-h-ui.js",
         "size_bytes": 15681,
         "lines": 238,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "2A5D82AA91CABBC6"
       },
       {
         "path": "Enterprise/README.md",
         "size_bytes": 15249,
         "lines": 249,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "8BC30EC6D00C01C5"
       },
       {
         "path": "Enterprise/ROADMAP.md",
         "size_bytes": 24104,
         "lines": 399,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "8831C699238B1865"
       },
       {
         "path": "Enterprise/SCALING-PLAN.md",
         "size_bytes": 36308,
         "lines": 591,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "52E2C0A85C850707"
       },
       {
         "path": "Enterprise/tests/Check-Deploy-Prereqs.ps1",
         "size_bytes": 14526,
         "lines": 278,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "CABC527DFAF34EBE"
       },
       {
         "path": "first-run-routes.js",
         "size_bytes": 12354,
         "lines": 215,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "418ECD663DCE62C1"
       },
       {
         "path": "HOSTINGER_DEPLOYMENT_GUIDE.md",
         "size_bytes": 3623,
         "lines": 95,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "6AEB79967BBD3DC6"
       },
       {
         "path": "IT-TOOLKIT-GAP-ANALYSIS.md",
         "size_bytes": 11900,
         "lines": 317,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "FC9BEB673DD9457E"
       },
       {
         "path": "metadata.json",
         "size_bytes": 234,
         "lines": 9,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "681880F5061E73A8"
       },
       {
         "path": "package-lock.json",
         "size_bytes": 116420,
         "lines": 3788,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "1A176295BA08F768"
       },
       {
         "path": "package.json",
         "size_bytes": 1762,
         "lines": 47,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "A914FE6DBE832CD3"
       },
       {
         "path": "public/assets/aistudio/Paste_November_03__2026_-_6_59PM_c4c14beb",
         "size_bytes": 35309,
         "lines": 1389,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "C4C14BEBFE989ED0"
       },
       {
         "path": "public/assets/aistudio/Paste_November_03__2026_-_8_39PM_d3f61445",
         "size_bytes": 36810,
         "lines": 1700,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "D3F61445C583AE06"
       },
       {
         "path": "QUICK-SUMMARY.md",
         "size_bytes": 13548,
         "lines": 291,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "FFA5E9CA93790BC2"
       },
       {
         "path": "Remote-Tools/Generate-RDP-Shortcuts.ps1",
         "size_bytes": 1659,
         "lines": 51,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "C7FACEF5AAB50C19"
       },
       {
         "path": "Remote-Tools/README.md",
         "size_bytes": 1333,
         "lines": 24,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "D362AE00EDFC96F1"
       },
       {
         "path": "Scaling Plan/ARCHITECTURE.md",
         "size_bytes": 12875,
         "lines": 444,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "2AA4CFDBF7BBDA02"
       },
       {
         "path": "Scaling Plan/DELIVERY-SUMMARY.md",
         "size_bytes": 13058,
         "lines": 499,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "E9E9C7352013146E"
       },
       {
         "path": "Scaling Plan/DOCUMENTATION-INDEX.md",
         "size_bytes": 13021,
         "lines": 452,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "64A600DB89C864EC"
       },
       {
         "path": "Scaling Plan/IMPLEMENTATION-PLAN.md",
         "size_bytes": 50402,
         "lines": 1734,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "F37777614506DAB9"
       },
       {
         "path": "Scaling Plan/PROGRESS-TRACKING.md",
         "size_bytes": 33220,
         "lines": 1081,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "4F1EAF8DE32F36C5"
       },
       {
         "path": "Scaling Plan/QUICK-REFERENCE.md",
         "size_bytes": 11859,
         "lines": 458,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "F4D84638A578C75E"
       },
       {
         "path": "Scaling Plan/README-IMPLEMENTATION.md",
         "size_bytes": 12171,
         "lines": 366,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "3D09B658CF73DA5A"
       },
       {
         "path": "Scaling Plan/START-HERE.md",
         "size_bytes": 12349,
         "lines": 391,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "1C20761210783D23"
       },
       {
         "path": "Scripts/check-version-consistency.cjs",
         "size_bytes": 2564,
         "lines": 77,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "3478C11035E0B2CF"
       },
       {
         "path": "Scripts/Export-EventLogs.ps1",
         "size_bytes": 3967,
         "lines": 83,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "10748DE50BE4476D"
       },
       {
         "path": "Scripts/Firewall-Test.ps1",
         "size_bytes": 6794,
         "lines": 164,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "BCD2E24F539A8DBD"
       },
       {
         "path": "Scripts/GUI/DASHBOARD-GUIDE.md",
         "size_bytes": 2068,
         "lines": 56,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "ECED19D49DB25F1C"
       },
       {
         "path": "Scripts/GUI/Toolkit-GUI.ps1",
         "size_bytes": 4646,
         "lines": 114,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "625D7AA765C4D46C"
       },
       {
         "path": "Scripts/Index/Install-GitHook.ps1",
         "size_bytes": 1630,
         "lines": 48,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "4297737FFE05AD6C"
       },
       {
         "path": "Scripts/Index/Update-ProjectIndex.ps1",
         "size_bytes": 18148,
         "lines": 423,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "B65CA73AB494357B"
       },
       {
         "path": "Scripts/Modules/AgentCommandTrust.psm1",
         "size_bytes": 2929,
         "lines": 63,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "E75C259742E94DE0"
       },
       {
         "path": "Scripts/Modules/AlertEngine.psm1",
         "size_bytes": 5923,
         "lines": 211,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "8A4356B2CAE9433F"
       },
       {
         "path": "Scripts/Modules/CredentialManager.psm1",
         "size_bytes": 9938,
         "lines": 267,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "38D20C7DB00ADA33"
       },
       {
         "path": "Scripts/Modules/ExportEngine.psm1",
         "size_bytes": 5147,
         "lines": 178,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "F9DE33C74893F279"
       },
       {
         "path": "Scripts/Modules/LogManager.psm1",
         "size_bytes": 2713,
         "lines": 91,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "2D51E3B8CFD9D742"
       },
       {
         "path": "Scripts/Modules/RemoteToolkit.psm1",
         "size_bytes": 9942,
         "lines": 263,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "C3F1BCC274A20EB8"
       },
       {
         "path": "Scripts/Modules/ReportGenerator.psm1",
         "size_bytes": 4346,
         "lines": 137,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "9F944735E7A1968F"
       },
       {
         "path": "Scripts/Modules/SanitizeEngine.psm1",
         "size_bytes": 5297,
         "lines": 141,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "5E8D578FA6B052BB"
       },
       {
         "path": "Scripts/Modules/SCHEDULE-GUIDE.md",
         "size_bytes": 1750,
         "lines": 54,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "6CC8E4746ADE0859"
       },
       {
         "path": "Scripts/Modules/TaskScheduler.psm1",
         "size_bytes": 4116,
         "lines": 117,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "6C1225E38F64D450"
       },
       {
         "path": "Scripts/Modules/ToolkitConfig.psm1",
         "size_bytes": 3036,
         "lines": 102,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "0C2734BE83029928"
       },
       {
         "path": "Scripts/Modules/ToolkitData.psm1",
         "size_bytes": 8025,
         "lines": 222,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "7315F1C2DBC2F656"
       },
       {
         "path": "Scripts/Network-Diagnostic.ps1",
         "size_bytes": 5481,
         "lines": 115,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "C4A5F3BF447FF16B"
       },
       {
         "path": "Scripts/Pin-QuickAccess-Folders.ps1",
         "size_bytes": 1204,
         "lines": 37,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "A9CD9431CC4FDED7"
       },
       {
         "path": "Scripts/Printer-Fix.ps1",
         "size_bytes": 1939,
         "lines": 44,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "A153029A777F5F41"
       },
       {
         "path": "Scripts/QuickCheck.ps1",
         "size_bytes": 14190,
         "lines": 285,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "081186741B8CBDF5"
       },
       {
         "path": "Scripts/README.md",
         "size_bytes": 11615,
         "lines": 441,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "798CD3C7EBCB6F2B"
       },
       {
         "path": "Scripts/Remote/BatchScan.ps1",
         "size_bytes": 2763,
         "lines": 78,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "90393C433ED0F7EC"
       },
       {
         "path": "Scripts/Remote/Invoke-RemoteNetworkDiagnostic.ps1",
         "size_bytes": 1609,
         "lines": 50,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "600F8663B519C2A4"
       },
       {
         "path": "Scripts/Remote/Invoke-RemoteQuickCheck.ps1",
         "size_bytes": 1575,
         "lines": 50,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "9076A751DEFC1627"
       },
       {
         "path": "Scripts/Remote/README.md",
         "size_bytes": 1250,
         "lines": 28,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "617FD53DD38EA499"
       },
       {
         "path": "Scripts/Run-QuickCheck.bat",
         "size_bytes": 243,
         "lines": 6,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "B7A5EAF5466D88AC"
       },
       {
         "path": "Scripts/Templates/Report-Template.html",
         "size_bytes": 895,
         "lines": 24,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "AD42679B20E7E25F"
       },
       {
         "path": "Scripts/Tests/AgentCommandTrust.Tests.ps1",
         "size_bytes": 3015,
         "lines": 51,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "7B768F4166533755"
       },
       {
         "path": "Scripts/Tests/BatchLauncher.Tests.ps1",
         "size_bytes": 3238,
         "lines": 80,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "6B266E017144421B"
       },
       {
         "path": "Scripts/Tests/Phase1-Regression.Tests.ps1",
         "size_bytes": 6680,
         "lines": 176,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "A65CA83589FAAAEC"
       },
       {
         "path": "Scripts/Tests/Phase2-Modules.Tests.ps1",
         "size_bytes": 5389,
         "lines": 108,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "A17955AF4677DC03"
       },
       {
         "path": "Scripts/Tests/README.md",
         "size_bytes": 665,
         "lines": 24,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "92C6A4FFCC10F389"
       },
       {
         "path": "Scripts/Tests/RemoteToolkit.tests.ps1",
         "size_bytes": 1494,
         "lines": 39,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "2C436539C5FB9D97"
       },
       {
         "path": "Scripts/Tests/Run-RemoteToolkit-Tests.ps1",
         "size_bytes": 755,
         "lines": 23,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "2CEA9159CA89D51C"
       },
       {
         "path": "Scripts/User-Inventory.ps1",
         "size_bytes": 7841,
         "lines": 178,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "304B5225DED0D8F2"
       },
       {
         "path": "Scripts/verify-first-run-docker.mjs",
         "size_bytes": 5880,
         "lines": 118,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "3EE1880F1BB3D8E8"
       },
       {
         "path": "server.js",
         "size_bytes": 112303,
         "lines": 2894,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "DD6ABDA17C8D1AE7"
       },
       {
         "path": "setup-security.js",
         "size_bytes": 1091,
         "lines": 27,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "1CAC066147FB7D64"
       },
       {
         "path": "Setup-Wizard.bat",
         "size_bytes": 10046,
         "lines": 350,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "EAF6EF8B41AD1A84"
       },
       {
         "path": "Software/Portable-Software-Links.md",
         "size_bytes": 2252,
         "lines": 32,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "9132209449371D1C"
       },
       {
         "path": "Templates/AI-Assistant-Prompts.txt",
         "size_bytes": 13168,
         "lines": 303,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "24917D3B26468BBF"
       },
       {
         "path": "Templates/CMD-Commands-Reference.txt",
         "size_bytes": 3123,
         "lines": 65,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "B95C18F99396DCBD"
       },
       {
         "path": "Templates/Knowledge-Base.xlsx",
         "size_bytes": 19262,
         "lines": 33,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "1ADC69E3731A1801"
       },
       {
         "path": "Templates/Ticket-Reply-Templates.txt",
         "size_bytes": 2500,
         "lines": 93,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "22B5CF98150035E4"
       },
       {
         "path": "test-auth-integration.js",
         "size_bytes": 8315,
         "lines": 195,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "A75BF8D44ED5B607"
       },
       {
         "path": "test-contract-validation.js",
         "size_bytes": 4714,
         "lines": 119,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "261133F8648C52D7"
       },
       {
         "path": "test-data-retention.js",
         "size_bytes": 8291,
         "lines": 202,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "693D90762037E0D1"
       },
       {
         "path": "test-database-resilience.js",
         "size_bytes": 4715,
         "lines": 101,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "C81AE31102EF2938"
       },
       {
         "path": "test-device-auth-deep.js",
         "size_bytes": 9826,
         "lines": 228,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "8008C71D729ECBEA"
       },
       {
         "path": "test-id-generation-race.js",
         "size_bytes": 8621,
         "lines": 240,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "C6ABCB15BA66EAC4"
       },
       {
         "path": "test-migrations-runner.js",
         "size_bytes": 7010,
         "lines": 145,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "5CB452D7080787A0"
       },
       {
         "path": "test-msi-packaging-integration.js",
         "size_bytes": 6882,
         "lines": 127,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "84C706CF2583B15F"
       },
       {
         "path": "test-query-performance-indexing.js",
         "size_bytes": 10975,
         "lines": 279,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "6E084AC39B444D75"
       },
       {
         "path": "tests/integration/cloud-audit-status.test.js",
         "size_bytes": 1517,
         "lines": 34,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "C6EBC81EA77D2C3D"
       },
       {
         "path": "tests/integration/first-run-config.test.js",
         "size_bytes": 1631,
         "lines": 29,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "C288FEF4EC3BA4C5"
       },
       {
         "path": "tests/integration/server.integration.test.js",
         "size_bytes": 29355,
         "lines": 840,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "8B5126E785012C15"
       },
       {
         "path": "tests/unit/agent-command-security.test.js",
         "size_bytes": 2269,
         "lines": 45,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "DA19FC7AEB008BB2"
       },
       {
         "path": "tests/unit/boot-security.test.js",
         "size_bytes": 2517,
         "lines": 63,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "73EAD5B4B8F0186F"
       },
       {
         "path": "tests/unit/bootstrap-secrets.test.js",
         "size_bytes": 1404,
         "lines": 30,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "3C7839E45DF33F58"
       },
       {
         "path": "tests/unit/db.unit.test.js",
         "size_bytes": 33830,
         "lines": 933,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "D170B51A80599D8A"
       },
       {
         "path": "tests/unit/first-run-legacy-admin.test.js",
         "size_bytes": 1809,
         "lines": 41,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "F413D88214815922"
       },
       {
         "path": "tests/unit/first-run-setup.test.js",
         "size_bytes": 2479,
         "lines": 45,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "30FC615E1EA9DB51"
       },
       {
         "path": "tests/unit/msi-latest-route.test.js",
         "size_bytes": 1880,
         "lines": 38,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "3816565F41F310C3"
       },
       {
         "path": "tests/unit/port-configuration.test.js",
         "size_bytes": 3534,
         "lines": 116,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "E26628D6BA4D0C6E"
       },
       {
         "path": "tests/unit/setup-schema.test.js",
         "size_bytes": 1359,
         "lines": 26,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "FE3FC3CB372F235E"
       },
       {
         "path": "tests/unit/sync-device-processes.test.js",
         "size_bytes": 2997,
         "lines": 83,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "F924094005A5414E"
       },
       {
         "path": "tests/unit/validation.unit.test.js",
         "size_bytes": 7730,
         "lines": 202,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "AAFD8E76FE8E981A"
       },
       {
         "path": "Toolkit-Menu.bat",
         "size_bytes": 4053,
         "lines": 133,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "3AFBA39E9AD7CFC5"
       },
       {
         "path": "validation.js",
         "size_bytes": 11768,
         "lines": 333,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "20AB9670DBDBC42D"
       },
       {
         "path": "VERSION.md",
         "size_bytes": 9760,
         "lines": 125,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "B2DBF498D84D8821"
       },
       {
         "path": "vitest.config.js",
         "size_bytes": 657,
         "lines": 31,
-        "last_modified": "2026-11-10T21:42:17",
+        "last_modified": "2026-11-10T21:43:10",
         "sha256_short": "C002D0288319936C"
       }
     ],
     "latest_delta": {
-      "detected_at": "2026-11-10T21:42:18+00:00",
-      "added": [
-        "Enterprise/agent/wix/verify-msi-lifecycle.ps1",
-        "Scripts/Tests/AgentCommandTrust.Tests.ps1",
-        ".github/workflows/phase-i-windows-msi.yml",
-        "Scripts/Modules/AgentCommandTrust.psm1",
-        "tests/unit/agent-command-security.test.js",
-        "agent-command-security.js",
-        "Enterprise/agent/wix/Assert-PackagingConfig.ps1"
-      ],
+      "detected_at": "2026-11-10T21:43:11+00:00",
+      "added": [],
       "removed": [],
       "changed": [
-        "Enterprise/agent/wix/build-msi.ps1",
-        "Enterprise/agent/Agent-Collect.ps1",
-        ".github/workflows/ci.yml",
-        "Enterprise/agent/wix/Agent.wxs",
-        ".github/workflows/phase-h-index-sync.yml",
-        "server.js"
+        "Enterprise/agent/wix/build-msi.ps1"
       ],
-      "unchanged_count": 215
+      "unchanged_count": 227
     },
     "delta_history": [
-      {
-        "detected_at": "2026-08-11T00:02:29+00:00",
-        "added": [],
-        "removed": [],
-        "changed": [
-          "Enterprise/ROADMAP.md",
-          "Documentation/Windows-Smoke-Run.md",
-          "QUICK-SUMMARY.md",
-          "ANALYSIS-RECOMMENDATIONS.md",
-          "Enterprise/docker-compose.yml",
-          "Enterprise/README.md",
-          "Scaling Plan/PROGRESS-TRACKING.md",
-          "Documentation/README.md",
-          "Scaling Plan/IMPLEMENTATION-PLAN.md",
-          "Enterprise/.env.example",
-          "COMPLETION-REPORT.md",
-          "IT-TOOLKIT-GAP-ANALYSIS.md",
-          "Enterprise/SCALING-PLAN.md",
-          "Documentation/Deployment-AI-Runbook.md",
-          "Enterprise/ARCHITECTURE.md"
-        ],
-        "unchanged_count": 114
-      },
       {
         "detected_at": "2026-08-11T18:51:43+00:00",
         "added": [
@@ -2287,6 +2251,15 @@
           "server.js"
         ],
         "unchanged_count": 215
+      },
+      {
+        "detected_at": "2026-11-10T21:43:11+00:00",
+        "added": [],
+        "removed": [],
+        "changed": [
+          "Enterprise/agent/wix/build-msi.ps1"
+        ],
+        "unchanged_count": 227
       }
     ],
     "unchanged_files": 37,
@@ -2728,6 +2701,6 @@
   "progress": {
     "percent": 100.0,
     "issues_resolved": "17/17",
-    "last_verified_commit": "b1b84475dd77974b55e42dc3738d6b68ce3d82aa"
+    "last_verified_commit": "2716a2fabd77ad40aa554236bd921a8a8169481e"
   }
 }

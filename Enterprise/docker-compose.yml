@@ -45,6 +45,8 @@ services:
       COMMAND_SIGNING_KEY: ${COMMAND_SIGNING_KEY:-}
       DATA_DIR: /data
       ARTIFACTS_DIR: /artifacts
+      ENABLE_SIGNED_MSI_DISTRIBUTION: ${ENABLE_SIGNED_MSI_DISTRIBUTION:-false}
+      AGENT_RELEASE_MANIFEST_PATH: /artifacts/msi/release-manifest.json
       ENVIRONMENT: ${ENVIRONMENT:-prod}
     command: ["node", "Enterprise/deploy/start.cjs"]
     ports:

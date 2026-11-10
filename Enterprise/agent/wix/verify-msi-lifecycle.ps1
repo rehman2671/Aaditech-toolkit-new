@@ -33,7 +33,8 @@ finally { $stream.Dispose() }
 # Windows Installer COM validates that this is a readable installation DB.
 $installer = New-Object -ComObject WindowsInstaller.Installer
 $db = $installer.OpenDatabase($msi.FullName, 0)
-$view = $db.OpenView("SELECT Property, Value FROM Property WHERE Property IN ('ProductName', 'ProductVersion', 'ProductCode', 'UpgradeCode')")
+# Windows Installer SQL supports a restricted subset (no SQL IN clause).
+$view = $db.OpenView('SELECT `Property`, `Value` FROM `Property`')
 $view.Execute()
 $metadata = @{}
 while ($null -ne ($record = $view.Fetch())) {

@@ -31,8 +31,25 @@ Windows 10/11 with Docker Desktop + WSL2, or Linux with Docker Engine and Compos
 - SMTP and remote server URL connection-test endpoints explicitly return NOT_IMPLEMENTED, not fabricated success.
 - Only run first-time HTTP wizard on localhost, never over public HTTP. External access requires trusted HTTPS and hardening.
 
+## Verified clean-install evidence (November 11, 2026)
+
+GitHub Actions **Phase H first-run Docker and MySQL smoke**, run
+[42899485261](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/42899485261),
+completed successfully on the Linux GitHub-hosted runner.
+
+The automated test built the actual production Docker image, initialized a fresh MySQL
+database, rejected a wrong setup code and weak administrator password, completed owner
+setup using the host-local setup code, rejected default seeded sign-ins, checked admin-only
+System Settings, saved updated configuration, restarted the API container, and verified
+configuration and setup-code persistence. It also verified unimplemented SMTP connectivity
+testing returns 501 instead of fake success.
+
+**Scope:** Linux Docker/MySQL only; Windows Docker Desktop, production TLS/mTLS, command
+signatures, signed MSI installation, upgrade migrations, backup recovery and external
+SMTP/GitHub live connections have not been validated by this smoke test.
+
 ## Verification gate
 
 Run npm ci, node --check on changed JavaScript, npm run test:unit, npm run test:integration, Docker Compose config, Windows PowerShell validation, repeated restart with persistent secrets, negative auth tests, and a clean-install workflow. Do not publish any endpoint MSI until genuine signed Windows installer lifecycle testing passes.
 
-**Remaining release blockers:** all 21 tracked MSI artifacts are only 1536-byte fixtures; past CI PowerShell index step failed; existing agent authentication, command signatures, multi-tenant isolation, persistence and HTTPS/mTLS lifecycle still require separate remediation.
+**Remaining release blockers:** all 21 tracked MSI artifacts are only 1536-byte fixtures; CI index verification on the complete PR head remains a gate until checked green; existing agent authentication, command signatures, multi-tenant isolation, persistence and HTTPS/mTLS lifecycle still require separate remediation.

@@ -93,7 +93,11 @@ if (Test-Path (Join-Path $env:ProgramFiles 'IT-Toolkit\IT-Toolkit-Agent.exe')) {
     throw 'MSI uninstall left the agent EXE installed.'
 }
 & schtasks.exe /Query /TN ITToolkitAgent 2>$null | Out-Null
-if ($LASTEXITCODE -eq 0) { throw 'Scheduled task remained after MSI uninstall.' }
+$taskStillPresent = ($LASTEXITCODE -eq 0)
+# The expected nonzero exit code from querying a removed task must not poison
+# the PowerShell step's final process exit code after all assertions pass.
+$global:LASTEXITCODE = 0
+if ($taskStillPresent) { throw 'Scheduled task remained after MSI uninstall.' }
 
 $exeHash = (Get-FileHash $exe -Algorithm SHA256).Hash
 $msiHash = (Get-FileHash $msi.FullName -Algorithm SHA256).Hash

@@ -73,6 +73,10 @@ Copy-Item (Join-Path $RepoRoot 'Config')  (Join-Path $Stage 'Config')  -Recurse 
 # security descriptor that lets the NETWORK SERVICE agent trigger it).
 Copy-Item (Join-Path $WixDir 'Create-ElevatedTask.ps1') (Join-Path $Stage 'Scripts\Create-ElevatedTask.ps1') -Force
 
+# A credential-free MSI needs an explicit operator-controlled enrollment step.
+# This helper requests the single-use bootstrap token interactively AFTER install.
+Copy-Item (Join-Path $RepoRoot 'Enterprise\agent\Provision-Device.ps1') (Join-Path $Stage 'Scripts\Provision-Device.ps1') -Force
+
 # bundle the support-engineer collectors (installed as <root>\Enterprise\agent\collectors\,
 # same relative path the agent.json feature scripts use in the repo)
 $collectors = Join-Path $RepoRoot 'Enterprise\agent\collectors'

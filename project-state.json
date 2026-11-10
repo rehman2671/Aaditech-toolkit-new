@@ -1,26 +1,24 @@
 {
   "state_version": "1.0",
   "path": "project-state.json",
-  "generated": "2026-11-10T22:02:25+00:00",
+  "generated": "2026-11-10T22:02:55+00:00",
   "phase": "RELEASE BLOCKED / REMEDIATION IN PROGRESS",
-  "last_verified_commit": "6fac2cfea5dc7a96d6214dd5034cf775103a871c",
-  "last_verified_date": "2026-11-11T03:32:21+05:30",
+  "last_verified_commit": "e0d21f358e2e1f12469f8d712955021c17b551b7",
+  "last_verified_date": "2026-11-11T03:32:39+05:30",
   "git": {
     "branch": "feat/phase-i-windows-agent-hardening-20261111",
     "commit_count": 1,
     "clean_working_tree": true,
-    "head": "6fac2cfea5dc7a96d6214dd5034cf775103a871c"
+    "head": "e0d21f358e2e1f12469f8d712955021c17b551b7"
   },
   "latest_delta": {
-    "detected_at": "2026-11-10T22:02:25+00:00",
+    "detected_at": "2026-11-10T22:02:55+00:00",
     "added": [],
     "removed": [],
     "changed": [
-      "agent-artifacts.js",
-      "Enterprise/docker-compose.yml",
-      "server.js"
+      "docs/deployment/WINDOWS-AGENT-RELEASE-VALIDATION.md"
     ],
-    "unchanged_count": 229
+    "unchanged_count": 231
   },
   "module_state": {
     "working": [

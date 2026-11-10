@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-10T22:02:25+00:00",
-  "last_verified_commit": "6fac2cfea5dc7a96d6214dd5034cf775103a871c",
-  "last_verified_date": "2026-11-11T03:32:21+05:30",
+  "generated": "2026-11-10T22:02:55+00:00",
+  "last_verified_commit": "e0d21f358e2e1f12469f8d712955021c17b551b7",
+  "last_verified_date": "2026-11-11T03:32:39+05:30",
   "overall_progress_percent": 100.0,
   "issue_progress": {
     "total": 17,
@@ -14,19 +14,10 @@
   "latest_delta": {
     "added": 0,
     "removed": 0,
-    "changed": 3,
-    "unchanged": 229
+    "changed": 1,
+    "unchanged": 231
   },
   "delta_history": [
-    {
-      "detected_at": "2026-11-10T20:52:32+00:00",
-      "added": [],
-      "removed": [],
-      "changed": [
-        "Scripts/verify-first-run-docker.mjs"
-      ],
-      "unchanged_count": 220
-    },
     {
       "detected_at": "2026-11-10T20:55:20+00:00",
       "added": [],
@@ -215,6 +206,15 @@
         "server.js"
       ],
       "unchanged_count": 229
+    },
+    {
+      "detected_at": "2026-11-10T22:02:55+00:00",
+      "added": [],
+      "removed": [],
+      "changed": [
+        "docs/deployment/WINDOWS-AGENT-RELEASE-VALIDATION.md"
+      ],
+      "unchanged_count": 231
     }
   ],
   "next_recommended_tasks": [

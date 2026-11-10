@@ -1,0 +1,46 @@
+name: Phase H first-run Docker and MySQL smoke
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  first-run-docker:
+    name: Clean install, setup and restart on Docker/MySQL
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate Compose and run real first-run bootstrap
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          cat > Enterprise/.env <<EOF
+          MYSQL_ROOT_PASSWORD=$(openssl rand -hex 36)
+          MYSQL_DATABASE=it_toolkit
+          MYSQL_USER=itk_user
+          MYSQL_PASSWORD=$(openssl rand -hex 36)
+          SERVER_HOST=localhost
+          CADDY_HOST=:80
+          EOF
+          chmod 600 Enterprise/.env
+          docker compose --env-file Enterprise/.env -f Enterprise/docker-compose.yml config --quiet
+          cleanup() {
+            rc=$?
+            if [ "$rc" -ne 0 ]; then
+              echo 'First-run smoke failed. Relevant container logs:'
+              docker compose --env-file Enterprise/.env -f Enterprise/docker-compose.yml logs --no-color --tail=80 db api || true
+            fi
+            docker compose --env-file Enterprise/.env -f Enterprise/docker-compose.yml down --volumes --remove-orphans || true
+            exit "$rc"
+          }
+          trap cleanup EXIT
+          docker compose --env-file Enterprise/.env -f Enterprise/docker-compose.yml up -d --build db api
+          PHASE_H_ENV_FILE=Enterprise/.env node scripts/verify-first-run-docker.mjs

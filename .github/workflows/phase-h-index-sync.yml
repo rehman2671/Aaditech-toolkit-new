@@ -1,0 +1,40 @@
+name: Phase H index snapshot sync (scoped PR)
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+permissions:
+  contents: read
+jobs:
+  sync-phase-h-index:
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'feat/phase-h-first-run-setup-20261110-2'
+    permissions:
+      contents: write
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/phase-h-first-run-setup-20261110-2
+          persist-credentials: true
+      - name: Check and commit generated project-index snapshots only when stale
+        shell: pwsh
+        run: |
+          $checker = Start-Process pwsh -ArgumentList '-NoProfile', '-File', './Scripts/Index/Update-ProjectIndex.ps1', '-Check' -Wait -PassThru -NoNewWindow
+          if ($checker.ExitCode -eq 0) {
+            Write-Host 'Project indexes already match committed metadata.'
+            exit 0
+          }
+          # The checker writes a new snapshot before reporting stale. Preserve that
+          # generated snapshot; do not disable the CI freshness test.
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add project-index.json project-state.json project-progress.json
+          $changed = @(git diff --cached --name-only)
+          if ($changed.Count -eq 0) { throw 'Index reported stale but did not generate any changes.' }
+          foreach ($file in $changed) {
+            if ($file -notin @('project-index.json','project-state.json','project-progress.json')) { throw 'Unexpected staged path in generated index sync.' }
+          }
+          git commit -m 'chore(index): regenerate tracked project snapshots for Phase H'
+          if ($LASTEXITCODE -ne 0) { throw 'Commit failed.' }
+          git push origin HEAD:refs/heads/feat/phase-h-first-run-setup-20261110-2
+          if ($LASTEXITCODE -ne 0) { throw 'Index push failed. Check GitHub Actions workflow token permissions.' }
+          Write-Host 'Committed generated project indexes to the feature branch.'

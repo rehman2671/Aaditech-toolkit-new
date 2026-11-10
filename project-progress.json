@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-10T21:50:43+00:00",
-  "last_verified_commit": "6c80815ea8ce68dc1f53f99c121d2f885b527fb5",
-  "last_verified_date": "2026-11-11T03:20:25+05:30",
+  "generated": "2026-11-10T21:51:51+00:00",
+  "last_verified_commit": "aa25e5802df377c248244040949586ef7c0c04d4",
+  "last_verified_date": "2026-11-11T03:21:28+05:30",
   "overall_progress_percent": 100.0,
   "issue_progress": {
     "total": 17,
@@ -12,21 +12,12 @@
     "percent": 100.0
   },
   "latest_delta": {
-    "added": 1,
+    "added": 0,
     "removed": 0,
-    "changed": 0,
+    "changed": 1,
     "unchanged": 230
   },
   "delta_history": [
-    {
-      "detected_at": "2026-11-09T23:02:57+00:00",
-      "added": [],
-      "removed": [],
-      "changed": [
-        "Scripts/Index/Update-ProjectIndex.ps1"
-      ],
-      "unchanged_count": 217
-    },
     {
       "detected_at": "2026-11-09T23:06:12+00:00",
       "added": [],
@@ -212,6 +203,15 @@
       ],
       "removed": [],
       "changed": [],
+      "unchanged_count": 230
+    },
+    {
+      "detected_at": "2026-11-10T21:51:51+00:00",
+      "added": [],
+      "removed": [],
+      "changed": [
+        "docs/deployment/WINDOWS-AGENT-RELEASE-VALIDATION.md"
+      ],
       "unchanged_count": 230
     }
   ],

@@ -1,23 +1,23 @@
 {
   "state_version": "1.0",
   "path": "project-state.json",
-  "generated": "2026-11-10T21:50:43+00:00",
+  "generated": "2026-11-10T21:51:51+00:00",
   "phase": "RELEASE BLOCKED / REMEDIATION IN PROGRESS",
-  "last_verified_commit": "6c80815ea8ce68dc1f53f99c121d2f885b527fb5",
-  "last_verified_date": "2026-11-11T03:20:25+05:30",
+  "last_verified_commit": "aa25e5802df377c248244040949586ef7c0c04d4",
+  "last_verified_date": "2026-11-11T03:21:28+05:30",
   "git": {
     "branch": "feat/phase-i-windows-agent-hardening-20261111",
     "commit_count": 1,
     "clean_working_tree": true,
-    "head": "6c80815ea8ce68dc1f53f99c121d2f885b527fb5"
+    "head": "aa25e5802df377c248244040949586ef7c0c04d4"
   },
   "latest_delta": {
-    "detected_at": "2026-11-10T21:50:43+00:00",
-    "added": [
-      "tests/integration/device-command-envelope.test.js"
-    ],
+    "detected_at": "2026-11-10T21:51:51+00:00",
+    "added": [],
     "removed": [],
-    "changed": [],
+    "changed": [
+      "docs/deployment/WINDOWS-AGENT-RELEASE-VALIDATION.md"
+    ],
     "unchanged_count": 230
   },
   "module_state": {

@@ -81,7 +81,37 @@ try {
     }
     $foundTask = & schtasks.exe /Query /TN ITToolkitAgent 2>$null
     if ($LASTEXITCODE -ne 0) { throw 'Expected least-privilege scheduled task ITToolkitAgent missing.' }
-    Write-Host '[Windows installer] Scheduled task verified.'
+    Write-Host '[Windows installer] Routine scheduled task verified.'
+
+    # Phase J: uninstall any legacy SYSTEM task before starting routine work.
+    # Only NETWORK SERVICE is allowed. A test runner must fail closed if an
+    # ITToolkitAgentElevated task still exists after MSI installation.
+    & schtasks.exe /Query /TN ITToolkitAgentElevated 2>$null | Out-Null
+    $legacyPresent = ($LASTEXITCODE -eq 0)
+    $global:LASTEXITCODE = 0
+    if ($legacyPresent) {
+        throw 'Security blocker: legacy SYSTEM task exists after installation.'
+    }
+
+    # Exercise the compiled executable itself: the old -ElevatedOnce entry
+    # point must refuse execution before reading config or writing job files.
+    $denied = Start-Process -FilePath $installedExe -ArgumentList '-ElevatedOnce' -Wait -PassThru
+    if ($denied.ExitCode -ne 77) {
+        throw "Security blocker: -ElevatedOnce did not reject (exit=$($denied.ExitCode), expected=77)."
+    }
+
+    # Validate that world-readable/Users/Authenticated Users access was NOT
+    # retained on the protected runtime agent configuration.
+    $acl = Get-Acl -LiteralPath $installedConfig
+    $broadTrustees = @('Everyone','BUILTIN\Users','NT AUTHORITY\Authenticated Users','S-1-1-0','S-1-5-11','S-1-5-32-545')
+    $readableByOthers = @($acl.Access | Where-Object {
+        $_.AccessControlType -eq 'Allow' -and
+        ($broadTrustees -contains $_.IdentityReference.Value)
+    })
+    if ($readableByOthers.Count -gt 0) {
+        throw 'Security blocker: MSI runtime configuration has broad allow permissions.'
+    }
+    Write-Host '[Windows installer] Legacy SYSTEM task blocked, elevated entrypoint denied, runtime ACL verified.'
 }
 finally {
     if ($installed) {
@@ -98,10 +128,14 @@ $taskStillPresent = ($LASTEXITCODE -eq 0)
 # the PowerShell step's final process exit code after all assertions pass.
 $global:LASTEXITCODE = 0
 if ($taskStillPresent) { throw 'Scheduled task remained after MSI uninstall.' }
+& schtasks.exe /Query /TN ITToolkitAgentElevated 2>$null | Out-Null
+$legacyRemained = ($LASTEXITCODE -eq 0)
+$global:LASTEXITCODE = 0
+if ($legacyRemained) { throw 'Legacy elevated task remained after MSI uninstall.' }
 
 $exeHash = (Get-FileHash $exe -Algorithm SHA256).Hash
 $msiHash = (Get-FileHash $msi.FullName -Algorithm SHA256).Hash
-Write-Host "[Windows installer] PASS: genuine EXE and MSI, successful install/uninstall, task cleanup."
+Write-Host "[Windows installer] PASS: genuine EXE/MSI, install/uninstall, safe ACL, no SYSTEM helper, denied elevated entrypoint."
 Write-Host "[Windows installer] MSI $($msi.Name): $($msi.Length) bytes; SHA256=$msiHash"
 Write-Host "[Windows installer] EXE SHA256=$exeHash"
 Write-Warning 'TEST-ONLY unsigned artifact. Do not publish to production endpoints.'

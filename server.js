@@ -1354,12 +1354,10 @@ app.post('/api/v1/msi/generate', requireRole(['SUPER_ADMIN']), validateBody(msiG
   let msiSize = 0;
 
   if (msiResolved.found) {
-    const targetDir = path.join(__dirname, 'artifacts', 'msi', pkgId);
-    fs.mkdirSync(targetDir, { recursive: true });
-    targetFilePath = path.join(targetDir, `${pkgName}-${pkgVer}.msi`);
-    fs.copyFileSync(msiResolved.path, targetFilePath);
-
-    const fileBytes = fs.readFileSync(targetFilePath);
+    // Reuse the approved, hash-pinned signed release from the host-owned
+    // artifacts volume. Do not copy binaries to a writable source checkout.
+    targetFilePath = msiResolved.path;
+    const fileBytes = fs.readFileSync(msiResolved.path);
     fileHash = crypto.createHash('sha256').update(fileBytes).digest('hex');
     msiSize = fileBytes.length;
     packageStatus = 'READY';

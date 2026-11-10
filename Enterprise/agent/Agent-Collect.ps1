@@ -183,6 +183,15 @@ function Ensure-ClientCert {
     $dir = Split-Path $ConfigPath -Parent
     $caPath = Join-Path $dir 'ca.crt'
     $tokenPath = Get-AgentTokenPath
+    $keyPath = Get-AgentCommandKeyPath
+    $deviceIdPath = Get-AgentEnrolledDeviceIdPath
+
+    # Non-mTLS deployments enroll once and keep their unique per-device
+    # credentials. Never replay a consumed bootstrap token on every heartbeat.
+    if ((Test-Path $tokenPath) -and (Test-Path $keyPath) -and
+        (Test-Path $deviceIdPath) -and (-not $Config.require_mtls)) {
+        return $null
+    }
 
     # If a CA was already bundled (e.g. copied by install.cmd) or previously
     # enrolled, make sure it is trusted before the first mTLS call. Pre-B6
@@ -192,7 +201,8 @@ function Ensure-ClientCert {
         # C6: cert exists but is near expiry / missing token -> renew. The server
         # re-issues a fresh cert (issue_client_cert renews expiring ones), so we
         # drop the old cert and re-enroll below.
-        if ((Test-ClientCertExpiry -PfXPath $pfx) -or (-not (Test-Path $tokenPath))) {
+        if ((Test-ClientCertExpiry -PfXPath $pfx) -or (-not (Test-Path $tokenPath)) -or
+            (-not (Test-Path $keyPath)) -or (-not (Test-Path $deviceIdPath))) {
             Write-AgentLog "Client cert expired/near-expiry or token missing — renewing cert (C6)"
             Remove-Item $pfx -Force -ErrorAction SilentlyContinue
             Remove-Item $tokenPath -Force -ErrorAction SilentlyContinue
@@ -203,11 +213,20 @@ function Ensure-ClientCert {
                 $cand = Join-Path $dir2 'ca.crt'
                 if (Test-Path $cand) { Copy-Item $cand $caPath -Force }
             }
-            if (Test-Path $caPath) { Install-ServerCa (Get-Content $caPath -Raw) }
+            # Trust must be provisioned independently by an administrator.
+            # A remote response cannot authorize its own CA certificate.
             return $pfx
         }
     }
 
+    if ($Config.enroll_url -notmatch '^https://') {
+        Write-AgentLog 'Refused device enrollment over HTTP'
+        return $null
+    }
+    if (-not $Config.token) {
+        Write-AgentLog 'Enrollment requires administrator-provisioned one-time bootstrap token'
+        return $null
+    }
     Write-AgentLog "Enrolling for device credentials from $($Config.enroll_url)"
     try {
         $hn = (Get-AgentHostname)
@@ -219,17 +238,13 @@ function Ensure-ClientCert {
             agent_version   = (Get-InstalledAgentVersion)
         } | ConvertTo-Json -Compress
 
-        $resp = $null
-        try {
-            $resp = Invoke-RestMethod -Uri $Config.enroll_url -Method Post `
-                -Headers @{ 
-                    Authorization       = "Bearer $($Config.token)"
-                    "X-Bootstrap-Token" = $Config.token
-                } -ContentType 'application/json' -Body $enrollBody
-        } catch {
-            $resp = Invoke-RestMethod -Uri $Config.enroll_url -Method Get `
-                -Headers @{ Authorization = "Bearer $($Config.token)" }
-        }
+        # Never fall back to GET enrollment: bootstrap secrets must not appear
+        # in query parameters, browser history or proxy access logs.
+        $resp = Invoke-RestMethod -Uri $Config.enroll_url -Method Post `
+            -Headers @{
+                Authorization       = "Bearer $($Config.token)"
+                "X-Bootstrap-Token" = $Config.token
+            } -ContentType 'application/json' -Body $enrollBody
 
         $issuedToken = if ($resp.device_token) { $resp.device_token } elseif ($resp.agent_token) { $resp.agent_token } else { $null }
         if ($issuedToken) {

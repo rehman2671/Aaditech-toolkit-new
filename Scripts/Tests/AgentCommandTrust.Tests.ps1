@@ -2,10 +2,10 @@
 BeforeAll {
   Import-Module (Join-Path $PSScriptRoot '..\Modules\AgentCommandTrust.psm1') -Force
   function New-SignedCommand {
-    param([long]$IssuedAtMs,[string]$TargetDevice='agent-id-a',[string]$Host='WIN-A')
+    param([long]$IssuedAtMs,[string]$TargetDevice='agent-id-a',[string]$TargetHost='WIN-A')
     $content = [ordered]@{
       protocol_version=1;id='command-1';device_id=$TargetDevice
-      hostname=$Host;kind='reboot';payload=[ordered]@{delay_seconds=30}
+      hostname=$TargetHost;kind='reboot';payload=[ordered]@{delay_seconds=30}
       issued_at=$IssuedAtMs;expires_at=($IssuedAtMs+300000)
     } | ConvertTo-Json -Depth 8 -Compress
     $key='a'*64

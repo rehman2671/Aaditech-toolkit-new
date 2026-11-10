@@ -1,4 +1,4 @@
-name: Phase H/I project snapshot sync (scoped PR)
+name: Phase H/I/J project snapshot sync (scoped PR)
 on:
   pull_request:
     types: [opened, synchronize, reopened]
@@ -6,7 +6,7 @@ permissions:
   contents: read
 jobs:
   sync-phase-h-index:
-    if: github.event.pull_request.head.repo.full_name == github.repository && (github.head_ref == 'feat/phase-h-first-run-setup-20261110-2' || github.head_ref == 'feat/phase-i-windows-agent-hardening-20261111')
+    if: github.event.pull_request.head.repo.full_name == github.repository && (github.head_ref == 'feat/phase-h-first-run-setup-20261110-2' || github.head_ref == 'feat/phase-i-windows-agent-hardening-20261111' || github.head_ref == 'feat/phase-j-disable-untrusted-elevation-20261111')
     permissions:
       contents: write
     runs-on: windows-latest

@@ -287,58 +287,31 @@ jobs:
     defaults:
       run:
         shell: pwsh
-    if: github.event_name == 'workflow_dispatch' || github.event_name == 'push'
+    if: github.event_name == 'workflow_dispatch' # Signed release is explicitly initiated; never auto-publish on main pushes.
     steps:
       - uses: actions/checkout@v4
 
-      - name: Stage agent config (endpoint + token from repo secrets)
+      - name: Stage credential-free agent config (release requires post-install enrollment)
         shell: pwsh
-        env:
-          SERVER_ENDPOINT: ${{ secrets.SERVER_ENDPOINT }}
-          API_TOKEN: ${{ secrets.API_TOKEN }}
-          MTLS_ENDPOINT: ${{ secrets.MTLS_ENDPOINT }}
-          ENROLL_URL: ${{ secrets.ENROLL_URL }}
-          RUN_SCRIPT_ALLOWLIST: ${{ secrets.RUN_SCRIPT_ALLOWLIST }}
         run: |
-          # Endpoint comes from the repo's committed endpoint.json (authoritative
-          # for this deployment) so a stale/missing SERVER_ENDPOINT secret can't
-          # bake the wrong URL; the secret only wins when the file is absent.
-          $fileCfg = if (Test-Path ./Enterprise/agent/endpoint.json) { Get-Content ./Enterprise/agent/endpoint.json -Raw | ConvertFrom-Json } else { $null }
-          $endpoint = if ($fileCfg -and $fileCfg.endpoint) { $fileCfg.endpoint } elseif ($env:SERVER_ENDPOINT) { $env:SERVER_ENDPOINT } else { 'http://CHANGE-ME/ingest' }
-          $token = if ($env:API_TOKEN) { $env:API_TOKEN } else { 'CHANGE-ME' }
-          $featuresFile = if (Test-Path ./Enterprise/agent/features.json) { './Enterprise/agent/features.json' } elseif (Test-Path ./Enterprise/api/features.json) { './Enterprise/api/features.json' } else { './Enterprise/agent/agent-config.example.json' }
-          $manifest = (Get-Content $featuresFile -Raw | ConvertFrom-Json).features
-          $features = @($manifest | ForEach-Object {
-            @{ name = $_.name; script = $_.script; enabled = [bool]$_.default_enabled; requires_elevation = [bool]$_.requires_elevation }
-          })
-          $agentMeta = Get-Content ./Enterprise/agent/agent-version.json -Raw | ConvertFrom-Json
-          # C5: run-script allowlist mirrors what deploy.sh/deploy.ps1 bake
-          # (from the RUN_SCRIPT_ALLOWLIST env), so CI-built agents enforce the
-          # same defense when the server issues run-script commands. Empty -> [].
-          $runScripts = if ($env:RUN_SCRIPT_ALLOWLIST) { $env:RUN_SCRIPT_ALLOWLIST -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ } } else { @() }
+          $meta = Get-Content ./Enterprise/agent/agent-version.json -Raw | ConvertFrom-Json
           $cfg = [ordered]@{
-            endpoint = $endpoint
-            token = $token
-            agent_version = [string]$agentMeta.agent_version
-            interval_minutes = [int]$agentMeta.interval_minutes
-            features = $features
-            run_script_allowlist = @($runScripts)
+            endpoint = 'https://127.0.0.1:9443/api/v1/ingest/telemetry'
+            enroll_url = ''
+            token = ''
+            agent_version = [string]$meta.agent_version
+            interval_minutes = [int]$meta.interval_minutes
+            run_script_allowlist = @()
+            deployment_state = 'UNENROLLED'
+            features = @()
           }
-          # Optional mTLS: only when the committed endpoint.json does NOT pin the
-          # endpoint (file is authoritative), MTLS_ENDPOINT points agents at the
-          # :9443 client-auth port and they enroll for a client cert over the
-          # main port. MTLS_ENDPOINT is also honored standalone if set.
-          if ($env:MTLS_ENDPOINT -and (-not $fileCfg -or -not $fileCfg.endpoint)) {
-            $cfg.endpoint = $env:MTLS_ENDPOINT
-            $cfg.enroll_url = if ($env:ENROLL_URL) { $env:ENROLL_URL } else { ($env:MTLS_ENDPOINT -replace '/ingest$', '/api/agent/enroll') }
-          }
-          $cfg | ConvertTo-Json -Depth 5 | Set-Content ./Enterprise/agent/agent-config.json
-
+          $cfg | ConvertTo-Json -Depth 8 | Set-Content ./Enterprise/agent/agent-config.json
+          & ./Enterprise/agent/wix/Assert-PackagingConfig.ps1 -ConfigFile ./Enterprise/agent/agent-config.json
       - name: Install ps2exe
         # MScholtes/PS2EXE requires Windows PowerShell 5.1 (uses the .NET
         # Framework compiler); it fails under pwsh (PowerShell 7).
         shell: powershell
-        run: Install-Module ps2exe -Force -Scope CurrentUser
+        run: Install-Module ps2exe -RequiredVersion '1.0.18' -Force -Scope CurrentUser -SkipPublisherCheck
 
       - name: Build agent exe
         shell: powershell
@@ -352,7 +325,7 @@ jobs:
           $env:Path = "$env:USERPROFILE\.dotnet\tools;$env:Path"
           ./Enterprise/agent/wix/build-msi.ps1
 
-      - name: Code-sign agent exe + MSI (internal CA)
+      - name: Code-sign and validate EXE + MSI using trusted release certificate
         shell: pwsh
         env:
           CODESIGN_PFX_B64: ${{ secrets.CODESIGN_PFX_B64 }}
@@ -360,10 +333,10 @@ jobs:
         run: |
           $out = 'Enterprise/agent/build/out'
           $targets = @(Join-Path $out 'IT-Toolkit-Agent.exe') + @(Get-ChildItem -Path $out -Filter '*.msi' -ErrorAction SilentlyContinue | ForEach-Object { $_.FullName })
-          if (-not $env:CODESIGN_PFX_B64) {
-            Write-Host "::warning::CODESIGN_PFX_B64 not set — artifacts left UNSIGNED"
-            exit 0
+          if (-not $env:CODESIGN_PFX_B64 -or -not $env:CODESIGN_PFX_PASSWORD) {
+            throw 'Release blocked: both code-signing PFX and password are required. Unsigned installers cannot be published.'
           }
+          if ($targets.Count -lt 2) { throw 'Release blocked: missing real EXE or MSI build output.' }
           $pfx = Join-Path $env:RUNNER_TEMP 'codesign.pfx'
           [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:CODESIGN_PFX_B64))
 
@@ -374,32 +347,21 @@ jobs:
             Sort-Object FullName -Descending | Select-Object -First 1
           if (-not $signtool) { throw 'signtool.exe not found under Windows SDK' }
 
-          # Import the internal code-signing root into the runner's trust
-          # stores so `signtool verify` can validate the chain (this mirrors the
-          # GPO "Trusted Publishers" push on real clients).
-          $rootCer = './Enterprise/agent/build/codesign/IT-Toolkit-CodeSign-Root.cer'
-          if (Test-Path $rootCer) {
-            Import-Certificate -FilePath $rootCer -CertStoreLocation Cert:\LocalMachine\Root -ErrorAction SilentlyContinue | Out-Null
-            Import-Certificate -FilePath $rootCer -CertStoreLocation Cert:\LocalMachine\TrustedPublisher -ErrorAction SilentlyContinue | Out-Null
-          }
+          # Do not import an untrusted repository CA into this runner.
+          # Authenticating the release publisher must use the Windows trust
+          # store and a separately approved signing certificate chain.
 
           foreach ($t in $targets) {
             if (-not (Test-Path $t)) { continue }
-            $signed = $false
-            # Prefer an RFC3161 timestamp so the signature outlives the CA's
-            # expiry; fall back to signing without one if the server is unreachable.
-            foreach ($ts in @('http://timestamp.digicert.com', $null)) {
-              if ($null -eq $ts) { $signed = $false }
-              & $signtool.FullName sign /f $pfx /p $env:CODESIGN_PFX_PASSWORD /fd SHA256 $(if ($ts) { @('/tr', $ts, '/td', 'SHA256') }) $t 2>$null
-              if ($LASTEXITCODE -eq 0) { $signed = $true; break }
-            }
-            if (-not $signed) { throw "signtool failed on $t" }
-            & $signtool.FullName verify /pa /v $t 2>$null
-            if ($LASTEXITCODE -ne 0) { Write-Host "::warning::verify reported an issue (check cert chain on target machines)" }
+            # Timestamp and a trusted chain are mandatory for a releasable MSI.
+            & $signtool.FullName sign /f $pfx /p $env:CODESIGN_PFX_PASSWORD /fd SHA256 /tr 'http://timestamp.digicert.com' /td SHA256 $t
+            if ($LASTEXITCODE -ne 0) { throw "Release blocked: code-signing or timestamp failed on $t" }
+            & $signtool.FullName verify /pa /v $t
+            if ($LASTEXITCODE -ne 0) { throw "Release blocked: untrusted or invalid signature on $t" }
             Write-Host "Signed: $t"
           }
 
-      - name: Upload artifacts
+      - name: Upload approved signed artifacts (sign+verify step must pass)
         uses: actions/upload-artifact@v4
         with:
           name: it-toolkit-agent

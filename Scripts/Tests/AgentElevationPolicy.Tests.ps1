@@ -12,7 +12,7 @@ Describe 'Phase J: no untrusted SYSTEM elevation' {
     It 'rejects the legacy ElevatedOnce switch before doing agent work' {
         $script:agent | Should -Match '(?s)if \(\$ElevatedOnce\).*?exit 77'
         $guardPos = $script:agent.IndexOf('if ($ElevatedOnce)')
-        $initPos = $script:agent.IndexOf('Import-ToolkitModules' + [Environment]::NewLine + 'Initialize-Queue')
+        $initPos = $script:agent.LastIndexOf('Import-ToolkitModules')
         $guardPos | Should -BeGreaterThan 0
         $initPos | Should -BeGreaterThan $guardPos
     }

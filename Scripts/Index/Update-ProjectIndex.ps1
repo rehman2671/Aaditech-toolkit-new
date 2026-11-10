@@ -354,10 +354,51 @@ if ($Check) {
         $onDisk = Get-Content (Join-Path $repoRoot $p) -Raw -ErrorAction SilentlyContinue
         if (-not $committed -or -not $onDisk) { Write-Host "${p}: missing comparison target"; continue }
         try {
-            $a = Remove-Volatile ($committed | ConvertFrom-Json)
-            $b = Remove-Volatile ($onDisk | ConvertFrom-Json)
-            $aJson = $a | ConvertTo-Json -Depth 12 -Compress
-            $bJson = $b | ConvertTo-Json -Depth 12 -Compress
+            # Compare source-derived state, not historical snapshots or checkout
+            # identity. CI checks out a detached HEAD; wall-clock deltas and Git
+            # metadata are not verifiable committed source changes.
+            $committedObject = $committed | ConvertFrom-Json
+            $diskObject = $onDisk | ConvertFrom-Json
+            if ($p -eq 'project-index.json') {
+                # Every tracked non-generated source file's content hash remains
+                # mandatory. Module/script inventories also must match.
+                $a = [PSCustomObject]@{
+                    current_snapshot = $committedObject.file_inventory.current_snapshot
+                    modules = $committedObject.modules
+                    scripts = $committedObject.scripts
+                    current_state = $committedObject.current_state
+                }
+                $b = [PSCustomObject]@{
+                    current_snapshot = $diskObject.file_inventory.current_snapshot
+                    modules = $diskObject.modules
+                    scripts = $diskObject.scripts
+                    current_state = $diskObject.current_state
+                }
+            } elseif ($p -eq 'project-state.json') {
+                $a = [PSCustomObject]@{
+                    phase = $committedObject.phase
+                    module_state = $committedObject.module_state
+                    known_risks_open = $committedObject.known_risks_open
+                    next_recommended_tasks = $committedObject.next_recommended_tasks
+                }
+                $b = [PSCustomObject]@{
+                    phase = $diskObject.phase
+                    module_state = $diskObject.module_state
+                    known_risks_open = $diskObject.known_risks_open
+                    next_recommended_tasks = $diskObject.next_recommended_tasks
+                }
+            } else {
+                $a = [PSCustomObject]@{
+                    issue_progress = $committedObject.issue_progress
+                    next_recommended_tasks = $committedObject.next_recommended_tasks
+                }
+                $b = [PSCustomObject]@{
+                    issue_progress = $diskObject.issue_progress
+                    next_recommended_tasks = $diskObject.next_recommended_tasks
+                }
+            }
+            $aJson = (Remove-Volatile $a) | ConvertTo-Json -Depth 12 -Compress
+            $bJson = (Remove-Volatile $b) | ConvertTo-Json -Depth 12 -Compress
             if ($aJson -ne $bJson) {
                 Write-Host "${p}: STALE - content differs from committed HEAD baseline."
                 $stale = $true

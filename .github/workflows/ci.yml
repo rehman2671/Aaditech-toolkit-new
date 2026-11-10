@@ -361,6 +361,38 @@ jobs:
             Write-Host "Signed: $t"
           }
 
+      - name: Generate signed release manifest only after successful verification
+        shell: pwsh
+        run: |
+          $dir = 'Enterprise/agent/build/out'
+          $msi = Get-ChildItem -Path $dir -Filter '*.msi' -File |
+            Sort-Object Length -Descending | Select-Object -First 1
+          if (-not $msi -or $msi.Length -lt 65536) {
+            throw 'Cannot manifest nonexistent or placeholder MSI.'
+          }
+          $auth = Get-AuthenticodeSignature -LiteralPath $msi.FullName
+          if ($auth.Status -ne 'Valid' -or -not $auth.SignerCertificate) {
+            throw "Cannot release: MSI Authenticode signature not trusted ($($auth.Status))."
+          }
+          if (-not $auth.TimeStamperCertificate) {
+            throw 'Cannot release: MSI has no verified timestamp signer.'
+          }
+          $meta = Get-Content './Enterprise/agent/agent-version.json' -Raw | ConvertFrom-Json
+          $manifest = [ordered]@{
+            version = [string]$meta.agent_version
+            filename = [string]$msi.Name
+            sha256 = (Get-FileHash $msi.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+            signed = $true
+            authenticode_verified = $true
+            timestamp_verified = $true
+            publisher = [string]$auth.SignerCertificate.Subject
+            certificate_thumbprint = [string]$auth.SignerCertificate.Thumbprint
+            built_by = 'GitHub Actions manual signed release gate'
+          }
+          $manifest | ConvertTo-Json -Depth 5 |
+            Set-Content -LiteralPath (Join-Path $dir 'release-manifest.json') -Encoding UTF8
+          Write-Host 'Signed release manifest emitted for host-side administrator deployment.'
+
       - name: Upload approved signed artifacts (sign+verify step must pass)
         uses: actions/upload-artifact@v4
         with:
@@ -369,3 +401,4 @@ jobs:
             Enterprise/agent/build/out/*.exe
             Enterprise/agent/build/out/*.msi
             Enterprise/agent/build/out/agent-config.json
+            Enterprise/agent/build/out/release-manifest.json

@@ -1,22 +1,22 @@
 {
   "state_version": "1.0",
   "path": "project-state.json",
-  "generated": "2026-11-10T21:58:35+00:00",
+  "generated": "2026-11-10T21:59:23+00:00",
   "phase": "RELEASE BLOCKED / REMEDIATION IN PROGRESS",
-  "last_verified_commit": "0c4783b01edfd06e7b136bdbd4dcb9b76b043d2c",
-  "last_verified_date": "2026-11-11T03:28:18+05:30",
+  "last_verified_commit": "a9888654e67f957c0999e6c6108550f700a5ed93",
+  "last_verified_date": "2026-11-11T03:29:07+05:30",
   "git": {
     "branch": "feat/phase-i-windows-agent-hardening-20261111",
     "commit_count": 1,
     "clean_working_tree": true,
-    "head": "0c4783b01edfd06e7b136bdbd4dcb9b76b043d2c"
+    "head": "a9888654e67f957c0999e6c6108550f700a5ed93"
   },
   "latest_delta": {
-    "detected_at": "2026-11-10T21:58:35+00:00",
+    "detected_at": "2026-11-10T21:59:23+00:00",
     "added": [],
     "removed": [],
     "changed": [
-      "agent-artifacts.js"
+      "server.js"
     ],
     "unchanged_count": 230
   },

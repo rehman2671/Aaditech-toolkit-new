@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-10T20:50:08+00:00",
-  "last_verified_commit": "017e87e7a17b364645701b2e5378db816db7f2c4",
-  "last_verified_date": "2026-11-11T02:19:52+05:30",
+  "generated": "2026-11-10T20:50:40+00:00",
+  "last_verified_commit": "603af98f76bc89ebb3fa3bb6511f746f2776dd75",
+  "last_verified_date": "2026-11-11T02:20:21+05:30",
   "overall_progress_percent": 100.0,
   "issue_progress": {
     "total": 17,
@@ -12,21 +12,12 @@
     "percent": 100.0
   },
   "latest_delta": {
-    "added": 0,
+    "added": 1,
     "removed": 0,
-    "changed": 1,
-    "unchanged": 219
+    "changed": 0,
+    "unchanged": 220
   },
   "delta_history": [
-    {
-      "detected_at": "2026-08-10T15:40:01+00:00",
-      "added": [],
-      "removed": [],
-      "changed": [
-        "Enterprise/agent/wix/build-msi.ps1"
-      ],
-      "unchanged_count": 127
-    },
     {
       "detected_at": "2026-08-10T17:43:33+00:00",
       "added": [],
@@ -404,6 +395,15 @@
         ".dockerignore"
       ],
       "unchanged_count": 219
+    },
+    {
+      "detected_at": "2026-11-10T20:50:40+00:00",
+      "added": [
+        ".github/workflows/phase-h-docker-smoke.yml"
+      ],
+      "removed": [],
+      "changed": [],
+      "unchanged_count": 220
     }
   ],
   "next_recommended_tasks": [

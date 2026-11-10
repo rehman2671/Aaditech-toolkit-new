@@ -1,24 +1,24 @@
 {
   "state_version": "1.0",
   "path": "project-state.json",
-  "generated": "2026-11-10T20:50:08+00:00",
+  "generated": "2026-11-10T20:50:40+00:00",
   "phase": "RELEASE BLOCKED / REMEDIATION IN PROGRESS",
-  "last_verified_commit": "017e87e7a17b364645701b2e5378db816db7f2c4",
-  "last_verified_date": "2026-11-11T02:19:52+05:30",
+  "last_verified_commit": "603af98f76bc89ebb3fa3bb6511f746f2776dd75",
+  "last_verified_date": "2026-11-11T02:20:21+05:30",
   "git": {
     "branch": "feat/phase-h-first-run-setup-20261110-2",
     "commit_count": 1,
     "clean_working_tree": true,
-    "head": "017e87e7a17b364645701b2e5378db816db7f2c4"
+    "head": "603af98f76bc89ebb3fa3bb6511f746f2776dd75"
   },
   "latest_delta": {
-    "detected_at": "2026-11-10T20:50:08+00:00",
-    "added": [],
-    "removed": [],
-    "changed": [
-      ".dockerignore"
+    "detected_at": "2026-11-10T20:50:40+00:00",
+    "added": [
+      ".github/workflows/phase-h-docker-smoke.yml"
     ],
-    "unchanged_count": 219
+    "removed": [],
+    "changed": [],
+    "unchanged_count": 220
   },
   "module_state": {
     "working": [

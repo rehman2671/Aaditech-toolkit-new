@@ -1,22 +1,22 @@
 {
   "state_version": "1.0",
   "path": "project-state.json",
-  "generated": "2026-11-09T23:06:12+00:00",
+  "generated": "2026-11-10T20:44:51+00:00",
   "phase": "RELEASE BLOCKED / REMEDIATION IN PROGRESS",
-  "last_verified_commit": "0269894bd8d9cfcc19b8867040a4d6a6b72ab9a6",
-  "last_verified_date": "2026-11-10T04:35:54+05:30",
+  "last_verified_commit": "b01e077fae44803be737ee9d5a7c7747a323b132",
+  "last_verified_date": "2026-11-11T02:14:35+05:30",
   "git": {
     "branch": "feat/phase-h-first-run-setup-20261110-2",
     "commit_count": 1,
     "clean_working_tree": true,
-    "head": "0269894bd8d9cfcc19b8867040a4d6a6b72ab9a6"
+    "head": "b01e077fae44803be737ee9d5a7c7747a323b132"
   },
   "latest_delta": {
-    "detected_at": "2026-11-09T23:06:12+00:00",
+    "detected_at": "2026-11-10T20:44:51+00:00",
     "added": [],
     "removed": [],
     "changed": [
-      "Enterprise/agent/build/build-agent.ps1"
+      "Scripts/Index/Update-ProjectIndex.ps1"
     ],
     "unchanged_count": 217
   },

@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-10T21:48:30+00:00",
-  "last_verified_commit": "4d313f6019b9330c8ac0bf0b5b2e96cf7dfdba8f",
-  "last_verified_date": "2026-11-11T03:18:11+05:30",
+  "generated": "2026-11-10T21:49:49+00:00",
+  "last_verified_commit": "56c89db238dbda106b3a767aa45b70ee3a0d26a6",
+  "last_verified_date": "2026-11-11T03:19:31+05:30",
   "overall_progress_percent": 100.0,
   "issue_progress": {
     "total": 17,
@@ -12,23 +12,12 @@
     "percent": 100.0
   },
   "latest_delta": {
-    "added": 0,
+    "added": 1,
     "removed": 0,
-    "changed": 1,
-    "unchanged": 228
+    "changed": 0,
+    "unchanged": 229
   },
   "delta_history": [
-    {
-      "detected_at": "2026-08-11T23:26:59+00:00",
-      "added": [
-        "Enterprise/agent/endpoint.json"
-      ],
-      "removed": [],
-      "changed": [
-        ".github/workflows/ci.yml"
-      ],
-      "unchanged_count": 130
-    },
     {
       "detected_at": "2026-11-09T23:00:23+00:00",
       "added": [
@@ -371,6 +360,15 @@
         "Enterprise/agent/wix/verify-msi-lifecycle.ps1"
       ],
       "unchanged_count": 228
+    },
+    {
+      "detected_at": "2026-11-10T21:49:49+00:00",
+      "added": [
+        "docs/deployment/WINDOWS-AGENT-RELEASE-VALIDATION.md"
+      ],
+      "removed": [],
+      "changed": [],
+      "unchanged_count": 229
     }
   ],
   "next_recommended_tasks": [

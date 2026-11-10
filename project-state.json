@@ -1,22 +1,22 @@
 {
   "state_version": "1.0",
   "path": "project-state.json",
-  "generated": "2026-11-10T21:43:11+00:00",
+  "generated": "2026-11-10T21:43:45+00:00",
   "phase": "RELEASE BLOCKED / REMEDIATION IN PROGRESS",
-  "last_verified_commit": "2716a2fabd77ad40aa554236bd921a8a8169481e",
-  "last_verified_date": "2026-11-11T03:12:55+05:30",
+  "last_verified_commit": "8c4c1ade9eaf9238ae359d8e88b386ce63359847",
+  "last_verified_date": "2026-11-11T03:13:28+05:30",
   "git": {
     "branch": "feat/phase-i-windows-agent-hardening-20261111",
     "commit_count": 1,
     "clean_working_tree": true,
-    "head": "2716a2fabd77ad40aa554236bd921a8a8169481e"
+    "head": "8c4c1ade9eaf9238ae359d8e88b386ce63359847"
   },
   "latest_delta": {
-    "detected_at": "2026-11-10T21:43:11+00:00",
+    "detected_at": "2026-11-10T21:43:45+00:00",
     "added": [],
     "removed": [],
     "changed": [
-      "Enterprise/agent/wix/build-msi.ps1"
+      "Scripts/Tests/AgentCommandTrust.Tests.ps1"
     ],
     "unchanged_count": 227
   },

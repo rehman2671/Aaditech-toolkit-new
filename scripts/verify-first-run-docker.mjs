@@ -30,9 +30,9 @@ async function waitReady(timeoutMs=100000) {
   throw new Error('Server did not report MySQL-ready setup state within '+timeoutMs+'ms');
 }
 
+const initial=await waitReady();
 const setupCode=composeExec('exec','-T','api','cat','/data/first-run-setup-code').trim();
 assert.ok(setupCode.length>28,'Host setup code is generated and persisted');
-const initial=await waitReady();
 assert.equal(initial.setup_complete,false,'A new database needs first-run setup');
 
 const payload={

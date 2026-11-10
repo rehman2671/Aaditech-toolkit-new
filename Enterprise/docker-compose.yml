@@ -43,12 +43,12 @@ services:
       SESSION_SECRET: ${SESSION_SECRET:-}
       JWT_SECRET: ${JWT_SECRET:-}
       COMMAND_SIGNING_KEY: ${COMMAND_SIGNING_KEY:-}
-    command: ["node", "Enterprise/deploy/start.cjs"]
-    ports:
-      - "127.0.0.1:3000:3000" # Local setup; remote access requires verified HTTPS
       DATA_DIR: /data
       ARTIFACTS_DIR: /artifacts
       ENVIRONMENT: ${ENVIRONMENT:-prod}
+    command: ["node", "Enterprise/deploy/start.cjs"]
+    ports:
+      - "127.0.0.1:3000:3000" # Local setup; remote access requires verified HTTPS
     volumes:
       - ./portal:/app/Enterprise/portal:ro
       - ./agent/features.json:/app/Enterprise/agent/features.json:ro

@@ -136,6 +136,14 @@ function Get-AgentTokenPath {
     return Join-Path $dir 'agent.token'
 }
 
+function Get-AgentCommandKeyPath {
+    return (Join-Path (Split-Path $ConfigPath -Parent) 'command.key')
+}
+
+function Get-AgentEnrolledDeviceIdPath {
+    return (Join-Path (Split-Path $ConfigPath -Parent) 'agent.device_id')
+}
+
 function Get-AgentToken {
     # Prefer the per-agent token from enroll (B6); fall back to the shared
     # config token (bootstrap / pre-B6 agents).
@@ -300,6 +308,7 @@ function Import-ToolkitModules {
     Add-BundledSqliteToPath
     Import-Module (Join-Path $script:ModulesPath 'SanitizeEngine.psm1') -Force
     Import-Module (Join-Path $script:ModulesPath 'ToolkitData.psm1') -Force
+    Import-Module (Join-Path $script:ModulesPath 'AgentCommandTrust.psm1') -Force
 }
 
 function Initialize-Queue {
@@ -723,6 +732,12 @@ function Get-CommandsApiRoot {
 
 function Get-PendingCommands {
     param($Config)
+    if ((-not (Test-Path (Get-AgentTokenPath))) -or
+        (-not (Test-Path (Get-AgentCommandKeyPath))) -or
+        (-not (Test-Path (Get-AgentEnrolledDeviceIdPath)))) {
+        Write-AgentLog 'Command poll blocked: this device has not completed authenticated enrollment'
+        return @()
+    }
     $hn = [uri]::EscapeDataString((Get-AgentHostname))
     $uri = "$(Get-CommandsApiRoot)/api/commands/poll?hostname=$hn"
     try {
@@ -763,8 +778,21 @@ function Send-WakeOnLan {
 
 function Invoke-RemoteCommand {
     param($Config, $Cmd)
-    $kind = $Cmd.kind
-    $payload = $Cmd.payload
+    # Never execute an unverified command, even if an attacker controls the
+    # network reply. Only the parsed, HMAC-authenticated content is executable.
+    try {
+        $key = (Get-Content (Get-AgentCommandKeyPath) -Raw -ErrorAction Stop).Trim()
+        $devId = (Get-Content (Get-AgentEnrolledDeviceIdPath) -Raw -ErrorAction Stop).Trim()
+        $verified = Test-AgentSignedCommand -Command $Cmd -CommandKey $key `
+            -DeviceId $devId -Hostname (Get-AgentHostname)
+    }
+    catch { $verified = $null }
+    if ($null -eq $verified) {
+        Write-AgentLog "Command $($Cmd.id) blocked: invalid, missing or expired signature"
+        return @{ status = 'failed'; output = 'Rejected unverified command'; exit_code = 1 }
+    }
+    $kind = [string]$verified.kind
+    $payload = $verified.payload
     switch ($kind) {
         'reboot' {
             $delay = [int]$payload.delay_seconds
@@ -862,6 +890,19 @@ function Send-CommandResult {
 Import-ToolkitModules
 Initialize-Queue
 $Config = Read-AgentConfig
+
+# Test-only installers contain no credentials and stay inert until provisioned.
+if ($Config.deployment_state -eq 'UNENROLLED' -and
+    (-not (Test-Path (Get-AgentTokenPath))) -and
+    [string]::IsNullOrWhiteSpace([string]$Config.token)) {
+    Write-AgentLog 'Agent not enrolled: provision HTTPS URL and one-time bootstrap token'
+    return
+}
+if ($Config.endpoint -notmatch '^https://' -or
+    ($Config.enroll_url -and $Config.enroll_url -notmatch '^https://')) {
+    Write-AgentLog 'Agent refused non-TLS network configuration'
+    return
+}
 
 Write-AgentLog "Agent cycle start (endpoint: $($Config.endpoint))"
 

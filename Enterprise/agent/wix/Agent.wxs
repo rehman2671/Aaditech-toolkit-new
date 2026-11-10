@@ -3,21 +3,21 @@
      Build: build-msi.ps1 stages files into wix\stage\, then runs:
        wix build Agent.wxs -o out.msi
      Silent install: msiexec /i IT-Toolkit-Agent.msi /qn
-     Auto-deploy: push via Intune / GPO / SCCM. Endpoint + token are baked
-     into agent.json (staged from build/out by deploy.sh), so no input needed.
+     CI packages are credential-free and UNENROLLED. Provision per device over
+     trusted HTTPS after installation; never bake endpoint tokens into MSI.
 
      Install layout:
        C:\Program Files\IT-Toolkit\
          ├─ IT-Toolkit-Agent.exe      (ps2exe-packaged worker)
-         ├─ agent.json                (endpoint + token; also copied to ProgramData)
+         ├─ agent.json                (credential-free; also in ProgramData)
          ├─ Scripts\*.ps1             (the feature scripts the agent wraps)
          ├─ Scripts\Modules\*.psm1    (SanitizeEngine/ToolkitData/etc. — reused as-is)
          └─ Config\config.json
        C:\ProgramData\ITToolkit-Agent\agent.json  (runtime config, GPO-overridable)
        HKLM\SOFTWARE\ITToolkit\Agent\...          (registry override knob)
-       Scheduled task "ITToolkitAgent" every 30 min as NETWORK SERVICE (least
-       privilege; E4). Admin-only work is staged to on-demand elevated task
-       "ITToolkitAgentElevated" (runs as SYSTEM/Highest via schtasks /run). -->
+       Scheduled task "ITToolkitAgent" every 30 min as NETWORK SERVICE.
+       SYSTEM-level helper is prohibited. Old ITToolkitAgentElevated tasks are
+       removed on install and uninstall; admin upgrades remain out-of-band. -->
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
 
   <Package Name="IT-Toolkit Agent"
@@ -60,9 +60,6 @@
           </Component>
           <Component Id="ScriptFirewall" Guid="B2C3D4E5-4444-4444-4444-444444444444">
             <File Id="Firewall" Name="Firewall-Test.ps1" Source="stage\Scripts\Firewall-Test.ps1" KeyPath="yes" />
-          </Component>
-          <Component Id="ElevTaskHelper" Guid="B2C3D4E5-7777-7777-7777-777777777777">
-            <File Id="CreateElevatedTask" Name="Create-ElevatedTask.ps1" Source="stage\Scripts\Create-ElevatedTask.ps1" KeyPath="yes" />
           </Component>
           <Component Id="ProvisionDevice" Guid="B2C3D4E5-8888-8888-8888-888888888888">
             <File Id="ProvisionDeviceScript" Name="Provision-Device.ps1" Source="stage\Scripts\Provision-Device.ps1" KeyPath="yes" />
@@ -165,23 +162,14 @@
     </Component>
 
 <!-- ==================== scheduled tasks ==================== -->
-    <!-- E4: the routine task runs as NETWORK SERVICE (least privilege). Admin-  -->
-    <!-- required work (MSI self-upgrade, reboot, elevated-only collectors) is   -->
-    <!-- staged to the on-demand elevated task (ITToolkitAgentElevated), which   -->
-    <!-- runs as SYSTEM/Highest and only ever starts via `schtasks /run`.        -->
+    <!-- Only the least-privilege NETWORK SERVICE task is allowed. A prior
+         SYSTEM task trusted NETWORK SERVICE-writable job JSON: unsafe. -->
     <CustomAction Id="CreateSchedTask"
                   Directory="INSTALLFOLDER"
                   Return="check"
                   Impersonate="no"
                   Execute="deferred"
                   ExeCommand="&quot;[SystemFolder]schtasks.exe&quot; /create /tn ITToolkitAgent /sc minute /mo $(var.AgentInterval) /ru &quot;NT AUTHORITY\NETWORK SERVICE&quot; /rp &quot;&quot; /f /tr &quot;\&quot;[INSTALLFOLDER]IT-Toolkit-Agent.exe\&quot; -LoopMinutes $(var.AgentInterval)&quot;" />
-
-    <CustomAction Id="CreateElevatedTask"
-                  Directory="INSTALLFOLDER"
-                  Return="ignore"
-                  Impersonate="no"
-                  Execute="deferred"
-                  ExeCommand="&quot;[SystemFolder]WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -ExecutionPolicy Bypass -File &quot;[SCRIPTS_DIR]Create-ElevatedTask.ps1&quot; -AgentExe &quot;[INSTALLFOLDER]IT-Toolkit-Agent.exe&quot;" />
 
     <CustomAction Id="RemoveSchedTask"
                   Directory="INSTALLFOLDER"
@@ -197,12 +185,21 @@
                   Execute="deferred"
                   ExeCommand="&quot;[SystemFolder]schtasks.exe&quot; /delete /tn ITToolkitAgentElevated /f" />
 
+    <!-- Phase J: disable legacy SYSTEM tasks during a new install or upgrade.
+         Existing task installations are removed as part of migration. -->
+    <CustomAction Id="DisableLegacyElevatedTask"
+                  Directory="INSTALLFOLDER"
+                  Return="ignore"
+                  Impersonate="no"
+                  Execute="deferred"
+                  ExeCommand="&quot;[SystemFolder]schtasks.exe&quot; /delete /tn ITToolkitAgentElevated /f" />
+
     <!-- E4: lock down the runtime dir so standard users cannot read the agent's  -->
     <!-- token, queue, pfx or logs. The routine task (NETWORK SERVICE) keeps full- -->
     <!-- Modify so collection still writes; restricted to privileged identities.   -->
     <CustomAction Id="HardenAgentDataAcl"
                   Directory="INSTALLFOLDER"
-                  Return="ignore"
+                  Return="check"
                   Impersonate="no"
                   Execute="deferred"
                   ExeCommand="&quot;[SystemFolder]icacls.exe&quot; &quot;[CommonAppDataFolder]ITToolkit-Agent&quot; /inheritance:r /grant:r SYSTEM:(OI)(CI)F Administrators:(OI)(CI)F &quot;NETWORK SERVICE&quot;:(OI)(CI)M /T /C" />
@@ -213,22 +210,22 @@
          Read on this one. -->
     <CustomAction Id="HardenLocalJsonAcl"
                   Directory="INSTALLFOLDER"
-                  Return="ignore"
+                  Return="check"
                   Impersonate="no"
                   Execute="deferred"
                   ExeCommand="&quot;[SystemFolder]icacls.exe&quot; &quot;[INSTALLFOLDER]agent.json&quot; /inheritance:r /grant:r SYSTEM:R Administrators:R &quot;NETWORK SERVICE&quot;:R /C" />
 
     <InstallExecuteSequence>
       <Custom Action="RemoveSchedTask" After="InstallInitialize" Condition="REMOVE=&quot;ALL&quot;" />
-      <Custom Action="RemoveElevatedTask" After="InstallInitialize" Condition="REMOVE=&quot;ALL&quot;" />
+      <Custom Action="RemoveElevatedTask" After="RemoveSchedTask" Condition="REMOVE=&quot;ALL&quot;" />
       <!-- Deferred actions MUST run between InstallInitialize and InstallFinalize;
            scheduling After=InstallFinalize makes msiexec fail with Error 2762
            ("Unable to schedule operation"). After=InstallFiles is the last valid
            slot that still guarantees the files exist first. -->
-      <Custom Action="CreateSchedTask" After="InstallFiles" Condition="NOT Installed AND NOT REMOVE" />
-      <Custom Action="CreateElevatedTask" After="CreateSchedTask" Condition="NOT Installed AND NOT REMOVE" />
       <Custom Action="HardenAgentDataAcl" After="InstallFiles" Condition="NOT REMOVE" />
       <Custom Action="HardenLocalJsonAcl" After="HardenAgentDataAcl" Condition="NOT REMOVE" />
+      <Custom Action="DisableLegacyElevatedTask" After="HardenLocalJsonAcl" Condition="NOT REMOVE" />
+      <Custom Action="CreateSchedTask" After="DisableLegacyElevatedTask" Condition="NOT Installed AND NOT REMOVE" />
     </InstallExecuteSequence>
 
     <!-- ==================== feature ==================== -->
@@ -240,7 +237,6 @@
       <ComponentRef Id="ScriptEventLogs" />
       <ComponentRef Id="ScriptNetwork" />
       <ComponentRef Id="ScriptFirewall" />
-      <ComponentRef Id="ElevTaskHelper" />
       <ComponentRef Id="ProvisionDevice" />
       <ComponentRef Id="ScriptUsers" />
       <ComponentRef Id="ScriptPrinters" />

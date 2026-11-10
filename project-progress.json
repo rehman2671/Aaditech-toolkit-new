@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-10T20:46:05+00:00",
-  "last_verified_commit": "53c2e746768fa007abb9bf9d37e0b8a5e30838ce",
-  "last_verified_date": "2026-11-11T02:15:46+05:30",
+  "generated": "2026-11-10T20:46:35+00:00",
+  "last_verified_commit": "583bfa7c3f9f13dd133ead545bd8874b4d8de2e4",
+  "last_verified_date": "2026-11-11T02:16:17+05:30",
   "overall_progress_percent": 100.0,
   "issue_progress": {
     "total": 17,
@@ -12,32 +12,12 @@
     "percent": 100.0
   },
   "latest_delta": {
-    "added": 0,
+    "added": 1,
     "removed": 0,
-    "changed": 1,
-    "unchanged": 217
+    "changed": 0,
+    "unchanged": 218
   },
   "delta_history": [
-    {
-      "detected_at": "2026-08-09T15:42:27+00:00",
-      "added": [
-        "Enterprise/api/tests/conftest.py",
-        "Documentation/Deployment-AI-Runbook.md",
-        "Enterprise/api/tests/test_smoke.py",
-        "Enterprise/tests/Check-Deploy-Prereqs.ps1",
-        "Enterprise/api/requirements-dev.txt",
-        "Enterprise/api/tests/__init__.py"
-      ],
-      "removed": [],
-      "changed": [
-        "VERSION.md",
-        "CHANGELOG.md",
-        "Enterprise/README.md",
-        "Enterprise/deploy/deploy.sh",
-        ".github/workflows/ci.yml"
-      ],
-      "unchanged_count": 116
-    },
     {
       "detected_at": "2026-08-09T15:51:28+00:00",
       "added": [],
@@ -437,6 +417,15 @@
         "first-run-routes.js"
       ],
       "unchanged_count": 217
+    },
+    {
+      "detected_at": "2026-11-10T20:46:35+00:00",
+      "added": [
+        "tests/unit/first-run-legacy-admin.test.js"
+      ],
+      "removed": [],
+      "changed": [],
+      "unchanged_count": 218
     }
   ],
   "next_recommended_tasks": [

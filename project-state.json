@@ -1,24 +1,24 @@
 {
   "state_version": "1.0",
   "path": "project-state.json",
-  "generated": "2026-11-10T20:46:05+00:00",
+  "generated": "2026-11-10T20:46:35+00:00",
   "phase": "RELEASE BLOCKED / REMEDIATION IN PROGRESS",
-  "last_verified_commit": "53c2e746768fa007abb9bf9d37e0b8a5e30838ce",
-  "last_verified_date": "2026-11-11T02:15:46+05:30",
+  "last_verified_commit": "583bfa7c3f9f13dd133ead545bd8874b4d8de2e4",
+  "last_verified_date": "2026-11-11T02:16:17+05:30",
   "git": {
     "branch": "feat/phase-h-first-run-setup-20261110-2",
     "commit_count": 1,
     "clean_working_tree": true,
-    "head": "53c2e746768fa007abb9bf9d37e0b8a5e30838ce"
+    "head": "583bfa7c3f9f13dd133ead545bd8874b4d8de2e4"
   },
   "latest_delta": {
-    "detected_at": "2026-11-10T20:46:05+00:00",
-    "added": [],
-    "removed": [],
-    "changed": [
-      "first-run-routes.js"
+    "detected_at": "2026-11-10T20:46:35+00:00",
+    "added": [
+      "tests/unit/first-run-legacy-admin.test.js"
     ],
-    "unchanged_count": 217
+    "removed": [],
+    "changed": [],
+    "unchanged_count": 218
   },
   "module_state": {
     "working": [

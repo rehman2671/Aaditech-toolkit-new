@@ -69,7 +69,8 @@ jobs:
             (Invoke-Pester -Path ./Scripts/Tests/RemoteToolkit.tests.ps1 -Output Normal -PassThru),
             (Invoke-Pester -Path ./Scripts/Tests/BatchLauncher.Tests.ps1 -Output Normal -PassThru),
             (Invoke-Pester -Path ./Scripts/Tests/Phase2-Modules.Tests.ps1 -Output Normal -PassThru),
-            (Invoke-Pester -Path ./Scripts/Tests/AgentCommandTrust.Tests.ps1 -Output Normal -PassThru)
+            (Invoke-Pester -Path ./Scripts/Tests/AgentCommandTrust.Tests.ps1 -Output Normal -PassThru),
+            (Invoke-Pester -Path ./Scripts/Tests/AgentElevationPolicy.Tests.ps1 -Output Normal -PassThru)
           )
           $failed = 0
           foreach ($r in $all) {

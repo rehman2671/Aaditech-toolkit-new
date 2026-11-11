@@ -526,17 +526,21 @@ function checkDeviceRateLimit(key, maxRequests = 180, windowMs = 60000) {
 async function verifyDeviceCredential(req, targetDeviceIdentifier) {
   const authHeader = req.headers['authorization'];
   const bearerToken = authHeader && authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : null;
-  const rawToken = 
-    req.headers['x-device-token'] ||
-    req.headers['x-agent-token'] ||
-    req.headers['x-bootstrap-token'] ||
-    bearerToken ||
-    req.query?.device_token ||
-    req.query?.agent_token ||
-    req.query?.token ||
-    req.body?.device_token ||
-    req.body?.agent_token ||
-    req.body?.token;
+  // Never accept an agent credential via query string or telemetry JSON in
+  // production: URLs, proxies, crash logs and analytics routinely record them.
+  const headerToken = req.headers['x-device-token'] ||
+    req.headers['x-agent-token'] || bearerToken;
+  if (process.env.NODE_ENV === 'production' && (
+      req.headers['x-bootstrap-token'] ||
+      req.query?.device_token || req.query?.agent_token || req.query?.token ||
+      req.body?.device_token || req.body?.agent_token || req.body?.token)) {
+    return {authenticated:false,status:401,error:'DEVICE_CREDENTIAL_HEADER_REQUIRED'};
+  }
+  const rawToken = headerToken ||
+    (process.env.NODE_ENV !== 'production' && (
+      req.headers['x-bootstrap-token'] ||
+      req.query?.device_token || req.query?.agent_token || req.query?.token ||
+      req.body?.device_token || req.body?.agent_token || req.body?.token));
 
   const signature = req.headers['x-agent-signature'] || req.headers['x-payload-signature'] || req.headers['x-hmac-signature'];
   const deviceUid = req.headers['x-device-uid'] || req.headers['x-agent-id'] || req.body?.device_uid;
@@ -1097,6 +1101,10 @@ const handleAgentEnroll = async (req, res) => {
 
   const rawToken = req.headers['x-bootstrap-token'] || bootstrap_token || (req.headers['authorization'] || '').replace(/^Bearer /, '').trim();
   const host = (hostname || device_uid || req.headers['x-device-uid'] || '').trim();
+  if (req.query?.bootstrap_token || req.query?.hostname || req.query?.device_uid) {
+    return res.status(400).json({error:'ENROLLMENT_BODY_REQUIRED',
+      detail:'Device identifiers and bootstrap credentials belong in POST body/headers, never URL queries.'});
+  }
 
   if (!rawToken) {
     return res.status(401).json({

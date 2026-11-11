@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-11T00:05:59+00:00",
-  "last_verified_commit": "57cc144220e387c0995b727340428f7bf7b7817a",
-  "last_verified_date": "2026-11-11T05:35:56+05:30",
+  "generated": "2026-11-11T00:06:29+00:00",
+  "last_verified_commit": "c2633c7e3c92559a2ec99f021c8bc1bd0e90ebc4",
+  "last_verified_date": "2026-11-11T05:36:14+05:30",
   "overall_progress_percent": 100.0,
   "issue_progress": {
     "total": 17,
@@ -14,19 +14,10 @@
   "latest_delta": {
     "added": 0,
     "removed": 0,
-    "changed": 2,
-    "unchanged": 233
+    "changed": 1,
+    "unchanged": 234
   },
   "delta_history": [
-    {
-      "detected_at": "2026-11-10T21:49:49+00:00",
-      "added": [
-        "docs/deployment/WINDOWS-AGENT-RELEASE-VALIDATION.md"
-      ],
-      "removed": [],
-      "changed": [],
-      "unchanged_count": 229
-    },
     {
       "detected_at": "2026-11-10T21:50:43+00:00",
       "added": [
@@ -209,6 +200,15 @@
         "Scripts/Tests/AgentElevationPolicy.Tests.ps1"
       ],
       "unchanged_count": 233
+    },
+    {
+      "detected_at": "2026-11-11T00:06:29+00:00",
+      "added": [],
+      "removed": [],
+      "changed": [
+        "Enterprise/agent/wix/verify-msi-lifecycle.ps1"
+      ],
+      "unchanged_count": 234
     }
   ],
   "next_recommended_tasks": [

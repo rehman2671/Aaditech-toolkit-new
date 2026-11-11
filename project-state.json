@@ -1,24 +1,25 @@
 {
   "state_version": "1.0",
   "path": "project-state.json",
-  "generated": "2026-11-11T00:03:32+00:00",
+  "generated": "2026-11-11T00:05:59+00:00",
   "phase": "RELEASE BLOCKED / REMEDIATION IN PROGRESS",
-  "last_verified_commit": "5d3461c6f1c51f37abb5ac55843fb6dc1c94ab63",
-  "last_verified_date": "2026-11-11T05:33:17+05:30",
+  "last_verified_commit": "57cc144220e387c0995b727340428f7bf7b7817a",
+  "last_verified_date": "2026-11-11T05:35:56+05:30",
   "git": {
     "branch": "feat/phase-j-disable-untrusted-elevation-20261111",
     "commit_count": 1,
     "clean_working_tree": true,
-    "head": "5d3461c6f1c51f37abb5ac55843fb6dc1c94ab63"
+    "head": "57cc144220e387c0995b727340428f7bf7b7817a"
   },
   "latest_delta": {
-    "detected_at": "2026-11-11T00:03:32+00:00",
+    "detected_at": "2026-11-11T00:05:59+00:00",
     "added": [],
     "removed": [],
     "changed": [
-      "docs/security/PHASE-J-PRIVILEGED-AGENT-BOUNDARY.md"
+      "Enterprise/agent/wix/Remove-LegacyElevatedTask.ps1",
+      "Scripts/Tests/AgentElevationPolicy.Tests.ps1"
     ],
-    "unchanged_count": 234
+    "unchanged_count": 233
   },
   "module_state": {
     "working": [

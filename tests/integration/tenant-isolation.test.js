@@ -1,7 +1,7 @@
 import {describe,it,expect,beforeAll} from 'vitest';
 import request from 'supertest';
 import crypto from 'node:crypto';
-import bcrypt from 'bcryptjs';
+import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import * as db from '../../db.js';
 import {app} from '../../server.js';

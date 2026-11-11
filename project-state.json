@@ -1,24 +1,25 @@
 {
   "state_version": "1.0",
   "path": "project-state.json",
-  "generated": "2026-11-11T00:01:05+00:00",
+  "generated": "2026-11-11T00:01:49+00:00",
   "phase": "RELEASE BLOCKED / REMEDIATION IN PROGRESS",
-  "last_verified_commit": "64b048d290ed213ef12d13a287f3a116b5a0b6d0",
-  "last_verified_date": "2026-11-11T05:30:48+05:30",
+  "last_verified_commit": "90ea63637c860b45db5f59a201fa2126fe5a2340",
+  "last_verified_date": "2026-11-11T05:31:33+05:30",
   "git": {
     "branch": "feat/phase-j-disable-untrusted-elevation-20261111",
     "commit_count": 1,
     "clean_working_tree": true,
-    "head": "64b048d290ed213ef12d13a287f3a116b5a0b6d0"
+    "head": "90ea63637c860b45db5f59a201fa2126fe5a2340"
   },
   "latest_delta": {
-    "detected_at": "2026-11-11T00:01:05+00:00",
-    "added": [
-      "Enterprise/agent/wix/Remove-LegacyElevatedTask.ps1"
-    ],
+    "detected_at": "2026-11-11T00:01:49+00:00",
+    "added": [],
     "removed": [],
-    "changed": [],
-    "unchanged_count": 234
+    "changed": [
+      "Enterprise/agent/wix/Agent.wxs",
+      "Enterprise/agent/wix/build-msi.ps1"
+    ],
+    "unchanged_count": 233
   },
   "module_state": {
     "working": [

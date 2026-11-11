@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-11T09:55:41+00:00",
-  "last_verified_commit": "a0f3d429a2f53e44098b386d721c454afdb5c605",
-  "last_verified_date": "2026-11-11T15:25:28+05:30",
+  "generated": "2026-11-11T09:56:52+00:00",
+  "last_verified_commit": "5e0235affc61f556953e170fa1dc9daf8a25a599",
+  "last_verified_date": "2026-11-11T15:26:47+05:30",
   "overall_progress_percent": 100.0,
   "issue_progress": {
     "total": 17,
@@ -14,20 +14,10 @@
   "latest_delta": {
     "added": 0,
     "removed": 0,
-    "changed": 1,
-    "unchanged": 237
+    "changed": 2,
+    "unchanged": 236
   },
   "delta_history": [
-    {
-      "detected_at": "2026-11-11T00:01:49+00:00",
-      "added": [],
-      "removed": [],
-      "changed": [
-        "Enterprise/agent/wix/Agent.wxs",
-        "Enterprise/agent/wix/build-msi.ps1"
-      ],
-      "unchanged_count": 233
-    },
     {
       "detected_at": "2026-11-11T00:02:08+00:00",
       "added": [],
@@ -205,6 +195,16 @@
         "db.js"
       ],
       "unchanged_count": 237
+    },
+    {
+      "detected_at": "2026-11-11T09:56:52+00:00",
+      "added": [],
+      "removed": [],
+      "changed": [
+        "db.js",
+        "tests/unit/tenant-security.test.js"
+      ],
+      "unchanged_count": 236
     }
   ],
   "next_recommended_tasks": [

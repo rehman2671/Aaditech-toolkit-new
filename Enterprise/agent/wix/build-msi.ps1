@@ -69,9 +69,12 @@ Write-Host "Staged sqlite3.exe ($($(Get-Item $stageSqlite).Length) bytes)"
 Copy-Item (Join-Path $RepoRoot 'Scripts') (Join-Path $Stage 'Scripts') -Recurse -Force
 Copy-Item (Join-Path $RepoRoot 'Config')  (Join-Path $Stage 'Config')  -Recurse -Force
 
-# E4: on-demand elevated helper (registers ITToolkitAgentElevated with a
-# security descriptor that lets the NETWORK SERVICE agent trigger it).
-Copy-Item (Join-Path $WixDir 'Create-ElevatedTask.ps1') (Join-Path $Stage 'Scripts\Create-ElevatedTask.ps1') -Force
+# Phase J: do NOT stage any SYSTEM elevated helper. Authorization from a
+# NETWORK SERVICE-writable JSON request is not a valid privilege boundary.
+
+# The security migration must FAIL the MSI when a legacy SYSTEM helper cannot
+# be removed. Stage the idempotent task removal script in Program Files.
+Copy-Item (Join-Path $WixDir 'Remove-LegacyElevatedTask.ps1') (Join-Path $Stage 'Scripts\Remove-LegacyElevatedTask.ps1') -Force
 
 # A credential-free MSI needs an explicit operator-controlled enrollment step.
 # This helper requests the single-use bootstrap token interactively AFTER install.

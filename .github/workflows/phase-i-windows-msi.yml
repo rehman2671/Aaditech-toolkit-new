@@ -18,6 +18,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Confirm legacy-task cleanup script succeeds on a clean Windows machine
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          & ./Enterprise/agent/wix/Remove-LegacyElevatedTask.ps1
+          if (-not $?) { throw 'Legacy-task cleanup failed on a clean runner' }
+          Write-Host 'Safe no-op on clean Windows runner verified.'
+
       - name: Stage NON-PRODUCTION config without permanent credentials
         shell: pwsh
         run: |

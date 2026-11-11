@@ -47,10 +47,11 @@ Describe 'Phase J: no untrusted SYSTEM elevation' {
     }
 
     It 'requires verified removal and aborts if the legacy task survives' {
-        $script:removal | Should -Match '/Delete /TN \$task /F'
+        $script:removal | Should -Match 'Import-Module ScheduledTasks -ErrorAction Stop'
+        $script:removal | Should -Match 'Unregister-ScheduledTask -TaskPath \$taskPath'
         $script:removal | Should -Match 'SECURITY_BLOCK: cannot delete legacy SYSTEM task'
         $script:removal | Should -Match 'SECURITY_BLOCK: legacy SYSTEM task'
-        $script:removal | Should -Match 'if \(\$stillThere\)'
+        $script:removal | Should -Match 'if \(\$remaining\.Count -ne 0\)'
     }
 
     It 'keeps the legacy registration script as a safe, nonfunctional stub' {

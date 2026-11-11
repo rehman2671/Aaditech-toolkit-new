@@ -6,6 +6,7 @@ BeforeAll {
     $script:wix = Get-Content (Join-Path $root 'Enterprise\agent\wix\Agent.wxs') -Raw
     $script:builder = Get-Content (Join-Path $root 'Enterprise\agent\wix\build-msi.ps1') -Raw
     $script:helper = Get-Content (Join-Path $root 'Enterprise\agent\wix\Create-ElevatedTask.ps1') -Raw
+    $script:removal = Get-Content (Join-Path $root 'Enterprise\agent\wix\Remove-LegacyElevatedTask.ps1') -Raw
 }
 
 Describe 'Phase J: no untrusted SYSTEM elevation' {
@@ -31,6 +32,9 @@ Describe 'Phase J: no untrusted SYSTEM elevation' {
         $script:wix | Should -Not -Match 'Id="CreateElevatedTask"'
         $script:wix | Should -Not -Match 'ComponentRef Id="ElevTaskHelper"'
         $script:wix | Should -Match 'CustomAction Id="DisableLegacyElevatedTask"'
+        $script:wix | Should -Match '(?s)Id="DisableLegacyElevatedTask".*?Return="check"'
+        $script:wix | Should -Match 'Remove-LegacyElevatedTask\.ps1'
+        $script:builder | Should -Match 'Copy-Item.*Remove-LegacyElevatedTask\.ps1'
         $script:wix | Should -Match 'Custom Action="DisableLegacyElevatedTask"'
         $script:wix | Should -Match 'schtasks\.exe&quot; /delete /tn ITToolkitAgentElevated /f'
         $script:builder | Should -Not -Match "Copy-Item.*Create-ElevatedTask\.ps1"
@@ -40,6 +44,13 @@ Describe 'Phase J: no untrusted SYSTEM elevation' {
         $script:wix | Should -Match '(?s)Id="HardenAgentDataAcl".*?Return="check"'
         $script:wix | Should -Match '(?s)Id="HardenLocalJsonAcl".*?Return="check"'
         $script:wix | Should -Match 'Custom Action="CreateSchedTask" After="DisableLegacyElevatedTask"'
+    }
+
+    It 'requires verified removal and aborts if the legacy task survives' {
+        $script:removal | Should -Match '/Delete /TN \$task /F'
+        $script:removal | Should -Match 'SECURITY_BLOCK: cannot delete legacy SYSTEM task'
+        $script:removal | Should -Match 'SECURITY_BLOCK: legacy SYSTEM task'
+        $script:removal | Should -Match 'if \(\$stillThere\)'
     }
 
     It 'keeps the legacy registration script as a safe, nonfunctional stub' {

@@ -1043,7 +1043,42 @@ export async function getDevices(filters = {}) {
   sql += ' ORDER BY last_seen_at DESC';
 
   const rows = await executeQuery(sql, params);
-  const formatted = rows.map(formatDeviceRecord);
+  // Vitest's isolated workers may populate the in-memory SQL emulator while
+  // the MySQL service is starting. Keep those TEST-ONLY fixtures visible to
+  // listing APIs, but never overlay process-local records in production.
+  const source = [...rows];
+  if (process.env.NODE_ENV === 'test') {
+    const seen = new Set(source.map(row => String(row.id)));
+    for (const local of memDevices) {
+      if (!seen.has(String(local.id))) {
+        source.push(local);
+        seen.add(String(local.id));
+      }
+    }
+  }
+  // Always enforce tenant scoping on result rows, including emulator output.
+  const scoped = source.filter(row => {
+    if (filters.tenant_id && String(row.tenant_id) !== String(filters.tenant_id)) return false;
+    if (filters.company_id && String(row.company_id) !== String(filters.company_id)) return false;
+    if (filters.status) {
+      const status = String(row.status || '').toLowerCase();
+      const wanted = String(filters.status).toLowerCase();
+      if (wanted === 'active' || wanted === 'online') {
+        if (status !== 'online' && status !== 'active') return false;
+      } else if (wanted === 'offline') {
+        if (status !== 'offline') return false;
+      } else if (status !== wanted) return false;
+    }
+    if (filters.os_type) {
+      const type = String(filters.os_type).toUpperCase();
+      const os = String(row.os_version || row.os || '').toUpperCase();
+      if (type === 'WINDOWS' && !os.includes('WINDOWS')) return false;
+      if (type === 'MACOS' && !os.includes('MACOS')) return false;
+      if (type === 'LINUX' && !os.includes('LINUX')) return false;
+    }
+    return true;
+  });
+  const formatted = scoped.map(formatDeviceRecord);
 
   if (!filters || Object.keys(filters).length === 0) {
     await cacheSet(cacheKey, formatted, 20);

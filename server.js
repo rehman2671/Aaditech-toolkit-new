@@ -1500,10 +1500,8 @@ app.get('/api/v1/msi/download/:id', async (req, res) => {
 // Immutable Audit Logs V1
 app.get('/api/v1/audit/logs', async (req, res) => {
   const { limit, offset } = parsePagination(req, 50, 500);
-  const tenantId = (req.user?.role === 'SUPER_ADMIN' && req.user?.tenant_id === '00000000-0000-0000-0000-000000000001')
-    ? req.query.tenant_id
-    : req.user?.tenant_id;
-  const logs = await db.getAuditLogs(limit + offset, tenantId);
+  const logs = filterTenantRecords(req.user,
+    await db.getAuditLogs(limit + offset, req.user.tenant_id));
   sendPaginated(req, res, logs, 50, 500);
 });
 
@@ -1519,27 +1517,21 @@ app.get('/api/v1/tenants', async (req, res) => {
 // Alerts & Alert Rules Engine (Canonical v1 + Legacy aliases)
 app.get(['/api/v1/alerts/open', '/api/alerts/open'], async (req, res) => {
   const filters = { status: 'open' };
-  const tenantId = (req.user?.role === 'SUPER_ADMIN' && req.user?.tenant_id === '00000000-0000-0000-0000-000000000001')
-    ? req.query.tenant_id
-    : req.user?.tenant_id;
-  if (tenantId) filters.tenant_id = tenantId;
-  const alerts = await db.getAlerts(filters);
+  filters.tenant_id = req.user.tenant_id;
+  const alerts = filterTenantRecords(req.user, await db.getAlerts(filters));
   res.json({ open: alerts.length });
 });
 
 app.get(['/api/v1/alerts', '/api/alerts'], async (req, res) => {
   const filters = {};
   if (req.query.status) filters.status = req.query.status;
-  const tenantId = (req.user?.role === 'SUPER_ADMIN' && req.user?.tenant_id === '00000000-0000-0000-0000-000000000001')
-    ? req.query.tenant_id
-    : req.user?.tenant_id;
-  if (tenantId) filters.tenant_id = tenantId;
-  const list = await db.getAlerts(filters);
+  filters.tenant_id = req.user.tenant_id;
+  const list = filterTenantRecords(req.user, await db.getAlerts(filters));
   sendPaginated(req, res, list, 50, 500);
 });
 
 app.get(['/api/v1/alerts/rules', '/api/alert-rules'], async (req, res) => {
-  const rules = await db.getAlertRules();
+  const rules = filterTenantRecords(req.user, await db.getAlertRules());
   sendPaginated(req, res, rules, 50, 500);
 });
 
@@ -1555,7 +1547,8 @@ app.post('/api/v1/alerts/rules', requireRole(['SUPER_ADMIN']), validateBody(crea
     threshold: parseFloat(threshold),
     duration_mins: parseInt(duration_mins, 10) || 5,
     severity: severity || "warning",
-    enabled: true
+    enabled: true,
+    tenant_id: req.user.tenant_id
   };
 
   const created = await db.createAlertRule(newRule);
@@ -1568,6 +1561,9 @@ app.put(['/api/v1/alerts/rules/:id', '/api/alert-rules/:name'], requireRole(['SU
   const idOrName = req.params.id || req.params.name;
   let rule = await db.getAlertRuleById(idOrName);
   if (!rule) rule = await db.getAlertRuleByName(idOrName);
+  if (rule && !ownsTenant(req.user, rule)) {
+    return res.status(404).json({error:'Alert rule not found'});
+  }
   if (rule) {
     await db.updateAlertRule(rule.id, req.body);
     logAudit(req.user, "ALERT_RULE_UPDATED", `AlertRule:${rule.name}`, req.body, req);
@@ -1577,6 +1573,10 @@ app.put(['/api/v1/alerts/rules/:id', '/api/alert-rules/:name'], requireRole(['SU
 
 app.delete('/api/v1/alerts/rules/:id', requireRole(['SUPER_ADMIN']), async (req, res) => {
   const ruleId = req.params.id;
+  const rule = await db.getAlertRuleById(ruleId);
+  if (!rule || !ownsTenant(req.user, rule)) {
+    return res.status(404).json({error:'Alert rule not found'});
+  }
   await db.deleteAlertRule(ruleId);
   logAudit(req.user, "ALERT_RULE_DELETED", `AlertRule:${ruleId}`, {}, req);
   res.status(200).json({ success: true, message: "Alert rule removed" });
@@ -1585,7 +1585,9 @@ app.delete('/api/v1/alerts/rules/:id', requireRole(['SUPER_ADMIN']), async (req,
 app.post(['/api/v1/alerts/:id/acknowledge', '/api/alerts/:id/ack', '/api/alerts/:id/acknowledge'], requireRole(['SUPER_ADMIN', 'OPERATOR']), async (req, res) => {
   const alertId = parseInt(req.params.id, 10);
   const alt = await db.getAlertById(alertId);
-  if (!alt) return res.status(404).json({ error: "Alert not found" });
+  if (!alt || !ownsTenant(req.user, alt)) {
+    return res.status(404).json({error:'Alert not found'});
+  }
 
   await db.updateAlert(alertId, { status: "acknowledged" });
   alt.status = "acknowledged";
@@ -1596,7 +1598,9 @@ app.post(['/api/v1/alerts/:id/acknowledge', '/api/alerts/:id/ack', '/api/alerts/
 app.post(['/api/v1/alerts/:id/resolve', '/api/alerts/:id/resolve'], requireRole(['SUPER_ADMIN', 'OPERATOR']), async (req, res) => {
   const alertId = parseInt(req.params.id, 10);
   const alt = await db.getAlertById(alertId);
-  if (!alt) return res.status(404).json({ error: "Alert not found" });
+  if (!alt || !ownsTenant(req.user, alt)) {
+    return res.status(404).json({error:'Alert not found'});
+  }
 
   await db.resolveAlert(alertId);
   alt.status = "resolved";
@@ -1644,7 +1648,7 @@ app.post(['/api/v1/alerts/test-email', '/api/alerts/test-email'], async (req, re
 
 // Device Groups & Policy Management V1
 app.get('/api/v1/groups', async (req, res) => {
-  const grps = await db.getGroups();
+  const grps = filterTenantRecords(req.user, await db.getGroups());
   sendPaginated(req, res, grps, 50, 500);
 });
 
@@ -1656,7 +1660,8 @@ app.post('/api/v1/groups', requireRole(['SUPER_ADMIN']), validateBody(createGrou
     name,
     description: description || "",
     member_count: 0,
-    policy_id: policy_id || "pol-1"
+    policy_id: policy_id || "pol-1",
+    tenant_id: req.user.tenant_id
   };
 
   const created = await db.createGroup(newGrp);
@@ -1665,7 +1670,7 @@ app.post('/api/v1/groups', requireRole(['SUPER_ADMIN']), validateBody(createGrou
 });
 
 app.get('/api/v1/policies', async (req, res) => {
-  const pols = await db.getPolicies();
+  const pols = filterTenantRecords(req.user, await db.getPolicies());
   sendPaginated(req, res, pols, 50, 500);
 });
 
@@ -1678,7 +1683,8 @@ app.post('/api/v1/policies', requireRole(['SUPER_ADMIN']), validateBody(createPo
     checkin_interval_sec: parseInt(checkin_interval_sec, 10) || 30,
     auto_update: auto_update !== false,
     maintenance_mode: !!maintenance_mode,
-    data_retention_days: parseInt(data_retention_days, 10) || 90
+    data_retention_days: parseInt(data_retention_days, 10) || 90,
+    tenant_id: req.user.tenant_id
   };
 
   const created = await db.createPolicy(newPol);
@@ -1722,7 +1728,9 @@ app.get('/api/v1/security/posture', async (req, res) => {
 app.get('/api/v1/devices/:id/processes', async (req, res) => {
   const devId = req.params.id;
   const dev = await db.getDeviceById(devId) || await db.getDeviceByHostname(devId);
-  if (!dev) return res.status(404).json({ error: "Device not found" });
+  if (!dev || !ownsTenant(req.user, dev)) {
+    return res.status(404).json({error:'Device not found'});
+  }
 
   const liveProcs = await db.getDeviceProcesses(dev.id);
   if (liveProcs && Array.isArray(liveProcs) && liveProcs.length > 0) {
@@ -1750,7 +1758,9 @@ app.get('/api/v1/devices/:id/processes', async (req, res) => {
 app.get('/api/v1/devices/:id/app-usage', async (req, res) => {
   const devId = req.params.id;
   const dev = await db.getDeviceById(devId) || await db.getDeviceByHostname(devId);
-  if (!dev) return res.status(404).json({ error: "Device not found" });
+  if (!dev || !ownsTenant(req.user, dev)) {
+    return res.status(404).json({error:'Device not found'});
+  }
 
   const liveUsage = await db.cacheGet(`app_usage:${dev.id}`) || await db.cacheGet(`app_usage:${dev.hostname}`);
   if (liveUsage && Array.isArray(liveUsage) && liveUsage.length > 0) {

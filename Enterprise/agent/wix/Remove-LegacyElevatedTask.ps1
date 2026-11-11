@@ -1,31 +1,33 @@
 #Requires -Version 5.1
-# Phase J: fail the MSI transaction unless the unsafe SYSTEM helper is absent.
-# Runs as an elevated MSI custom action, before starting ITToolkitAgent.
-# No task is ever created. This is idempotent across clean install/upgrade.
+# Phase J: fail the MSI transaction unless the legacy SYSTEM task is absent.
+# Runs as SYSTEM in a deferred Windows Installer custom action.
+# No task is ever created; idempotent on clean installs and upgrades.
 [CmdletBinding()]
 param()
 $ErrorActionPreference = 'Stop'
-$task = 'ITToolkitAgentElevated'
+$taskName = 'ITToolkitAgentElevated'
+$taskPath = '\'
 
-# Task Scheduler returns nonzero when the task is already absent.
-# An absent task is the desired state on a fresh Windows install.
-& schtasks.exe /Query /TN $task 2>$null | Out-Null
-if ($LASTEXITCODE -ne 0) {
-    $global:LASTEXITCODE = 0
-    Write-Output "$task already absent"
-    exit 0
+# ScheduledTasks cmdlets avoid the nonzero schtasks.exe exit status and
+# native stderr behavior on Windows PowerShell 5.1 for an absent task.
+# Fail closed if the Windows ScheduledTasks API itself is unavailable.
+Import-Module ScheduledTasks -ErrorAction Stop
+
+$existing = @(Get-ScheduledTask -TaskPath $taskPath -TaskName $taskName -ErrorAction SilentlyContinue)
+if ($existing.Count -eq 0) {
+    Write-Output "$taskName is already absent"
+    return
 }
 
-# A legacy SYSTEM task is unsafe even when the normal agent is disabled.
-& schtasks.exe /Delete /TN $task /F 2>&1 | Out-Null
-if ($LASTEXITCODE -ne 0) {
-    throw "SECURITY_BLOCK: cannot delete legacy SYSTEM task '$task'; MSI installation must fail."
+try {
+    Unregister-ScheduledTask -TaskPath $taskPath -TaskName $taskName -Confirm:$false -ErrorAction Stop
+}
+catch {
+    throw "SECURITY_BLOCK: cannot delete legacy SYSTEM task '$taskName': $($_.Exception.Message)"
 }
 
-& schtasks.exe /Query /TN $task 2>$null | Out-Null
-$stillThere = ($LASTEXITCODE -eq 0)
-$global:LASTEXITCODE = 0
-if ($stillThere) {
-    throw "SECURITY_BLOCK: legacy SYSTEM task '$task' survived deletion."
+$remaining = @(Get-ScheduledTask -TaskPath $taskPath -TaskName $taskName -ErrorAction SilentlyContinue)
+if ($remaining.Count -ne 0) {
+    throw "SECURITY_BLOCK: legacy SYSTEM task '$taskName' survived deletion"
 }
-Write-Output "Removed unsafe legacy SYSTEM task $task"
+Write-Output "Removed unsafe legacy SYSTEM task $taskName"

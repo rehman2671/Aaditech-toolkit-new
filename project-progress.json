@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-11T00:01:49+00:00",
-  "last_verified_commit": "90ea63637c860b45db5f59a201fa2126fe5a2340",
-  "last_verified_date": "2026-11-11T05:31:33+05:30",
+  "generated": "2026-11-11T00:02:08+00:00",
+  "last_verified_commit": "b253c5b03a86bd3d59f71deda21f672e533f729d",
+  "last_verified_date": "2026-11-11T05:31:55+05:30",
   "overall_progress_percent": 100.0,
   "issue_progress": {
     "total": 17,
@@ -14,21 +14,10 @@
   "latest_delta": {
     "added": 0,
     "removed": 0,
-    "changed": 2,
-    "unchanged": 233
+    "changed": 1,
+    "unchanged": 234
   },
   "delta_history": [
-    {
-      "detected_at": "2026-11-10T21:45:54+00:00",
-      "added": [
-        "Enterprise/agent/Provision-Device.ps1"
-      ],
-      "removed": [],
-      "changed": [
-        "Enterprise/agent/wix/build-msi.ps1"
-      ],
-      "unchanged_count": 227
-    },
     {
       "detected_at": "2026-11-10T21:46:07+00:00",
       "added": [],
@@ -210,6 +199,15 @@
         "Enterprise/agent/wix/build-msi.ps1"
       ],
       "unchanged_count": 233
+    },
+    {
+      "detected_at": "2026-11-11T00:02:08+00:00",
+      "added": [],
+      "removed": [],
+      "changed": [
+        "Scripts/Tests/AgentElevationPolicy.Tests.ps1"
+      ],
+      "unchanged_count": 234
     }
   ],
   "next_recommended_tasks": [

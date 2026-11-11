@@ -38,3 +38,21 @@ export function deviceOwnsCommand(device, command) {
     String(device.id) === String(command.device_id || command.agent_id) &&
     ownsTenant(device, command.tenant_id || device.tenant_id));
 }
+
+/**
+ * Legacy events have hostname but no tenant/device foreign key. Any hostname
+ * shared by different tenants is intrinsically ambiguous and MUST be denied
+ * rather than treating one tenant's events as another's.
+ */
+export function unambiguousOwnedHostnames(actor, allDevices) {
+  const owners = new Map();
+  for (const device of allDevices || []) {
+    const host = String(device?.hostname || '').toLowerCase().trim();
+    if (!host || !device?.tenant_id) continue;
+    if (!owners.has(host)) owners.set(host, new Set());
+    owners.get(host).add(device.tenant_id);
+  }
+  return new Set([...owners.entries()]
+    .filter(([, tenants]) => tenants.size === 1 && tenants.has(actor?.tenant_id))
+    .map(([host]) => host));
+}

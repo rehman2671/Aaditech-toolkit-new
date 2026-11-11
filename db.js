@@ -1140,13 +1140,19 @@ export async function getDeviceByTokenHash(hash) {
   const cached = deviceLookupCache.get(key);
   if (cached && Date.now() < cached.expiresAt) return cached.record;
 
+  // The legacy auth_token_hash field can contain fleet-wide credentials.
+  // Production agent authentication may use ONLY the unique device token.
+  const legacy = process.env.NODE_ENV !== 'production';
   const rows = await executeQuery(
-    'SELECT * FROM devices WHERE device_token_hash = ? OR auth_token_hash = ? LIMIT 1',
-    [hash, hash]
+    legacy
+      ? 'SELECT * FROM devices WHERE device_token_hash = ? OR auth_token_hash = ? LIMIT 1'
+      : 'SELECT * FROM devices WHERE device_token_hash = ? LIMIT 1',
+    legacy ? [hash, hash] : [hash]
   );
   let rec = formatDeviceRecord(rows[0]);
   if (!rec) {
-    const memMatch = memDevices.find(d => d.device_token_hash === hash || d.auth_token_hash === hash);
+    const memMatch = memDevices.find(d =>
+      d.device_token_hash === hash || (legacy && d.auth_token_hash === hash));
     if (memMatch) rec = formatDeviceRecord(memMatch);
   }
   if (rec) {
@@ -1161,6 +1167,21 @@ export async function getDeviceByTokenHash(hash) {
 
 export async function syncDeviceToDb(dev) {
   try {
+    // Reject all implicit cross-tenant and cross-device upserts before SQL.
+    // Hostname and UID are globally reserved until schema-level tenant-scoped
+    // unique constraints and an approved device-rotation protocol are shipped.
+    const tenant = dev.tenant_id || '00000000-0000-0000-0000-000000000001';
+    const existingId = dev.id ? await getDeviceById(String(dev.id)) : null;
+    const existingHost = dev.hostname ? await getDeviceByHostname(dev.hostname) : null;
+    const existingUid = dev.device_uid ? await getDeviceByUid(dev.device_uid) : null;
+    for (const existing of [existingId, existingHost, existingUid]) {
+      if (!existing) continue;
+      if (existing.tenant_id !== tenant ||
+          (dev.id && String(existing.id) !== String(dev.id))) {
+        console.warn('Denied cross-tenant/device syncDeviceToDb collision');
+        return false;
+      }
+    }
     let devId = dev.id ? String(dev.id) : null;
     if (!devId && dev.hostname) {
       const existing = await getDeviceByHostname(dev.hostname);
@@ -1702,17 +1723,22 @@ export async function getAlerts(filters = {}) {
     conditions.push('severity = ?');
     params.push(filters.severity);
   }
+  if (filters.tenant_id) {
+    conditions.push('tenant_id = ?');
+    params.push(String(filters.tenant_id));
+  }
   if (conditions.length > 0) {
     sql += ` WHERE ${conditions.join(' AND ')}`;
   }
   sql += ' ORDER BY created_at DESC';
 
   const rows = await executeQuery(sql, params);
-  return rows.map(r => ({
-    ...r,
-    agent_id: r.device_id,
-    rule: r.rule_name
-  }));
+  return rows.filter(r => !filters.tenant_id || r.tenant_id === filters.tenant_id)
+    .map(r => ({
+      ...r,
+      agent_id: r.device_id,
+      rule: r.rule_name
+    }));
 }
 
 export async function getAlertById(id) {

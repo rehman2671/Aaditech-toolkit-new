@@ -1827,9 +1827,11 @@ installFirstRunRoutes(app, {
 // Bootstrap (Canonical v1 + Legacy alias)
 app.get(['/api/v1/bootstrap', '/api/bootstrap'], async (req, res) => {
   const branding = await db.getBranding();
-  const companies = await db.getCompanies();
-  const users = await db.getUsers();
-  const authUser = req.user ? (await db.getUserById(req.user.id) || await db.getUserByUsername(req.user.username) || req.user) : (users[0] || { id: 1, username: 'admin', role: 'SUPER_ADMIN' });
+  const companies = filterTenantRecords(req.user, await db.getCompanies());
+  const authUser = await db.getUserById(req.user.id);
+  if (!authUser || !ownsTenant(req.user, authUser)) {
+    return res.status(401).json({error:'SESSION_ACCOUNT_INVALID'});
+  }
   const { password_hash, ...safeUser } = authUser;
   res.json({
     user: safeUser,
@@ -1844,9 +1846,12 @@ app.get(['/api/v1/bootstrap', '/api/bootstrap'], async (req, res) => {
 
 app.get(['/api/status', '/api/v1/database/status'], async (req, res) => {
   const mysqlActive = isMysqlConnected();
-  const devices = await db.getDevices();
-  const openAlerts = await db.getAlerts({ status: 'open' });
-  const pendingCommands = await db.getCommands({ status: 'pending' });
+  const devices = filterTenantRecords(req.user, await db.getDevices({tenant_id:req.user.tenant_id}));
+  const openAlerts = filterTenantRecords(req.user,
+    await db.getAlerts({ status: 'open', tenant_id:req.user.tenant_id }));
+  const ids = new Set(devices.map(d => String(d.id)));
+  const pendingCommands = (await db.getCommands({ status: 'pending' }))
+    .filter(c => ids.has(String(c.device_id || c.agent_id)));
 
   res.json({
     status: "ok",
@@ -1864,7 +1869,13 @@ app.get(['/api/status', '/api/v1/database/status'], async (req, res) => {
 // Events (Canonical v1 + Legacy alias)
 app.get(['/api/v1/events', '/api/events'], async (req, res) => {
   const { limit, offset } = parsePagination(req, 100, 500);
-  const list = await db.getEvents(req.query.hostname || null, limit + offset, req.query.kind || null);
+  const owned = filterTenantRecords(req.user, await db.getDevices({tenant_id:req.user.tenant_id}));
+  const hostnames = new Set(owned.map(d => String(d.hostname).toLowerCase()));
+  if (req.query.hostname && !hostnames.has(String(req.query.hostname).toLowerCase())) {
+    return res.status(404).json({error:'Device not found'});
+  }
+  const list = (await db.getEvents(req.query.hostname || null, limit + offset, req.query.kind || null))
+    .filter(ev => hostnames.has(String(ev.hostname || '').toLowerCase()));
   sendPaginated(req, res, list, 100, 500);
 });
 
@@ -2182,7 +2193,7 @@ app.put(['/api/v1/users/:id', '/api/users/:id'], requireRole(['SUPER_ADMIN']), v
 
 // Companies (Canonical v1 + Legacy alias)
 app.get(['/api/v1/companies', '/api/companies'], async (req, res) => {
-  const comps = await db.getCompanies();
+  const comps = filterTenantRecords(req.user, await db.getCompanies());
   sendPaginated(req, res, comps, 50, 500);
 });
 
@@ -2190,7 +2201,7 @@ app.post(['/api/v1/companies', '/api/companies'], requireRole(['SUPER_ADMIN']), 
   const { name } = req.body;
   if (!name) return res.status(400).json({ detail: "Company name required" });
 
-  const comp = await db.createCompany({ name, users: 1, agents: 0 });
+  const comp = await db.createCompany({name, users:1, agents:0, tenant_id:req.user.tenant_id});
   logAudit(req.user, "COMPANY_CREATED", `Company:${name}`, {}, req);
   res.status(201).json(comp);
 });
@@ -2801,10 +2812,14 @@ app.post(['/api/v1/remediation/trigger', '/api/remediation/trigger'], requireRol
   const { hostname, action_type } = req.body;
   const pol = (await db.getRemediationPolicyByActionType(action_type)) || { name: "Manual Remediation" };
 
+  const dev = await db.getDeviceByHostname(hostname || '');
+  if (!dev || !ownsTenant(req.user, dev)) {
+    return res.status(404).json({error:'Device not found'});
+  }
   const actionMsg = `Dispatched remediation script Remediate-${action_type}.ps1 to agent queue`;
 
   const newLog = await db.logRemediation({
-    hostname: hostname || "DESKTOP-DEV018",
+    hostname: dev.hostname,
     policy_name: pol.name,
     action: actionMsg,
     status: "pending"
@@ -2812,7 +2827,6 @@ app.post(['/api/v1/remediation/trigger', '/api/remediation/trigger'], requireRol
 
   // Record command in MySQL with 'pending' status for agent execution
   let commandId = null;
-  const dev = await db.getDeviceByHostname(hostname || "DESKTOP-DEV018");
   if (dev) {
     commandId = crypto.randomUUID();
     await db.queueCommandInDb({
@@ -2820,6 +2834,7 @@ app.post(['/api/v1/remediation/trigger', '/api/remediation/trigger'], requireRol
       device_id: dev.id,
       agent_id: dev.id,
       hostname: dev.hostname,
+      tenant_id: dev.tenant_id,
       kind: "run-script",
       command_type: "run-script",
       payload: { script_name: `Remediate-${action_type}.ps1` },
@@ -2846,7 +2861,7 @@ app.put(['/api/v1/tickets/config', '/api/tickets/config'], requireRole(['SUPER_A
 });
 
 app.get(['/api/v1/tickets', '/api/v1/tickets/list', '/api/tickets/list'], async (req, res) => {
-  const tickets = await db.getTickets();
+  const tickets = filterTenantRecords(req.user, await db.getTickets());
   sendPaginated(req, res, tickets, 50, 500);
 });
 

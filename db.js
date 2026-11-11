@@ -1873,6 +1873,15 @@ export async function createAlertRule(rule) {
     rule.enabled !== false ? 1 : 0,
     JSON.stringify(rule.condition || {})
   ]);
+  // In test/offline fallback mode the SQL emulator reads memAlertRules.
+  // Keep it consistent with a newly created tenant-scoped rule.
+  if (process.env.NODE_ENV !== 'production') {
+    const idx = memAlertRules.findIndex(x => String(x.id) === String(ruleId));
+    const row = { ...rule, id: ruleId,
+      tenant_id: rule.tenant_id || '00000000-0000-0000-0000-000000000001' };
+    if (idx >= 0) memAlertRules[idx] = row;
+    else memAlertRules.push(row);
+  }
   invalidateAlertRulesCache();
   return { id: ruleId, ...rule };
 }
@@ -1892,12 +1901,20 @@ export async function updateAlertRule(id, updates) {
   if (fields.length === 0) return false;
   params.push(id);
   await executeQuery(`UPDATE alert_rules SET ${fields.join(', ')} WHERE id = ?`, params);
+  if (process.env.NODE_ENV !== 'production') {
+    const row = memAlertRules.find(x => String(x.id) === String(id));
+    if (row) Object.assign(row, updates);
+  }
   invalidateAlertRulesCache();
   return true;
 }
 
 export async function deleteAlertRule(id) {
   await executeQuery('DELETE FROM alert_rules WHERE id = ?', [id]);
+  if (process.env.NODE_ENV !== 'production') {
+    const index = memAlertRules.findIndex(x => String(x.id) === String(id));
+    if (index >= 0) memAlertRules.splice(index, 1);
+  }
   invalidateAlertRulesCache();
   return true;
 }

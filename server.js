@@ -27,7 +27,7 @@ import * as db from './db.js';
 import { installFirstRunRoutes, getStrictSetupState, readConfiguredGitHubToken } from './first-run-routes.js';
 import { ensureSetupCode } from './setup-security.js';
 import { deriveDeviceCommandKey, signCommandForDevice } from './agent-command-security.js';
-import { DEFAULT_TENANT_ID, ownsTenant, filterTenantRecords, publicDeviceRecord, isBoundUserSession, deviceOwnsCommand } from './tenant-security.js';
+import { DEFAULT_TENANT_ID, ownsTenant, filterTenantRecords, publicDeviceRecord, isBoundUserSession, deviceOwnsCommand, unambiguousOwnedHostnames } from './tenant-security.js';
 import {
   getAgentVersion,
   getAgentVersionInfo,
@@ -1280,8 +1280,8 @@ app.post(['/api/v1/ingest/telemetry', '/api/ingest'], agentLimiter, validateBody
 
   // Cache real live application usage into Redis
   if (app_usage && Array.isArray(app_usage) && app_usage.length > 0) {
+    // Hostname caches are not tenant-safe. Cache only by immutable device ID.
     await db.cacheSet(`app_usage:${dev.id}`, app_usage, 86400);
-    await db.cacheSet(`app_usage:${dev.hostname}`, app_usage, 86400);
   }
 
   // Insert Telemetry record into MySQL
@@ -1770,7 +1770,7 @@ app.get('/api/v1/devices/:id/app-usage', async (req, res) => {
     return res.status(404).json({error:'Device not found'});
   }
 
-  const liveUsage = await db.cacheGet(`app_usage:${dev.id}`) || await db.cacheGet(`app_usage:${dev.hostname}`);
+  const liveUsage = await db.cacheGet(`app_usage:${dev.id}`);
   if (liveUsage && Array.isArray(liveUsage) && liveUsage.length > 0) {
     return res.json({ device_id: dev.id, hostname: dev.hostname, source: "live_agent_telemetry", app_usage: liveUsage });
   }
@@ -1877,8 +1877,7 @@ app.get(['/api/status', '/api/v1/database/status'], async (req, res) => {
 // Events (Canonical v1 + Legacy alias)
 app.get(['/api/v1/events', '/api/events'], async (req, res) => {
   const { limit, offset } = parsePagination(req, 100, 500);
-  const owned = filterTenantRecords(req.user, await db.getDevices({tenant_id:req.user.tenant_id}));
-  const hostnames = new Set(owned.map(d => String(d.hostname).toLowerCase()));
+  const hostnames = unambiguousOwnedHostnames(req.user, await db.getDevices());
   if (req.query.hostname && !hostnames.has(String(req.query.hostname).toLowerCase())) {
     return res.status(404).json({error:'Device not found'});
   }
@@ -2116,6 +2115,11 @@ app.get(['/api/v1/reports/device/:id', '/api/report/agent/:id'], async (req, res
     await db.getDeviceByHostname(req.params.id);
   if (!agent || !ownsTenant(req.user, agent)) {
     return res.status(404).json({error:'Device not found'});
+  }
+  if (!unambiguousOwnedHostnames(req.user, await db.getDevices())
+    .has(String(agent.hostname).toLowerCase())) {
+    return res.status(409).json({error:'AMBIGUOUS_DEVICE_HOSTNAME',
+      detail:'Legacy events need tenant-bound device IDs before this report can be served.'});
   }
   if (req.query.format === 'csv') {
     const events = await db.getEvents(agent.hostname);

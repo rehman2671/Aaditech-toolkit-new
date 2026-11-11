@@ -53,7 +53,15 @@ describe('Phase K cross-tenant isolation at API boundary',()=>{
     const res=await request(app).get('/api/v1/devices?limit=500')
       .set('Authorization',bearer(adminToken));
     expect(res.status).toBe(200);
-    expect(res.body.some(x=>x.id===adminDevice.id)).toBe(true);
+    if (!res.body.some(x=>x.id===adminDevice.id)) {
+      const direct=await db.getDevices({tenant_id:DEFAULT_TENANT_ID});
+      throw new Error(JSON.stringify({
+        reason:'NEW_TENANT_DEVICE_NOT_LISTED',
+        expected:{id:adminDevice.id,tenant_id:adminDevice.tenant_id,hostname:adminHost},
+        api:res.body.slice(0,15).map(d=>({id:d.id,tenant_id:d.tenant_id,hostname:d.hostname})),
+        db:direct.slice(0,15).map(d=>({id:d.id,tenant_id:d.tenant_id,hostname:d.hostname}))
+      }));
+    }
     expect(res.body.some(x=>x.id===otherDevice.id)).toBe(false);
 
     const foreign=await request(app).get('/api/v1/devices/'+otherDevice.id)

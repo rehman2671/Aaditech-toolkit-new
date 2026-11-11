@@ -26,7 +26,7 @@ export function publicDeviceRecord(record) {
 
 export function isBoundUserSession(decoded, storedUser) {
   if (!decoded || !storedUser || storedUser.active === false ||
-      String(storedUser.status || 'ACTIVE').toUpperCase() === 'DISABLED') return false;
+      String(storedUser.status || 'ACTIVE').toUpperCase() !== 'ACTIVE') return false;
   if (!decoded.id || String(decoded.id) !== String(storedUser.id)) return false;
   if (!ownsTenant(decoded, storedUser)) return false;
   if (String(decoded.username || '') !== String(storedUser.username || '')) return false;

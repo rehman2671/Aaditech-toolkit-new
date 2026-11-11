@@ -971,13 +971,11 @@ app.get(['/api/v1/auth/me', '/api/me'], async (req, res) => {
 
 // Devices (Canonical v1 + Legacy aliases /api/devices and /api/agents)
 app.get(['/api/v1/devices', '/api/devices', '/api/agents'], async (req, res) => {
-  const isSuperAdmin = req.user?.role === 'SUPER_ADMIN';
-  const tenantFilter = isSuperAdmin ? (req.query.tenant_id || req.user?.tenant_id) : req.user?.tenant_id;
-  const agents = await db.getDevices({
-    tenant_id: tenantFilter,
+  const agents = filterTenantRecords(req.user, await db.getDevices({
+    tenant_id: req.user.tenant_id,
     status: req.query.status,
     os_type: req.query.os_type
-  });
+  }));
   const list = agents.map(a => ({
     id: a.id,
     device_uid: a.device_uid || `dev-uid-${a.hostname.toLowerCase()}`,
@@ -1006,12 +1004,12 @@ app.get(['/api/v1/devices/:id', '/api/devices/:id', '/api/agents/:id'], async (r
               await db.getDeviceByHostname(req.params.id);
   if (!dev) return res.status(404).json({ error: "Device not found" });
 
-  if (req.user && req.user.role !== 'SUPER_ADMIN' && dev.tenant_id && req.user.tenant_id && dev.tenant_id !== req.user.tenant_id) {
-    return res.status(403).json({ error: "Forbidden: Device belongs to another tenant" });
+  if (!ownsTenant(req.user, dev)) {
+    return res.status(404).json({error:'Device not found'});
   }
 
   res.json({
-    ...dev,
+    ...publicDeviceRecord(dev),
     os_type: (dev.os_version || dev.os || '').includes('Windows') ? 'WINDOWS' : (dev.os_version || dev.os || '').includes('macOS') ? 'MACOS' : 'LINUX',
     status: dev.status === 'online' || dev.status === 'ACTIVE' ? 'ACTIVE' : 'OFFLINE',
     ip: dev.ip_address || dev.ip,
@@ -1025,8 +1023,8 @@ app.delete(['/api/v1/devices/:id', '/api/devices/:id', '/api/agents/:id'], requi
               await db.getDeviceByHostname(req.params.id);
   if (!dev) return res.status(404).json({ error: "Device not found" });
 
-  if (req.user?.tenant_id && dev.tenant_id && req.user.tenant_id !== dev.tenant_id && req.user.tenant_id !== '00000000-0000-0000-0000-000000000001') {
-    return res.status(403).json({ error: "Forbidden: Device belongs to another tenant" });
+  if (!ownsTenant(req.user, dev)) {
+    return res.status(404).json({error:'Device not found'});
   }
 
   await db.deleteDevice(dev.id);
@@ -1037,6 +1035,12 @@ app.delete(['/api/v1/devices/:id', '/api/devices/:id', '/api/agents/:id'], requi
 app.post('/api/v1/devices', requireRole(['SUPER_ADMIN', 'OPERATOR']), validateBody(deviceRegistrationSchema), async (req, res) => {
   const { hostname, os_type, os_version, agent_version, device_uid } = req.body;
   if (!hostname) return res.status(400).json({ error: "hostname required" });
+  // Never let the upsert path silently rotate an existing device's token.
+  if (await db.getDeviceByHostname(hostname) ||
+      (device_uid && await db.getDeviceByUid(device_uid))) {
+    return res.status(409).json({error:'DEVICE_IDENTITY_CONFLICT',
+      detail:'Device already registered. Use a separately authenticated rotation process.'});
+  }
 
   const devToken = generateDeviceToken();
   const tokenHash = hashDeviceToken(devToken);
@@ -1044,7 +1048,7 @@ app.post('/api/v1/devices', requireRole(['SUPER_ADMIN', 'OPERATOR']), validateBo
 
   const newDev = {
     id: devId,
-    device_uid: device_uid || `dev-uid-${hostname.toLowerCase().split('.')[0]}`,
+    device_uid: device_uid || `dev-uid-${crypto.randomUUID()}`,
     hostname,
     os_version: os_version || (os_type === 'WINDOWS' ? 'Windows 11 Enterprise' : 'Linux Ubuntu 22.04'),
     agent_version: agent_version || getAgentVersion(),
@@ -1060,12 +1064,15 @@ app.post('/api/v1/devices', requireRole(['SUPER_ADMIN', 'OPERATOR']), validateBo
     agent_token_revoked: false
   };
 
-  await db.syncDeviceToDb(newDev);
-  const createdDev = await db.getDeviceByHostname(hostname);
+  const createdOk = await db.syncDeviceToDb(newDev);
+  const createdDev = createdOk && await db.getDeviceById(devId);
+  if (!createdDev || !ownsTenant(req.user, createdDev)) {
+    return res.status(409).json({error:'DEVICE_IDENTITY_CONFLICT'});
+  }
   logAudit(req.user, "DEVICE_REGISTERED", `Device:${hostname}`, { device_uid: newDev.device_uid }, req);
 
   res.status(201).json({
-    ...createdDev,
+    ...publicDeviceRecord(createdDev),
     device_token: devToken,
     command_signing_key: deriveDeviceCommandKey(COMMAND_SIGNING_KEY, createdDev.id)
   });
@@ -1113,6 +1120,15 @@ const handleAgentEnroll = async (req, res) => {
     });
   }
 
+  // A bootstrap token is for ADDING a new machine, NEVER for rotating an
+  // existing device's credential. This also blocks tenant-crossing takeover.
+  const identityConflict = await db.getDeviceByHostname(host);
+  const uidConflict = device_uid ? await db.getDeviceByUid(device_uid) : null;
+  if (identityConflict || uidConflict) {
+    return res.status(409).json({error:'DEVICE_ALREADY_ENROLLED',
+      detail:'Existing endpoints require approved credential rotation.'});
+  }
+
   // Consume single-use bootstrap token atomically
   const consumed = await consumeBootstrapToken(rawToken, host, ver.tenantId);
   if (!consumed) {
@@ -1126,35 +1142,25 @@ const handleAgentEnroll = async (req, res) => {
   const devToken = generateDeviceToken();
   const tokenHash = hashDeviceToken(devToken);
 
-  let dev = await db.getDeviceByHostname(host);
-
-  if (!dev) {
-    const devId = crypto.randomUUID();
-    const newDev = {
-      id: devId,
-      device_uid: `dev-uid-${host.toLowerCase().split('.')[0]}`,
-      hostname: host,
-      os_version: os_version || "Windows 11 Enterprise",
-      agent_version: agent_version || getAgentVersion(),
-      ip_address: req.ip || "127.0.0.1",
-      status: "online",
-      company_id: 1,
-      tenant_id: ver.tenantId,
-      device_token_hash: tokenHash,
-      device_token_prefix: devToken.slice(0, 12),
-      agent_token_revoked: false
-    };
-    await db.syncDeviceToDb(newDev);
-    dev = await db.getDeviceByHostname(host);
-  } else {
-    await db.updateDevice(dev.id, {
-      device_token_hash: tokenHash,
-      device_token_prefix: devToken.slice(0, 12),
-      agent_token_revoked: 0,
-      status: 'online',
-      os_version: os_version || dev.os_version
-    });
-    dev = await db.getDeviceByHostname(host);
+  const devId = crypto.randomUUID();
+  const newDev = {
+    id: devId,
+    device_uid: device_uid || `dev-uid-${crypto.randomUUID()}`,
+    hostname: host,
+    os_version: os_version || "Windows 11 Enterprise",
+    agent_version: agent_version || getAgentVersion(),
+    ip_address: req.ip || "127.0.0.1",
+    status: "online",
+    company_id: 1,
+    tenant_id: ver.tenantId,
+    device_token_hash: tokenHash,
+    device_token_prefix: devToken.slice(0, 12),
+    agent_token_revoked: false
+  };
+  const enrolledOk = await db.syncDeviceToDb(newDev);
+  const dev = enrolledOk && await db.getDeviceById(devId);
+  if (!dev || dev.tenant_id !== ver.tenantId) {
+    return res.status(409).json({error:'DEVICE_IDENTITY_CONFLICT'});
   }
 
   logAudit({ username: `Agent:${host}`, tenant_id: ver.tenantId }, "DEVICE_ENROLLED", `Device:${host}`, {

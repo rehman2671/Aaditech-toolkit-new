@@ -992,6 +992,11 @@ export function invalidateDeviceCache(deviceOrId) {
     deviceLookupCache.delete(`id:${deviceOrId}`);
     deviceLookupCache.delete(`host:${deviceOrId.toLowerCase()}`);
     deviceLookupCache.delete(`uid:${deviceOrId.toLowerCase()}`);
+    // Device token/hostname/UID aliases may point to a now-revoked identity.
+    // Evict ALL cached aliases of the device, not only its "id:" lookup.
+    for (const [key, entry] of deviceLookupCache) {
+      if (String(entry?.record?.id) === deviceOrId) deviceLookupCache.delete(key);
+    }
   } else if (typeof deviceOrId === 'object') {
     if (deviceOrId.id) deviceLookupCache.delete(`id:${deviceOrId.id}`);
     if (deviceOrId.hostname) deviceLookupCache.delete(`host:${deviceOrId.hostname.toLowerCase()}`);
@@ -1172,7 +1177,10 @@ export async function getDeviceByUid(deviceUid) {
 export async function getDeviceByTokenHash(hash) {
   if (!hash) return null;
   const key = `hash:${hash}`;
-  const cached = deviceLookupCache.get(key);
+  // Authentication is an access-control decision. A 25-second process cache
+  // is unsafe during token revoke/rotate, especially with multiple replicas.
+  // Always consult authoritative DB in production for the current credential.
+  const cached = process.env.NODE_ENV === 'production' ? null : deviceLookupCache.get(key);
   if (cached && Date.now() < cached.expiresAt) return cached.record;
 
   // The legacy auth_token_hash field can contain fleet-wide credentials.

@@ -1,25 +1,24 @@
 {
   "state_version": "1.0",
   "path": "project-state.json",
-  "generated": "2026-11-11T09:45:07+00:00",
+  "generated": "2026-11-11T09:45:50+00:00",
   "phase": "RELEASE BLOCKED / REMEDIATION IN PROGRESS",
-  "last_verified_commit": "899cf3b41278eb5f974a33a37a829d802a6b373b",
-  "last_verified_date": "2026-11-11T15:15:01+05:30",
+  "last_verified_commit": "12dc55eb5c66d90dadd6f2300a0ab4f1c3551167",
+  "last_verified_date": "2026-11-11T15:15:36+05:30",
   "git": {
     "branch": "feat/phase-k-tenant-device-isolation-20261111",
     "commit_count": 1,
     "clean_working_tree": true,
-    "head": "899cf3b41278eb5f974a33a37a829d802a6b373b"
+    "head": "12dc55eb5c66d90dadd6f2300a0ab4f1c3551167"
   },
   "latest_delta": {
-    "detected_at": "2026-11-11T09:45:07+00:00",
+    "detected_at": "2026-11-11T09:45:50+00:00",
     "added": [],
     "removed": [],
     "changed": [
-      "tests/integration/tenant-isolation.test.js",
-      "tests/integration/server.integration.test.js"
+      "db.js"
     ],
-    "unchanged_count": 236
+    "unchanged_count": 237
   },
   "module_state": {
     "working": [

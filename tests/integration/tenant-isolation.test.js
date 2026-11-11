@@ -50,7 +50,7 @@ describe('Phase K cross-tenant isolation at API boundary',()=>{
   });
 
   it('isolates device lists and hides internal credential hashes in detail',async()=>{
-    const res=await request(app).get('/api/v1/devices')
+    const res=await request(app).get('/api/v1/devices?limit=500')
       .set('Authorization',bearer(adminToken));
     expect(res.status).toBe(200);
     expect(res.body.some(x=>x.id===adminDevice.id)).toBe(true);

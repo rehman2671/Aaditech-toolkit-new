@@ -63,7 +63,22 @@ function Invoke-Msi {
     $proc = Start-Process -FilePath 'msiexec.exe' -ArgumentList $args -Wait -PassThru
     if ($proc.ExitCode -notin @(0,3010)) {
         if (Test-Path $LogPath) {
-            Get-Content $LogPath -Tail 85 | ForEach-Object { Write-Warning $_ }
+            # Show the real failing custom action instead of only the last
+            # 85 lines (normally unhelpful installer property summaries).
+            $logLines = @(Get-Content -LiteralPath $LogPath)
+            $failure = @(Select-String -Path $LogPath -Pattern 'Return value 3|Error 1722|Error 1721|CustomAction.*(failed|error)' |
+                Select-Object -Last 1)
+            if ($failure.Count -gt 0) {
+                $start = [Math]::Max(0, $failure[0].LineNumber - 25)
+                $count = [Math]::Min(55, $logLines.Count - $start)
+                if ($count -gt 0) {
+                    $logLines | Select-Object -Skip $start -First $count |
+                        ForEach-Object { Write-Warning $_ }
+                }
+            }
+            else {
+                $logLines | Select-Object -Last 65 | ForEach-Object { Write-Warning $_ }
+            }
         }
         throw "msiexec $Operation exited with code $($proc.ExitCode)."
     }

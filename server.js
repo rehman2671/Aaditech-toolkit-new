@@ -27,6 +27,7 @@ import * as db from './db.js';
 import { installFirstRunRoutes, getStrictSetupState, readConfiguredGitHubToken } from './first-run-routes.js';
 import { ensureSetupCode } from './setup-security.js';
 import { deriveDeviceCommandKey, signCommandForDevice } from './agent-command-security.js';
+import { DEFAULT_TENANT_ID, ownsTenant, filterTenantRecords, publicDeviceRecord, isBoundUserSession, deviceOwnsCommand } from './tenant-security.js';
 import {
   getAgentVersion,
   getAgentVersionInfo,
@@ -449,20 +450,20 @@ async function authenticateUserToken(req, res, next) {
       });
     }
 
-    const userInDb = await db.getUserById(decoded.id) || await db.getUserByUsername(decoded.username);
-    if (userInDb && userInDb.active === false) {
-      return res.status(401).json({
-        error: "Unauthorized",
-        detail: "User account is inactive or disabled."
-      });
+    // Role and tenant identity must come from the CURRENT database row.
+    // Signed but stale/escalated JWT claims cannot override revoked roles,
+    // disabled accounts, deleted users or reassigned tenant membership.
+    const userInDb = await db.getUserById(decoded.id);
+    if (!isBoundUserSession(decoded, userInDb)) {
+      return res.status(401).json({error:'SESSION_ACCOUNT_INVALID',
+        detail:'Account disabled, deleted or tenant membership changed. Sign in again.'});
     }
-
     req.user = {
-      id: decoded.id,
-      username: decoded.username,
-      email: decoded.email,
-      role: normalizeRole(decoded.role),
-      tenant_id: decoded.tenant_id || "00000000-0000-0000-0000-000000000001",
+      id: userInDb.id,
+      username: userInDb.username,
+      email: userInDb.email,
+      role: normalizeRole(userInDb.role),
+      tenant_id: userInDb.tenant_id,
       jti: decoded.jti
     };
     req.token = token;
@@ -712,24 +713,24 @@ async function verifyDeviceCredential(req, targetDeviceIdentifier) {
     }
   }
 
-  if (!matchedDevice) {
+  if (!matchedDevice || matchedDevice.agent_token_revoked) {
     return {
       authenticated: false,
       status: 401,
       error: "Unauthorized",
-      detail: "Invalid or unrecognized device credential."
+      detail: "Device credential revoked, invalid or unrecognized."
     };
   }
 
   // Cross-device impersonation prevention
   if (targetDeviceIdentifier) {
     const target = String(targetDeviceIdentifier).toLowerCase().trim();
-    const isHostMatch = 
-      matchedDevice.hostname.toLowerCase() === target || 
-      matchedDevice.hostname.toLowerCase().split('.')[0] === target.split('.')[0];
+    // Never collapse FQDNs to their short hostname. Different domains and
+    // tenants can legitimately own the same machine's short name.
+    const isHostMatch = matchedDevice.hostname.toLowerCase() === target;
     const isIdMatch = String(matchedDevice.id).toLowerCase() === target;
     const isUidMatch = matchedDevice.device_uid && matchedDevice.device_uid.toLowerCase() === target;
-    const isPrefixedUidMatch = `dev-uid-${matchedDevice.hostname.toLowerCase().split('.')[0]}` === target;
+    const isPrefixedUidMatch = false; // legacy short-host alias is not an identity
 
     if (!isMasterAgentToken && !isHostMatch && !isIdMatch && !isUidMatch && !isPrefixedUidMatch) {
       return {
@@ -755,17 +756,20 @@ async function authenticateAgentOrUser(req, res, next) {
     try {
       const decoded = jwt.verify(userToken, EFFECTIVE_JWT_SECRET, { algorithms: ['HS256'] });
       if (!decoded.jti || (!revokedTokens.has(decoded.jti) && !(await db.isTokenRevokedInDb(decoded.jti)))) {
-        req.user = {
-          id: decoded.id,
-          username: decoded.username,
-          email: decoded.email,
-          role: normalizeRole(decoded.role),
-          tenant_id: decoded.tenant_id,
-          jti: decoded.jti
-        };
-        req.token = userToken;
-        req.authType = 'user';
-        return next();
+        const userInDb = await db.getUserById(decoded.id);
+        if (isBoundUserSession(decoded, userInDb)) {
+          req.user = {
+            id: userInDb.id,
+            username: userInDb.username,
+            email: userInDb.email,
+            role: normalizeRole(userInDb.role),
+            tenant_id: userInDb.tenant_id,
+            jti: decoded.jti
+          };
+          req.token = userToken;
+          req.authType = 'user';
+          return next();
+        }
       }
     } catch (e) {
       // Not a valid user JWT, proceed to agent credential check

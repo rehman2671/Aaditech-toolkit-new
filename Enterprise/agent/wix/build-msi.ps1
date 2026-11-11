@@ -72,6 +72,10 @@ Copy-Item (Join-Path $RepoRoot 'Config')  (Join-Path $Stage 'Config')  -Recurse 
 # Phase J: do NOT stage any SYSTEM elevated helper. Authorization from a
 # NETWORK SERVICE-writable JSON request is not a valid privilege boundary.
 
+# The security migration must FAIL the MSI when a legacy SYSTEM helper cannot
+# be removed. Stage the idempotent task removal script in Program Files.
+Copy-Item (Join-Path $WixDir 'Remove-LegacyElevatedTask.ps1') (Join-Path $Stage 'Scripts\Remove-LegacyElevatedTask.ps1') -Force
+
 # A credential-free MSI needs an explicit operator-controlled enrollment step.
 # This helper requests the single-use bootstrap token interactively AFTER install.
 Copy-Item (Join-Path $RepoRoot 'Enterprise\agent\Provision-Device.ps1') (Join-Path $Stage 'Scripts\Provision-Device.ps1') -Force

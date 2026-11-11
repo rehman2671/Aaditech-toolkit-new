@@ -1507,7 +1507,7 @@ app.get('/api/v1/audit/logs', async (req, res) => {
 
 // Tenants & RBAC V1
 app.get('/api/v1/tenants', async (req, res) => {
-  const tenants = (await db.getTenants()).filter(t => String(t.id) === req.user.tenant_id);
+  const tenants = (await db.getTenants()).filter(t => String(t.tenant_id || t.id) === req.user.tenant_id);
   sendPaginated(req, res, tenants, 50, 500);
 });
 

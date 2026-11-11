@@ -1,6 +1,6 @@
 import {describe,it,expect} from 'vitest';
 import {DEFAULT_TENANT_ID,ownsTenant,filterTenantRecords,publicDeviceRecord,
-  isBoundUserSession,deviceOwnsCommand} from '../../tenant-security.js';
+  isBoundUserSession,deviceOwnsCommand,unambiguousOwnedHostnames} from '../../tenant-security.js';
 
 const tenant2='9821a6ca-3131-4d56-8b33-6d3f0f003222';
 const admin={id:1,username:'admin',tenant_id:DEFAULT_TENANT_ID,role:'SUPER_ADMIN'};
@@ -35,6 +35,18 @@ describe('Phase K — tenant and device trust invariants',()=>{
     expect(isBoundUserSession(admin,{...db,username:'renamed'})).toBe(false);
     expect(isBoundUserSession(admin,null)).toBe(false);
   });
+  it('denies hostname-only event access when multiple tenants share a name',()=>{
+    const records=[
+      {id:'first',tenant_id:DEFAULT_TENANT_ID,hostname:'SAME-HOST'},
+      {id:'second',tenant_id:tenant2,hostname:'same-host'},
+      {id:'third',tenant_id:DEFAULT_TENANT_ID,hostname:'unique-A'},
+      {id:'fourth',tenant_id:tenant2,hostname:'unique-B'}
+    ];
+    expect([...unambiguousOwnedHostnames(admin,records)]).toEqual(['unique-a']);
+    expect([...unambiguousOwnedHostnames({tenant_id:tenant2},records)]).toEqual(['unique-b']);
+    expect([...unambiguousOwnedHostnames(null,records)]).toEqual([]);
+  });
+
   it('a device cannot submit another device’s command result',()=>{
     const device={id:'a',hostname:'WIN-A',tenant_id:DEFAULT_TENANT_ID};
     expect(deviceOwnsCommand(device,{device_id:'a',tenant_id:DEFAULT_TENANT_ID})).toBe(true);

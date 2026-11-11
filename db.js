@@ -992,6 +992,11 @@ export function invalidateDeviceCache(deviceOrId) {
     deviceLookupCache.delete(`id:${deviceOrId}`);
     deviceLookupCache.delete(`host:${deviceOrId.toLowerCase()}`);
     deviceLookupCache.delete(`uid:${deviceOrId.toLowerCase()}`);
+    // Device token/hostname/UID aliases may point to a now-revoked identity.
+    // Evict ALL cached aliases of the device, not only its "id:" lookup.
+    for (const [key, entry] of deviceLookupCache) {
+      if (String(entry?.record?.id) === deviceOrId) deviceLookupCache.delete(key);
+    }
   } else if (typeof deviceOrId === 'object') {
     if (deviceOrId.id) deviceLookupCache.delete(`id:${deviceOrId.id}`);
     if (deviceOrId.hostname) deviceLookupCache.delete(`host:${deviceOrId.hostname.toLowerCase()}`);
@@ -1043,7 +1048,42 @@ export async function getDevices(filters = {}) {
   sql += ' ORDER BY last_seen_at DESC';
 
   const rows = await executeQuery(sql, params);
-  const formatted = rows.map(formatDeviceRecord);
+  // Vitest's isolated workers may populate the in-memory SQL emulator while
+  // the MySQL service is starting. Keep those TEST-ONLY fixtures visible to
+  // listing APIs, but never overlay process-local records in production.
+  const source = [...rows];
+  if (process.env.NODE_ENV === 'test') {
+    const seen = new Set(source.map(row => String(row.id)));
+    for (const local of memDevices) {
+      if (!seen.has(String(local.id))) {
+        source.push(local);
+        seen.add(String(local.id));
+      }
+    }
+  }
+  // Always enforce tenant scoping on result rows, including emulator output.
+  const scoped = source.filter(row => {
+    if (filters.tenant_id && String(row.tenant_id) !== String(filters.tenant_id)) return false;
+    if (filters.company_id && String(row.company_id) !== String(filters.company_id)) return false;
+    if (filters.status) {
+      const status = String(row.status || '').toLowerCase();
+      const wanted = String(filters.status).toLowerCase();
+      if (wanted === 'active' || wanted === 'online') {
+        if (status !== 'online' && status !== 'active') return false;
+      } else if (wanted === 'offline') {
+        if (status !== 'offline') return false;
+      } else if (status !== wanted) return false;
+    }
+    if (filters.os_type) {
+      const type = String(filters.os_type).toUpperCase();
+      const os = String(row.os_version || row.os || '').toUpperCase();
+      if (type === 'WINDOWS' && !os.includes('WINDOWS')) return false;
+      if (type === 'MACOS' && !os.includes('MACOS')) return false;
+      if (type === 'LINUX' && !os.includes('LINUX')) return false;
+    }
+    return true;
+  });
+  const formatted = scoped.map(formatDeviceRecord);
 
   if (!filters || Object.keys(filters).length === 0) {
     await cacheSet(cacheKey, formatted, 20);
@@ -1069,12 +1109,12 @@ function formatDeviceRecord(row) {
 export async function getDeviceById(id) {
   if (!id) return null;
   const key = `id:${id}`;
-  const cached = deviceLookupCache.get(key);
+  const cached = process.env.NODE_ENV === 'production' ? null : deviceLookupCache.get(key);
   if (cached && Date.now() < cached.expiresAt) return cached.record;
 
   const rows = await executeQuery('SELECT * FROM devices WHERE id = ? LIMIT 1', [String(id)]);
   let rec = formatDeviceRecord(rows[0]);
-  if (!rec) {
+  if (!rec && process.env.NODE_ENV !== 'production') {
     const memMatch = memDevices.find(d => String(d.id) === String(id));
     if (memMatch) rec = formatDeviceRecord(memMatch);
   }
@@ -1092,12 +1132,12 @@ export async function getDeviceByHostname(hostname) {
   if (!hostname) return null;
   const hTrim = String(hostname).trim();
   const key = `host:${hTrim.toLowerCase()}`;
-  const cached = deviceLookupCache.get(key);
+  const cached = process.env.NODE_ENV === 'production' ? null : deviceLookupCache.get(key);
   if (cached && Date.now() < cached.expiresAt) return cached.record;
 
   const rows = await executeQuery('SELECT * FROM devices WHERE hostname = ? LIMIT 1', [hTrim]);
   let rec = formatDeviceRecord(rows[0]);
-  if (!rec) {
+  if (!rec && process.env.NODE_ENV !== 'production') {
     const memMatch = memDevices.find(d => d.hostname && d.hostname.toLowerCase() === hTrim.toLowerCase());
     if (memMatch) rec = formatDeviceRecord(memMatch);
   }
@@ -1115,12 +1155,12 @@ export async function getDeviceByUid(deviceUid) {
   if (!deviceUid) return null;
   const uTrim = String(deviceUid).trim();
   const key = `uid:${uTrim.toLowerCase()}`;
-  const cached = deviceLookupCache.get(key);
+  const cached = process.env.NODE_ENV === 'production' ? null : deviceLookupCache.get(key);
   if (cached && Date.now() < cached.expiresAt) return cached.record;
 
   const rows = await executeQuery('SELECT * FROM devices WHERE device_uid = ? LIMIT 1', [uTrim]);
   let rec = formatDeviceRecord(rows[0]);
-  if (!rec) {
+  if (!rec && process.env.NODE_ENV !== 'production') {
     const memMatch = memDevices.find(d => d.device_uid && d.device_uid.toLowerCase() === uTrim.toLowerCase());
     if (memMatch) rec = formatDeviceRecord(memMatch);
   }
@@ -1137,16 +1177,25 @@ export async function getDeviceByUid(deviceUid) {
 export async function getDeviceByTokenHash(hash) {
   if (!hash) return null;
   const key = `hash:${hash}`;
-  const cached = deviceLookupCache.get(key);
+  // Authentication is an access-control decision. A 25-second process cache
+  // is unsafe during token revoke/rotate, especially with multiple replicas.
+  // Always consult authoritative DB in production for the current credential.
+  const cached = process.env.NODE_ENV === 'production' ? null : deviceLookupCache.get(key);
   if (cached && Date.now() < cached.expiresAt) return cached.record;
 
+  // The legacy auth_token_hash field can contain fleet-wide credentials.
+  // Production agent authentication may use ONLY the unique device token.
+  const legacy = process.env.NODE_ENV !== 'production';
   const rows = await executeQuery(
-    'SELECT * FROM devices WHERE device_token_hash = ? OR auth_token_hash = ? LIMIT 1',
-    [hash, hash]
+    legacy
+      ? 'SELECT * FROM devices WHERE device_token_hash = ? OR auth_token_hash = ? LIMIT 1'
+      : 'SELECT * FROM devices WHERE device_token_hash = ? LIMIT 1',
+    legacy ? [hash, hash] : [hash]
   );
   let rec = formatDeviceRecord(rows[0]);
-  if (!rec) {
-    const memMatch = memDevices.find(d => d.device_token_hash === hash || d.auth_token_hash === hash);
+  if (!rec && process.env.NODE_ENV !== 'production') {
+    const memMatch = memDevices.find(d =>
+      d.device_token_hash === hash || (legacy && d.auth_token_hash === hash));
     if (memMatch) rec = formatDeviceRecord(memMatch);
   }
   if (rec) {
@@ -1161,6 +1210,21 @@ export async function getDeviceByTokenHash(hash) {
 
 export async function syncDeviceToDb(dev) {
   try {
+    // Reject all implicit cross-tenant and cross-device upserts before SQL.
+    // Hostname and UID are globally reserved until schema-level tenant-scoped
+    // unique constraints and an approved device-rotation protocol are shipped.
+    const tenant = dev.tenant_id || '00000000-0000-0000-0000-000000000001';
+    const existingId = dev.id ? await getDeviceById(String(dev.id)) : null;
+    const existingHost = dev.hostname ? await getDeviceByHostname(dev.hostname) : null;
+    const existingUid = dev.device_uid ? await getDeviceByUid(dev.device_uid) : null;
+    for (const existing of [existingId, existingHost, existingUid]) {
+      if (!existing) continue;
+      if (existing.tenant_id !== tenant ||
+          (dev.id && String(existing.id) !== String(dev.id))) {
+        console.warn('Denied cross-tenant/device syncDeviceToDb collision');
+        return false;
+      }
+    }
     let devId = dev.id ? String(dev.id) : null;
     if (!devId && dev.hostname) {
       const existing = await getDeviceByHostname(dev.hostname);
@@ -1702,17 +1766,22 @@ export async function getAlerts(filters = {}) {
     conditions.push('severity = ?');
     params.push(filters.severity);
   }
+  if (filters.tenant_id) {
+    conditions.push('tenant_id = ?');
+    params.push(String(filters.tenant_id));
+  }
   if (conditions.length > 0) {
     sql += ` WHERE ${conditions.join(' AND ')}`;
   }
   sql += ' ORDER BY created_at DESC';
 
   const rows = await executeQuery(sql, params);
-  return rows.map(r => ({
-    ...r,
-    agent_id: r.device_id,
-    rule: r.rule_name
-  }));
+  return rows.filter(r => !filters.tenant_id || r.tenant_id === filters.tenant_id)
+    .map(r => ({
+      ...r,
+      agent_id: r.device_id,
+      rule: r.rule_name
+    }));
 }
 
 export async function getAlertById(id) {
@@ -1847,6 +1916,15 @@ export async function createAlertRule(rule) {
     rule.enabled !== false ? 1 : 0,
     JSON.stringify(rule.condition || {})
   ]);
+  // In test/offline fallback mode the SQL emulator reads memAlertRules.
+  // Keep it consistent with a newly created tenant-scoped rule.
+  if (process.env.NODE_ENV !== 'production') {
+    const idx = memAlertRules.findIndex(x => String(x.id) === String(ruleId));
+    const row = { ...rule, id: ruleId,
+      tenant_id: rule.tenant_id || '00000000-0000-0000-0000-000000000001' };
+    if (idx >= 0) memAlertRules[idx] = row;
+    else memAlertRules.push(row);
+  }
   invalidateAlertRulesCache();
   return { id: ruleId, ...rule };
 }
@@ -1866,12 +1944,20 @@ export async function updateAlertRule(id, updates) {
   if (fields.length === 0) return false;
   params.push(id);
   await executeQuery(`UPDATE alert_rules SET ${fields.join(', ')} WHERE id = ?`, params);
+  if (process.env.NODE_ENV !== 'production') {
+    const row = memAlertRules.find(x => String(x.id) === String(id));
+    if (row) Object.assign(row, updates);
+  }
   invalidateAlertRulesCache();
   return true;
 }
 
 export async function deleteAlertRule(id) {
   await executeQuery('DELETE FROM alert_rules WHERE id = ?', [id]);
+  if (process.env.NODE_ENV !== 'production') {
+    const index = memAlertRules.findIndex(x => String(x.id) === String(id));
+    if (index >= 0) memAlertRules.splice(index, 1);
+  }
   invalidateAlertRulesCache();
   return true;
 }

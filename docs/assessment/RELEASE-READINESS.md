@@ -50,3 +50,14 @@ Implementation staged on feat/phase-h-first-run-setup-20261110-2; code review, C
 **Gate 7 remains BLOCKED:** unsigned CI MSI is NOT a release-signed binary. Signed Authenticode releases, real Windows 10/11 VM lifecycle (upgrade/repair/rollback), TLS/mTLS and enrollment integration, tenant scoping, and elevated-task file ACL security review remain required. No binaries published.
 
 **Gates 1–5 and 8 require independent verification.** Phase I does not resolve previous persistent backend security/tenancy issues. Never release the current agent to production endpoints.
+
+
+## Phase K — Multi-tenant and device credential isolation (November 11, 2026)
+
+**Security implementation is on [Draft PR #4](https://github.com/rehman2671/Aaditech-toolkit-new/pull/4), stacked on Phase J, not merged into main.** The server now derives tenant scope from live DB-bound user sessions rather than forged/stale role claims; `SUPER_ADMIN` is tenant-scoped. Device detail and fleet reads enforce tenant ownership, agent token hashes are removed from response objects, and endpoints reject cross-tenant command dispatch/results. Existing hostnames/UIDs may not be bootstrap-enrolled again to silently rotate credentials. Production agent auth uses unique device-token headers and current DB state (no stale credential cache). Legacy hostname-only event access fails closed on ambiguous cross-tenant hostnames.
+
+Automated Vitest tests include multiple independent tenant users/devices, cross-tenant negative operations, forged role/tenant JWTs, bootstrap takeover attempts, command result impersonation, credential redaction and hostname-collision checks. The MSI packaging integration test uses an actual logged-in administrator rather than a fabricated privileged token.
+
+**Gate 3 remains BLOCKED** until database schema and all global configuration surfaces have strict tenant isolation, unique/concurrent enrollment guarantees, migration paths for legacy devices and cross-replica adversarial testing. The command queue still lacks a tenant column and events are primarily hostname-keyed; backend global SMTP, webhooks, retention, remediation and ticket settings need a reviewed tenant-vs-platform ownership design. Phase K is not production multi-tenant approval. Full evidence, threat model and remaining release gates: [docs/security/PHASE-K-TENANT-DEVICE-ISOLATION.md](../security/PHASE-K-TENANT-DEVICE-ISOLATION.md).
+
+**No production endpoint deployment or MSI release authorized.** Continue Phase H/I/J release gates and independent Windows 10/11 VM migration and security validation.

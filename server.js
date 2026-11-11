@@ -27,6 +27,7 @@ import * as db from './db.js';
 import { installFirstRunRoutes, getStrictSetupState, readConfiguredGitHubToken } from './first-run-routes.js';
 import { ensureSetupCode } from './setup-security.js';
 import { deriveDeviceCommandKey, signCommandForDevice } from './agent-command-security.js';
+import { DEFAULT_TENANT_ID, ownsTenant, filterTenantRecords, publicDeviceRecord, isBoundUserSession, deviceOwnsCommand, unambiguousOwnedHostnames } from './tenant-security.js';
 import {
   getAgentVersion,
   getAgentVersionInfo,
@@ -449,20 +450,20 @@ async function authenticateUserToken(req, res, next) {
       });
     }
 
-    const userInDb = await db.getUserById(decoded.id) || await db.getUserByUsername(decoded.username);
-    if (userInDb && userInDb.active === false) {
-      return res.status(401).json({
-        error: "Unauthorized",
-        detail: "User account is inactive or disabled."
-      });
+    // Role and tenant identity must come from the CURRENT database row.
+    // Signed but stale/escalated JWT claims cannot override revoked roles,
+    // disabled accounts, deleted users or reassigned tenant membership.
+    const userInDb = await db.getUserById(decoded.id);
+    if (!isBoundUserSession(decoded, userInDb)) {
+      return res.status(401).json({error:'SESSION_ACCOUNT_INVALID',
+        detail:'Account disabled, deleted or tenant membership changed. Sign in again.'});
     }
-
     req.user = {
-      id: decoded.id,
-      username: decoded.username,
-      email: decoded.email,
-      role: normalizeRole(decoded.role),
-      tenant_id: decoded.tenant_id || "00000000-0000-0000-0000-000000000001",
+      id: userInDb.id,
+      username: userInDb.username,
+      email: userInDb.email,
+      role: normalizeRole(userInDb.role),
+      tenant_id: userInDb.tenant_id,
       jti: decoded.jti
     };
     req.token = token;
@@ -525,17 +526,21 @@ function checkDeviceRateLimit(key, maxRequests = 180, windowMs = 60000) {
 async function verifyDeviceCredential(req, targetDeviceIdentifier) {
   const authHeader = req.headers['authorization'];
   const bearerToken = authHeader && authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : null;
-  const rawToken = 
-    req.headers['x-device-token'] ||
-    req.headers['x-agent-token'] ||
-    req.headers['x-bootstrap-token'] ||
-    bearerToken ||
-    req.query?.device_token ||
-    req.query?.agent_token ||
-    req.query?.token ||
-    req.body?.device_token ||
-    req.body?.agent_token ||
-    req.body?.token;
+  // Never accept an agent credential via query string or telemetry JSON in
+  // production: URLs, proxies, crash logs and analytics routinely record them.
+  const headerToken = req.headers['x-device-token'] ||
+    req.headers['x-agent-token'] || bearerToken;
+  if (process.env.NODE_ENV === 'production' && (
+      req.headers['x-bootstrap-token'] ||
+      req.query?.device_token || req.query?.agent_token || req.query?.token ||
+      req.body?.device_token || req.body?.agent_token || req.body?.token)) {
+    return {authenticated:false,status:401,error:'DEVICE_CREDENTIAL_HEADER_REQUIRED'};
+  }
+  const rawToken = headerToken ||
+    (process.env.NODE_ENV !== 'production' && (
+      req.headers['x-bootstrap-token'] ||
+      req.query?.device_token || req.query?.agent_token || req.query?.token ||
+      req.body?.device_token || req.body?.agent_token || req.body?.token));
 
   const signature = req.headers['x-agent-signature'] || req.headers['x-payload-signature'] || req.headers['x-hmac-signature'];
   const deviceUid = req.headers['x-device-uid'] || req.headers['x-agent-id'] || req.body?.device_uid;
@@ -712,24 +717,24 @@ async function verifyDeviceCredential(req, targetDeviceIdentifier) {
     }
   }
 
-  if (!matchedDevice) {
+  if (!matchedDevice || matchedDevice.agent_token_revoked) {
     return {
       authenticated: false,
       status: 401,
       error: "Unauthorized",
-      detail: "Invalid or unrecognized device credential."
+      detail: "Device credential revoked, invalid or unrecognized."
     };
   }
 
   // Cross-device impersonation prevention
   if (targetDeviceIdentifier) {
     const target = String(targetDeviceIdentifier).toLowerCase().trim();
-    const isHostMatch = 
-      matchedDevice.hostname.toLowerCase() === target || 
-      matchedDevice.hostname.toLowerCase().split('.')[0] === target.split('.')[0];
+    // Never collapse FQDNs to their short hostname. Different domains and
+    // tenants can legitimately own the same machine's short name.
+    const isHostMatch = matchedDevice.hostname.toLowerCase() === target;
     const isIdMatch = String(matchedDevice.id).toLowerCase() === target;
     const isUidMatch = matchedDevice.device_uid && matchedDevice.device_uid.toLowerCase() === target;
-    const isPrefixedUidMatch = `dev-uid-${matchedDevice.hostname.toLowerCase().split('.')[0]}` === target;
+    const isPrefixedUidMatch = false; // legacy short-host alias is not an identity
 
     if (!isMasterAgentToken && !isHostMatch && !isIdMatch && !isUidMatch && !isPrefixedUidMatch) {
       return {
@@ -755,17 +760,20 @@ async function authenticateAgentOrUser(req, res, next) {
     try {
       const decoded = jwt.verify(userToken, EFFECTIVE_JWT_SECRET, { algorithms: ['HS256'] });
       if (!decoded.jti || (!revokedTokens.has(decoded.jti) && !(await db.isTokenRevokedInDb(decoded.jti)))) {
-        req.user = {
-          id: decoded.id,
-          username: decoded.username,
-          email: decoded.email,
-          role: normalizeRole(decoded.role),
-          tenant_id: decoded.tenant_id,
-          jti: decoded.jti
-        };
-        req.token = userToken;
-        req.authType = 'user';
-        return next();
+        const userInDb = await db.getUserById(decoded.id);
+        if (isBoundUserSession(decoded, userInDb)) {
+          req.user = {
+            id: userInDb.id,
+            username: userInDb.username,
+            email: userInDb.email,
+            role: normalizeRole(userInDb.role),
+            tenant_id: userInDb.tenant_id,
+            jti: decoded.jti
+          };
+          req.token = userToken;
+          req.authType = 'user';
+          return next();
+        }
       }
     } catch (e) {
       // Not a valid user JWT, proceed to agent credential check
@@ -967,13 +975,11 @@ app.get(['/api/v1/auth/me', '/api/me'], async (req, res) => {
 
 // Devices (Canonical v1 + Legacy aliases /api/devices and /api/agents)
 app.get(['/api/v1/devices', '/api/devices', '/api/agents'], async (req, res) => {
-  const isSuperAdmin = req.user?.role === 'SUPER_ADMIN';
-  const tenantFilter = isSuperAdmin ? (req.query.tenant_id || req.user?.tenant_id) : req.user?.tenant_id;
-  const agents = await db.getDevices({
-    tenant_id: tenantFilter,
+  const agents = filterTenantRecords(req.user, await db.getDevices({
+    tenant_id: req.user.tenant_id,
     status: req.query.status,
     os_type: req.query.os_type
-  });
+  }));
   const list = agents.map(a => ({
     id: a.id,
     device_uid: a.device_uid || `dev-uid-${a.hostname.toLowerCase()}`,
@@ -1002,12 +1008,12 @@ app.get(['/api/v1/devices/:id', '/api/devices/:id', '/api/agents/:id'], async (r
               await db.getDeviceByHostname(req.params.id);
   if (!dev) return res.status(404).json({ error: "Device not found" });
 
-  if (req.user && req.user.role !== 'SUPER_ADMIN' && dev.tenant_id && req.user.tenant_id && dev.tenant_id !== req.user.tenant_id) {
-    return res.status(403).json({ error: "Forbidden: Device belongs to another tenant" });
+  if (!ownsTenant(req.user, dev)) {
+    return res.status(404).json({error:'Device not found'});
   }
 
   res.json({
-    ...dev,
+    ...publicDeviceRecord(dev),
     os_type: (dev.os_version || dev.os || '').includes('Windows') ? 'WINDOWS' : (dev.os_version || dev.os || '').includes('macOS') ? 'MACOS' : 'LINUX',
     status: dev.status === 'online' || dev.status === 'ACTIVE' ? 'ACTIVE' : 'OFFLINE',
     ip: dev.ip_address || dev.ip,
@@ -1021,8 +1027,8 @@ app.delete(['/api/v1/devices/:id', '/api/devices/:id', '/api/agents/:id'], requi
               await db.getDeviceByHostname(req.params.id);
   if (!dev) return res.status(404).json({ error: "Device not found" });
 
-  if (req.user?.tenant_id && dev.tenant_id && req.user.tenant_id !== dev.tenant_id && req.user.tenant_id !== '00000000-0000-0000-0000-000000000001') {
-    return res.status(403).json({ error: "Forbidden: Device belongs to another tenant" });
+  if (!ownsTenant(req.user, dev)) {
+    return res.status(404).json({error:'Device not found'});
   }
 
   await db.deleteDevice(dev.id);
@@ -1033,6 +1039,12 @@ app.delete(['/api/v1/devices/:id', '/api/devices/:id', '/api/agents/:id'], requi
 app.post('/api/v1/devices', requireRole(['SUPER_ADMIN', 'OPERATOR']), validateBody(deviceRegistrationSchema), async (req, res) => {
   const { hostname, os_type, os_version, agent_version, device_uid } = req.body;
   if (!hostname) return res.status(400).json({ error: "hostname required" });
+  // Never let the upsert path silently rotate an existing device's token.
+  if (await db.getDeviceByHostname(hostname) ||
+      (device_uid && await db.getDeviceByUid(device_uid))) {
+    return res.status(409).json({error:'DEVICE_IDENTITY_CONFLICT',
+      detail:'Device already registered. Use a separately authenticated rotation process.'});
+  }
 
   const devToken = generateDeviceToken();
   const tokenHash = hashDeviceToken(devToken);
@@ -1040,7 +1052,7 @@ app.post('/api/v1/devices', requireRole(['SUPER_ADMIN', 'OPERATOR']), validateBo
 
   const newDev = {
     id: devId,
-    device_uid: device_uid || `dev-uid-${hostname.toLowerCase().split('.')[0]}`,
+    device_uid: device_uid || `dev-uid-${crypto.randomUUID()}`,
     hostname,
     os_version: os_version || (os_type === 'WINDOWS' ? 'Windows 11 Enterprise' : 'Linux Ubuntu 22.04'),
     agent_version: agent_version || getAgentVersion(),
@@ -1056,12 +1068,15 @@ app.post('/api/v1/devices', requireRole(['SUPER_ADMIN', 'OPERATOR']), validateBo
     agent_token_revoked: false
   };
 
-  await db.syncDeviceToDb(newDev);
-  const createdDev = await db.getDeviceByHostname(hostname);
+  const createdOk = await db.syncDeviceToDb(newDev);
+  const createdDev = createdOk && await db.getDeviceById(devId);
+  if (!createdDev || !ownsTenant(req.user, createdDev)) {
+    return res.status(409).json({error:'DEVICE_IDENTITY_CONFLICT'});
+  }
   logAudit(req.user, "DEVICE_REGISTERED", `Device:${hostname}`, { device_uid: newDev.device_uid }, req);
 
   res.status(201).json({
-    ...createdDev,
+    ...publicDeviceRecord(createdDev),
     device_token: devToken,
     command_signing_key: deriveDeviceCommandKey(COMMAND_SIGNING_KEY, createdDev.id)
   });
@@ -1086,6 +1101,10 @@ const handleAgentEnroll = async (req, res) => {
 
   const rawToken = req.headers['x-bootstrap-token'] || bootstrap_token || (req.headers['authorization'] || '').replace(/^Bearer /, '').trim();
   const host = (hostname || device_uid || req.headers['x-device-uid'] || '').trim();
+  if (req.query?.bootstrap_token || req.query?.hostname || req.query?.device_uid) {
+    return res.status(400).json({error:'ENROLLMENT_BODY_REQUIRED',
+      detail:'Device identifiers and bootstrap credentials belong in POST body/headers, never URL queries.'});
+  }
 
   if (!rawToken) {
     return res.status(401).json({
@@ -1109,6 +1128,15 @@ const handleAgentEnroll = async (req, res) => {
     });
   }
 
+  // A bootstrap token is for ADDING a new machine, NEVER for rotating an
+  // existing device's credential. This also blocks tenant-crossing takeover.
+  const identityConflict = await db.getDeviceByHostname(host);
+  const uidConflict = device_uid ? await db.getDeviceByUid(device_uid) : null;
+  if (identityConflict || uidConflict) {
+    return res.status(409).json({error:'DEVICE_ALREADY_ENROLLED',
+      detail:'Existing endpoints require approved credential rotation.'});
+  }
+
   // Consume single-use bootstrap token atomically
   const consumed = await consumeBootstrapToken(rawToken, host, ver.tenantId);
   if (!consumed) {
@@ -1122,35 +1150,25 @@ const handleAgentEnroll = async (req, res) => {
   const devToken = generateDeviceToken();
   const tokenHash = hashDeviceToken(devToken);
 
-  let dev = await db.getDeviceByHostname(host);
-
-  if (!dev) {
-    const devId = crypto.randomUUID();
-    const newDev = {
-      id: devId,
-      device_uid: `dev-uid-${host.toLowerCase().split('.')[0]}`,
-      hostname: host,
-      os_version: os_version || "Windows 11 Enterprise",
-      agent_version: agent_version || getAgentVersion(),
-      ip_address: req.ip || "127.0.0.1",
-      status: "online",
-      company_id: 1,
-      tenant_id: ver.tenantId,
-      device_token_hash: tokenHash,
-      device_token_prefix: devToken.slice(0, 12),
-      agent_token_revoked: false
-    };
-    await db.syncDeviceToDb(newDev);
-    dev = await db.getDeviceByHostname(host);
-  } else {
-    await db.updateDevice(dev.id, {
-      device_token_hash: tokenHash,
-      device_token_prefix: devToken.slice(0, 12),
-      agent_token_revoked: 0,
-      status: 'online',
-      os_version: os_version || dev.os_version
-    });
-    dev = await db.getDeviceByHostname(host);
+  const devId = crypto.randomUUID();
+  const newDev = {
+    id: devId,
+    device_uid: device_uid || `dev-uid-${crypto.randomUUID()}`,
+    hostname: host,
+    os_version: os_version || "Windows 11 Enterprise",
+    agent_version: agent_version || getAgentVersion(),
+    ip_address: req.ip || "127.0.0.1",
+    status: "online",
+    company_id: 1,
+    tenant_id: ver.tenantId,
+    device_token_hash: tokenHash,
+    device_token_prefix: devToken.slice(0, 12),
+    agent_token_revoked: false
+  };
+  const enrolledOk = await db.syncDeviceToDb(newDev);
+  const dev = enrolledOk && await db.getDeviceById(devId);
+  if (!dev || dev.tenant_id !== ver.tenantId) {
+    return res.status(409).json({error:'DEVICE_IDENTITY_CONFLICT'});
   }
 
   logAudit({ username: `Agent:${host}`, tenant_id: ver.tenantId }, "DEVICE_ENROLLED", `Device:${host}`, {
@@ -1262,8 +1280,8 @@ app.post(['/api/v1/ingest/telemetry', '/api/ingest'], agentLimiter, validateBody
 
   // Cache real live application usage into Redis
   if (app_usage && Array.isArray(app_usage) && app_usage.length > 0) {
+    // Hostname caches are not tenant-safe. Cache only by immutable device ID.
     await db.cacheSet(`app_usage:${dev.id}`, app_usage, 86400);
-    await db.cacheSet(`app_usage:${dev.hostname}`, app_usage, 86400);
   }
 
   // Insert Telemetry record into MySQL
@@ -1490,16 +1508,14 @@ app.get('/api/v1/msi/download/:id', async (req, res) => {
 // Immutable Audit Logs V1
 app.get('/api/v1/audit/logs', async (req, res) => {
   const { limit, offset } = parsePagination(req, 50, 500);
-  const tenantId = (req.user?.role === 'SUPER_ADMIN' && req.user?.tenant_id === '00000000-0000-0000-0000-000000000001')
-    ? req.query.tenant_id
-    : req.user?.tenant_id;
-  const logs = await db.getAuditLogs(limit + offset, tenantId);
+  const logs = filterTenantRecords(req.user,
+    await db.getAuditLogs(limit + offset, req.user.tenant_id));
   sendPaginated(req, res, logs, 50, 500);
 });
 
 // Tenants & RBAC V1
 app.get('/api/v1/tenants', async (req, res) => {
-  const tenants = await db.getTenants();
+  const tenants = (await db.getTenants()).filter(t => String(t.tenant_id || t.id) === req.user.tenant_id);
   sendPaginated(req, res, tenants, 50, 500);
 });
 
@@ -1509,27 +1525,21 @@ app.get('/api/v1/tenants', async (req, res) => {
 // Alerts & Alert Rules Engine (Canonical v1 + Legacy aliases)
 app.get(['/api/v1/alerts/open', '/api/alerts/open'], async (req, res) => {
   const filters = { status: 'open' };
-  const tenantId = (req.user?.role === 'SUPER_ADMIN' && req.user?.tenant_id === '00000000-0000-0000-0000-000000000001')
-    ? req.query.tenant_id
-    : req.user?.tenant_id;
-  if (tenantId) filters.tenant_id = tenantId;
-  const alerts = await db.getAlerts(filters);
+  filters.tenant_id = req.user.tenant_id;
+  const alerts = filterTenantRecords(req.user, await db.getAlerts(filters));
   res.json({ open: alerts.length });
 });
 
 app.get(['/api/v1/alerts', '/api/alerts'], async (req, res) => {
   const filters = {};
   if (req.query.status) filters.status = req.query.status;
-  const tenantId = (req.user?.role === 'SUPER_ADMIN' && req.user?.tenant_id === '00000000-0000-0000-0000-000000000001')
-    ? req.query.tenant_id
-    : req.user?.tenant_id;
-  if (tenantId) filters.tenant_id = tenantId;
-  const list = await db.getAlerts(filters);
+  filters.tenant_id = req.user.tenant_id;
+  const list = filterTenantRecords(req.user, await db.getAlerts(filters));
   sendPaginated(req, res, list, 50, 500);
 });
 
 app.get(['/api/v1/alerts/rules', '/api/alert-rules'], async (req, res) => {
-  const rules = await db.getAlertRules();
+  const rules = filterTenantRecords(req.user, await db.getAlertRules());
   sendPaginated(req, res, rules, 50, 500);
 });
 
@@ -1545,7 +1555,8 @@ app.post('/api/v1/alerts/rules', requireRole(['SUPER_ADMIN']), validateBody(crea
     threshold: parseFloat(threshold),
     duration_mins: parseInt(duration_mins, 10) || 5,
     severity: severity || "warning",
-    enabled: true
+    enabled: true,
+    tenant_id: req.user.tenant_id
   };
 
   const created = await db.createAlertRule(newRule);
@@ -1558,6 +1569,9 @@ app.put(['/api/v1/alerts/rules/:id', '/api/alert-rules/:name'], requireRole(['SU
   const idOrName = req.params.id || req.params.name;
   let rule = await db.getAlertRuleById(idOrName);
   if (!rule) rule = await db.getAlertRuleByName(idOrName);
+  if (rule && !ownsTenant(req.user, rule)) {
+    return res.status(404).json({error:'Alert rule not found'});
+  }
   if (rule) {
     await db.updateAlertRule(rule.id, req.body);
     logAudit(req.user, "ALERT_RULE_UPDATED", `AlertRule:${rule.name}`, req.body, req);
@@ -1567,6 +1581,10 @@ app.put(['/api/v1/alerts/rules/:id', '/api/alert-rules/:name'], requireRole(['SU
 
 app.delete('/api/v1/alerts/rules/:id', requireRole(['SUPER_ADMIN']), async (req, res) => {
   const ruleId = req.params.id;
+  const rule = await db.getAlertRuleById(ruleId);
+  if (!rule || !ownsTenant(req.user, rule)) {
+    return res.status(404).json({error:'Alert rule not found'});
+  }
   await db.deleteAlertRule(ruleId);
   logAudit(req.user, "ALERT_RULE_DELETED", `AlertRule:${ruleId}`, {}, req);
   res.status(200).json({ success: true, message: "Alert rule removed" });
@@ -1575,7 +1593,9 @@ app.delete('/api/v1/alerts/rules/:id', requireRole(['SUPER_ADMIN']), async (req,
 app.post(['/api/v1/alerts/:id/acknowledge', '/api/alerts/:id/ack', '/api/alerts/:id/acknowledge'], requireRole(['SUPER_ADMIN', 'OPERATOR']), async (req, res) => {
   const alertId = parseInt(req.params.id, 10);
   const alt = await db.getAlertById(alertId);
-  if (!alt) return res.status(404).json({ error: "Alert not found" });
+  if (!alt || !ownsTenant(req.user, alt)) {
+    return res.status(404).json({error:'Alert not found'});
+  }
 
   await db.updateAlert(alertId, { status: "acknowledged" });
   alt.status = "acknowledged";
@@ -1586,7 +1606,9 @@ app.post(['/api/v1/alerts/:id/acknowledge', '/api/alerts/:id/ack', '/api/alerts/
 app.post(['/api/v1/alerts/:id/resolve', '/api/alerts/:id/resolve'], requireRole(['SUPER_ADMIN', 'OPERATOR']), async (req, res) => {
   const alertId = parseInt(req.params.id, 10);
   const alt = await db.getAlertById(alertId);
-  if (!alt) return res.status(404).json({ error: "Alert not found" });
+  if (!alt || !ownsTenant(req.user, alt)) {
+    return res.status(404).json({error:'Alert not found'});
+  }
 
   await db.resolveAlert(alertId);
   alt.status = "resolved";
@@ -1634,7 +1656,7 @@ app.post(['/api/v1/alerts/test-email', '/api/alerts/test-email'], async (req, re
 
 // Device Groups & Policy Management V1
 app.get('/api/v1/groups', async (req, res) => {
-  const grps = await db.getGroups();
+  const grps = filterTenantRecords(req.user, await db.getGroups());
   sendPaginated(req, res, grps, 50, 500);
 });
 
@@ -1646,7 +1668,8 @@ app.post('/api/v1/groups', requireRole(['SUPER_ADMIN']), validateBody(createGrou
     name,
     description: description || "",
     member_count: 0,
-    policy_id: policy_id || "pol-1"
+    policy_id: policy_id || "pol-1",
+    tenant_id: req.user.tenant_id
   };
 
   const created = await db.createGroup(newGrp);
@@ -1655,7 +1678,7 @@ app.post('/api/v1/groups', requireRole(['SUPER_ADMIN']), validateBody(createGrou
 });
 
 app.get('/api/v1/policies', async (req, res) => {
-  const pols = await db.getPolicies();
+  const pols = filterTenantRecords(req.user, await db.getPolicies());
   sendPaginated(req, res, pols, 50, 500);
 });
 
@@ -1668,7 +1691,8 @@ app.post('/api/v1/policies', requireRole(['SUPER_ADMIN']), validateBody(createPo
     checkin_interval_sec: parseInt(checkin_interval_sec, 10) || 30,
     auto_update: auto_update !== false,
     maintenance_mode: !!maintenance_mode,
-    data_retention_days: parseInt(data_retention_days, 10) || 90
+    data_retention_days: parseInt(data_retention_days, 10) || 90,
+    tenant_id: req.user.tenant_id
   };
 
   const created = await db.createPolicy(newPol);
@@ -1692,7 +1716,7 @@ app.post('/api/v1/patches/:id/approve', requireRole(['SUPER_ADMIN', 'OPERATOR'])
 });
 
 app.get('/api/v1/security/posture', async (req, res) => {
-  const agents = await db.getDevices();
+  const agents = filterTenantRecords(req.user, await db.getDevices({tenant_id:req.user.tenant_id}));
   const posture = agents.map(a => ({
     device_id: a.id,
     hostname: a.hostname,
@@ -1712,7 +1736,9 @@ app.get('/api/v1/security/posture', async (req, res) => {
 app.get('/api/v1/devices/:id/processes', async (req, res) => {
   const devId = req.params.id;
   const dev = await db.getDeviceById(devId) || await db.getDeviceByHostname(devId);
-  if (!dev) return res.status(404).json({ error: "Device not found" });
+  if (!dev || !ownsTenant(req.user, dev)) {
+    return res.status(404).json({error:'Device not found'});
+  }
 
   const liveProcs = await db.getDeviceProcesses(dev.id);
   if (liveProcs && Array.isArray(liveProcs) && liveProcs.length > 0) {
@@ -1740,9 +1766,11 @@ app.get('/api/v1/devices/:id/processes', async (req, res) => {
 app.get('/api/v1/devices/:id/app-usage', async (req, res) => {
   const devId = req.params.id;
   const dev = await db.getDeviceById(devId) || await db.getDeviceByHostname(devId);
-  if (!dev) return res.status(404).json({ error: "Device not found" });
+  if (!dev || !ownsTenant(req.user, dev)) {
+    return res.status(404).json({error:'Device not found'});
+  }
 
-  const liveUsage = await db.cacheGet(`app_usage:${dev.id}`) || await db.cacheGet(`app_usage:${dev.hostname}`);
+  const liveUsage = await db.cacheGet(`app_usage:${dev.id}`);
   if (liveUsage && Array.isArray(liveUsage) && liveUsage.length > 0) {
     return res.json({ device_id: dev.id, hostname: dev.hostname, source: "live_agent_telemetry", app_usage: liveUsage });
   }
@@ -1807,9 +1835,11 @@ installFirstRunRoutes(app, {
 // Bootstrap (Canonical v1 + Legacy alias)
 app.get(['/api/v1/bootstrap', '/api/bootstrap'], async (req, res) => {
   const branding = await db.getBranding();
-  const companies = await db.getCompanies();
-  const users = await db.getUsers();
-  const authUser = req.user ? (await db.getUserById(req.user.id) || await db.getUserByUsername(req.user.username) || req.user) : (users[0] || { id: 1, username: 'admin', role: 'SUPER_ADMIN' });
+  const companies = filterTenantRecords(req.user, await db.getCompanies());
+  const authUser = await db.getUserById(req.user.id);
+  if (!authUser || !ownsTenant(req.user, authUser)) {
+    return res.status(401).json({error:'SESSION_ACCOUNT_INVALID'});
+  }
   const { password_hash, ...safeUser } = authUser;
   res.json({
     user: safeUser,
@@ -1824,9 +1854,12 @@ app.get(['/api/v1/bootstrap', '/api/bootstrap'], async (req, res) => {
 
 app.get(['/api/status', '/api/v1/database/status'], async (req, res) => {
   const mysqlActive = isMysqlConnected();
-  const devices = await db.getDevices();
-  const openAlerts = await db.getAlerts({ status: 'open' });
-  const pendingCommands = await db.getCommands({ status: 'pending' });
+  const devices = filterTenantRecords(req.user, await db.getDevices({tenant_id:req.user.tenant_id}));
+  const openAlerts = filterTenantRecords(req.user,
+    await db.getAlerts({ status: 'open', tenant_id:req.user.tenant_id }));
+  const ids = new Set(devices.map(d => String(d.id)));
+  const pendingCommands = (await db.getCommands({ status: 'pending' }))
+    .filter(c => ids.has(String(c.device_id || c.agent_id)));
 
   res.json({
     status: "ok",
@@ -1844,17 +1877,22 @@ app.get(['/api/status', '/api/v1/database/status'], async (req, res) => {
 // Events (Canonical v1 + Legacy alias)
 app.get(['/api/v1/events', '/api/events'], async (req, res) => {
   const { limit, offset } = parsePagination(req, 100, 500);
-  const list = await db.getEvents(req.query.hostname || null, limit + offset, req.query.kind || null);
+  const hostnames = unambiguousOwnedHostnames(req.user, await db.getDevices());
+  if (req.query.hostname && !hostnames.has(String(req.query.hostname).toLowerCase())) {
+    return res.status(404).json({error:'Device not found'});
+  }
+  const list = (await db.getEvents(req.query.hostname || null, limit + offset, req.query.kind || null))
+    .filter(ev => hostnames.has(String(ev.hostname || '').toLowerCase()));
   sendPaginated(req, res, list, 100, 500);
 });
 
 // Commands (Canonical v1 + Legacy alias)
 app.get(['/api/v1/commands', '/api/commands'], async (req, res) => {
-  const tenantId = (req.user?.role === 'SUPER_ADMIN' && req.user?.tenant_id === '00000000-0000-0000-0000-000000000001')
-    ? req.query.tenant_id
-    : req.user?.tenant_id;
+  // command_queue does not have tenant_id: authorize via owning devices.
+  const owned = filterTenantRecords(req.user, await db.getDevices({tenant_id:req.user.tenant_id}));
+  const ownedIds = new Set(owned.map(d => String(d.id)));
   const list = await db.getCommands();
-  const filtered = tenantId ? list.filter(c => !c.tenant_id || c.tenant_id === tenantId) : list;
+  const filtered = list.filter(c => ownedIds.has(String(c.device_id || c.agent_id)));
   sendPaginated(req, res, filtered, 50, 500);
 });
 
@@ -1868,8 +1906,8 @@ app.post(['/api/commands', '/api/v1/commands/dispatch'], requireRole(['SUPER_ADM
                 await db.getDeviceByHostname(String(targetId));
   if (!agent) return res.status(404).json({ error: "Target agent/device not found" });
 
-  if (req.user?.tenant_id && agent.tenant_id && req.user.tenant_id !== agent.tenant_id && req.user.tenant_id !== '00000000-0000-0000-0000-000000000001' && req.user.role !== 'SUPER_ADMIN') {
-    return res.status(403).json({ error: "Forbidden", detail: "Cross-tenant command dispatch rejected." });
+  if (!ownsTenant(req.user, agent)) {
+    return res.status(404).json({error:'Target agent/device not found'});
   }
 
   const cmdId = crypto.randomUUID();
@@ -1955,11 +1993,22 @@ app.post(['/api/commands/:id/result', '/api/v1/commands/:id/result'], agentLimit
   const cmd = await db.getCommandById(cmdId);
   if (!cmd) return res.status(404).json({ error: "Command not found in queue" });
 
+  const commandDevice = await db.getDeviceById(cmd.device_id);
+  if (!commandDevice) return res.status(404).json({error:'Command not found'});
   const isPrivilegedUser = req.user && (req.user.role === 'SUPER_ADMIN' || req.user.role === 'OPERATOR');
-  if (!isPrivilegedUser) {
-    const ver = await verifyDeviceCredential(req, cmd.hostname);
+  if (isPrivilegedUser) {
+    if (!ownsTenant(req.user, commandDevice)) {
+      return res.status(404).json({error:'Command not found'});
+    }
+  } else {
+    const ver = await verifyDeviceCredential(req, commandDevice.id);
     if (!ver.authenticated) {
       return res.status(ver.status || 401).json({ error: ver.error, detail: ver.detail });
+    }
+    if (!deviceOwnsCommand(ver.device, cmd) ||
+        String(ver.device.id) !== String(commandDevice.id) ||
+        ver.device.tenant_id !== commandDevice.tenant_id) {
+      return res.status(403).json({error:'COMMAND_DEVICE_MISMATCH'});
     }
   }
 
@@ -1983,7 +2032,7 @@ app.post(['/api/commands/:id/result', '/api/v1/commands/:id/result'], agentLimit
 // Software (Canonical v1 + Legacy alias)
 app.get(['/api/v1/software/search', '/api/software/search'], async (req, res) => {
   const q = (req.query.q || "").toLowerCase();
-  const agents = await db.getDevices();
+  const agents = filterTenantRecords(req.user, await db.getDevices({tenant_id:req.user.tenant_id}));
   const results = [];
 
   for (const a of agents) {
@@ -2007,7 +2056,7 @@ app.get(['/api/v1/software/search', '/api/software/search'], async (req, res) =>
 });
 
 app.get(['/api/v1/software/export', '/api/software/export'], async (req, res) => {
-  const agents = await db.getDevices();
+  const agents = filterTenantRecords(req.user, await db.getDevices({tenant_id:req.user.tenant_id}));
   let csv = 'Hostname,Application,Version,Publisher\n';
   for (const a of agents) {
     const procs = await db.getDeviceProcesses(a.id);
@@ -2022,7 +2071,7 @@ app.get(['/api/v1/software/export', '/api/software/export'], async (req, res) =>
 
 // License (Canonical v1 + Legacy alias)
 app.get(['/api/v1/license/compliance', '/api/license/compliance'], async (req, res) => {
-  const agents = await db.getDevices();
+  const agents = filterTenantRecords(req.user, await db.getDevices({tenant_id:req.user.tenant_id}));
   res.json({
     compliance: agents.map(a => ({
       hostname: a.hostname,
@@ -2037,7 +2086,7 @@ app.get(['/api/v1/license/compliance', '/api/license/compliance'], async (req, r
 });
 
 app.get(['/api/v1/license/export', '/api/license/export'], async (req, res) => {
-  const agents = await db.getDevices();
+  const agents = filterTenantRecords(req.user, await db.getDevices({tenant_id:req.user.tenant_id}));
   let csv = 'Hostname,WindowsStatus,OfficeStatus,Compliant\n';
   for (const a of agents) {
     csv += `"${a.hostname}","UNKNOWN","NOT_CONFIGURED","UNKNOWN"\n`;
@@ -2050,7 +2099,7 @@ app.get(['/api/v1/license/export', '/api/license/export'], async (req, res) => {
 // Reports (Canonical v1 + Legacy alias)
 app.get(['/api/v1/reports/fleet', '/api/report/fleet'], async (req, res) => {
   const version = getAgentVersion();
-  const agents = await db.getDevices();
+  const agents = filterTenantRecords(req.user, await db.getDevices({tenant_id:req.user.tenant_id}));
   let csv = 'Hostname,OS,IP,AgentVersion,Status,LastSeen\n';
   for (const a of agents) {
     csv += `"${a.hostname}","${a.os_version || a.os || ''}","${a.ip_address || a.ip || ''}","${a.agent_version || version}","${a.status || 'offline'}","${a.last_seen || ''}"\n`;
@@ -2061,8 +2110,17 @@ app.get(['/api/v1/reports/fleet', '/api/report/fleet'], async (req, res) => {
 });
 
 app.get(['/api/v1/reports/device/:id', '/api/report/agent/:id'], async (req, res) => {
-  const agent = await db.getDeviceById(req.params.id) || await db.getDeviceByHostname(req.params.id) || (await db.getDevices())[0];
-  if (!agent) return res.status(404).json({ error: "Device not found" });
+  const agent = await db.getDeviceById(req.params.id) ||
+    await db.getDeviceByUid(req.params.id) ||
+    await db.getDeviceByHostname(req.params.id);
+  if (!agent || !ownsTenant(req.user, agent)) {
+    return res.status(404).json({error:'Device not found'});
+  }
+  if (!unambiguousOwnedHostnames(req.user, await db.getDevices())
+    .has(String(agent.hostname).toLowerCase())) {
+    return res.status(409).json({error:'AMBIGUOUS_DEVICE_HOSTNAME',
+      detail:'Legacy events need tenant-bound device IDs before this report can be served.'});
+  }
   if (req.query.format === 'csv') {
     const events = await db.getEvents(agent.hostname);
     let csv = 'Hostname,Kind,CapturedAt\n';
@@ -2090,7 +2148,7 @@ app.put(['/api/v1/features/:name', '/api/features/:name'], validateBody(updateFe
 
 // Users (Canonical v1 + Legacy alias)
 app.get(['/api/v1/users', '/api/users'], async (req, res) => {
-  const users = await db.getUsers();
+  const users = filterTenantRecords(req.user, await db.getUsers());
   const safeUsers = users.map(({ password_hash, ...u }) => ({
     ...u,
     role: normalizeRole(u.role)
@@ -2117,7 +2175,7 @@ app.post(['/api/v1/users', '/api/users'], requireRole(['SUPER_ADMIN']), validate
     role: normalizeRole(role || "MONITORING"),
     active: true,
     company_id: 1,
-    tenant_id: "00000000-0000-0000-0000-000000000001"
+    tenant_id: req.user.tenant_id
   };
 
   const created = await db.createUser(newUser);
@@ -2129,7 +2187,9 @@ app.post(['/api/v1/users', '/api/users'], requireRole(['SUPER_ADMIN']), validate
 
 app.put(['/api/v1/users/:id', '/api/users/:id'], requireRole(['SUPER_ADMIN']), validateBody(updateUserSchema), async (req, res) => {
   const user = await db.getUserById(req.params.id);
-  if (!user) return res.status(404).json({ detail: "User not found" });
+  if (!user || !ownsTenant(req.user, user)) {
+    return res.status(404).json({detail:'User not found'});
+  }
 
   const updates = {};
   if (req.body.role) updates.role = normalizeRole(req.body.role);
@@ -2145,7 +2205,7 @@ app.put(['/api/v1/users/:id', '/api/users/:id'], requireRole(['SUPER_ADMIN']), v
 
 // Companies (Canonical v1 + Legacy alias)
 app.get(['/api/v1/companies', '/api/companies'], async (req, res) => {
-  const comps = await db.getCompanies();
+  const comps = filterTenantRecords(req.user, await db.getCompanies());
   sendPaginated(req, res, comps, 50, 500);
 });
 
@@ -2153,7 +2213,7 @@ app.post(['/api/v1/companies', '/api/companies'], requireRole(['SUPER_ADMIN']), 
   const { name } = req.body;
   if (!name) return res.status(400).json({ detail: "Company name required" });
 
-  const comp = await db.createCompany({ name, users: 1, agents: 0 });
+  const comp = await db.createCompany({name, users:1, agents:0, tenant_id:req.user.tenant_id});
   logAudit(req.user, "COMPANY_CREATED", `Company:${name}`, {}, req);
   res.status(201).json(comp);
 });
@@ -2667,7 +2727,7 @@ app.post(['/api/v1/build/trigger', '/api/build/trigger'], validateBody(buildTrig
 
 // ---------------- GAP FULFILLMENT: PREDICTIVE ANALYTICS ----------------
 app.get(['/api/v1/analytics/predictive', '/api/analytics/predictive'], async (req, res) => {
-  const agents = await db.getDevices();
+  const agents = filterTenantRecords(req.user, await db.getDevices({tenant_id:req.user.tenant_id}));
   const analysis = await Promise.all(agents.map(async agent => {
     const history = await db.getTelemetryHistory(agent.id, 20);
     const freeGB = parseInt(agent.disk_free, 10) || 120;
@@ -2764,10 +2824,14 @@ app.post(['/api/v1/remediation/trigger', '/api/remediation/trigger'], requireRol
   const { hostname, action_type } = req.body;
   const pol = (await db.getRemediationPolicyByActionType(action_type)) || { name: "Manual Remediation" };
 
+  const dev = await db.getDeviceByHostname(hostname || '');
+  if (!dev || !ownsTenant(req.user, dev)) {
+    return res.status(404).json({error:'Device not found'});
+  }
   const actionMsg = `Dispatched remediation script Remediate-${action_type}.ps1 to agent queue`;
 
   const newLog = await db.logRemediation({
-    hostname: hostname || "DESKTOP-DEV018",
+    hostname: dev.hostname,
     policy_name: pol.name,
     action: actionMsg,
     status: "pending"
@@ -2775,7 +2839,6 @@ app.post(['/api/v1/remediation/trigger', '/api/remediation/trigger'], requireRol
 
   // Record command in MySQL with 'pending' status for agent execution
   let commandId = null;
-  const dev = await db.getDeviceByHostname(hostname || "DESKTOP-DEV018");
   if (dev) {
     commandId = crypto.randomUUID();
     await db.queueCommandInDb({
@@ -2783,6 +2846,7 @@ app.post(['/api/v1/remediation/trigger', '/api/remediation/trigger'], requireRol
       device_id: dev.id,
       agent_id: dev.id,
       hostname: dev.hostname,
+      tenant_id: dev.tenant_id,
       kind: "run-script",
       command_type: "run-script",
       payload: { script_name: `Remediate-${action_type}.ps1` },
@@ -2809,7 +2873,7 @@ app.put(['/api/v1/tickets/config', '/api/tickets/config'], requireRole(['SUPER_A
 });
 
 app.get(['/api/v1/tickets', '/api/v1/tickets/list', '/api/tickets/list'], async (req, res) => {
-  const tickets = await db.getTickets();
+  const tickets = filterTenantRecords(req.user, await db.getTickets());
   sendPaginated(req, res, tickets, 50, 500);
 });
 
@@ -2834,7 +2898,7 @@ app.post(['/api/v1/tickets', '/api/v1/tickets/create', '/api/tickets/create'], r
 // ---------------- GAP FULFILLMENT: CLOUD & HYBRID AUDIT ----------------
 app.get(['/api/v1/compliance/cloud-audit', '/api/compliance/cloud-audit'], async (req, res) => {
   const isCloudConfigured = Boolean(process.env.AZURE_TENANT_ID && process.env.GRAPH_CLIENT_ID);
-  const agents = await db.getDevices();
+  const agents = filterTenantRecords(req.user, await db.getDevices({tenant_id:req.user.tenant_id}));
 
   if (!isCloudConfigured) {
     const bitlockerCount = agents.filter(a => a.bitlocker_status === 'ENCRYPTED').length;

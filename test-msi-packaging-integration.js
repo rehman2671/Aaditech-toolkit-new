@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
-import jwt from 'jsonwebtoken';
 import fs from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -52,11 +51,17 @@ async function runTests() {
     assert.equal(bytes.subarray(0,8).toString('hex'),'d0cf11e0a1b11ae1');
   }
 
-  const adminToken=jwt.sign({
-    id:1,username:'superadmin',role:'SUPER_ADMIN',
-    tenant_id:'00000000-0000-0000-0000-000000000001',
-    jti:crypto.randomUUID()
-  },process.env.JWT_SECRET,{expiresIn:'1h'});
+  // Phase K validates the JWT against the real active user row.
+  // Never fabricate superadmin JWTs with a made-up username.
+  const loginResponse=await fetch(BASE+'/api/v1/auth/login',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({username:'admin',password:'Admin123!'})
+  });
+  assert.equal(loginResponse.status,200,'Authenticate a real database-backed CI admin');
+  const loginData=await loginResponse.json();
+  const adminToken=loginData.token;
+  assert.ok(adminToken);
   const packageResult=await fetch(BASE+'/api/v1/msi/generate',{
     method:'POST',
     headers:{'Authorization':'Bearer '+adminToken,'Content-Type':'application/json'},

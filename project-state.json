@@ -1,24 +1,26 @@
 {
   "state_version": "1.0",
   "path": "project-state.json",
-  "generated": "2026-11-11T00:09:08+00:00",
+  "generated": "2026-11-11T09:58:29+00:00",
   "phase": "RELEASE BLOCKED / REMEDIATION IN PROGRESS",
-  "last_verified_commit": "6d2f45d5a8644285b57612a0002af620305f2ac3",
-  "last_verified_date": "2026-11-11T05:38:49+05:30",
+  "last_verified_commit": "fae2cbabde4ba76abdda34400978315472940c93",
+  "last_verified_date": "2026-11-11T15:28:06+05:30",
   "git": {
-    "branch": "feat/phase-j-disable-untrusted-elevation-20261111",
+    "branch": "feat/phase-k-tenant-device-isolation-20261111",
     "commit_count": 1,
     "clean_working_tree": true,
-    "head": "6d2f45d5a8644285b57612a0002af620305f2ac3"
+    "head": "fae2cbabde4ba76abdda34400978315472940c93"
   },
   "latest_delta": {
-    "detected_at": "2026-11-11T00:09:08+00:00",
-    "added": [],
+    "detected_at": "2026-11-11T09:58:29+00:00",
+    "added": [
+      "docs/security/PHASE-K-TENANT-DEVICE-ISOLATION.md"
+    ],
     "removed": [],
     "changed": [
-      ".github/workflows/phase-i-windows-msi.yml"
+      "docs/assessment/RELEASE-READINESS.md"
     ],
-    "unchanged_count": 234
+    "unchanged_count": 237
   },
   "module_state": {
     "working": [

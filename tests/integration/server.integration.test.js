@@ -545,7 +545,7 @@ describe('Server & API Integration Test Suite', () => {
         .set('Authorization', `Bearer ${token}`)
         .send({
           action_type: 'clean_temp_files',
-          hostname: 'DESKTOP-DEV018'
+          hostname: 'DESKTOP-CORP-01'
         });
       expect(trigRes.status).toBe(200);
       expect(trigRes.body.ok).toBe(true);

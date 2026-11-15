@@ -3,6 +3,7 @@ $ErrorActionPreference = 'Stop'
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 $root = Split-Path -Parent $here
 $wizard = Join-Path $root 'agent\Configure-Agent.ps1'
+$guiWizard = Join-Path $root 'agent\Configure-Agent-GUI.ps1'
 $wxs = Join-Path $root 'agent\wix\Agent.wxs'
 $builder = Join-Path $root 'agent\wix\build-msi.ps1'
 
@@ -12,12 +13,29 @@ $parseErrors = $null
 if ($parseErrors.Count -gt 0) {
     throw "Wizard has parser errors: $($parseErrors | ForEach-Object Message | Out-String)"
 }
+$guiParseErrors = $null
+[System.Management.Automation.Language.Parser]::ParseFile($guiWizard, [ref]$tokens, [ref]$guiParseErrors) | Out-Null
+if ($guiParseErrors.Count -gt 0) {
+    throw "GUI wizard has parser errors: $($guiParseErrors | ForEach-Object Message | Out-String)"
+}
 [xml]$manifest = Get-Content -LiteralPath $wxs -Raw
 if (-not $manifest.SelectSingleNode('//*[local-name()="Component" and @Id="AgentSetupWizard"]')) {
     throw 'WiX installer does not contain Configure-Agent.ps1 component'
 }
 if (-not (Get-Content $builder -Raw).Contains("Configure-Agent.ps1")) {
     throw 'MSI build is not staging Configure-Agent.ps1'
+}
+if (-not $manifest.SelectSingleNode('//*[local-name()="Component" and @Id="AgentSetupGui"]')) {
+    throw 'MSI does not install graphical setup script'
+}
+if (-not $manifest.SelectSingleNode('//*[local-name()="Shortcut" and @Id="AgentSetupMenuShortcut"]')) {
+    throw 'MSI does not expose Start Menu graphical setup shortcut'
+}
+if (-not $manifest.SelectSingleNode('//*[local-name()="ComponentRef" and @Id="AgentSetupMenu"]')) {
+    throw 'MSI feature does not include the Start Menu shortcut'
+}
+if (-not (Get-Content $builder -Raw).Contains('Configure-Agent-GUI.ps1')) {
+    throw 'MSI build does not stage GUI setup script'
 }
 if (-not (Get-Content (Join-Path $root 'agent\endpoint.json') -Raw | ConvertFrom-Json).needs_setup) {
     throw 'Checked-in endpoint.json must remain unprovisioned'
@@ -62,6 +80,20 @@ try {
     [IO.File]::WriteAllText((Join-Path $tmpDir 'agent.token'), 'current-device-token')
     & $wizard -ServerUrl 'https://new.example.test' -TokenFile $tokenFile -ConfigPath $cfgPath -NonInteractive | Out-Null
     if (-not (Test-Path (Join-Path $tmpDir 'agent.token'))) { throw 'Idempotent reconfiguration discarded device token' }
+
+    # GUI supplies a SecureString directly; secret must never be passed in CLI
+    # arguments or persisted to a temporary plaintext token file.
+    $secure = ConvertTo-SecureString -String $singleUse -AsPlainText -Force
+    try {
+        $result = & $wizard -ServerUrl 'https://new.example.test' -EnrollmentToken $secure -ConfigPath $cfgPath -NonInteractive
+        if (($result -join ' ') -match [regex]::Escape($singleUse)) {
+            throw 'SecureString setup exposed token in output'
+        }
+    }
+    finally { $secure.Dispose() }
+    if (-not (Test-Path (Join-Path $tmpDir 'agent.token'))) {
+        throw 'SecureString reconfiguration discarded a valid device token'
+    }
 
     Write-Host 'Configure-Agent.ps1 regression tests passed.'
 }

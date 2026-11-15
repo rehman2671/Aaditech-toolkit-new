@@ -760,6 +760,51 @@ function Get-PendingCommands {
     }
 }
 
+# Each remote command must be validated with this endpoint's enrolled
+# credential and tenant identity BEFORE any executable field is trusted.
+function Resolve-VerifiedAgentCommand {
+    param($Config, $Cmd)
+    $tokenPath = Get-AgentTokenPath
+    $identityPath = Join-Path (Split-Path $ConfigPath -Parent) 'agent.identity.json'
+    if (-not $Cmd -or -not $Cmd.signed_content -or -not $Cmd.signature -or
+        -not (Test-Path $tokenPath) -or -not (Test-Path $identityPath)) { return $null }
+    try {
+        $token = (Get-Content -LiteralPath $tokenPath -Raw).Trim()
+        $identity = Get-Content -LiteralPath $identityPath -Raw | ConvertFrom-Json
+        if (-not $token.StartsWith('itk_dev_') -or
+            -not $identity.device_id -or -not $identity.tenant_id) { return $null }
+        $content = [string]$Cmd.signed_content
+        $sig = [string]$Cmd.signature
+        if ($content.Length -gt 65536 -or $sig -cnotmatch '^[a-fA-F0-9]{64}$') { return $null }
+        $h = New-Object System.Security.Cryptography.HMACSHA256
+        try {
+            $h.Key = [Text.Encoding]::UTF8.GetBytes($token)
+            $expected = $h.ComputeHash([Text.Encoding]::UTF8.GetBytes("aaditech:agent-command:v1`n" + $content))
+        } finally { $h.Dispose() }
+        $diff = 0
+        for ($i=0; $i -lt 32; $i++) {
+            $diff = $diff -bor ([int]$expected[$i] -bxor [int][Convert]::ToByte($sig.Substring($i*2, 2), 16))
+        }
+        if ($diff -ne 0) { return $null }
+        $signed = $content | ConvertFrom-Json
+        if ([int]$signed.version -ne 1 -or
+            [string]$signed.command_id -cne [string]$Cmd.id -or
+            [string]$signed.device_id -cne [string]$identity.device_id -or
+            [string]$signed.tenant_id -cne [string]$identity.tenant_id -or
+            [string]$signed.hostname -ine (Get-AgentHostname) -or
+            [string]::IsNullOrWhiteSpace([string]$signed.kind)) { return $null }
+        $issued = [DateTimeOffset]::Parse([string]$signed.issued_at)
+        $expires = [DateTimeOffset]::Parse([string]$signed.expires_at)
+        $now = [DateTimeOffset]::UtcNow
+        if ($now -lt $issued.AddMinutes(-1) -or $now -gt $expires -or
+            $expires -le $issued -or ($expires - $issued).TotalMinutes -gt 5) { return $null }
+        return [PSCustomObject]@{ id = $signed.command_id; kind = $signed.kind; payload = $signed.payload }
+    } catch {
+        Write-AgentLog "Rejected invalid signed command: $($_.Exception.Message)"
+        return $null
+    }
+}
+
 function Send-WakeOnLan {
     param([string]$Mac, [string]$TargetIp)
     $bytes = [byte[]]@(0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF)

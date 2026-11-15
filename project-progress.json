@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-15T16:12:34+00:00",
-  "last_verified_commit": "7339e28d0404fb1c6b4d6893e2a545589f933178",
-  "last_verified_date": "2026-11-15T21:42:24+05:30",
+  "generated": "2026-11-15T16:12:49+00:00",
+  "last_verified_commit": "226385453ff90d8869170398386574b611df06ca",
+  "last_verified_date": "2026-11-15T21:42:37+05:30",
   "overall_progress_percent": 100.0,
   "progress_scope": "historic audit issue closure only; production acceptance pending",
   "production_ready": false,
@@ -20,15 +20,6 @@
     "unchanged": 222
   },
   "delta_history": [
-    {
-      "detected_at": "2026-11-15T15:51:05+00:00",
-      "added": [],
-      "removed": [],
-      "changed": [
-        ".github/workflows/ci.yml"
-      ],
-      "unchanged_count": 219
-    },
     {
       "detected_at": "2026-11-15T15:51:59+00:00",
       "added": [],
@@ -194,6 +185,15 @@
     },
     {
       "detected_at": "2026-11-15T16:12:34+00:00",
+      "added": [],
+      "removed": [],
+      "changed": [
+        "Enterprise/agent/Agent-Collect.ps1"
+      ],
+      "unchanged_count": 222
+    },
+    {
+      "detected_at": "2026-11-15T16:12:49+00:00",
       "added": [],
       "removed": [],
       "changed": [

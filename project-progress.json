@@ -1,10 +1,12 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-15T15:51:59+00:00",
-  "last_verified_commit": "8d21f35d0571cfc1254369b917c3504cda7bdd30",
-  "last_verified_date": "2026-11-15T21:21:45+05:30",
+  "generated": "2026-11-15T15:52:41+00:00",
+  "last_verified_commit": "1a272a320a88cc2030de18d1b715eec5db185922",
+  "last_verified_date": "2026-11-15T21:22:21+05:30",
   "overall_progress_percent": 100.0,
+  "progress_scope": "historic audit issue closure only; production acceptance pending",
+  "production_ready": false,
   "issue_progress": {
     "total": 17,
     "completed": 17,
@@ -18,21 +20,6 @@
     "unchanged": 219
   },
   "delta_history": [
-    {
-      "detected_at": "2026-08-08T21:18:16+00:00",
-      "added": [],
-      "removed": [],
-      "changed": [
-        "Enterprise/deploy/Caddyfile",
-        "Enterprise/SCALING-PLAN.md",
-        "Enterprise/agent/Agent-Collect.ps1",
-        "Enterprise/deploy/Caddyfile.template",
-        "Enterprise/portal/index.html",
-        "Enterprise/api/app/ratelimit.py",
-        "Enterprise/api/app/main.py"
-      ],
-      "unchanged_count": 113
-    },
     {
       "detected_at": "2026-08-09T14:22:08+00:00",
       "added": [
@@ -457,6 +444,15 @@
       "removed": [],
       "changed": [
         "tests/integration/server.integration.test.js"
+      ],
+      "unchanged_count": 219
+    },
+    {
+      "detected_at": "2026-11-15T15:52:41+00:00",
+      "added": [],
+      "removed": [],
+      "changed": [
+        "Scripts/Index/Update-ProjectIndex.ps1"
       ],
       "unchanged_count": 219
     }

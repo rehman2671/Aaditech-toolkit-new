@@ -1,25 +1,33 @@
 {
   "state_version": "1.0",
   "path": "project-state.json",
-  "generated": "2026-11-15T15:51:59+00:00",
-  "phase": "POST-REMEDIATION / RELEASE READY",
-  "last_verified_commit": "8d21f35d0571cfc1254369b917c3504cda7bdd30",
-  "last_verified_date": "2026-11-15T21:21:45+05:30",
+  "generated": "2026-11-15T15:52:41+00:00",
+  "phase": "PHASE N STAGE 4 / PRODUCTION ACCEPTANCE IN PROGRESS",
+  "last_verified_commit": "1a272a320a88cc2030de18d1b715eec5db185922",
+  "last_verified_date": "2026-11-15T21:22:21+05:30",
   "git": {
     "branch": "main",
     "commit_count": 1,
     "clean_working_tree": true,
-    "head": "8d21f35d0571cfc1254369b917c3504cda7bdd30"
+    "head": "1a272a320a88cc2030de18d1b715eec5db185922"
   },
   "latest_delta": {
-    "detected_at": "2026-11-15T15:51:59+00:00",
+    "detected_at": "2026-11-15T15:52:41+00:00",
     "added": [],
     "removed": [],
     "changed": [
-      "tests/integration/server.integration.test.js"
+      "Scripts/Index/Update-ProjectIndex.ps1"
     ],
     "unchanged_count": 219
   },
+  "production_ready": false,
+  "acceptance_gates": [
+    "GitHub CI full green run including MSI artifact build and signing",
+    "Physical Windows 10/11 MSI install, upgrade and graphical setup",
+    "Hostinger Docker VPS HTTPS + real production DB health acceptance",
+    "Multi-tenant concurrent enrollment and token isolation stress tests",
+    "Backup/restore rehearsal against a separate production-like database"
+  ],
   "module_state": {
     "working": [
       "AlertEngine.psm1",

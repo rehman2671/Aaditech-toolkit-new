@@ -47,7 +47,7 @@ compose up -d --wait --wait-timeout 120 db >&2
 printf '%s\n' "-- aaditech-mysql-backup-v1 database=$DB_NAME" > "$TEMP_FILE"
 compose exec -T db sh -ec '
   export MYSQL_PWD="$MYSQL_PASSWORD"
-  exec mysqldump --host=127.0.0.1 --user="$MYSQL_USER" \
+  exec mysqldump --host=localhost --user="$MYSQL_USER" \
     --single-transaction --quick --triggers --routines --events \
     --set-gtid-purged=OFF --no-tablespaces \
     --default-character-set=utf8mb4 "$MYSQL_DATABASE"

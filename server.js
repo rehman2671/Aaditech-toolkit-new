@@ -1109,14 +1109,19 @@ const handleAgentEnroll = async (req, res) => {
   // tenant. Check BOTH identifiers and the destination company before
   // consuming a one-use bootstrap token or updating any device credentials.
   const resolvedUid = String(device_uid || `dev-uid-${host.toLowerCase().split('.')[0]}`).trim();
-  const [existingHost, existingUid, companies] = await Promise.all([
-    db.getDeviceByHostname(host),
-    db.getDeviceByUid(resolvedUid),
+  const [matchingDevices, companies] = await Promise.all([
+    db.getEnrollmentIdentityMatches(host, resolvedUid),
     db.getCompanies()
   ]);
+  const existingHost = matchingDevices.find(d =>
+    String(d.hostname || '').toLowerCase() === host.toLowerCase()
+  ) || null;
+  const existingUid = matchingDevices.find(d =>
+    String(d.device_uid || '').toLowerCase() === resolvedUid.toLowerCase()
+  ) || null;
   const company = companies.find(c => String(c.tenant_id) === String(ver.tenantId));
   const preflight = validateEnrollmentIdentity({
-    tenantId: ver.tenantId, existingHost, existingUid, company
+    tenantId: ver.tenantId, existingHost, existingUid, company, matchingDevices
   });
   if (!preflight.ok) {
     return res.status(preflight.status).json({

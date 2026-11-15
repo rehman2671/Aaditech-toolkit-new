@@ -1217,6 +1217,12 @@ const handleAgentEnroll = async (req, res) => {
 };
 
 app.post(['/api/v1/agent/enroll', '/api/agent/enroll'], agentLimiter, handleAgentEnroll);
+app.get(['/api/v1/agent/enroll', '/api/agent/enroll'], (req, res) => {
+  return res.status(405).set('Allow', 'POST').json({
+    error: 'METHOD_NOT_ALLOWED',
+    detail: 'Device enrollment accepts POST only. Never place credentials in query strings.'
+  });
+});
 
 // Agent Heartbeat Endpoint
 app.post(['/api/v1/agent/heartbeat', '/api/agent/heartbeat'], agentLimiter, async (req, res) => {

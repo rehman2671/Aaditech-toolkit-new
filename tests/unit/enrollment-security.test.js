@@ -41,6 +41,20 @@ describe('tenant-safe first-run device enrollment', () => {
     })).toMatchObject({ ok: false, status: 409, code: 'DEVICE_UID_CONFLICT' });
   });
 
+  it('rejects an ambiguous duplicated hostname owned by another tenant even when the first record matches', () => {
+    expect(validateEnrollmentIdentity({
+      tenantId: tenantA, existingHost: hostA, existingUid: null, company: companyA,
+      matchingDevices: [hostA, hostB]
+    })).toMatchObject({ ok: false, code: 'DEVICE_TENANT_CONFLICT' });
+  });
+
+  it('rejects distinct duplicate device records within a single tenant', () => {
+    expect(validateEnrollmentIdentity({
+      tenantId: tenantA, existingHost: hostA, existingUid: null, company: companyA,
+      matchingDevices: [hostA, { ...hostA, id: 'duplicate-device' }]
+    })).toMatchObject({ ok: false, code: 'DEVICE_UID_CONFLICT' });
+  });
+
   it('rejects a token tenant that has no company or points at a different company', () => {
     for (const company of [null, companyB]) {
       expect(validateEnrollmentIdentity({

@@ -113,6 +113,21 @@ try {
         throw 'SecureString reconfiguration discarded a valid device token'
     }
 
+    # A freshly installed generic MSI has no endpoint/token keys yet.
+    # Exercise this path under strict mode so missing Hashtable properties
+    # cannot silently pass until the slower real MSI smoke test catches them.
+    $blankConfigPath = Join-Path $tmpDir 'fresh-agent.json'
+    & {
+        Set-StrictMode -Version Latest
+        & $wizard -ServerUrl 'https://fresh.example.test' -TokenFile $tokenFile `
+            -ConfigPath $blankConfigPath -NonInteractive | Out-Null
+    }
+    $fresh = Get-Content -LiteralPath $blankConfigPath -Raw | ConvertFrom-Json
+    if ($fresh.endpoint -ne 'https://fresh.example.test/api/v1/ingest/telemetry' -or
+        $fresh.token -ne $singleUse -or $fresh.needs_setup) {
+        throw 'Fresh empty-config setup failed strict-mode first-run regression'
+    }
+
     Write-Host 'Configure-Agent.ps1 regression tests passed.'
 }
 finally {

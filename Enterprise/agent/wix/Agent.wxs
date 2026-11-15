@@ -221,12 +221,22 @@
     <!-- E4: lock down the runtime dir so standard users cannot read the agent's  -->
     <!-- token, queue, pfx or logs. The routine task (NETWORK SERVICE) keeps full- -->
     <!-- Modify so collection still writes; restricted to privileged identities.   -->
+    <!-- The original recursive ACL action could leave agent.json unreadable
+         while /C silently continued on a file-level error. Hardening the
+         actual runtime config file is a mandatory, checked first step. -->
+    <CustomAction Id="HardenRuntimeJsonAcl"
+                  Directory="INSTALLFOLDER"
+                  Return="check"
+                  Impersonate="no"
+                  Execute="deferred"
+                  ExeCommand="&quot;[SystemFolder]icacls.exe&quot; &quot;[CommonAppDataFolder]ITToolkit-Agent\agent.json&quot; /inheritance:r /grant:r &quot;*S-1-5-18:F&quot; &quot;*S-1-5-32-544:F&quot; &quot;*S-1-5-20:M&quot;" />
+
     <CustomAction Id="HardenAgentDataAcl"
                   Directory="INSTALLFOLDER"
                   Return="check"
                   Impersonate="no"
                   Execute="deferred"
-                  ExeCommand="&quot;[SystemFolder]icacls.exe&quot; &quot;[CommonAppDataFolder]ITToolkit-Agent&quot; /inheritance:r /grant:r &quot;*S-1-5-18:(OI)(CI)F&quot; &quot;*S-1-5-32-544:(OI)(CI)F&quot; &quot;*S-1-5-20:(OI)(CI)M&quot; /T /C" />
+                  ExeCommand="&quot;[SystemFolder]icacls.exe&quot; &quot;[CommonAppDataFolder]ITToolkit-Agent&quot; /inheritance:r /grant:r &quot;*S-1-5-18:(OI)(CI)F&quot; &quot;*S-1-5-32-544:(OI)(CI)F&quot; &quot;*S-1-5-20:(OI)(CI)M&quot; /T" />
 
     <!-- The Program Files copy of agent.json carries the same token; Program
          Files grants Users read by default, so lock that file too. The agent
@@ -248,7 +258,8 @@
            slot that still guarantees the files exist first. -->
       <Custom Action="CreateSchedTask" After="InstallFiles" Condition="NOT Installed AND NOT REMOVE" />
       <Custom Action="CreateElevatedTask" After="CreateSchedTask" Condition="NOT Installed AND NOT REMOVE" />
-      <Custom Action="HardenAgentDataAcl" After="InstallFiles" Condition="NOT REMOVE" />
+      <Custom Action="HardenRuntimeJsonAcl" After="InstallFiles" Condition="NOT REMOVE" />
+      <Custom Action="HardenAgentDataAcl" After="HardenRuntimeJsonAcl" Condition="NOT REMOVE" />
       <Custom Action="HardenLocalJsonAcl" After="HardenAgentDataAcl" Condition="NOT REMOVE" />
     </InstallExecuteSequence>
 

@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-15T15:50:55+00:00",
-  "last_verified_commit": "2de125be6f561ba25e7a577d8a296bd8c79fd36e",
-  "last_verified_date": "2026-11-15T21:20:45+05:30",
+  "generated": "2026-11-15T15:51:05+00:00",
+  "last_verified_commit": "bc92c41d55d8e89cbe2114a2d18623acecd9986d",
+  "last_verified_date": "2026-11-15T21:20:57+05:30",
   "overall_progress_percent": 100.0,
   "issue_progress": {
     "total": 17,
@@ -12,26 +12,12 @@
     "percent": 100.0
   },
   "latest_delta": {
-    "added": 113,
-    "removed": 25,
-    "changed": 23,
-    "unchanged": 84
+    "added": 0,
+    "removed": 0,
+    "changed": 1,
+    "unchanged": 219
   },
   "delta_history": [
-    {
-      "detected_at": "2026-08-08T21:09:39+00:00",
-      "added": [],
-      "removed": [],
-      "changed": [
-        "Enterprise/agent/Agent-Collect.ps1",
-        "Enterprise/api/app/ratelimit.py",
-        "Enterprise/api/app/main.py",
-        "Enterprise/deploy/Caddyfile.template",
-        "Enterprise/deploy/Caddyfile",
-        "Enterprise/SCALING-PLAN.md"
-      ],
-      "unchanged_count": 114
-    },
     {
       "detected_at": "2026-08-08T21:13:05+00:00",
       "added": [],
@@ -465,6 +451,15 @@
         "Enterprise/deploy/restore.sh"
       ],
       "unchanged_count": 84
+    },
+    {
+      "detected_at": "2026-11-15T15:51:05+00:00",
+      "added": [],
+      "removed": [],
+      "changed": [
+        ".github/workflows/ci.yml"
+      ],
+      "unchanged_count": 219
     }
   ],
   "next_recommended_tasks": [

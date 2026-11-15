@@ -93,8 +93,9 @@ On an isolated Windows 10/11 (and supported Windows Server) test machine:
 1. Build and code-sign a generic MSI in a successful GitHub Actions run.
 2. Confirm MSI Authenticode signature and publisher trust; reject unsigned
    production packages.
-3. GitHub Windows-runner **installation and uninstall** checks now pass.
-   Still perform a real managed-machine MSI **upgrade** and GUI/UAC session.
+3. GitHub Windows-runner **install, major-upgrade preservation and
+   uninstall** checks now pass. Still perform a real managed-machine MSI
+   upgrade and graphical UAC/session acceptance.
    Confirm Start Menu → IT-Toolkit → Configure Agent Server actually opens.
 4. Configure a real HTTPS origin and tenant-issued one-use enrollment token.
    Verify TLS trust and database health; ensure no embedded token or hostname
@@ -104,16 +105,18 @@ On an isolated Windows 10/11 (and supported Windows Server) test machine:
 6. Attempt cross-tenant hostname/UID collisions and concurrent enrollment;
    confirm rejection without consuming a legitimate one-use token.
 
-**Upgrade-retention acceptance:** CI now runs a disposable real
-major-upgrade rehearsal (`Test-Windows-MsiUpgrade.ps1`) from MSI revision
-`1.1.2001` to a diagnostic `1.1.2002`. It must verify that changing the MSI
-does not reset the HTTPS endpoint or tenant identity, does not rotate the
-enrolled device token, and preserves the scheduled task. Runtime config is
-marked `Permanent`/`NeverOverwrite` to make upgrades safe; this deliberately
-preserves protected ProgramData credentials even on normal uninstall.
-Explicit server-side token revocation and secure local data erasure are
-mandatory for device decommissioning. CI success for the new upgrade
-rehearsal is pending and must be confirmed separately.
+**Upgrade-retention acceptance: PASSED.** Full CI run
+[43740938121](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43740938121)
+completed a real diagnostic Windows major upgrade
+(`Test-Windows-MsiUpgrade.ps1`) from MSI `1.1.2001` to `1.1.2002`.
+It verified that the HTTPS endpoint, tenant identity and enrolled device
+token survived unchanged; routine scheduled task, upgraded-MSI uninstall
+and task cleanup also passed. The runtime configuration component uses
+`Permanent`/`NeverOverwrite`. This deliberately leaves protected
+ProgramData credentials behind on ordinary uninstall. Server-side token
+revocation and secure local erasure remain mandatory for true decommissioning.
+This successful CI rehearsal does not certify signed artifacts or a
+customer-machine upgrade.
 
 **Do not** send a production device fleet to the server before these checks.
 

@@ -537,9 +537,8 @@ async function verifyDeviceCredential(req, targetDeviceIdentifier) {
     req.headers['x-agent-token'] ||
     req.headers['x-bootstrap-token'] ||
     bearerToken ||
-    req.query?.device_token ||
-    req.query?.agent_token ||
-    req.query?.token ||
+    // Credentials in URL query strings leak via access logs, proxies and history.
+    // Only accept agent secrets in headers or POST bodies.
     req.body?.device_token ||
     req.body?.agent_token ||
     req.body?.token;
@@ -2082,12 +2081,23 @@ app.post(['/api/commands/:id/result', '/api/v1/commands/:id/result'], agentLimit
   const cmd = await db.getCommandById(cmdId);
   if (!cmd) return res.status(404).json({ error: "Command not found in queue" });
 
-  const isPrivilegedUser = req.user && (req.user.role === 'SUPER_ADMIN' || req.user.role === 'OPERATOR');
-  if (!isPrivilegedUser) {
-    const ver = await verifyDeviceCredential(req, cmd.hostname);
-    if (!ver.authenticated) {
-      return res.status(ver.status || 401).json({ error: ver.error, detail: ver.detail });
-    }
+  // This endpoint is exclusively for an enrolled agent to report results,
+  // not for JWT users, bootstrap tokens, fleet HMACs or URL credentials.
+  // Verify the exact command.device_id instead of matching a hostname,
+  // which can be reused across tenants in older database records.
+  const resultToken = req.headers['x-device-token'];
+  if (typeof resultToken !== 'string' || !resultToken.startsWith('itk_dev_')) {
+    return res.status(403).json({ error: 'DEVICE_CREDENTIAL_REQUIRED' });
+  }
+  const ver = await verifyDeviceCredential(req, cmd.device_id);
+  if (!ver.authenticated) {
+    return res.status(ver.status || 401).json({ error: ver.error, detail: ver.detail });
+  }
+  const resultDevice = ver.device;
+  if (String(resultDevice.id).toLowerCase() !== String(cmd.device_id).toLowerCase() ||
+      resultDevice.agent_token_revoked || !resultDevice.device_token_hash ||
+      hashDeviceToken(resultToken) !== resultDevice.device_token_hash) {
+    return res.status(403).json({ error: 'COMMAND_DEVICE_OWNERSHIP_MISMATCH' });
   }
 
   const status = req.body.status || (req.body.exit_code === 0 ? "completed" : "failed");

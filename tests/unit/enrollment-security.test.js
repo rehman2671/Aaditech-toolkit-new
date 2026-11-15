@@ -55,6 +55,14 @@ describe('tenant-safe first-run device enrollment', () => {
     })).toMatchObject({ ok: false, code: 'DEVICE_UID_CONFLICT' });
   });
 
+  it('rejects takeover of a known hostname with a different device UID', () => {
+    expect(validateEnrollmentIdentity({
+      tenantId: tenantA, existingHost: { ...hostA, device_uid: 'dev-uid-laptop-01' },
+      existingUid: null, company: companyA,
+      requestedUid: 'dev-uid-attacker'
+    })).toMatchObject({ ok: false, code: 'DEVICE_UID_CONFLICT' });
+  });
+
   it('rejects a token tenant that has no company or points at a different company', () => {
     for (const company of [null, companyB]) {
       expect(validateEnrollmentIdentity({

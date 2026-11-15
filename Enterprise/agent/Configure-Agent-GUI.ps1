@@ -28,7 +28,7 @@ if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administra
     $thisScript = $MyInvocation.MyCommand.Path
     if ($thisScript -match '"') { throw 'Unsupported path containing a quote character.' }
     $arguments = "-NoProfile -ExecutionPolicy Bypass -STA -File `"$thisScript`""
-    Start-Process -FilePath (Join-Path $PSHOME 'powershell.exe') -ArgumentList $arguments -Verb RunAs
+    Start-Process -FilePath (Join-Path $env:WINDIR 'System32\WindowsPowerShell\v1.0\powershell.exe') -ArgumentList $arguments -Verb RunAs
     return
 }
 
@@ -64,7 +64,6 @@ $null = Add-WizardLabel 'Server URL' 20 88 535
 $urlBox = New-Object System.Windows.Forms.TextBox
 $urlBox.Location = New-Object System.Drawing.Point(20, 115)
 $urlBox.Size = New-Object System.Drawing.Size(550, 29)
-$urlBox.PlaceholderText = '' # assigned only where available; WinPS 5.1 uses classic WinForms
 $form.Controls.Add($urlBox)
 
 $null = Add-WizardLabel 'Single-use device enrollment token (hidden)' 20 156 540

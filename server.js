@@ -24,6 +24,7 @@ import helmet from 'helmet';
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 import * as db from './db.js';
+import { isValidSetupKey } from './setup-security.js';
 import {
   getAgentVersion,
   getAgentVersionInfo,
@@ -118,12 +119,6 @@ const INITIAL_SETUP_TOKEN = process.env.SETUP_TOKEN || '';
 if (process.env.NODE_ENV === 'production' && INITIAL_SETUP_TOKEN.length < 32) {
   console.error('FATAL: SETUP_TOKEN (at least 32 characters) is required in production.');
   process.exit(1);
-}
-function matchesInitialSetupToken(supplied) {
-  if (typeof supplied !== 'string' || supplied.length > 512 || !INITIAL_SETUP_TOKEN) return false;
-  const expected = crypto.createHash('sha256').update(INITIAL_SETUP_TOKEN).digest();
-  const actual = crypto.createHash('sha256').update(supplied).digest();
-  return crypto.timingSafeEqual(expected, actual);
 }
 
 // Server-side revocation registry for invalidated tokens and JTIs (cached in memory + persistent in MySQL)
@@ -1798,7 +1793,7 @@ app.post(['/api/v1/setup', '/api/setup'], async (req, res, next) => {
       return res.status(403).json({ error: 'FORBIDDEN', detail: 'Administrator role required to change setup.' });
     }
   } else if (process.env.NODE_ENV === 'production' &&
-             !matchesInitialSetupToken(req.headers['x-setup-token'])) {
+             !isValidSetupKey(req.headers['x-setup-token'], INITIAL_SETUP_TOKEN)) {
     return res.status(403).json({ error: 'FORBIDDEN', detail: 'Valid initial setup key required.' });
   }
   return next();

@@ -48,6 +48,14 @@ $RepoRoot = Split-Path -Parent $Here
 function Log  { Write-Host "[deploy] $args" -ForegroundColor Cyan }
 function Die  { Write-Host "[deploy][ERROR] $args" -ForegroundColor Red; exit 1 }
 
+# Fail before touching .env, certificates, agent configuration, or containers.
+# This legacy installer assumes PostgreSQL/FastAPI, but the authoritative
+# Docker stack runs MySQL/Node.js. Disable unsafe automated deployment until
+# the Windows provisioning flow is migrated to the actual server architecture.
+if ((Get-Content -LiteralPath $ComposeFile -Raw) -match '(?m)^\\s*image:\\s*mysql:') {
+    Die "Incompatible deployment architecture: deploy.ps1 expects PostgreSQL/FastAPI, but docker-compose.yml runs MySQL/Node.js. No configuration or containers were changed. Use the documented MySQL deployment procedure until Windows provisioning is reconciled."
+}
+
 # A7: restrict a secrets file to SYSTEM + Administrators (drop inherited Users
 # read). Windows analogue of chmod 600 on the Unix deploy script.
 function Set-SecretFileAcl {

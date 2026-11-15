@@ -27,6 +27,28 @@ ignored. For each new release without a semver patch bump, increase the
 `msi_revision` explicitly; do **not** rely on the build date. Keep the
 stable WiX `UpgradeCode` unchanged.
 
+### Runtime configuration lifecycle during MSI upgrades
+
+The unprovisioned template in Program Files may be replaced on upgrade,
+but the mutable `C:\ProgramData\ITToolkit-Agent\agent.json` must not be.
+The WiX `AgentConfig` component now uses `NeverOverwrite=yes` and
+`Permanent=yes` so a major upgrade cannot reset the configured HTTPS
+origin, tenant bootstrap settings, enrolled device credential files or
+runtime data when the older product is removed. **Important:** `Permanent`
+also means the protected ProgramData config is deliberately retained
+after a normal uninstall, allowing authorized reinstalls to recover their
+settings. Operators decommissioning a device must deliberately revoke its
+server-side device token and securely remove the local runtime data using
+their approved device-decommissioning procedure. Never assume an MSI
+uninstall automatically erases secrets.
+
+A separate disposable Windows CI major-upgrade rehearsal installs a base
+MSI, configures a fake HTTPS origin and a synthetic per-device identity,
+then installs a higher MSI revision. It asserts endpoint, token and tenant
+identity preservation, scheduled task continuity and uninstall cleanup.
+A successful CI result remains separate from a signed release and real
+production Windows fleet migration.
+
 On a disposable GitHub-hosted Windows runner, full CI run
 [43739352090](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43739352090)
 **passed** actual silent installation of the x64 `1.1.2001` diagnostic

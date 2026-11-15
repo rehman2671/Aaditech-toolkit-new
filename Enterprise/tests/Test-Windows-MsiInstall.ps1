@@ -55,7 +55,14 @@ try {
 if ($productVersion -cne $expectedMsiVersion -or $productVersion.Split('.').Length -ne 3) {
     throw "MSI ProductVersion '$productVersion' != explicit release revision '$expectedMsiVersion'."
 }
-Write-Host "Windows Installer upgrade version verified: $productVersion"
+# The agent bundles an x64 SQLite binary, so installing an implicit x86 MSI
+# could redirect the executable into Program Files (x86), breaking the
+# documented setup path even though msiexec itself exits successfully.
+$template = [string]$installer.SummaryInformation($MsiPath, 0).Property(7)
+if ($template -notmatch '^x64;') {
+    throw "MSI architecture is not x64 (Template=$template). Check wix build -arch x64."
+}
+Write-Host "Windows Installer version/architecture verified: $productVersion ($template)"
 
 $logDir = Join-Path $env:RUNNER_TEMP 'itk-msi-install-rehearsal'
 New-Item -Path $logDir -ItemType Directory -Force | Out-Null

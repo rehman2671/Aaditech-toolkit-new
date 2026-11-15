@@ -20,6 +20,21 @@ const versionMeta = JSON.parse(fs.readFileSync(versionJsonPath, 'utf8'));
 const currentAgentVersion = versionMeta.agent_version;
 console.log(`[Version Consistency] Authoritative agent_version: "${currentAgentVersion}"`);
 
+// Windows Installer compares only three version fields. CI must reject
+// invalid/reused fourth-field release schemes before WiX builds a package.
+const releaseMatch = /^(\d+)\.(\d+)\.(\d+)$/.exec(String(currentAgentVersion || ''));
+const revision = versionMeta.msi_revision;
+if (!releaseMatch || !Number.isInteger(revision) || revision < 1 || revision > 999) {
+  console.error('[FAIL] MSI release requires agent_version=major.minor.patch and msi_revision=1..999.');
+  process.exit(1);
+}
+const [major, minor, patch] = releaseMatch.slice(1).map(Number);
+if (major > 255 || minor > 255 || patch > 64) {
+  console.error('[FAIL] MSI release version out of Windows Installer three-field bounds.');
+  process.exit(1);
+}
+console.log(`[Version Consistency] MSI ProductVersion: ${major}.${minor}.${patch * 1000 + revision} (revision ${revision}).`);
+
 // Target files and directories to audit
 const auditTargets = [
   'server.js',

@@ -15,6 +15,24 @@ prompts for administrator approval via UAC and supports later reconfiguration.
 The installer does **not** yet open a native graphical dialog as part of
 `msiexec` itself; setup is launched from the Start Menu after installation.
 
+### MSI upgrade version and release revision
+
+Windows Installer compares only the first **three** product version fields.
+The release pipeline now derives MSI `ProductVersion` as
+`major.minor.(patch × 1000 + msi_revision)` from
+`Enterprise/agent/agent-version.json`. For agent `1.1.2` with
+`msi_revision: 1`, the actual MSI version is `1.1.2001`, which can
+upgrade the older `1.1.2.x` packages whose fourth version field Windows
+ignored. For each new release without a semver patch bump, increase the
+`msi_revision` explicitly; do **not** rely on the build date. Keep the
+stable WiX `UpgradeCode` unchanged.
+
+On disposable GitHub-hosted Windows runners, CI performs actual silent
+installation, checks the scheduled task, program files, protected runtime
+directory, Start Menu link and installed setup wizard, then uninstalls and
+checks cleanup. It does not drive the GUI or prove a signed artifact works
+on your organization's real managed endpoints.
+
 ## First installation on any supported Windows machine
 
 1. Install a properly signed MSI using an elevated installer.

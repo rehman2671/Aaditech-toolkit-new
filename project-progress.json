@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-15T16:14:00+00:00",
-  "last_verified_commit": "c8c72292c528fab01bc8f33b75f5f22b408c1acc",
-  "last_verified_date": "2026-11-15T21:43:52+05:30",
+  "generated": "2026-11-15T16:14:28+00:00",
+  "last_verified_commit": "563f87b4deabb62fd5686aedd39441afdb1d1184",
+  "last_verified_date": "2026-11-15T21:44:09+05:30",
   "overall_progress_percent": 100.0,
   "progress_scope": "historic audit issue closure only; production acceptance pending",
   "production_ready": false,
@@ -14,21 +14,12 @@
     "percent": 100.0
   },
   "latest_delta": {
-    "added": 1,
+    "added": 0,
     "removed": 0,
-    "changed": 0,
+    "changed": 1,
     "unchanged": 224
   },
   "delta_history": [
-    {
-      "detected_at": "2026-11-15T15:54:28+00:00",
-      "added": [],
-      "removed": [],
-      "changed": [
-        "server.js"
-      ],
-      "unchanged_count": 219
-    },
     {
       "detected_at": "2026-11-15T15:56:09+00:00",
       "added": [
@@ -199,6 +190,15 @@
       ],
       "removed": [],
       "changed": [],
+      "unchanged_count": 224
+    },
+    {
+      "detected_at": "2026-11-15T16:14:28+00:00",
+      "added": [],
+      "removed": [],
+      "changed": [
+        ".github/workflows/ci.yml"
+      ],
       "unchanged_count": 224
     }
   ],

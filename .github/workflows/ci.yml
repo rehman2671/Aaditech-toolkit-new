@@ -427,7 +427,20 @@ jobs:
       - name: Rehearse real Windows MSI install, post-setup and clean uninstall
         shell: pwsh
         run: |
-          ./Enterprise/tests/Test-Windows-MsiInstall.ps1
+          try {
+            ./Enterprise/tests/Test-Windows-MsiInstall.ps1
+          } catch {
+            # Summarize failing MSI custom actions without publishing the
+            # entire installer log or any local user/environment secrets.
+            $log = Join-Path $env:RUNNER_TEMP 'itk-msi-install-rehearsal/install.log'
+            if (Test-Path -LiteralPath $log) {
+              Write-Host 'Last MSI error/action diagnostics:'
+              Get-Content -LiteralPath $log -Tail 120 |
+                Where-Object { $_ -match 'Return value 3|error |Error |CustomAction|CreateSchedTask|HardenAgentDataAcl|HardenLocalJsonAcl' } |
+                Select-Object -Last 25 | ForEach-Object { Write-Host $_ }
+            }
+            throw
+          }
 
       - name: Upload verified signed artifacts only
         if: env.PUBLISH_SIGNED == 'true'

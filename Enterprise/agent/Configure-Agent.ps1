@@ -115,7 +115,7 @@ if (-not (Test-Path -LiteralPath $dir)) {
 $temp = Join-Path $dir ("agent.json.tmp." + [guid]::NewGuid().ToString('N'))
 try {
     $json = $old | ConvertTo-Json -Depth 12
-    [System.IO.File]::WriteAllText($temp, $json, (New-Object System.Text.UTF8Encoding($false)))
+    [System.IO.File]::WriteAllText($temp, $json, ([System.Text.UTF8Encoding]::new($false)))
     if (Test-Path -LiteralPath $ConfigPath) {
         [System.IO.File]::Replace($temp, $ConfigPath, $null)
     } else {
@@ -136,7 +136,7 @@ if ($ClearRegistryOverride -and (Test-Path $reg)) {
     Remove-ItemProperty -Path $reg -Name ApiToken -ErrorAction SilentlyContinue
 }
 if ($resetDeviceIdentity) {
-    foreach ($name in @('agent.token', 'client.pfx')) {
+    foreach ($name in @('agent.token', 'client.pfx', 'ca.crt')) {
         $stale = Join-Path $dir $name
         if (Test-Path -LiteralPath $stale) { Remove-Item -LiteralPath $stale -Force }
     }

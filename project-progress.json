@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-15T16:04:43+00:00",
-  "last_verified_commit": "06ecd3f9fbe4d235003c356a071fc8e18c4e8d96",
-  "last_verified_date": "2026-11-15T21:34:29+05:30",
+  "generated": "2026-11-15T16:05:53+00:00",
+  "last_verified_commit": "8032fa9461abbbec4a4b4090e030be87437b0fea",
+  "last_verified_date": "2026-11-15T21:35:42+05:30",
   "overall_progress_percent": 100.0,
   "progress_scope": "historic audit issue closure only; production acceptance pending",
   "production_ready": false,
@@ -20,29 +20,6 @@
     "unchanged": 221
   },
   "delta_history": [
-    {
-      "detected_at": "2026-08-11T00:02:29+00:00",
-      "added": [],
-      "removed": [],
-      "changed": [
-        "Enterprise/ROADMAP.md",
-        "Documentation/Windows-Smoke-Run.md",
-        "QUICK-SUMMARY.md",
-        "ANALYSIS-RECOMMENDATIONS.md",
-        "Enterprise/docker-compose.yml",
-        "Enterprise/README.md",
-        "Scaling Plan/PROGRESS-TRACKING.md",
-        "Documentation/README.md",
-        "Scaling Plan/IMPLEMENTATION-PLAN.md",
-        "Enterprise/.env.example",
-        "COMPLETION-REPORT.md",
-        "IT-TOOLKIT-GAP-ANALYSIS.md",
-        "Enterprise/SCALING-PLAN.md",
-        "Documentation/Deployment-AI-Runbook.md",
-        "Enterprise/ARCHITECTURE.md"
-      ],
-      "unchanged_count": 114
-    },
     {
       "detected_at": "2026-08-11T18:51:43+00:00",
       "added": [
@@ -395,6 +372,15 @@
       "removed": [],
       "changed": [
         "Enterprise/deploy/backup.sh"
+      ],
+      "unchanged_count": 221
+    },
+    {
+      "detected_at": "2026-11-15T16:05:53+00:00",
+      "added": [],
+      "removed": [],
+      "changed": [
+        "Enterprise/tests/Test-MySQL-Live-Rehearsal.sh"
       ],
       "unchanged_count": 221
     }

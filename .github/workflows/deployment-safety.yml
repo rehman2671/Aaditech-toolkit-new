@@ -1,0 +1,33 @@
+name: Deployment safety regression
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'Enterprise/deploy/**'
+      - 'Enterprise/tests/Test-MySQL-Backup-Restore.sh'
+      - '.github/workflows/deployment-safety.yml'
+  pull_request:
+    paths:
+      - 'Enterprise/deploy/**'
+      - 'Enterprise/tests/Test-MySQL-Backup-Restore.sh'
+      - '.github/workflows/deployment-safety.yml'
+  workflow_dispatch:
+
+jobs:
+  mysql-backup-restore:
+    name: Bash syntax and offline database recovery tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate deployment script syntax
+        shell: bash
+        run: |
+          bash -n Enterprise/deploy/deploy.sh
+          bash -n Enterprise/deploy/backup.sh
+          bash -n Enterprise/deploy/restore.sh
+      - name: Verify MySQL backup and restore safety controls
+        shell: bash
+        run: bash Enterprise/tests/Test-MySQL-Backup-Restore.sh

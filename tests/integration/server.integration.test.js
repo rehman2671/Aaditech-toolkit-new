@@ -42,6 +42,14 @@ describe('Server & API Integration Test Suite', () => {
         .send({ hostname: 'TEST-LAPTOP' });
       expect(res.status).toBe(401);
     });
+
+    it('POST enrollment rejects a malformed bootstrap token', async () => {
+      const res = await request(app)
+        .post('/api/v1/agent/enroll')
+        .send({ hostname: 'TEST-LAPTOP', bootstrap_token: 'not-a-real-token' });
+      expect(res.status).toBe(401);
+      expect(res.body.error).toBe('Unauthorized');
+    });
   });
 
   describe('1. Public & Operational Health Endpoints', () => {
@@ -495,6 +503,15 @@ describe('Server & API Integration Test Suite', () => {
         });
       expect(devRes.status).toBe(201);
       const devId = devRes.body.id;
+
+      // Registrations must not rotate an existing device's token just because
+      // a caller reuses the hostname. This exercises tenant identity preflight.
+      const duplicate = await request(app)
+        .post('/api/v1/devices')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ hostname: 'SURFACE-TEST-01', os_type: 'WINDOWS' });
+      expect(duplicate.status).toBe(409);
+      expect(duplicate.body.error).toBe('DEVICE_ALREADY_REGISTERED');
 
       const getDev = await request(app)
         .get(`/api/v1/devices/${devId}`)

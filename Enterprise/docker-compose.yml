@@ -4,7 +4,7 @@ services:
     restart: unless-stopped
     command: --default-authentication-plugin=mysql_native_password
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_ci_pass}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set MYSQL_ROOT_PASSWORD in Enterprise/.env}
       MYSQL_DATABASE: ${MYSQL_DATABASE:-it_toolkit}
       MYSQL_USER: ${MYSQL_USER:-itk_user}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD:?set in .env}
@@ -34,12 +34,14 @@ services:
       DB_USER: ${MYSQL_USER:-itk_user}
       DB_PASSWORD: ${MYSQL_PASSWORD}
       DB_NAME: ${MYSQL_DATABASE:-it_toolkit}
-      API_TOKEN: ${API_TOKEN:-}
+      API_TOKEN: ${API_TOKEN:?set API_TOKEN in Enterprise/.env}
       API_TOKEN_FILE: /data/api_token
       SERVER_HOST: ${SERVER_HOST:?set in .env}
       SESSION_SECRET: ${SESSION_SECRET:-}
-      JWT_SECRET: ${JWT_SECRET:-}
-      COMMAND_SIGNING_KEY: ${COMMAND_SIGNING_KEY:-}
+      HMAC_SECRET: ${HMAC_SECRET:?set HMAC_SECRET in Enterprise/.env}
+      BOOTSTRAP_SECRET: ${BOOTSTRAP_SECRET:?set BOOTSTRAP_SECRET in Enterprise/.env}
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in Enterprise/.env}
+      COMMAND_SIGNING_KEY: ${COMMAND_SIGNING_KEY:?set COMMAND_SIGNING_KEY in Enterprise/.env}
       DATA_DIR: /data
       ARTIFACTS_DIR: /artifacts
       ENVIRONMENT: ${ENVIRONMENT:-prod}

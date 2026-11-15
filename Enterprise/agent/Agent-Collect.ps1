@@ -101,6 +101,14 @@ function Read-AgentConfig {
     try { $cfg = (Get-Content $ConfigPath -Raw | ConvertFrom-Json) }
     catch { throw "Invalid agent.json: $($_.Exception.Message)" }
 
+    # CI-built generic installers intentionally contain no endpoint/credential.
+    # Never collect or attempt network calls until an administrator completes
+    # Configure-Agent.ps1 after the production server details are known.
+    if ($cfg.needs_setup -or [string]::IsNullOrWhiteSpace([string]$cfg.endpoint) -or
+        [string]::IsNullOrWhiteSpace([string]$cfg.token)) {
+        throw "Agent is not provisioned. Run Configure-Agent.ps1 as Administrator to configure HTTPS server and enrollment token."
+    }
+
     # Registry override knob (A4): HKLM\SOFTWARE\ITToolkit\Agent\EndpointUrl
     # and/or ApiToken override agent.json at startup. This is what makes the
     # GPO/manual redirect real without a reinstall. Empty/missing values fall
@@ -175,6 +183,13 @@ function Ensure-ClientCert {
     $dir = Split-Path $ConfigPath -Parent
     $caPath = Join-Path $dir 'ca.crt'
     $tokenPath = Get-AgentTokenPath
+
+    # Node/MySQL enrollment issues a per-device token, not a client PFX.
+    # Once that token has been saved, do not consume the single-use bootstrap
+    # token again on every cycle. HTTPS + device token remain in effect.
+    if ((Test-Path $tokenPath) -and (-not (Test-Path $pfx))) {
+        return $null
+    }
 
     # If a CA was already bundled (e.g. copied by install.cmd) or previously
     # enrolled, make sure it is trusted before the first mTLS call. Pre-B6

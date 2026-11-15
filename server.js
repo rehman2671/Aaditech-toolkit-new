@@ -25,6 +25,7 @@ import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 import * as db from './db.js';
 import { isValidSetupKey, isSeededDemoPasswordHash } from './setup-security.js';
+import { validateEnrollmentIdentity } from './enrollment-security.js';
 import {
   getAgentVersion,
   getAgentVersionInfo,
@@ -1068,18 +1069,14 @@ app.post('/api/v1/devices', requireRole(['SUPER_ADMIN', 'OPERATOR']), validateBo
 
 // Device Enrollment Endpoint (V1 & Legacy)
 const handleAgentEnroll = async (req, res) => {
-  if (req.method !== 'POST' && req.method !== 'GET') {
-    return res.status(405).json({ error: "Method Not Allowed" });
-  }
-
-  const bootstrap_token = req.body?.bootstrap_token || req.query?.bootstrap_token;
-  const hostname = req.body?.hostname || req.query?.hostname;
-  const device_uid = req.body?.device_uid || req.query?.device_uid;
-  const os_version = req.body?.os_version || req.query?.os_version;
-  const agent_version = req.body?.agent_version || req.query?.agent_version;
+  const bootstrap_token = req.body?.bootstrap_token;
+  const hostname = req.body?.hostname;
+  const device_uid = req.body?.device_uid;
+  const os_version = req.body?.os_version;
+  const agent_version = req.body?.agent_version;
 
   const rawToken = req.headers['x-bootstrap-token'] || bootstrap_token || (req.headers['authorization'] || '').replace(/^Bearer /, '').trim();
-  const host = (hostname || device_uid || req.headers['x-device-uid'] || '').trim();
+  const host = String(hostname || device_uid || req.headers['x-device-uid'] || '').trim();
 
   if (!rawToken) {
     return res.status(401).json({
@@ -1103,6 +1100,26 @@ const handleAgentEnroll = async (req, res) => {
     });
   }
 
+  // IMPORTANT: a globally looked-up hostname/UID can belong to another
+  // tenant. Check BOTH identifiers and the destination company before
+  // consuming a one-use bootstrap token or updating any device credentials.
+  const resolvedUid = String(device_uid || `dev-uid-${host.toLowerCase().split('.')[0]}`).trim();
+  const [existingHost, existingUid, companies] = await Promise.all([
+    db.getDeviceByHostname(host),
+    db.getDeviceByUid(resolvedUid),
+    db.getCompanies()
+  ]);
+  const company = companies.find(c => String(c.tenant_id) === String(ver.tenantId));
+  const preflight = validateEnrollmentIdentity({
+    tenantId: ver.tenantId, existingHost, existingUid, company
+  });
+  if (!preflight.ok) {
+    return res.status(preflight.status).json({
+      error: preflight.code,
+      detail: 'Cannot enroll this device into the requested workspace.'
+    });
+  }
+
   // Consume single-use bootstrap token atomically
   const consumed = await consumeBootstrapToken(rawToken, host, ver.tenantId);
   if (!consumed) {
@@ -1116,26 +1133,27 @@ const handleAgentEnroll = async (req, res) => {
   const devToken = generateDeviceToken();
   const tokenHash = hashDeviceToken(devToken);
 
-  let dev = await db.getDeviceByHostname(host);
+  let dev = existingHost;
 
   if (!dev) {
     const devId = crypto.randomUUID();
     const newDev = {
       id: devId,
-      device_uid: `dev-uid-${host.toLowerCase().split('.')[0]}`,
+      device_uid: resolvedUid,
       hostname: host,
       os_version: os_version || "Windows 11 Enterprise",
       agent_version: agent_version || getAgentVersion(),
       ip_address: req.ip || "127.0.0.1",
       status: "online",
-      company_id: 1,
+      company_id: company.id,
       tenant_id: ver.tenantId,
       device_token_hash: tokenHash,
       device_token_prefix: devToken.slice(0, 12),
       agent_token_revoked: false
     };
-    await db.syncDeviceToDb(newDev);
-    dev = await db.getDeviceByHostname(host);
+    const created = await db.syncDeviceToDb(newDev);
+    if (!created) return res.status(503).json({ error: 'DEVICE_ENROLL_FAILED' });
+    dev = await db.getDeviceById(devId);
   } else {
     await db.updateDevice(dev.id, {
       device_token_hash: tokenHash,
@@ -1165,7 +1183,6 @@ const handleAgentEnroll = async (req, res) => {
 };
 
 app.post(['/api/v1/agent/enroll', '/api/agent/enroll'], agentLimiter, handleAgentEnroll);
-app.get(['/api/v1/agent/enroll', '/api/agent/enroll'], agentLimiter, handleAgentEnroll);
 
 // Agent Heartbeat Endpoint
 app.post(['/api/v1/agent/heartbeat', '/api/agent/heartbeat'], agentLimiter, async (req, res) => {

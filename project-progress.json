@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-15T16:05:53+00:00",
-  "last_verified_commit": "8032fa9461abbbec4a4b4090e030be87437b0fea",
-  "last_verified_date": "2026-11-15T21:35:42+05:30",
+  "generated": "2026-11-15T16:08:13+00:00",
+  "last_verified_commit": "231c020d7ed5973970ee5011a22ba11c3ec972c0",
+  "last_verified_date": "2026-11-15T21:37:55+05:30",
   "overall_progress_percent": 100.0,
   "progress_scope": "historic audit issue closure only; production acceptance pending",
   "production_ready": false,
@@ -14,29 +14,12 @@
     "percent": 100.0
   },
   "latest_delta": {
-    "added": 0,
+    "added": 1,
     "removed": 0,
-    "changed": 1,
-    "unchanged": 221
+    "changed": 0,
+    "unchanged": 222
   },
   "delta_history": [
-    {
-      "detected_at": "2026-08-11T18:51:43+00:00",
-      "added": [
-        "Documentation/PROJECT-SPEC.md",
-        "Documentation/Local-E2E-Test.md"
-      ],
-      "removed": [],
-      "changed": [
-        "Documentation/README.md",
-        "CHANGELOG.md",
-        "Enterprise/api/tests/test_smoke.py",
-        "Enterprise/api/app/main.py",
-        "Enterprise/api/app/github.py",
-        "Documentation/Deployment-AI-Runbook.md"
-      ],
-      "unchanged_count": 123
-    },
     {
       "detected_at": "2026-08-11T21:42:26+00:00",
       "added": [],
@@ -383,6 +366,15 @@
         "Enterprise/tests/Test-MySQL-Live-Rehearsal.sh"
       ],
       "unchanged_count": 221
+    },
+    {
+      "detected_at": "2026-11-15T16:08:13+00:00",
+      "added": [
+        "command-signing.js"
+      ],
+      "removed": [],
+      "changed": [],
+      "unchanged_count": 222
     }
   ],
   "next_recommended_tasks": [

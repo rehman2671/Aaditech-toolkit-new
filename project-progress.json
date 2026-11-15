@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-15T16:48:52+00:00",
-  "last_verified_commit": "fec34854489cfceb14c708950fbaaecfa1f3d9a0",
-  "last_verified_date": "2026-11-15T22:18:45+05:30",
+  "generated": "2026-11-15T16:49:30+00:00",
+  "last_verified_commit": "45480ad066201aa3096b047349bd4953e908ead6",
+  "last_verified_date": "2026-11-15T22:19:17+05:30",
   "overall_progress_percent": 100.0,
   "progress_scope": "historic audit issue closure only; production acceptance pending",
   "production_ready": false,
@@ -20,15 +20,6 @@
     "unchanged": 226
   },
   "delta_history": [
-    {
-      "detected_at": "2026-11-15T16:25:54+00:00",
-      "added": [],
-      "removed": [],
-      "changed": [
-        "Enterprise/tests/Test-EnrollmentBootstrapCleanup.ps1"
-      ],
-      "unchanged_count": 225
-    },
     {
       "detected_at": "2026-11-15T16:27:33+00:00",
       "added": [],
@@ -197,6 +188,15 @@
       "removed": [],
       "changed": [
         "Enterprise/agent/wix/build-msi.ps1"
+      ],
+      "unchanged_count": 226
+    },
+    {
+      "detected_at": "2026-11-15T16:49:30+00:00",
+      "added": [],
+      "removed": [],
+      "changed": [
+        "Enterprise/tests/Test-Windows-MsiInstall.ps1"
       ],
       "unchanged_count": 226
     }

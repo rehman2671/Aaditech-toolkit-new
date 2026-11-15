@@ -208,8 +208,13 @@ function Clear-EnrollmentBootstrapToken {
     }
     $onDisk = Get-Content -LiteralPath $ConfigPath -Raw -ErrorAction Stop | ConvertFrom-Json
     if ($onDisk.PSObject.Properties.Name -notcontains 'token') { return }
-    if (-not $onDisk.token) {
+    $hasSecondaryBootstrap = $onDisk.PSObject.Properties.Name -contains 'bootstrap_token'
+    if (-not $onDisk.token -and
+        (-not $hasSecondaryBootstrap -or -not $onDisk.bootstrap_token)) {
         $Config.token = ''
+        if ($Config.PSObject.Properties.Name -contains 'bootstrap_token') {
+            $Config.bootstrap_token = ''
+        }
         return
     }
     $configDir = Split-Path $ConfigPath -Parent
@@ -218,11 +223,15 @@ function Clear-EnrollmentBootstrapToken {
     $replaced = $false
     try {
         $onDisk.token = ''
+        if ($hasSecondaryBootstrap) { $onDisk.bootstrap_token = '' }
         $cleanConfig = $onDisk | ConvertTo-Json -Depth 12
         [IO.File]::WriteAllText($tempPath, $cleanConfig, ([Text.UTF8Encoding]::new($false)))
         [IO.File]::Replace($tempPath, $ConfigPath, $backupPath)
         $replaced = $true
         $Config.token = ''
+        if ($Config.PSObject.Properties.Name -contains 'bootstrap_token') {
+            $Config.bootstrap_token = ''
+        }
     }
     finally {
         if (Test-Path -LiteralPath $tempPath) { Remove-Item -LiteralPath $tempPath -Force }

@@ -40,6 +40,7 @@ services:
       SESSION_SECRET: ${SESSION_SECRET:-}
       HMAC_SECRET: ${HMAC_SECRET:?set HMAC_SECRET in Enterprise/.env}
       BOOTSTRAP_SECRET: ${BOOTSTRAP_SECRET:?set BOOTSTRAP_SECRET in Enterprise/.env}
+      SETUP_TOKEN: ${SETUP_TOKEN:?set SETUP_TOKEN in Enterprise/.env}
       JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in Enterprise/.env}
       COMMAND_SIGNING_KEY: ${COMMAND_SIGNING_KEY:?set COMMAND_SIGNING_KEY in Enterprise/.env}
       DATA_DIR: /data

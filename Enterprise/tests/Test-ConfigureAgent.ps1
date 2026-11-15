@@ -37,6 +37,9 @@ if (-not $manifest.SelectSingleNode('//*[local-name()="ComponentRef" and @Id="Ag
 if (-not (Get-Content $builder -Raw).Contains('Configure-Agent-GUI.ps1')) {
     throw 'MSI build does not stage GUI setup script'
 }
+if (-not (Get-Content $builder -Raw).Contains('build -arch x64')) {
+    throw 'MSI build must explicitly target x64 instead of WiX default x86'
+}
 if (-not (Get-Content (Join-Path $root 'agent\endpoint.json') -Raw | ConvertFrom-Json).needs_setup) {
     throw 'Checked-in endpoint.json must remain unprovisioned'
 }

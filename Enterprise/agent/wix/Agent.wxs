@@ -226,7 +226,7 @@
                   Return="check"
                   Impersonate="no"
                   Execute="deferred"
-                  ExeCommand="&quot;[SystemFolder]icacls.exe&quot; &quot;[CommonAppDataFolder]ITToolkit-Agent&quot; /inheritance:r /grant:r SYSTEM:(OI)(CI)F Administrators:(OI)(CI)F &quot;NETWORK SERVICE&quot;:(OI)(CI)M /T /C" />
+                  ExeCommand="&quot;[SystemFolder]icacls.exe&quot; &quot;[CommonAppDataFolder]ITToolkit-Agent&quot; /inheritance:r /grant:r &quot;*S-1-5-18:(OI)(CI)F&quot; &quot;*S-1-5-32-544:(OI)(CI)F&quot; &quot;*S-1-5-20:(OI)(CI)M&quot; /T /C" />
 
     <!-- The Program Files copy of agent.json carries the same token; Program
          Files grants Users read by default, so lock that file too. The agent
@@ -237,7 +237,7 @@
                   Return="check"
                   Impersonate="no"
                   Execute="deferred"
-                  ExeCommand="&quot;[SystemFolder]icacls.exe&quot; &quot;[INSTALLFOLDER]agent.json&quot; /inheritance:r /grant:r SYSTEM:R Administrators:R &quot;NETWORK SERVICE&quot;:R /C" />
+                  ExeCommand="&quot;[SystemFolder]icacls.exe&quot; &quot;[INSTALLFOLDER]agent.json&quot; /inheritance:r /grant:r &quot;*S-1-5-18:R&quot; &quot;*S-1-5-32-544:R&quot; &quot;*S-1-5-20:R&quot; /C" />
 
     <InstallExecuteSequence>
       <Custom Action="RemoveSchedTask" After="InstallInitialize" Condition="REMOVE=&quot;ALL&quot;" />

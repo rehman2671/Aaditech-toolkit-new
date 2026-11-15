@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-15T16:24:25+00:00",
-  "last_verified_commit": "2e744aca5b19680efdd5e23cfee6d865cf2c8fcf",
-  "last_verified_date": "2026-11-15T21:54:14+05:30",
+  "generated": "2026-11-15T16:25:06+00:00",
+  "last_verified_commit": "a7fbb41095963a041d1622a9d23353d9b4fe770f",
+  "last_verified_date": "2026-11-15T21:54:57+05:30",
   "overall_progress_percent": 100.0,
   "progress_scope": "historic audit issue closure only; production acceptance pending",
   "production_ready": false,
@@ -20,15 +20,6 @@
     "unchanged": 225
   },
   "delta_history": [
-    {
-      "detected_at": "2026-11-15T16:10:45+00:00",
-      "added": [],
-      "removed": [],
-      "changed": [
-        "Enterprise/agent/Agent-Collect.ps1"
-      ],
-      "unchanged_count": 222
-    },
     {
       "detected_at": "2026-11-15T16:12:13+00:00",
       "added": [],
@@ -199,6 +190,15 @@
       "removed": [],
       "changed": [
         ".github/workflows/ci.yml"
+      ],
+      "unchanged_count": 225
+    },
+    {
+      "detected_at": "2026-11-15T16:25:06+00:00",
+      "added": [],
+      "removed": [],
+      "changed": [
+        "Enterprise/agent/SETUP-WINDOWS.md"
       ],
       "unchanged_count": 225
     }

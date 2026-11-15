@@ -422,7 +422,7 @@ jobs:
 
           "PUBLISH_SIGNED=true" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
-      - name: Upload verified signed artifacts only      - name: Upload verified signed artifacts only
+      - name: Upload verified signed artifacts only
         if: env.PUBLISH_SIGNED == 'true'
         uses: actions/upload-artifact@v4
         with:

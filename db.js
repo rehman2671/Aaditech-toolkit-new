@@ -101,6 +101,11 @@ export async function attemptConnection() {
   const database = process.env.DB_NAME || 'it_toolkit';
   const port = parseInt(process.env.DB_PORT || '3306', 10);
   const poolSize = parseInt(process.env.DB_POOL_SIZE || '20', 10);
+  // Device identity advisory locks pin one connection temporarily; require
+  // at least one additional connection for the protected DB operations.
+  if (process.env.NODE_ENV === 'production' && (!Number.isInteger(poolSize) || poolSize < 2)) {
+    throw new Error('DB_POOL_SIZE must be at least 2 in production for device identity locking');
+  }
 
   if (pool) {
     try {
@@ -1093,6 +1098,19 @@ export async function getDeviceById(id) {
 // the callback fails. Locks cover BOTH global hostname and UID because legacy
 // devices currently lack tenant-scoped unique identifiers.
 const localIdentityLocks = new Map();
+// Admit one registration/enrollment per Node process at a time so MySQL's
+// pool retains free connections for the callback's preflight/write queries.
+// GET_LOCK is session-scoped; holding all pool connections while waiting
+// for other API queries could deadlock under a burst of enrollments.
+let mysqlIdentityAdmission = Promise.resolve();
+async function withMysqlIdentityAdmission(fn) {
+  const prior = mysqlIdentityAdmission;
+  let release;
+  mysqlIdentityAdmission = new Promise(resolve => { release = resolve; });
+  await prior;
+  try { return await fn(); }
+  finally { release(); }
+}
 export async function withDeviceIdentityLock(hostname, deviceUid, fn) {
   if (typeof fn !== 'function') throw new TypeError('Identity lock callback required');
   const host = String(hostname || '').trim().toLowerCase();
@@ -1104,6 +1122,7 @@ export async function withDeviceIdentityLock(hostname, deviceUid, fn) {
   ])].sort();
 
   if (isMysqlConnected() && pool && typeof pool.getConnection === 'function') {
+    return withMysqlIdentityAdmission(async () => {
     const connection = await pool.getConnection();
     const held = [];
     try {
@@ -1122,6 +1141,7 @@ export async function withDeviceIdentityLock(hostname, deviceUid, fn) {
       }
       connection.release();
     }
+    });
   }
   if (process.env.NODE_ENV === 'production') {
     throw new Error('Refusing device identity operation without MySQL advisory locks');

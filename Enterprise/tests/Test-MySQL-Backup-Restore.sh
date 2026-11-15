@@ -61,6 +61,14 @@ FILE="${files[0]}"
 [ "$(head -n 1 "$FILE")" = '-- aaditech-mysql-backup-v1 database=it_toolkit' ]
 [ "$(stat -c %a "$FILE")" = 600 ]
 
+# Retention must prune only previous backups, keeping the current dump.
+BACKUP_KEEP=1 bash "$BACKUP"
+shopt -s nullglob
+retained=("$BACKUP_DIR"/ittoolkit-*.sql)
+shopt -u nullglob
+[ "${#retained[@]}" -eq 1 ] || { echo "BACKUP_KEEP did not prune old backups" >&2; exit 1; }
+FILE="${retained[0]}"
+
 # Restore needs explicit authorization, even when a valid backup exists.
 : > "$FAKE_DOCKER_LOG"
 if bash "$RESTORE" "$FILE" > "$TEMP/out" 2>&1; then

@@ -107,10 +107,19 @@ function Read-AgentConfig {
     # back to the file.
     $regKey = 'HKLM:\SOFTWARE\ITToolkit\Agent'
     if (Test-Path $regKey) {
-        $endpoint = (Get-ItemProperty $regKey -ErrorAction SilentlyContinue).EndpointUrl
-        $token    = (Get-ItemProperty $regKey -ErrorAction SilentlyContinue).ApiToken
-        if ($endpoint) { $cfg.endpoint = $endpoint; Write-AgentLog "Registry override: endpoint -> $endpoint" }
-        if ($token)    { $cfg.token    = $token;    Write-AgentLog 'Registry override: token applied' }
+        $policy = Get-ItemProperty -Path $regKey -ErrorAction SilentlyContinue
+        if ($policy) {
+            $endpoint = $policy.PSObject.Properties['EndpointUrl']
+            $token = $policy.PSObject.Properties['ApiToken']
+            if ($endpoint -and $endpoint.Value) {
+                $cfg.endpoint = [string]$endpoint.Value
+                Write-AgentLog "Registry override: endpoint -> $($endpoint.Value)"
+            }
+            if ($token -and $token.Value) {
+                $cfg.token = [string]$token.Value
+                Write-AgentLog 'Registry override: token applied'
+            }
+        }
     }
     # Validate AFTER GPO/registry overrides. On first run the bootstrap
     # token authorizes enrollment; afterwards that secret is removed and the

@@ -106,6 +106,16 @@ This Compose deployment requires a Docker-capable VPS with DNS pointing to
 it, TCP 80/443 available, and a trusted Caddy ACME HTTPS certificate.
 Shared hosting without Docker/required inbound ports is not supported.
 
+**Production database configuration (fail closed):** supply explicit
+`DB_HOST`, `DB_USER`, `DB_PASSWORD` and `DB_NAME` to the Node API.
+Production connections reject missing/blank settings instead of relying on
+development defaults. `DB_PORT` must be in the valid TCP range, and
+`DB_POOL_SIZE` must be between 2 and 500 to reserve capacity for identity
+advisory locks and their protected database operations. A validation failure
+does not permanently latch the connection retry state. The supplied Docker
+Compose configuration passes the database values through from the host's
+approved `Enterprise/.env`. Never put that file in Git or the MSI.
+
 ```bash
 cd Enterprise/deploy
 bash deploy-mysql.sh --host YOUR-ACTUAL-DNS-NAME --dry-run

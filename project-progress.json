@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-15T17:00:53+00:00",
-  "last_verified_commit": "ae6a9b43d7f1b0a38e0127e70cbf57dc7383af3b",
-  "last_verified_date": "2026-11-15T22:30:39+05:30",
+  "generated": "2026-11-15T17:01:14+00:00",
+  "last_verified_commit": "b8398617d908a99959a12342577d08ee8af32320",
+  "last_verified_date": "2026-11-15T22:31:04+05:30",
   "overall_progress_percent": 100.0,
   "progress_scope": "historic audit issue closure only; production acceptance pending",
   "production_ready": false,
@@ -20,15 +20,6 @@
     "unchanged": 226
   },
   "delta_history": [
-    {
-      "detected_at": "2026-11-15T16:32:14+00:00",
-      "added": [],
-      "removed": [],
-      "changed": [
-        "tests/unit/boot-security.test.js"
-      ],
-      "unchanged_count": 225
-    },
     {
       "detected_at": "2026-11-15T16:32:33+00:00",
       "added": [],
@@ -197,6 +188,15 @@
       "removed": [],
       "changed": [
         "Enterprise/agent/wix/Agent.wxs"
+      ],
+      "unchanged_count": 226
+    },
+    {
+      "detected_at": "2026-11-15T17:01:14+00:00",
+      "added": [],
+      "removed": [],
+      "changed": [
+        "Enterprise/tests/Test-ConfigureAgent.ps1"
       ],
       "unchanged_count": 226
     }

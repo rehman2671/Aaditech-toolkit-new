@@ -381,7 +381,8 @@ jobs:
           $out = 'Enterprise/agent/build/out'
           $targets = @(Join-Path $out 'IT-Toolkit-Agent.exe') + @(Get-ChildItem -Path $out -Filter '*.msi' -ErrorAction SilentlyContinue | ForEach-Object { $_.FullName })
           if (-not $env:CODESIGN_PFX_B64) {
-            Write-Host "::warning::CODESIGN_PFX_B64 not set — artifacts left UNSIGNED"
+            Write-Host "::warning::Code-signing certificate absent — MSI remains a diagnostic build and WILL NOT be published."
+            "PUBLISH_SIGNED=false" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
             exit 0
           }
           $pfx = Join-Path $env:RUNNER_TEMP 'codesign.pfx'
@@ -415,11 +416,14 @@ jobs:
             }
             if (-not $signed) { throw "signtool failed on $t" }
             & $signtool.FullName verify /pa /v $t 2>$null
-            if ($LASTEXITCODE -ne 0) { Write-Host "::warning::verify reported an issue (check cert chain on target machines)" }
-            Write-Host "Signed: $t"
+            if ($LASTEXITCODE -ne 0) { throw "Authenticode chain verification failed for $t. Refusing to publish." }
+            Write-Host "Signed and verified: $t"
           }
 
-      - name: Upload artifacts
+          "PUBLISH_SIGNED=true" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Upload verified signed artifacts only      - name: Upload verified signed artifacts only
+        if: env.PUBLISH_SIGNED == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: it-toolkit-agent

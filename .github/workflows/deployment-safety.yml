@@ -7,12 +7,14 @@ on:
       - 'Enterprise/deploy/**'
       - 'Enterprise/tests/Test-MySQL-Backup-Restore.sh'
       - 'Enterprise/tests/Test-DeployMySQL.sh'
+      - 'Enterprise/tests/Test-MySQL-Live-Rehearsal.sh'
       - '.github/workflows/deployment-safety.yml'
   pull_request:
     paths:
       - 'Enterprise/deploy/**'
       - 'Enterprise/tests/Test-MySQL-Backup-Restore.sh'
       - 'Enterprise/tests/Test-DeployMySQL.sh'
+      - 'Enterprise/tests/Test-MySQL-Live-Rehearsal.sh'
       - '.github/workflows/deployment-safety.yml'
   workflow_dispatch:
 
@@ -37,3 +39,40 @@ jobs:
       - name: Verify HTTPS/MySQL deployment dry-run isolation
         shell: bash
         run: bash Enterprise/tests/Test-DeployMySQL.sh
+
+  mysql-live-rehearsal:
+    name: Isolated MySQL 8 backup and restore data integrity
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate temporary CI-only MySQL credentials
+        shell: bash
+        run: |
+          umask 077
+          {
+            echo 'COMPOSE_PROJECT_NAME=itk_rehearsal_${{ github.run_id }}'
+            echo 'MYSQL_DATABASE=it_toolkit_rehearsal'
+            echo 'MYSQL_USER=itk_ci_user'
+            for name in MYSQL_ROOT_PASSWORD MYSQL_PASSWORD API_TOKEN JWT_SECRET HMAC_SECRET BOOTSTRAP_SECRET COMMAND_SIGNING_KEY SETUP_TOKEN; do
+              echo "${name}=$(openssl rand -hex 32)"
+            done
+            echo 'SERVER_HOST=ci.example.org'
+            echo 'CADDY_HOST=ci.example.org'
+            echo 'ENVIRONMENT=prod'
+          } > Enterprise/.env
+          chmod 600 Enterprise/.env
+      - name: Verify compose substitution and run real database recovery rehearsal
+        shell: bash
+        run: |
+          bash -n Enterprise/tests/Test-MySQL-Live-Rehearsal.sh
+          docker compose --env-file Enterprise/.env -f Enterprise/docker-compose.yml config --quiet
+          AADITECH_REHEARSAL=isolated-ci bash Enterprise/tests/Test-MySQL-Live-Rehearsal.sh
+      - name: Tear down disposable CI database
+        if: always()
+        shell: bash
+        run: |
+          if [ -f Enterprise/.env ]; then
+            docker compose --env-file Enterprise/.env -f Enterprise/docker-compose.yml down -v --remove-orphans || true
+          fi

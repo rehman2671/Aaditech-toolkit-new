@@ -29,7 +29,7 @@ $versionFile = Join-Path $PSScriptRoot '..\agent-version.json'
 $agentVersion = '1.1.2'
 if (Test-Path -LiteralPath $versionFile) {
     try {
-        $meta = Get-Content -LiteralPath $versionFile -Raw | ConvertFrom-Json -AsHashtable
+        $meta = Get-Content -LiteralPath $versionFile -Raw | ConvertFrom-Json
         if ($meta.agent_version) { $agentVersion = [string]$meta.agent_version }
     } catch {
         Write-Warning "Could not parse agent-version.json; using default $agentVersion"
@@ -53,7 +53,6 @@ $compileParams = @{
     inputFile   = (Resolve-Path $SourceScript).Path
     outputFile  = $outputExe
     noConsole   = $false
-    runtime40   = $true
     title       = "IT-Toolkit Enterprise Agent"
     description = "Enterprise IT Endpoint Administration & Monitoring Agent"
     company     = "Aaditech"
@@ -62,8 +61,11 @@ $compileParams = @{
     copyright   = "(c) 2026 Aaditech. All rights reserved."
 }
 
+# ps2exe is installed as a PowerShell command, not a native executable on
+# all supported versions. It may not update LASTEXITCODE; the output checks
+# below are the authoritative success gate.
 & ps2exe @compileParams
-if ($LASTEXITCODE -ne 0) {
+if ($LASTEXITCODE -is [int] -and $LASTEXITCODE -ne 0) {
     throw "ps2exe compiler exited with error code $LASTEXITCODE"
 }
 

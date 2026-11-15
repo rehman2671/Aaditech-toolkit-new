@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-15T16:16:22+00:00",
-  "last_verified_commit": "e7e6950a4d9c79e6dd7673a3c5c3e4bfeb7d70c8",
-  "last_verified_date": "2026-11-15T21:46:15+05:30",
+  "generated": "2026-11-15T16:17:49+00:00",
+  "last_verified_commit": "4ba1651eb184e62613f20e5465f98820274603e7",
+  "last_verified_date": "2026-11-15T21:47:39+05:30",
   "overall_progress_percent": 100.0,
   "progress_scope": "historic audit issue closure only; production acceptance pending",
   "production_ready": false,
@@ -16,19 +16,10 @@
   "latest_delta": {
     "added": 0,
     "removed": 0,
-    "changed": 1,
-    "unchanged": 224
+    "changed": 3,
+    "unchanged": 222
   },
   "delta_history": [
-    {
-      "detected_at": "2026-11-15T16:01:17+00:00",
-      "added": [
-        "Enterprise/deploy/PHASE-N-STAGE4-ACCEPTANCE.md"
-      ],
-      "removed": [],
-      "changed": [],
-      "unchanged_count": 221
-    },
     {
       "detected_at": "2026-11-15T16:01:54+00:00",
       "added": [],
@@ -200,6 +191,17 @@
         "Enterprise/deploy/PHASE-N-STAGE4-ACCEPTANCE.md"
       ],
       "unchanged_count": 224
+    },
+    {
+      "detected_at": "2026-11-15T16:17:49+00:00",
+      "added": [],
+      "removed": [],
+      "changed": [
+        "server.js",
+        "tests/integration/server.integration.test.js",
+        ".github/workflows/ci.yml"
+      ],
+      "unchanged_count": 222
     }
   ],
   "next_recommended_tasks": [

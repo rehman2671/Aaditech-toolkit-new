@@ -321,8 +321,13 @@ function logAudit(actor, action, targetResource, details, req) {
 // ---------------- HEALTHZ & PROMETHEUS METRICS ----------------
 app.get(['/healthz', '/api/health', '/api/v1/health'], (req, res) => {
   const retentionRun = db.getLastRetentionRun();
-  res.status(200).json({
-    status: "ok",
+  // Readiness must reflect the backing database, not just an open HTTP port.
+  // Test fixtures intentionally exercise the in-memory fallback separately.
+  const databaseReady = isMysqlConnected();
+  const isProductionDatabaseDown = process.env.NODE_ENV === 'production' &&
+    process.env.VITEST !== 'true' && process.env.VITEST !== '1' && !databaseReady;
+  res.status(isProductionDatabaseDown ? 503 : 200).json({
+    status: isProductionDatabaseDown ? 'degraded' : 'ok',
     timestamp: new Date().toISOString(),
     uptime_seconds: Math.floor(process.uptime()),
     components: {
@@ -799,6 +804,20 @@ async function authenticateAgentOrUser(req, res, next) {
     detail: ver.detail || "Device or Agent authentication required."
   });
 }
+
+// Never fall back to in-memory tenant/device state while a production
+// database is unavailable. Leave /healthz readable for diagnostics.
+app.use((req, res, next) => {
+  const realProduction = process.env.NODE_ENV === 'production' &&
+    process.env.VITEST !== 'true' && process.env.VITEST !== '1';
+  if (realProduction && /^\/api(?:\/|$)/.test(req.path) && !isMysqlConnected()) {
+    return res.status(503).set('Retry-After', '5').json({
+      error: 'DATABASE_UNAVAILABLE',
+      detail: 'Production API is unavailable until its persistent database is healthy.'
+    });
+  }
+  next();
+});
 
 // Rate limit all API routes
 app.use(['/api', '/api/v1'], apiLimiter);
@@ -3045,20 +3064,38 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(portalPath, 'index.html'));
 });
 
-// Start HTTP server immediately so port 3000 is open and responsive to health probes
+// Real production must not accept traffic before the persistent database is
+// available. Test/dev fixtures retain their documented resilient fallback.
 let serverInstance = null;
-if (!process.env.VITEST) {
+const runningUnderVitest = process.env.VITEST === 'true' || process.env.VITEST === '1';
+if (!runningUnderVitest) {
+  const isProduction = process.env.NODE_ENV === 'production';
+  if (isProduction) {
+    const missing = ['DB_HOST', 'DB_USER', 'DB_PASSWORD', 'DB_NAME']
+      .filter(name => !process.env[name] || !process.env[name].trim());
+    if (missing.length) {
+      console.error(`FATAL: Missing production database configuration: ${missing.join(', ')}`);
+      process.exit(1);
+    }
+    try {
+      const ready = await initDbPool();
+      if (!ready || !isMysqlConnected()) {
+        console.error('FATAL: Production MySQL did not become healthy. Refusing to open HTTP port.');
+        process.exit(1);
+      }
+    } catch (err) {
+      console.error('FATAL: Production MySQL startup failed:', err.message);
+      process.exit(1);
+    }
+  }
   serverInstance = app.listen(PORT, '0.0.0.0', () => {
     console.log(`IT-Toolkit Enterprise Portal running on http://0.0.0.0:${PORT}`);
   });
-}
-
-// Initialize MySQL pool with exponential-backoff retry and periodic health-check
-if (!process.env.VITEST) {
-  await initDbPool().catch(e => {
-    console.warn('Database initialization note:', e.message);
-  });
-
+  if (!isProduction) {
+    await initDbPool().catch(e => {
+      console.warn('Development database initialization note:', e.message);
+    });
+  }
   // Initialize scheduled hourly data retention & partition cleanup engine
   db.initRetentionScheduler(3600000);
 }

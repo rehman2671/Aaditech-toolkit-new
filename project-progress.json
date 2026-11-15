@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-15T16:10:29+00:00",
-  "last_verified_commit": "3be8680dd0113c46c85b32bbe8ccab71a494ee1a",
-  "last_verified_date": "2026-11-15T21:40:18+05:30",
+  "generated": "2026-11-15T16:10:45+00:00",
+  "last_verified_commit": "4b87f93dba1f360d1e3d0d55b1b9cedc5669b5b7",
+  "last_verified_date": "2026-11-15T21:40:37+05:30",
   "overall_progress_percent": 100.0,
   "progress_scope": "historic audit issue closure only; production acceptance pending",
   "production_ready": false,
@@ -20,16 +20,6 @@
     "unchanged": 222
   },
   "delta_history": [
-    {
-      "detected_at": "2026-08-11T22:59:10+00:00",
-      "added": [],
-      "removed": [],
-      "changed": [
-        "Enterprise/agent/agent-version.json",
-        "Enterprise/agent/wix/Agent.wxs"
-      ],
-      "unchanged_count": 129
-    },
     {
       "detected_at": "2026-08-11T23:26:59+00:00",
       "added": [
@@ -359,6 +349,15 @@
     },
     {
       "detected_at": "2026-11-15T16:10:29+00:00",
+      "added": [],
+      "removed": [],
+      "changed": [
+        "Enterprise/agent/Agent-Collect.ps1"
+      ],
+      "unchanged_count": 222
+    },
+    {
+      "detected_at": "2026-11-15T16:10:45+00:00",
       "added": [],
       "removed": [],
       "changed": [

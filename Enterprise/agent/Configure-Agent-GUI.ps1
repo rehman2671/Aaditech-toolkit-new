@@ -42,58 +42,58 @@ $form.StartPosition = 'CenterScreen'
 $form.FormBorderStyle = [System.Windows.Forms.FormBorderStyle]::FixedDialog
 $form.MaximizeBox = $false
 $form.MinimizeBox = $false
-$form.ClientSize = New-Object System.Drawing.Size(590, 358)
-$form.Font = New-Object System.Drawing.Font('Segoe UI', 10)
+$form.ClientSize = [System.Drawing.Size]::new(590, 358)
+$form.Font = [System.Drawing.Font]::new('Segoe UI', 10)
 
 function Add-WizardLabel([string]$text, [int]$x, [int]$y, [int]$w) {
     $label = New-Object System.Windows.Forms.Label
     $label.Text = $text
-    $label.Location = New-Object System.Drawing.Point($x, $y)
-    $label.Size = New-Object System.Drawing.Size($w, 24)
+    $label.Location = [System.Drawing.Point]::new($x, $y)
+    $label.Size = [System.Drawing.Size]::new($w, 24)
     $form.Controls.Add($label)
     return $label
 }
 $heading = Add-WizardLabel 'Configure your AadiTech server' 20 16 545
-$heading.Font = New-Object System.Drawing.Font('Segoe UI', 14, [System.Drawing.FontStyle]::Bold)
+$heading.Font = [System.Drawing.Font]::new('Segoe UI', 14, [System.Drawing.FontStyle]::Bold)
 
 $description = Add-WizardLabel 'Set the HTTPS server URL after deployment. Re-run to change servers later.' 20 48 555
-$description.Font = New-Object System.Drawing.Font('Segoe UI', 9)
+$description.Font = [System.Drawing.Font]::new('Segoe UI', 9)
 $description.ForeColor = [System.Drawing.Color]::DimGray
 
 $null = Add-WizardLabel 'Server URL' 20 88 535
 $urlBox = New-Object System.Windows.Forms.TextBox
-$urlBox.Location = New-Object System.Drawing.Point(20, 115)
-$urlBox.Size = New-Object System.Drawing.Size(550, 29)
+$urlBox.Location = [System.Drawing.Point]::new(20, 115)
+$urlBox.Size = [System.Drawing.Size]::new(550, 29)
 $form.Controls.Add($urlBox)
 
 $null = Add-WizardLabel 'Single-use device enrollment token (hidden)' 20 156 540
 $tokenBox = New-Object System.Windows.Forms.TextBox
-$tokenBox.Location = New-Object System.Drawing.Point(20, 182)
-$tokenBox.Size = New-Object System.Drawing.Size(550, 29)
+$tokenBox.Location = [System.Drawing.Point]::new(20, 182)
+$tokenBox.Size = [System.Drawing.Size]::new(550, 29)
 $tokenBox.UseSystemPasswordChar = $true
 $form.Controls.Add($tokenBox)
 
 $healthCheck = New-Object System.Windows.Forms.CheckBox
 $healthCheck.Text = 'Verify HTTPS certificate and database health before saving'
-$healthCheck.Location = New-Object System.Drawing.Point(20, 222)
-$healthCheck.Size = New-Object System.Drawing.Size(550, 25)
+$healthCheck.Location = [System.Drawing.Point]::new(20, 222)
+$healthCheck.Size = [System.Drawing.Size]::new(550, 25)
 $healthCheck.Checked = $true
 $form.Controls.Add($healthCheck)
 
 $clearOverride = New-Object System.Windows.Forms.CheckBox
 $clearOverride.Text = 'Clear old machine-policy endpoint overrides (if present)'
-$clearOverride.Location = New-Object System.Drawing.Point(20, 250)
-$clearOverride.Size = New-Object System.Drawing.Size(550, 24)
+$clearOverride.Location = [System.Drawing.Point]::new(20, 250)
+$clearOverride.Size = [System.Drawing.Size]::new(550, 24)
 $form.Controls.Add($clearOverride)
 
 $status = Add-WizardLabel 'Use a tenant-scoped token issued by your server administrator.' 20 278 548
-$status.Font = New-Object System.Drawing.Font('Segoe UI', 9)
+$status.Font = [System.Drawing.Font]::new('Segoe UI', 9)
 $status.ForeColor = [System.Drawing.Color]::DimGray
 
 $save = New-Object System.Windows.Forms.Button
 $save.Text = 'Save and Configure Agent'
-$save.Location = New-Object System.Drawing.Point(308, 310)
-$save.Size = New-Object System.Drawing.Size(262, 34)
+$save.Location = [System.Drawing.Point]::new(308, 310)
+$save.Size = [System.Drawing.Size]::new(262, 34)
 $form.Controls.Add($save)
 $form.AcceptButton = $save
 

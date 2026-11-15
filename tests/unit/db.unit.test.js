@@ -57,6 +57,38 @@ describe('Database Module (db.js) Unit Test Suite', () => {
       expect(true).toBe(true);
     });
 
+    it('fails closed on missing production DB credentials and allows connection retry after validation errors', async () => {
+      const keys = ['NODE_ENV', 'DB_HOST', 'DB_USER', 'DB_PASSWORD', 'DB_NAME', 'DB_POOL_SIZE', 'DB_PORT'];
+      const original = Object.fromEntries(keys.map(key => [key, process.env[key]]));
+      try {
+        process.env.NODE_ENV = 'production';
+        process.env.DB_HOST = '127.0.0.1';
+        process.env.DB_USER = 'db_test_user';
+        process.env.DB_NAME = 'it_toolkit_test';
+        process.env.DB_PORT = '3306';
+        process.env.DB_POOL_SIZE = '20';
+        delete process.env.DB_PASSWORD;
+        await expect(db.attemptConnection()).rejects.toThrow('DB_PASSWORD must be explicitly configured');
+
+        process.env.DB_PASSWORD = 'test-randomly-provisioned-password';
+        process.env.DB_POOL_SIZE = '1';
+        await expect(db.attemptConnection()).rejects.toThrow('DB_POOL_SIZE must be between 2 and 500');
+
+        process.env.DB_POOL_SIZE = '20';
+        process.env.DB_PORT = '0';
+        await expect(db.attemptConnection()).rejects.toThrow('DB_PORT must be a valid TCP port');
+
+        process.env.DB_PORT = '3306';
+        mockQuery.mockRejectedValueOnce(new Error('retry remains enabled'));
+        await expect(db.attemptConnection()).rejects.toThrow('retry remains enabled');
+      } finally {
+        for (const [key, value] of Object.entries(original)) {
+          if (value === undefined) delete process.env[key];
+          else process.env[key] = value;
+        }
+      }
+    });
+
     it('attemptConnection() succeeds when mock pool queries successfully', async () => {
       mockQuery.mockResolvedValueOnce([[{ solution: 2 }]]);
       // mock migration check

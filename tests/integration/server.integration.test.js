@@ -35,6 +35,22 @@ describe('Server & API Integration Test Suite', () => {
   });
 
   describe('0. Agent enrollment transport hardening', () => {
+    it('production rejects fleet HMAC-only device impersonation without auto-provisioning', async () => {
+      const previousEnvironment = process.env.NODE_ENV;
+      process.env.NODE_ENV = 'production';
+      try {
+        const response = await request(app)
+          .get('/api/v1/commands/poll?hostname=UNENROLLED-HMAC-HOST')
+          .set('X-Agent-Signature', 'a'.repeat(64))
+          .set('X-Device-UID', 'dev-uid-UNENROLLED-HMAC-HOST')
+          .set('X-Timestamp', String(Date.now()));
+        expect(response.status).toBe(403);
+        expect(response.body.error).toBe('ENROLLED_DEVICE_TOKEN_REQUIRED');
+      } finally {
+        process.env.NODE_ENV = previousEnvironment;
+      }
+    });
+
     it('GET enrollment is rejected instead of treating a bootstrap token in a URL as valid', async () => {
       const res = await request(app).get('/api/v1/agent/enroll?bootstrap_token=invalid&hostname=TEST-LAPTOP');
       expect(res.status).toBe(405);

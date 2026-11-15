@@ -43,7 +43,9 @@ if (Test-Path -LiteralPath $ConfigPath) {
 
 if ([string]::IsNullOrWhiteSpace($ServerUrl)) {
     if ($NonInteractive) { throw '-ServerUrl is required in -NonInteractive mode.' }
-    $previous = if ($old.endpoint) { ([uri]$old.endpoint).GetLeftPart([UriPartial]::Authority) } else { '' }
+    $previous = if ($old.ContainsKey('endpoint') -and $old['endpoint']) {
+        ([uri]$old['endpoint']).GetLeftPart([UriPartial]::Authority)
+    } else { '' }
     $ServerUrl = Read-Host "HTTPS server URL (e.g. https://toolkit.example.com) [$previous]"
     if (-not $ServerUrl) { $ServerUrl = $previous }
 }
@@ -113,8 +115,8 @@ if ($TestConnection) {
 }
 
 $newEndpoint = "$base/api/v1/ingest/telemetry"
-$oldEndpoint = [string]$old.endpoint
-$oldToken = [string]$old.token
+$oldEndpoint = if ($old.ContainsKey('endpoint')) { [string]$old['endpoint'] } else { '' }
+$oldToken = if ($old.ContainsKey('token')) { [string]$old['token'] } else { '' }
 $resetDeviceIdentity = ($newEndpoint -ne $oldEndpoint) -or ($token -ne $oldToken)
 $old['endpoint'] = $newEndpoint
 $old['enroll_url'] = "$base/api/v1/agent/enroll"

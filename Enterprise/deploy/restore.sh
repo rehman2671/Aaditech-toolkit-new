@@ -86,19 +86,19 @@ compose exec -T db sh -ec '
   case "$MYSQL_DATABASE" in
     ""|*[!a-zA-Z0-9_]* ) echo "Invalid MYSQL_DATABASE" >&2; exit 2 ;;
   esac
-  mysql --host=127.0.0.1 --user="$MYSQL_USER" \
+  mysql --host=localhost --user="$MYSQL_USER" \
     --execute="DROP DATABASE IF EXISTS \`$MYSQL_DATABASE\`; CREATE DATABASE \`$MYSQL_DATABASE\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
 '
 compose exec -T db sh -ec '
   export MYSQL_PWD="$MYSQL_PASSWORD"
-  exec mysql --host=127.0.0.1 --user="$MYSQL_USER" \
+  exec mysql --host=localhost --user="$MYSQL_USER" \
     --default-character-set=utf8mb4 --binary-mode=1 \
     --database="$MYSQL_DATABASE"
 ' < "$FILE"
 
 compose exec -T db sh -ec '
   export MYSQL_PWD="$MYSQL_PASSWORD"
-  mysql --host=127.0.0.1 --user="$MYSQL_USER" \
+  mysql --host=localhost --user="$MYSQL_USER" \
     --database="$MYSQL_DATABASE" --batch --skip-column-names \
     --execute="SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE();" |
     grep -Eq "^[1-9][0-9]*$"

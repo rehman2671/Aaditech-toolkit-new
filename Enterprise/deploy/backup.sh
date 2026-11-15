@@ -41,17 +41,44 @@ trap 'rm -f "$TEMP_FILE"' EXIT
 log "Waiting for MySQL database readiness."
 compose up -d --wait --wait-timeout 120 db >&2
 
-# Keep mysqldump credentials inside the DB container; do not place them on
-# the host process command line. Single-transaction gives a consistent InnoDB
-# snapshot without table locks; schema changes must be paused during the dump.
-printf '%s\n' "-- aaditech-mysql-backup-v1 database=$DB_NAME" > "$TEMP_FILE"
-compose exec -T db sh -ec '
-  export MYSQL_PWD="$MYSQL_PASSWORD"
-  exec mysqldump --host=localhost --user="$MYSQL_USER" \
-    --single-transaction --quick --triggers --routines --events \
-    --set-gtid-purged=OFF --no-tablespaces \
-    --default-character-set=utf8mb4 "$MYSQL_DATABASE"
-' >> "$TEMP_FILE"
+# docker health can briefly turn healthy while MySQL is still restarting.
+# Probe with the actual application user AND database, not mysqladmin ping,
+# before attempting a dump. Bounded retries avoid publishing partial SQL.
+ready=0
+for attempt in 1 2 3 4 5 6 7 8 9 10; do
+  if compose exec -T db sh -ec '
+      export MYSQL_PWD="$MYSQL_PASSWORD"
+      exec mysql --host=localhost --user="$MYSQL_USER" \
+        --database="$MYSQL_DATABASE" --batch --skip-column-names \
+        --execute="SELECT 1"
+    ' >/dev/null 2>&1; then
+    ready=1
+    break
+  fi
+  sleep 2
+done
+[ "$ready" -eq 1 ] || die "MySQL user/database probe did not become ready."
+
+# Keep credentials inside the container and never write them on the host
+# command line. A transient MySQL restart must not expose a partial dump as
+# a successful backup; each retry overwrites its private temporary file.
+dumped=0
+for attempt in 1 2 3 4 5; do
+  printf '%s\n' "-- aaditech-mysql-backup-v1 database=$DB_NAME" > "$TEMP_FILE"
+  if compose exec -T db sh -ec '
+      export MYSQL_PWD="$MYSQL_PASSWORD"
+      exec mysqldump --host=localhost --user="$MYSQL_USER" \
+        --single-transaction --quick --triggers --routines --events \
+        --set-gtid-purged=OFF --no-tablespaces \
+        --default-character-set=utf8mb4 "$MYSQL_DATABASE"
+    ' >> "$TEMP_FILE"; then
+    dumped=1
+    break
+  fi
+  log "MySQL dump attempt $attempt failed; retrying after readiness check."
+  sleep 2
+done
+[ "$dumped" -eq 1 ] || die "MySQL dump failed after five attempts."
 
 [ "$(wc -c < "$TEMP_FILE")" -gt 256 ] || die "Dump is unexpectedly small; refusing to publish it."
 grep -q '^-- MySQL dump' "$TEMP_FILE" || die "Invalid MySQL dump header; refusing to publish it."

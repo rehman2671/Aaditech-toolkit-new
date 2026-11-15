@@ -4,6 +4,7 @@
 #
 #   ./restore.sh --yes                              # newest backup
 #   ./restore.sh --yes /path/to/ittoolkit-*.sql     # specified backup
+#   ./restore.sh --yes --db-only /path/to/backup.sql  # isolated rehearsal; leaves API/Caddy stopped
 #
 # The script stops application writers, saves an independent safety backup,
 # replaces the configured database, verifies connectivity, then restarts the
@@ -21,12 +22,14 @@ die() { printf '[restore][ERROR] %s\n' "$*" >&2; exit 1; }
 compose() { docker compose -f "$COMPOSE_FILE" "$@"; }
 
 CONFIRMED=0
+DB_ONLY=0
 FILE=""
 for arg in "$@"; do
   case "$arg" in
     --yes) CONFIRMED=1 ;;
+    --db-only) DB_ONLY=1 ;;
     --help|-h)
-      echo "Usage: $0 --yes [path/to/ittoolkit-*.sql]"
+      echo "Usage: $0 --yes [--db-only] [path/to/ittoolkit-*.sql]"
       exit 0 ;;
     -*) die "Unknown option: $arg" ;;
     *) [ -z "$FILE" ] || die "Supply at most one backup file."; FILE="$arg" ;;
@@ -99,7 +102,12 @@ compose exec -T db sh -ec '
     grep -Eq "^[1-9][0-9]*$"
 '
 
-log "Database import verified. Starting API and Caddy."
-compose up -d --wait --wait-timeout 120 api caddy
-STOPPED=0
-log "Restore successful. Check application functionality and tenant data before accepting production traffic."
+if [ "$DB_ONLY" -eq 1 ]; then
+  log "Database import verified. --db-only: API and Caddy remain stopped for isolated rehearsal."
+  log "Restore successful; inspect data and explicitly start services only after acceptance."
+else
+  log "Database import verified. Starting API and Caddy."
+  compose up -d --wait --wait-timeout 120 api caddy
+  STOPPED=0
+  log "Restore successful. Check application functionality and tenant data before accepting production traffic."
+fi

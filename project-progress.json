@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-15T17:16:53+00:00",
-  "last_verified_commit": "d5f9eeff6a38362201abf8a66c57e0e316b5dd58",
-  "last_verified_date": "2026-11-15T22:46:45+05:30",
+  "generated": "2026-11-15T17:17:40+00:00",
+  "last_verified_commit": "dea2615379b6c80e29af177cec518d5f15ec0480",
+  "last_verified_date": "2026-11-15T22:47:33+05:30",
   "overall_progress_percent": 100.0,
   "progress_scope": "historic audit issue closure only; production acceptance pending",
   "production_ready": false,
@@ -20,15 +20,6 @@
     "unchanged": 227
   },
   "delta_history": [
-    {
-      "detected_at": "2026-11-15T16:47:05+00:00",
-      "added": [],
-      "removed": [],
-      "changed": [
-        "Enterprise/agent/Agent-Collect.ps1"
-      ],
-      "unchanged_count": 226
-    },
     {
       "detected_at": "2026-11-15T16:47:32+00:00",
       "added": [],
@@ -197,6 +188,15 @@
       "removed": [],
       "changed": [
         "Enterprise/tests/Test-ConfigureAgent.ps1"
+      ],
+      "unchanged_count": 227
+    },
+    {
+      "detected_at": "2026-11-15T17:17:40+00:00",
+      "added": [],
+      "removed": [],
+      "changed": [
+        "Enterprise/agent/SETUP-WINDOWS.md"
       ],
       "unchanged_count": 227
     }

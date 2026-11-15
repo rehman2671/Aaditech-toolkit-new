@@ -32,6 +32,7 @@ if [[ "$command_text" == *mysqldump* ]]; then
     '-- Host: localhost    Database: it_toolkit' \
     'CREATE TABLE example (id INT);' \
     'INSERT INTO example VALUES (1);' \
+    "-- fixture padding $(printf '%0300d' 0)" \
     '-- Dump completed on 2026-11-15 12:00:00'
 elif [[ "$command_text" == *'--binary-mode=1'* ]]; then
   cat > /dev/null

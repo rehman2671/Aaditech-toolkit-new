@@ -1051,7 +1051,8 @@ app.post('/api/v1/devices', requireRole(['SUPER_ADMIN', 'OPERATOR']), validateBo
     existingHost: matchingDevices.find(d => String(d.hostname || '').toLowerCase() === hostname.toLowerCase()),
     existingUid: matchingDevices.find(d => String(d.device_uid || '').toLowerCase() === resolvedUid.toLowerCase()),
     company,
-    matchingDevices
+    matchingDevices,
+    requestedUid: resolvedUid
   });
   if (!preflight.ok) {
     return res.status(preflight.status).json({
@@ -1145,7 +1146,8 @@ const handleAgentEnroll = async (req, res) => {
   ) || null;
   const company = companies.find(c => String(c.tenant_id) === String(ver.tenantId));
   const preflight = validateEnrollmentIdentity({
-    tenantId: ver.tenantId, existingHost, existingUid, company, matchingDevices
+    tenantId: ver.tenantId, existingHost, existingUid, company, matchingDevices,
+    requestedUid: resolvedUid
   });
   if (!preflight.ok) {
     return res.status(preflight.status).json({

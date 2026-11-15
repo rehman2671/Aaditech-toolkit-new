@@ -647,6 +647,17 @@ async function verifyDeviceCredential(req, targetDeviceIdentifier) {
       }
     }
   } else if (signature && deviceUid && timestamp) {
+    // Legacy fleet-wide HMAC headers can impersonate or even auto-provision
+    // devices without a tenant-issued enrollment token. Never accept them on
+    // real deployments; retain the branch ONLY for historical test fixtures.
+    if (process.env.NODE_ENV !== 'test') {
+      return {
+        authenticated: false,
+        status: 403,
+        error: 'ENROLLED_DEVICE_TOKEN_REQUIRED',
+        detail: 'Legacy fleet-wide HMAC authentication is disabled. Enroll and use X-Device-Token.'
+      };
+    }
     const timeDiff = Math.abs(Date.now() - parseInt(timestamp, 10));
     if (timeDiff >= 600000) {
       return {

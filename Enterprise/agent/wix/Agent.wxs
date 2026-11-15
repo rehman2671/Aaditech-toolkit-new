@@ -48,6 +48,11 @@
           <File Id="AgentJsonLocalFile" Name="agent.json" Source="stage\agent.json" KeyPath="yes" />
         </Component>
 
+        <!-- Setup after MSI installation; can be re-run as Administrator. -->
+        <Component Id="AgentSetupWizard" Guid="5CB3B8A7-A921-4E32-B6D0-6CD02A23A0CC">
+          <File Id="AgentSetupWizardFile" Name="Configure-Agent.ps1" Source="stage\Configure-Agent.ps1" KeyPath="yes" />
+        </Component>
+
         <Directory Id="SCRIPTS_DIR" Name="Scripts">
           <Component Id="ScriptQuickCheck" Guid="B2C3D4E5-1111-1111-1111-111111111111">
             <File Id="QuickCheck" Name="QuickCheck.ps1" Source="stage\Scripts\QuickCheck.ps1" KeyPath="yes" />
@@ -230,6 +235,7 @@
       <ComponentRef Id="AgentExe" />
       <ComponentRef Id="SqliteBin" />
       <ComponentRef Id="AgentJsonLocal" />
+      <ComponentRef Id="AgentSetupWizard" />
       <ComponentRef Id="ScriptQuickCheck" />
       <ComponentRef Id="ScriptEventLogs" />
       <ComponentRef Id="ScriptNetwork" />

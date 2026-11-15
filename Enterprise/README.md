@@ -1,16 +1,15 @@
 # IT-Toolkit Enterprise (Phase 3)
 
-> **Phase N deployment warning (November 2026):** `Enterprise/docker-compose.yml`
-> is **Node.js + MySQL 8**, but the legacy `deploy/deploy.sh` and
-> `deploy/deploy.ps1` bootstrap logic assumes PostgreSQL/FastAPI.
-> Both scripts now stop safely on this mismatch. The one-command deploy
-> instructions below are **historical, not presently validated**.
-> Do not bypass these guards, regenerate database credentials, delete
-> volumes, or deploy publicly until the Node/MySQL provisioning and
-> Caddy certificate issuance flows are reconciled.
->
-> See [MySQL recovery and deployment safety](deploy/MYSQL-RECOVERY-AND-DEPLOYMENT.md)
-> and [Compose environment template](.env.example) for current guidance.
+> **Phase N status (November 2026):** The authoritative stack is Node.js +
+> MySQL 8. Use [`deploy/deploy-mysql.sh`](deploy/deploy-mysql.sh) on a
+> Docker-capable Linux VPS with a real DNS hostname and public HTTPS.
+> [Backup/restore and deployment runbook](deploy/MYSQL-RECOVERY-AND-DEPLOYMENT.md)
+> explains safety and the required acceptance checks. Legacy `deploy.sh`
+> and `deploy.ps1` still target PostgreSQL/FastAPI and intentionally refuse
+> to run against MySQL. The new installer is generic; see the
+> [Windows setup wizard guide](agent/SETUP-WINDOWS.md).
+> The current Node API uses HTTPS + per-device tokens; **mutual TLS is not
+> implemented**, and live Windows/Hostinger production acceptance is pending.
 
 Centralized **agent → server → web portal** stack that scales the existing
 IT-Toolkit **without modifying any existing script or module**. Everything here
@@ -26,40 +25,33 @@ Windows clients                        Server (Docker, one host)
 └─────────────────────┘                └────────────────────────────────┘
 ```
 
-## Quick start (server) — intranet / LAN first
+## Quick start (Node.js + MySQL, Linux VPS and public DNS)
 
-> **AI-agent / automated deploys:** run the prerequisite scanner first, then follow
-> `Documentation/Deployment-AI-Runbook.md` — it decides the path (Windows local
-> build, Linux+GitHub, or agent-only box) from the scan verdict.
-> ```powershell
-> pwsh -NoProfile -File ./Enterprise/tests/Check-Deploy-Prereqs.ps1 -ShowTable
-> ```
+You need Docker Engine, Docker Compose v2, a public DNS hostname that
+resolves to this server, reachable TCP ports 80/443, and Caddy ACME
+certificate issuance. This is not a Hostinger shared-hosting deployment
+without VPS/Docker privileges.
 
 ```bash
 cd Enterprise/deploy
-./deploy.sh          # default = LAN mode (no internet needed)  — macOS / Linux
-./deploy.sh --regen  # new machine / network: regenerate .env with fresh IP
-
-# Windows Server (also builds + signs the agent installer locally):
-.\deploy.ps1                 # one-command bring-up + local MSI build
-.\deploy.ps1 -SkipBuild      # server only (skip the agent build)
-.\deploy.ps1 -Regen          # new machine / network
+bash deploy-mysql.sh --host toolkit.your-company.com --dry-run
+bash deploy-mysql.sh --host toolkit.your-company.com
 ```
 
-That one command:
-- detects this machine's **LAN IP** (macOS/Linux prefers en0/en1/eth0, Windows
-  prefers the Ethernet/Wi-Fi adapter; VPN interfaces never win) — clients on
-  the same intranet use this address,
-- **auto-generates** `.env` secrets (API token + database password) — placeholders
-  in a hand-copied `.env` are auto-regenerated, never used as-is,
-- **writes `agent/agent-config.json` with the LAN endpoint + token baked in**
-  (this is what flows into the exe/msi),
-- starts `db + api + caddy` via `docker compose`,
-- on Windows Server (`deploy.ps1`): additionally auto-generates the
-  **code-signing CA**, builds the agent `.exe` (ps2exe) + `.msi` (WiX) **on the
-  server itself**, signs them, and publishes the MSI into the `agent_artifacts`
-  volume — no CI, no GitHub required,
-- prints the portal URL + token.
+A first real deployment generates `Enterprise/.env` with seven independent
+secrets and starts MySQL, Node and Caddy. Re-running preserves database
+credentials; `--update-host` changes ONLY the DNS hostname. The script
+verifies a publicly trusted HTTPS connection and MySQL health before
+reporting success. See the [deployment runbook](deploy/MYSQL-RECOVERY-AND-DEPLOYMENT.md)
+for database precautions, backup/restore and migration.
+
+The MSI is intentionally unprovisioned. Once a server address and
+tenant-scoped enrollment token exist, run `Configure-Agent.ps1` as
+Administrator on the Windows endpoint. [Instructions](agent/SETUP-WINDOWS.md).
+
+**Legacy deployment commands:** `deploy.sh` and `deploy.ps1` are
+retained for historical reference only and fail closed on this stack.
+Do not use their `--regen`/`-Regen` options.
 
 ### Required Environment Variables
 
@@ -71,9 +63,7 @@ The server enforces strict zero-fallback secret validation on startup across ALL
 - `BOOTSTRAP_SECRET`: One-time token signing key for initial agent enrollment.
 - `COMMAND_SIGNING_KEY`: Secret key used for cryptographic HMAC-SHA256 signatures on dispatched remote commands.
 
-> **Token safety net:** if the API ever boots with no `API_TOKEN` set, it
-> auto-generates a random one, persists it in the `api_data` volume, and prints
-> it once in `docker logs enterprise-api-1` (AUTO-GENERATED API TOKEN banner).
+**Important:** The API fails startup if a required security secret is missing. Do not rely on runtime token auto-generation.
 
 ### First-time setup (once, in the browser)
 

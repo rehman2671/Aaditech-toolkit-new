@@ -58,6 +58,7 @@ try {
     $previous | ConvertTo-Json -Depth 6 | Set-Content -Path $cfgPath
     [IO.File]::WriteAllText((Join-Path $tmpDir 'agent.token'), 'old-device-token')
     [IO.File]::WriteAllText((Join-Path $tmpDir 'client.pfx'), 'not-a-real-pfx')
+    [IO.File]::WriteAllText((Join-Path $tmpDir 'agent.identity.json'), '{"device_id":"old","tenant_id":"old-tenant"}')
 
     # Plain HTTP, credentials in URLs and tokens on command line must be rejected.
     $blocked = $false
@@ -75,6 +76,7 @@ try {
     if (@($actual.features).Count -ne 1) { throw 'Existing feature manifest was lost' }
     if (Test-Path (Join-Path $tmpDir 'agent.token')) { throw 'Old device identity token was not cleared' }
     if (Test-Path (Join-Path $tmpDir 'client.pfx')) { throw 'Old server client certificate was not cleared' }
+    if (Test-Path (Join-Path $tmpDir 'agent.identity.json')) { throw 'Old tenant/device identity was not cleared' }
 
     # Changing to the same server/token should preserve an already enrolled identity.
     [IO.File]::WriteAllText((Join-Path $tmpDir 'agent.token'), 'current-device-token')

@@ -42,8 +42,15 @@ try {
         $saved.run_script_allowlist[0] -ne 'Scripts/Allowed.ps1') {
         throw 'Bootstrap cleanup corrupted unrelated agent settings'
     }
-    if (@(Get-ChildItem -LiteralPath $dir -Filter 'agent.json.*').Count -ne 0) {
-        throw 'Bootstrap cleanup left temporary or backup secrets behind'
+    # Windows filename glob 'agent.json.*' can also match the original
+    # 'agent.json' because DOS wildcards treat the trailing .* specially.
+    # Only the sensitive temporary/backup filenames count as leftovers.
+    $orphans = @(Get-ChildItem -LiteralPath $dir -File | Where-Object {
+        $_.Name -like 'agent.json.tmp.*' -or
+        $_.Name -like 'agent.json.backup.*'
+    })
+    if ($orphans.Count -ne 0) {
+        throw "Bootstrap cleanup left sensitive files behind: $($orphans.Name -join ', ')"
     }
     Clear-EnrollmentBootstrapToken -Config $cfg
     $saved = Get-Content -LiteralPath $script:ConfigPath -Raw | ConvertFrom-Json

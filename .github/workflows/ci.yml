@@ -442,6 +442,24 @@ jobs:
             throw
           }
 
+      - name: Rehearse Windows MSI major upgrade and tenant configuration preservation
+        shell: pwsh
+        run: |
+          try {
+            ./Enterprise/tests/Test-Windows-MsiUpgrade.ps1
+          } catch {
+            $logRoot = Join-Path $env:RUNNER_TEMP 'itk-msi-upgrade-rehearsal'
+            if (Test-Path -LiteralPath $logRoot) {
+              Get-ChildItem -LiteralPath $logRoot -Filter '*.log' | ForEach-Object {
+                Write-Host "MSI upgrade diagnostics from $($_.Name):"
+                Get-Content -LiteralPath $_.FullName -Tail 120 |
+                  Where-Object { $_ -match 'Return value 3|error |Error |CustomAction|FindRelatedProducts|RemoveExistingProducts' } |
+                  Select-Object -Last 15 | ForEach-Object { Write-Host $_ }
+              }
+            }
+            throw
+          }
+
       - name: Upload verified signed artifacts only
         if: env.PUBLISH_SIGNED == 'true'
         uses: actions/upload-artifact@v4

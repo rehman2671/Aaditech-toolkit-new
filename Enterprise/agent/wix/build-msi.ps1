@@ -32,6 +32,14 @@ New-Item -ItemType Directory -Path $Stage -Force | Out-Null
 Copy-Item (Join-Path $BuildOut 'IT-Toolkit-Agent.exe') (Join-Path $Stage 'IT-Toolkit-Agent.exe') -Force
 Copy-Item (Join-Path $BuildOut 'agent-config.json') (Join-Path $Stage 'agent.json') -Force
 
+# Ship a first-run/reconfiguration wizard in the MSI itself. An MSI built
+# before the SaaS host exists must be configurable after installation.
+$wizard = Join-Path $RepoRoot 'Enterprise\agent\Configure-Agent.ps1'
+if (-not (Test-Path -LiteralPath $wizard -PathType Leaf)) {
+    throw "Required Windows agent setup wizard missing: $wizard"
+}
+Copy-Item -LiteralPath $wizard -Destination (Join-Path $Stage 'Configure-Agent.ps1') -Force
+
 # Bundle the official sqlite3.exe CLI so the agent's outbox queue works on
 # stock Windows with no system-wide SQLite install. The agent prepends this
 # directory to PATH at startup (see Agent-Collect.ps1), which the shared

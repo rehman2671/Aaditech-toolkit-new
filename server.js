@@ -1039,13 +1039,36 @@ app.post('/api/v1/devices', requireRole(['SUPER_ADMIN', 'OPERATOR']), validateBo
   const { hostname, os_type, os_version, agent_version, device_uid } = req.body;
   if (!hostname) return res.status(400).json({ error: "hostname required" });
 
+  const tenantId = String(req.user?.tenant_id || '00000000-0000-0000-0000-000000000001');
+  const resolvedUid = String(device_uid || `dev-uid-${hostname.toLowerCase().split('.')[0]}`);
+  const [matchingDevices, companies] = await Promise.all([
+    db.getEnrollmentIdentityMatches(hostname, resolvedUid),
+    db.getCompanies()
+  ]);
+  const company = companies.find(c => String(c.tenant_id) === tenantId);
+  const preflight = validateEnrollmentIdentity({
+    tenantId,
+    existingHost: matchingDevices.find(d => String(d.hostname || '').toLowerCase() === hostname.toLowerCase()),
+    existingUid: matchingDevices.find(d => String(d.device_uid || '').toLowerCase() === resolvedUid.toLowerCase()),
+    company,
+    matchingDevices
+  });
+  if (!preflight.ok) {
+    return res.status(preflight.status).json({
+      error: preflight.code, detail: 'Device identity is already owned or tenant has no registered company.'
+    });
+  }
+  if (matchingDevices.length > 0) {
+    return res.status(409).json({ error: 'DEVICE_ALREADY_REGISTERED' });
+  }
+
   const devToken = generateDeviceToken();
   const tokenHash = hashDeviceToken(devToken);
   const devId = crypto.randomUUID();
 
   const newDev = {
     id: devId,
-    device_uid: device_uid || `dev-uid-${hostname.toLowerCase().split('.')[0]}`,
+    device_uid: resolvedUid,
     hostname,
     os_version: os_version || (os_type === 'WINDOWS' ? 'Windows 11 Enterprise' : 'Linux Ubuntu 22.04'),
     agent_version: agent_version || getAgentVersion(),
@@ -1054,15 +1077,16 @@ app.post('/api/v1/devices', requireRole(['SUPER_ADMIN', 'OPERATOR']), validateBo
     cpu_usage: "12%",
     memory_usage: "38%",
     disk_free: "240 GB",
-    company_id: 1,
-    tenant_id: req.user?.tenant_id || "00000000-0000-0000-0000-000000000001",
+    company_id: company.id,
+    tenant_id: tenantId,
     device_token_hash: tokenHash,
     device_token_prefix: devToken.slice(0, 12),
     agent_token_revoked: false
   };
 
-  await db.syncDeviceToDb(newDev);
-  const createdDev = await db.getDeviceByHostname(hostname);
+  const created = await db.syncDeviceToDb(newDev);
+  if (!created) return res.status(503).json({ error: 'DEVICE_REGISTER_FAILED' });
+  const createdDev = await db.getDeviceById(devId);
   logAudit(req.user, "DEVICE_REGISTERED", `Device:${hostname}`, { device_uid: newDev.device_uid }, req);
 
   res.status(201).json({

@@ -14,6 +14,14 @@ $functions = @($ast.FindAll({
 if ($functions.Count -ne 1) { throw 'Expected one bootstrap credential cleanup function' }
 Invoke-Expression $functions[0].Extent.Text
 
+$readFunctions = @($ast.FindAll({
+    param($node)
+    $node -is [Management.Automation.Language.FunctionDefinitionAst] -and
+    $node.Name -eq 'Read-AgentConfig'
+}, $true))
+if ($readFunctions.Count -ne 1) { throw 'Expected exactly one installed worker config validator' }
+Invoke-Expression $readFunctions[0].Extent.Text
+
 $sourceText = Get-Content $source -Raw
 $stored = $sourceText.IndexOf('[IO.File]::WriteAllText($tokenPath')
 $cleared = $sourceText.IndexOf('Clear-EnrollmentBootstrapToken -Config $Config')
@@ -29,6 +37,7 @@ try {
         endpoint = 'https://enrolled.example.test/api/v1/ingest/telemetry'
         enroll_url = 'https://enrolled.example.test/api/v1/agent/enroll'
         token = 'one-use-ci-bootstrap-token'
+        bootstrap_token = 'secondary-ci-bootstrap-token'
         interval_minutes = 30
         needs_setup = $false
         run_script_allowlist = @('Scripts/Allowed.ps1')
@@ -36,7 +45,10 @@ try {
     $cfg | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $script:ConfigPath -Encoding UTF8
     Clear-EnrollmentBootstrapToken -Config $cfg
     $saved = Get-Content -LiteralPath $script:ConfigPath -Raw | ConvertFrom-Json
-    if ($saved.token -ne '' -or $cfg.token -ne '') { throw 'Bootstrap token survived successful device enrollment' }
+    if ($saved.token -ne '' -or $cfg.token -ne '' -or
+        $saved.bootstrap_token -ne '' -or $cfg.bootstrap_token -ne '') {
+        throw 'Bootstrap token survived successful device enrollment'
+    }
     if ($saved.endpoint -ne 'https://enrolled.example.test/api/v1/ingest/telemetry' -or
         $saved.needs_setup -ne $false -or
         $saved.run_script_allowlist[0] -ne 'Scripts/Allowed.ps1') {
@@ -55,6 +67,30 @@ try {
     Clear-EnrollmentBootstrapToken -Config $cfg
     $saved = Get-Content -LiteralPath $script:ConfigPath -Raw | ConvertFrom-Json
     if ($saved.token -ne '') { throw 'Bootstrap cleanup is not idempotent' }
+
+    # After bootstrap cleanup the agent must still start with a valid
+    # individual device token and a matching tenant/device identity.
+    $enrolledTokenPath = Join-Path $dir 'agent.token'
+    $enrolledIdentityPath = Join-Path $dir 'agent.identity.json'
+    [IO.File]::WriteAllText($enrolledTokenPath, 'itk_dev_ci_only_token_123456789')
+    [IO.File]::WriteAllText($enrolledIdentityPath, '{"device_id":"ci-device","tenant_id":"ci-tenant","device_uid":"ci-uid"}')
+    $loaded = Read-AgentConfig
+    if ($loaded.endpoint -ne $cfg.endpoint -or $loaded.token -ne '') {
+        throw 'A valid enrolled agent cannot restart after bootstrap credential cleanup'
+    }
+    Remove-Item -LiteralPath $enrolledIdentityPath -Force
+    $rejectedPartialIdentity = $false
+    try { $null = Read-AgentConfig } catch { $rejectedPartialIdentity = $true }
+    if (-not $rejectedPartialIdentity) {
+        throw 'Agent accepted token without corresponding tenant/device identity'
+    }
+    [IO.File]::WriteAllText($enrolledIdentityPath, '{"device_id":"ci-device","tenant_id":"ci-tenant","device_uid":"ci-uid"}')
+    [IO.File]::WriteAllText($enrolledTokenPath, 'invalid-non-device-token')
+    $rejectedInvalidToken = $false
+    try { $null = Read-AgentConfig } catch { $rejectedInvalidToken = $true }
+    if (-not $rejectedInvalidToken) {
+        throw 'Agent accepted invalid non-device token after cleanup'
+    }
 
     Remove-Item -LiteralPath $script:ConfigPath -Force
     $failedClosed = $false

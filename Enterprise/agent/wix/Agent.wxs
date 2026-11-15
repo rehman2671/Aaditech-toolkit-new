@@ -247,7 +247,7 @@
                   Return="check"
                   Impersonate="no"
                   Execute="deferred"
-                  ExeCommand="&quot;[SystemFolder]icacls.exe&quot; &quot;[INSTALLFOLDER]agent.json&quot; /inheritance:r /grant:r &quot;*S-1-5-18:R&quot; &quot;*S-1-5-32-544:R&quot; &quot;*S-1-5-20:R&quot; /C" />
+                  ExeCommand="&quot;[SystemFolder]icacls.exe&quot; &quot;[INSTALLFOLDER]agent.json&quot; /inheritance:r /grant:r &quot;*S-1-5-18:R&quot; &quot;*S-1-5-32-544:R&quot; &quot;*S-1-5-20:R&quot;" />
 
     <InstallExecuteSequence>
       <Custom Action="RemoveSchedTask" After="InstallInitialize" Condition="REMOVE=&quot;ALL&quot;" />

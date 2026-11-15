@@ -1,0 +1,50 @@
+name: Project index maintenance
+
+# Historical project-index.json was last refreshed in August 2026. Its
+# snapshot must track the actual codebase rather than blocking CI forever.
+# Writes are restricted to three generated metadata files.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: project-index-maintenance-main
+  cancel-in-progress: false
+
+jobs:
+  refresh-index:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Generate project index, state and progress reports
+        shell: pwsh
+        run: |
+          ./Scripts/Index/Update-ProjectIndex.ps1
+          foreach ($name in @('project-index.json','project-state.json','project-progress.json')) {
+            $meta = Get-Content $name -Raw | ConvertFrom-Json -ErrorAction Stop
+            if (-not $meta.path -or $meta.path -ne $name) {
+              throw "Indexer produced invalid metadata: $name"
+            }
+          }
+      - name: Commit regenerated reports only
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add -- project-index.json project-state.json project-progress.json
+          if git diff --cached --quiet; then
+            echo "Project metadata already matches HEAD."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore(index): refresh project metadata [skip ci]"
+          # Fail rather than force push if main advanced. A later main
+          # push will schedule another refresh against the new HEAD.
+          git push origin HEAD:main

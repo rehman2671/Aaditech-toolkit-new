@@ -6,11 +6,13 @@ on:
     paths:
       - 'Enterprise/deploy/**'
       - 'Enterprise/tests/Test-MySQL-Backup-Restore.sh'
+      - 'Enterprise/tests/Test-DeployMySQL.sh'
       - '.github/workflows/deployment-safety.yml'
   pull_request:
     paths:
       - 'Enterprise/deploy/**'
       - 'Enterprise/tests/Test-MySQL-Backup-Restore.sh'
+      - 'Enterprise/tests/Test-DeployMySQL.sh'
       - '.github/workflows/deployment-safety.yml'
   workflow_dispatch:
 
@@ -26,8 +28,12 @@ jobs:
         shell: bash
         run: |
           bash -n Enterprise/deploy/deploy.sh
+          bash -n Enterprise/deploy/deploy-mysql.sh
           bash -n Enterprise/deploy/backup.sh
           bash -n Enterprise/deploy/restore.sh
       - name: Verify MySQL backup and restore safety controls
         shell: bash
         run: bash Enterprise/tests/Test-MySQL-Backup-Restore.sh
+      - name: Verify HTTPS/MySQL deployment dry-run isolation
+        shell: bash
+        run: bash Enterprise/tests/Test-DeployMySQL.sh

@@ -10,9 +10,14 @@ physical Windows machine has been deployed.
   https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43731718046
   The workflow includes a disposable MySQL 8 backup/mutate/restore
   data-integrity rehearsal, and offline destructive-restore safeguards.
-- Node.js Vitest, PowerShell validation and API/MySQL integration jobs have
-  passed on newer commits. Each complete release candidate still requires
-  a green **full** CI workflow, including the Windows EXE and MSI job.
+- Full CI run
+  [43739352090](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43739352090)
+  **passed** all four jobs: Node.js/Vitest, PowerShell, API/MySQL integration
+  and **real Windows x64 MSI** compilation, administrative extraction,
+  silent installation, secure on-disk ACL/config/task/shortcut verification,
+  installed CLI setup and clean uninstall. The release installer remained
+  unsigned and was correctly not uploaded. A fresh release candidate still
+  requires its own complete passing workflow and Authenticode verification.
 - Reconfiguration wizard failure in `File.Replace` was fixed using a real
   backup path. An unsupported `ps2exe -runtime40` option was removed.
 - `project-index.json`, `project-state.json` and `project-progress.json`
@@ -88,8 +93,9 @@ On an isolated Windows 10/11 (and supported Windows Server) test machine:
 1. Build and code-sign a generic MSI in a successful GitHub Actions run.
 2. Confirm MSI Authenticode signature and publisher trust; reject unsigned
    production packages.
-3. Perform an actual MSI installation and upgrade. Confirm Start Menu →
-   IT-Toolkit → Configure Agent Server launches and requests UAC.
+3. GitHub Windows-runner **installation and uninstall** checks now pass.
+   Still perform a real managed-machine MSI **upgrade** and GUI/UAC session.
+   Confirm Start Menu → IT-Toolkit → Configure Agent Server actually opens.
 4. Configure a real HTTPS origin and tenant-issued one-use enrollment token.
    Verify TLS trust and database health; ensure no embedded token or hostname
    exists in the published MSI.

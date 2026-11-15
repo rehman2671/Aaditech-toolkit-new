@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-15T16:39:00+00:00",
-  "last_verified_commit": "5901763c3d06ca1a494c6f93e607c93d3ff62e81",
-  "last_verified_date": "2026-11-15T22:08:52+05:30",
+  "generated": "2026-11-15T16:39:49+00:00",
+  "last_verified_commit": "fbf0fe21f8acbfabbd74bd6686047e5e25d6c4f9",
+  "last_verified_date": "2026-11-15T22:09:40+05:30",
   "overall_progress_percent": 100.0,
   "progress_scope": "historic audit issue closure only; production acceptance pending",
   "production_ready": false,
@@ -20,15 +20,6 @@
     "unchanged": 225
   },
   "delta_history": [
-    {
-      "detected_at": "2026-11-15T16:16:22+00:00",
-      "added": [],
-      "removed": [],
-      "changed": [
-        "Enterprise/deploy/PHASE-N-STAGE4-ACCEPTANCE.md"
-      ],
-      "unchanged_count": 224
-    },
     {
       "detected_at": "2026-11-15T16:17:49+00:00",
       "added": [],
@@ -199,6 +190,15 @@
       "removed": [],
       "changed": [
         "Enterprise/agent/wix/build-msi.ps1"
+      ],
+      "unchanged_count": 225
+    },
+    {
+      "detected_at": "2026-11-15T16:39:49+00:00",
+      "added": [],
+      "removed": [],
+      "changed": [
+        "Enterprise/agent/wix/Agent.wxs"
       ],
       "unchanged_count": 225
     }

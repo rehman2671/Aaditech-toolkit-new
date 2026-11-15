@@ -1,5 +1,17 @@
 # IT-Toolkit Enterprise (Phase 3)
 
+> **Phase N deployment warning (November 2026):** `Enterprise/docker-compose.yml`
+> is **Node.js + MySQL 8**, but the legacy `deploy/deploy.sh` and
+> `deploy/deploy.ps1` bootstrap logic assumes PostgreSQL/FastAPI.
+> Both scripts now stop safely on this mismatch. The one-command deploy
+> instructions below are **historical, not presently validated**.
+> Do not bypass these guards, regenerate database credentials, delete
+> volumes, or deploy publicly until the Node/MySQL provisioning and
+> Caddy certificate issuance flows are reconciled.
+>
+> See [MySQL recovery and deployment safety](deploy/MYSQL-RECOVERY-AND-DEPLOYMENT.md)
+> and [Compose environment template](.env.example) for current guidance.
+
 Centralized **agent → server → web portal** stack that scales the existing
 IT-Toolkit **without modifying any existing script or module**. Everything here
 is additive and lives under `Enterprise/`.

@@ -32,16 +32,30 @@ physical Windows machine has been deployed.
   mandatory before treating the locking model as fully accepted.
 - Legacy pre-enrollment fleet-token impersonation is disabled in production.
 
-## Critical outstanding command-execution security blocker
+## Command-execution signature hardening (implemented; physical rollout pending)
 
-The shipped MSI compiles `Agent-Collect.ps1`. The current worker's remote
-command loops invoke `Invoke-RemoteCommand` without verifying
-`signed_content` and `signature`. Separately, the current server includes
-the **fleet-wide** `COMMAND_SIGNING_KEY` in enrollment/registration responses.
-This design must be replaced by per-device signing credentials with verified
-binding to command ID, device, tenant, payload and freshness **before enabling
-remote-command execution in production**. Do not treat TLS alone as an
-adequate command-authorization boundary. This is an explicit release blocker.
+The canonical MSI worker, `Agent-Collect.ps1`, now rejects unsigned or
+tampered commands in **both** normal and privileged command loops.
+`command-signing.js` signs a versioned JSON envelope with the **unique
+enrolled device credential** (HMAC-SHA256) and binds command ID, device ID,
+tenant ID, hostname, executable kind/payload and a maximum five-minute TTL.
+The Windows worker loads an ACL-protected local enrollment identity and
+verifies the signature, tenant, device, hostname and freshness **before**
+using the signed executable fields. Server enrollment/registration no
+longer discloses the fleet-wide `COMMAND_SIGNING_KEY`. Changes to the
+server address remove previous local token and tenant identity together.
+
+Node.js and Windows command-signature regression suites cover tampering,
+wrong-device and wrong-tenant targeting, replay-window expiry and missing
+identity. A full physical Windows MSI installation/upgrade and successful
+signed-command end-to-end acceptance remain **mandatory**; older agents
+without this verification must be upgraded or command execution disabled
+until replaced. TLS alone remains insufficient to authorize commands.
+
+The global `COMMAND_SIGNING_KEY` remains in the server for legacy
+non-command request HMAC support and must not be distributed to clients;
+its complete removal/rotation and residual legacy agent support must be
+reviewed before production rollout.
 
 The existing Node backend uses HTTPS with per-device tokens; full mTLS
 certificate issuance/enforcement is not yet implemented. Do not claim mTLS.

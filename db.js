@@ -1088,6 +1088,33 @@ export async function getDeviceById(id) {
   return rec;
 }
 
+/**
+ * Enrollment security needs ALL rows matching a hostname or device UID,
+ * not the first cached global match. Different workspaces may currently
+ * contain duplicate hostnames; refuse ambiguous ownership before minting
+ * or rotating credentials.
+ */
+export async function getEnrollmentIdentityMatches(hostname, deviceUid) {
+  const h = String(hostname || '').trim();
+  const uid = String(deviceUid || '').trim();
+  if (!h || !uid) return [];
+  if (isMysqlConnected()) {
+    const rows = await executeQuery(
+      'SELECT id, tenant_id, company_id, hostname, device_uid FROM devices WHERE LOWER(hostname) = LOWER(?) OR LOWER(device_uid) = LOWER(?)',
+      [h, uid]
+    );
+    return rows.map(formatDeviceRecord);
+  }
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('Cannot check enrollment ownership without MySQL.');
+  }
+  // Test/development fallback uses all matching devices, not .find().
+  return memDevices.filter(d =>
+    String(d.hostname || '').toLowerCase() === h.toLowerCase() ||
+    String(d.device_uid || '').toLowerCase() === uid.toLowerCase()
+  ).map(formatDeviceRecord);
+}
+
 export async function getDeviceByHostname(hostname) {
   if (!hostname) return null;
   const hTrim = String(hostname).trim();

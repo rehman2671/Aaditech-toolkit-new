@@ -41,14 +41,17 @@ function Read-MsiProperty([string]$File, [string]$Name) {
     $database = $installer.OpenDatabase($File, 0)
     $view = $database.OpenView("SELECT Value FROM Property WHERE Property = '$Name'")
     try {
-        $view.Execute()
+        $null = $view.Execute()
         $row = $view.Fetch()
         if (-not $row) { throw "MSI property missing: $Name" }
-        return [string]$row.StringData(1)
-    } finally { $view.Close() }
+        $value = [string]$row.StringData(1)
+        return $value
+    } finally { $null = $view.Close() }
 }
-if ((Read-MsiProperty $baseMsi.FullName 'ProductVersion') -cne $baseVersion) {
-    throw 'Base MSI ProductVersion differs from authoritative release metadata.'
+$baseVersionActual = [string](Read-MsiProperty $baseMsi.FullName 'ProductVersion')
+Write-Host "MSI upgrade test base version: actual=<$baseVersionActual>, expected=<$baseVersion>"
+if ($baseVersionActual -cne $baseVersion) {
+    throw "Base MSI ProductVersion '$baseVersionActual' differs from '$baseVersion'."
 }
 
 $wix = Get-Command wix -ErrorAction SilentlyContinue

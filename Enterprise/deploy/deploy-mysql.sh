@@ -54,7 +54,7 @@ secret() {
 }
 validate_env() {
     local key val
-    for key in MYSQL_PASSWORD MYSQL_ROOT_PASSWORD API_TOKEN JWT_SECRET BOOTSTRAP_SECRET HMAC_SECRET COMMAND_SIGNING_KEY; do
+    for key in MYSQL_PASSWORD MYSQL_ROOT_PASSWORD API_TOKEN JWT_SECRET BOOTSTRAP_SECRET HMAC_SECRET COMMAND_SIGNING_KEY SETUP_TOKEN; do
         val="$(read_env "$key")"
         [ -n "$val" ] || die "Required $key is absent/empty in $ENV_FILE."
         case "$val" in
@@ -109,7 +109,7 @@ if [ ! -f "$ENV_FILE" ]; then
         printf 'MYSQL_USER=itk_user\n'
         printf 'MYSQL_PASSWORD=%s\n' "$(secret)"
         printf 'MYSQL_ROOT_PASSWORD=%s\n' "$(secret)"
-        for key in API_TOKEN JWT_SECRET BOOTSTRAP_SECRET HMAC_SECRET COMMAND_SIGNING_KEY; do
+        for key in API_TOKEN JWT_SECRET BOOTSTRAP_SECRET HMAC_SECRET COMMAND_SIGNING_KEY SETUP_TOKEN; do
             printf '%s=%s\n' "$key" "$(secret)"
         done
         printf 'SERVER_HOST=%s\nCADDY_HOST=%s\nENVIRONMENT=prod\n' "$HOST" "$HOST"

@@ -216,6 +216,26 @@ $percent = if ($total -gt 0) { [math]::Round(100 * $resolved / $total, 0) } else
 if ($ForceFullRebuild -and $total -eq 0) { $percent = 100 }
 
 # ---------- Write project-index.json ----------
+# Historic audit issues may all be closed while production acceptance is NOT.
+# Do not carry the obsolete "RELEASE READY / 100" label forward as a current
+# deployment status. Preserve the old score as historical audit context.
+$priorRelease = $preserved['release_readiness']
+$legacyScore = if ($null -ne $priorRelease.legacy_audit_score) {
+    $priorRelease.legacy_audit_score
+} else { $priorRelease.release_score }
+$releaseState = [ordered]@{
+    status = 'NOT PRODUCTION CERTIFIED'
+    production_ready = $false
+    legacy_audit_score = $legacyScore
+    legacy_audit_note = 'Historic audit coverage score is not a production acceptance certificate.'
+    acceptance_gates = @(
+        'GitHub CI full green run including MSI artifact build and signing',
+        'Physical Windows 10/11 MSI install, upgrade and graphical setup',
+        'Hostinger Docker VPS HTTPS + real production DB health acceptance',
+        'Multi-tenant concurrent enrollment and token isolation stress tests',
+        'Backup/restore rehearsal against a separate production-like database'
+    )
+}
 $index = [ordered]@{
     index_version = '2.0'
     path = 'project-index.json'
@@ -252,11 +272,13 @@ $index = [ordered]@{
     pending_issues = $preserved['pending_issues']
     known_risks = $preserved['known_risks']
     technical_debt = $preserved['technical_debt']
-    release_readiness = $preserved['release_readiness']
+    release_readiness = $releaseState
     security_findings = $preserved['security_findings']
     progress = [ordered]@{
         percent = $percent
         issues_resolved = "$resolved/$total"
+        note = 'Percent describes historic audit issue closure, not production launch readiness.'
+        production_ready = $false
         last_verified_commit = $gitInfo.head
     }
 }
@@ -267,7 +289,7 @@ $state = [ordered]@{
     state_version = '1.0'
     path = 'project-state.json'
     generated = $now
-    phase = 'POST-REMEDIATION / RELEASE READY'
+    phase = 'PHASE N STAGE 4 / PRODUCTION ACCEPTANCE IN PROGRESS'
     last_verified_commit = $gitInfo.head
     last_verified_date = $gitInfo.date
     git = [ordered]@{
@@ -277,6 +299,8 @@ $state = [ordered]@{
         head = $gitInfo.head
     }
     latest_delta = $delta
+    production_ready = $false
+    acceptance_gates = $releaseState.acceptance_gates
     module_state = [ordered]@{
         working = @($ms.modules | ForEach-Object { $_.name })
         broken = @()
@@ -299,6 +323,8 @@ $progress = [ordered]@{
     last_verified_commit = $gitInfo.head
     last_verified_date = $gitInfo.date
     overall_progress_percent = $percent
+    progress_scope = 'historic audit issue closure only; production acceptance pending'
+    production_ready = $false
     issue_progress = [ordered]@{
         total = $total
         completed = $resolved

@@ -15,6 +15,7 @@
 param(
     [string]$ServerUrl,
     [string]$TokenFile,
+    [System.Security.SecureString]$EnrollmentToken,
     [string]$ConfigPath = (Join-Path $env:ProgramData 'ITToolkit-Agent\agent.json'),
     [switch]$NonInteractive,
     [switch]$TestConnection,
@@ -60,21 +61,28 @@ if (-not [uri]::TryCreate($ServerUrl, [UriKind]::Absolute, [ref]$uri) -or
 $base = $uri.GetLeftPart([UriPartial]::Authority)
 
 $token = ''
+if ($TokenFile -and $EnrollmentToken) {
+    throw 'Choose either -TokenFile or -EnrollmentToken, never both.'
+}
 if ($TokenFile) {
     if (-not (Test-Path -LiteralPath $TokenFile -PathType Leaf)) {
         throw "Token file not found: $TokenFile"
     }
     $token = (Get-Content -LiteralPath $TokenFile -Raw).Trim()
 } else {
-    if ($NonInteractive) { throw '-TokenFile is required in -NonInteractive mode.' }
-    $secure = Read-Host 'Single-use enrollment token (hidden)' -AsSecureString
+    if (-not $EnrollmentToken -and $NonInteractive) {
+        throw '-TokenFile or -EnrollmentToken is required in -NonInteractive mode.'
+    }
+    $secure = if ($EnrollmentToken) { $EnrollmentToken } else {
+        Read-Host 'Single-use enrollment token (hidden)' -AsSecureString
+    }
     $ptr = [IntPtr]::Zero
     try {
         $ptr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secure)
         $token = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($ptr)
     } finally {
         if ($ptr -ne [IntPtr]::Zero) { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($ptr) }
-        $secure.Dispose()
+        if (-not $EnrollmentToken) { $secure.Dispose() }
     }
 }
 if ([string]::IsNullOrWhiteSpace($token) -or
@@ -91,8 +99,11 @@ if (Test-Path $reg) {
     }
 }
 if ($TestConnection) {
-    $response = Invoke-WebRequest -Uri "$base/healthz" -UseBasicParsing -TimeoutSec 10
-    if ([int]$response.StatusCode -ne 200) { throw "Server did not pass health probe: $base" }
+    # No -SkipCertificateCheck: a real trusted HTTPS server is mandatory.
+    $response = Invoke-RestMethod -Uri "$base/healthz" -TimeoutSec 10
+    if ($response.status -ne 'ok' -or $response.components.database -ne 'HEALTHY') {
+        throw "Server health check failed: HTTPS must be valid and MySQL must report HEALTHY at $base"
+    }
 }
 
 $newEndpoint = "$base/api/v1/ingest/telemetry"

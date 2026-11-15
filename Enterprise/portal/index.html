@@ -450,7 +450,7 @@ function renderSetup() {
         <div style="flex:1"><label>Admin username</label><input id="admin_username" value="admin" /></div>
         <div style="flex:1"><label>Brand color</label><input id="branding_color" type="color" value="#38bdf8" style="padding:2px;height:38px" /></div>
       </div>
-      <label>Admin password (min 8 chars)</label><input id="admin_password" type="password" />
+      <label>Admin password (min 12 chars)</label><input id="admin_password" type="password" />
       <label>Repeat password</label><input id="admin_password2" type="password" />
 
       <div style="margin-top:22px;border-top:1px solid var(--line);padding-top:8px">
@@ -534,7 +534,7 @@ async function doSetup() {
   const err = document.getElementById('setup_err');
   const p1 = document.getElementById('admin_password')?.value || '';
   const p2 = document.getElementById('admin_password2')?.value || '';
-  if (p1.length < 8) { if (err) err.textContent = 'Password must be at least 8 characters.'; return; }
+  if (p1.length < 12) { if (err) err.textContent = 'Password must be at least 12 characters.'; return; }
   if (p1 !== p2) { if (err) err.textContent = 'Passwords do not match.'; return; }
   const provider = document.getElementById('smtp_provider')?.value || 'none';
   const smtp = { provider };

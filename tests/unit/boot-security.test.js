@@ -20,6 +20,25 @@ describe('Boot-Time Security Validation (Strict Zero-Fallback Secrets)', () => {
     API_TOKEN: 'test_api_token_valid'
   };
 
+  it('refuses to listen in production when persistent MySQL credentials are incomplete', () => {
+    const env = {
+      ...baseEnv,
+      VITEST: 'false',
+      SETUP_TOKEN: 'test_setup_secret_1234567890123456789012345',
+      DB_HOST: '127.0.0.1',
+      DB_USER: 'ci_user',
+      DB_NAME: 'it_toolkit_ci',
+      DB_PORT: '3306'
+    };
+    delete env.DB_PASSWORD;
+    const res = spawnSync('node', ['server.js'], {
+      cwd: rootDir, env, encoding: 'utf8', timeout: 8000
+    });
+    expect(res.status).toBe(1);
+    expect(res.stderr).toMatch(/FATAL: Missing production database configuration: DB_PASSWORD/);
+    expect(res.stdout || '').not.toMatch(/Enterprise Portal running/);
+  });
+
   it('refuses to start (exits non-zero) when JWT_SECRET is unset', () => {
     const env = { ...baseEnv };
     delete env.JWT_SECRET;

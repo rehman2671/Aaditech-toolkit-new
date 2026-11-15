@@ -1826,8 +1826,8 @@ app.post(['/api/v1/setup', '/api/setup'], async (req, res, next) => {
   }
 
   const token = issueUserToken(adminUser || { id: 1, username: admin_username || 'admin', role: 'SUPER_ADMIN' });
-  res.cookie('auth_token', token, { httpOnly: true, sameSite: 'lax', maxAge: 8 * 3600 * 1000 });
-  res.cookie('itk_session', token, { httpOnly: true, sameSite: 'lax', maxAge: 8 * 3600 * 1000 });
+  res.cookie('auth_token', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', maxAge: 8 * 3600 * 1000 });
+  res.cookie('itk_session', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', maxAge: 8 * 3600 * 1000 });
 
   res.json({
     company: updates.company_name || "Aaditech Enterprise",

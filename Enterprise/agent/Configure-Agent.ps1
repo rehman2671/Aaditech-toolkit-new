@@ -156,7 +156,7 @@ if ($ClearRegistryOverride -and (Test-Path $reg)) {
     Remove-ItemProperty -Path $reg -Name ApiToken -ErrorAction SilentlyContinue
 }
 if ($resetDeviceIdentity) {
-    foreach ($name in @('agent.token', 'client.pfx', 'ca.crt')) {
+    foreach ($name in @('agent.token', 'agent.identity.json', 'client.pfx', 'ca.crt')) {
         $stale = Join-Path $dir $name
         if (Test-Path -LiteralPath $stale) { Remove-Item -LiteralPath $stale -Force }
     }

@@ -52,6 +52,15 @@ Successful completion requires genuine publicly trusted HTTPS and MySQL
 reporting `HEALTHY` on `/healthz`. A dry run is only a configuration
 check. Live Hostinger/Windows acceptance is still pending.
 
+**First-run account protection:** While initial setup is incomplete, the
+production API refuses ordinary login. Browser setup requires the private
+`SETUP_TOKEN`, and the new super-admin password must contain at least 12
+characters. After setup, production login rejects the three known seeded
+demo password hashes (admin, ops_lead and sec_monitor) until each affected
+account has a newly assigned password. An administrator must rotate or
+disable those demo accounts before allowing real users. Never publish
+demo/default credentials in setup instructions.
+
 ## Configure Compose secrets (before deploying)
 
 1. Copy `Enterprise/.env.example` to `Enterprise/.env` and restrict

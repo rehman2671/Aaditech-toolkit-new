@@ -124,16 +124,25 @@ if (-not (Test-Path -LiteralPath $dir)) {
     New-Item -ItemType Directory -Path $dir -Force | Out-Null
 }
 $temp = Join-Path $dir ("agent.json.tmp." + [guid]::NewGuid().ToString('N'))
+$backup = Join-Path $dir ("agent.json.backup." + [guid]::NewGuid().ToString('N'))
+$writeSucceeded = $false
 try {
     $json = $old | ConvertTo-Json -Depth 12
     [System.IO.File]::WriteAllText($temp, $json, ([System.Text.UTF8Encoding]::new($false)))
     if (Test-Path -LiteralPath $ConfigPath) {
-        [System.IO.File]::Replace($temp, $ConfigPath, $null)
+        # .NET's File.Replace requires a non-empty backup path on PowerShell
+        # 7/modern runtimes; passing $null fails before writing the new file.
+        # Keep an actual backup for recovery until the replace succeeds.
+        [System.IO.File]::Replace($temp, $ConfigPath, $backup)
     } else {
         [System.IO.File]::Move($temp, $ConfigPath)
     }
+    $writeSucceeded = $true
 } finally {
     if (Test-Path -LiteralPath $temp) { Remove-Item -LiteralPath $temp -Force }
+    if ($writeSucceeded -and (Test-Path -LiteralPath $backup)) {
+        Remove-Item -LiteralPath $backup -Force
+    }
 }
 
 # Ensure the data file is not world-readable. Localized Windows account names

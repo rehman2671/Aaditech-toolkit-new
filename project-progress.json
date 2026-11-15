@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-15T16:01:17+00:00",
-  "last_verified_commit": "d40002b76d896f148cb1881b3bd146090677e871",
-  "last_verified_date": "2026-11-15T21:31:06+05:30",
+  "generated": "2026-11-15T16:01:54+00:00",
+  "last_verified_commit": "57d2c95b0049b8396e196458826ce9d276565fb9",
+  "last_verified_date": "2026-11-15T21:31:47+05:30",
   "overall_progress_percent": 100.0,
   "progress_scope": "historic audit issue closure only; production acceptance pending",
   "production_ready": false,
@@ -14,26 +14,12 @@
     "percent": 100.0
   },
   "latest_delta": {
-    "added": 1,
+    "added": 0,
     "removed": 0,
-    "changed": 0,
+    "changed": 1,
     "unchanged": 221
   },
   "delta_history": [
-    {
-      "detected_at": "2026-08-10T17:43:33+00:00",
-      "added": [],
-      "removed": [],
-      "changed": [
-        "Enterprise/api/app/main.py",
-        "Enterprise/api/tests/test_smoke.py",
-        "VERSION.md",
-        "Enterprise/portal/index.html",
-        "Enterprise/deploy/deploy.ps1",
-        "Enterprise/api/app/config.py"
-      ],
-      "unchanged_count": 122
-    },
     {
       "detected_at": "2026-08-10T18:25:50+00:00",
       "added": [
@@ -411,6 +397,15 @@
       ],
       "removed": [],
       "changed": [],
+      "unchanged_count": 221
+    },
+    {
+      "detected_at": "2026-11-15T16:01:54+00:00",
+      "added": [],
+      "removed": [],
+      "changed": [
+        "Enterprise/agent/wix/Agent.wxs"
+      ],
       "unchanged_count": 221
     }
   ],

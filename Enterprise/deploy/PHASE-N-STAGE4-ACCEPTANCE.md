@@ -104,6 +104,17 @@ On an isolated Windows 10/11 (and supported Windows Server) test machine:
 6. Attempt cross-tenant hostname/UID collisions and concurrent enrollment;
    confirm rejection without consuming a legitimate one-use token.
 
+**Upgrade-retention acceptance:** CI now runs a disposable real
+major-upgrade rehearsal (`Test-Windows-MsiUpgrade.ps1`) from MSI revision
+`1.1.2001` to a diagnostic `1.1.2002`. It must verify that changing the MSI
+does not reset the HTTPS endpoint or tenant identity, does not rotate the
+enrolled device token, and preserves the scheduled task. Runtime config is
+marked `Permanent`/`NeverOverwrite` to make upgrades safe; this deliberately
+preserves protected ProgramData credentials even on normal uninstall.
+Explicit server-side token revocation and secure local data erasure are
+mandatory for device decommissioning. CI success for the new upgrade
+rehearsal is pending and must be confirmed separately.
+
 **Do not** send a production device fleet to the server before these checks.
 
 ## Hostinger / real-server acceptance (operator controlled)

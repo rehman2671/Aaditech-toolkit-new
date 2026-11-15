@@ -55,12 +55,21 @@ reduces exposure in process listings. Protect and delete the temporary
 token file after configuration. Avoid putting long-lived shared credentials
 in installer artifacts, images, or repository secrets.
 
+After successful device enrollment, the worker stores its individual credential
+in `agent.token` and its bound workspace/device identity in
+`agent.identity.json`. It then **atomically clears the bootstrap token
+from `agent.json`**; this protects reusable workspace enrollment tokens
+from being retained on provisioned endpoints. If cleanup fails, the newly
+issued local device credential is discarded rather than accepting an
+insecurely provisioned state. Re-enrollment requires an administrator to
+supply a new bootstrap credential.
+
 ## Editing server details later (no MSI reinstall)
 
 Re-run the same wizard with the new HTTPS hostname and a fresh single-use
 tenant enrollment token. It retains the feature manifest and interval
-settings, but clears the old `agent.token`, `client.pfx` and `ca.crt` when the
-server or bootstrap credentials change. This prevents silently sending
+settings, but clears the old `agent.token`, `agent.identity.json`,
+`client.pfx` and `ca.crt` when the server or bootstrap credentials change. This prevents silently sending
 device credentials from one server/workspace to another. If the server and
 bootstrap token are unchanged, the existing device identity is preserved.
 
@@ -78,7 +87,9 @@ those values.
 - Run `Configure-Agent.ps1 -TestConnection` and confirm the user is prompted
   for setup values without printing the bootstrap token.
 - Confirm the agent successfully enrolls only to its intended workspace,
-  obtains an individual device token and uploads telemetry.
+  obtains an individual device token, clears the original bootstrap token
+  from `agent.json` and uploads telemetry. Check file permissions on both
+  `agent.token` and `agent.identity.json`.
 - Verify upgrade/reinstall retains required configuration, Windows ACLs,
   scheduled task permissions and endpoint edits.
 - Rehearse server migration with a fresh token; confirm the old device

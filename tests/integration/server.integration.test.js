@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import request from 'supertest';
+import { verifyDeviceCommand } from '../../command-signing.js';
 import { app } from '../../server.js';
 
 describe('Server & API Integration Test Suite', () => {
@@ -8,6 +9,8 @@ describe('Server & API Integration Test Suite', () => {
   let monitorToken = '';
   let agentToken = '';
   let agentHostname = '';
+  let agentDeviceId = '';
+  let agentTenantId = '';
 
   beforeAll(async () => {
     // Authenticate test personas
@@ -299,6 +302,9 @@ describe('Server & API Integration Test Suite', () => {
       expect([200, 201]).toContain(enrollRes.status);
       expect(enrollRes.body.device_token).toBeDefined();
       agentToken = enrollRes.body.device_token;
+      agentDeviceId = enrollRes.body.device_id;
+      agentTenantId = enrollRes.body.tenant_id;
+      expect(enrollRes.body.command_signing_key).toBeUndefined();
     });
 
     it('rejects an existing hostname with a different UID without spending a one-use token', async () => {
@@ -331,6 +337,42 @@ describe('Server & API Integration Test Suite', () => {
         });
       expect(fresh.status).toBe(201);
       expect(fresh.body.device_token).toMatch(/^itk_dev_/);
+    });
+
+    it('delivers only per-device signed executable commands with verified tenant/expiry', async () => {
+      const queued = await request(app)
+        .post('/api/v1/commands/dispatch')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          device_id: agentDeviceId,
+          kind: 'run-script',
+          payload: { script: 'Scripts/QuickCheck.ps1' }
+        });
+      expect(queued.status).toBe(201);
+      const poll = await request(app)
+        .get('/api/v1/commands/poll')
+        .set('X-Device-Token', agentToken)
+        .query({ hostname: agentHostname });
+      expect(poll.status).toBe(200);
+      const delivered = poll.body.find(c => c.id === queued.body.id);
+      expect(delivered).toBeDefined();
+      const device = { id: agentDeviceId, tenant_id: agentTenantId, hostname: agentHostname };
+      expect(verifyDeviceCommand({
+        signed_content: delivered.signed_content,
+        signature: delivered.signature,
+        commandId: delivered.id,
+        deviceToken: agentToken,
+        device
+      })).toBe(true);
+      const trusted = JSON.parse(delivered.signed_content);
+      expect(trusted.payload.script).toBe('Scripts/QuickCheck.ps1');
+      expect(verifyDeviceCommand({
+        signed_content: delivered.signed_content,
+        signature: delivered.signature,
+        commandId: delivered.id,
+        deviceToken: agentToken,
+        device: { ...device, tenant_id: 'wrong-tenant' }
+      })).toBe(false);
     });
 
     it('GET /api/v1/features returns enabled feature flags', async () => {

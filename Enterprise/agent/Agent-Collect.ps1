@@ -101,14 +101,6 @@ function Read-AgentConfig {
     try { $cfg = (Get-Content $ConfigPath -Raw | ConvertFrom-Json) }
     catch { throw "Invalid agent.json: $($_.Exception.Message)" }
 
-    # CI-built generic installers intentionally contain no endpoint/credential.
-    # Never collect or attempt network calls until an administrator completes
-    # Configure-Agent.ps1 after the production server details are known.
-    if ($cfg.needs_setup -or [string]::IsNullOrWhiteSpace([string]$cfg.endpoint) -or
-        [string]::IsNullOrWhiteSpace([string]$cfg.token)) {
-        throw "Agent is not provisioned. Run Configure-Agent.ps1 as Administrator to configure HTTPS server and enrollment token."
-    }
-
     # Registry override knob (A4): HKLM\SOFTWARE\ITToolkit\Agent\EndpointUrl
     # and/or ApiToken override agent.json at startup. This is what makes the
     # GPO/manual redirect real without a reinstall. Empty/missing values fall
@@ -119,6 +111,12 @@ function Read-AgentConfig {
         $token    = (Get-ItemProperty $regKey -ErrorAction SilentlyContinue).ApiToken
         if ($endpoint) { $cfg.endpoint = $endpoint; Write-AgentLog "Registry override: endpoint -> $endpoint" }
         if ($token)    { $cfg.token    = $token;    Write-AgentLog 'Registry override: token applied' }
+    }
+    # Validate AFTER the supported GPO/registry override is applied. A generic
+    # installer can be provisioned by either the wizard or managed policy.
+    if (([string]::IsNullOrWhiteSpace([string]$cfg.endpoint)) -or
+        ([string]::IsNullOrWhiteSpace([string]$cfg.token))) {
+        throw "Agent is not provisioned. Run Configure-Agent.ps1 as Administrator or configure both registry overrides."
     }
     return $cfg
 }

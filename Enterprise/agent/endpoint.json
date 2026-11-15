@@ -1,4 +1,5 @@
 {
-  "endpoint": "http://10.73.99.35/api/v1/ingest/telemetry",
-  "enroll_url": "http://10.73.99.35/api/v1/agent/enroll"
+  "endpoint": "",
+  "enroll_url": "",
+  "needs_setup": true
 }

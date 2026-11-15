@@ -116,7 +116,9 @@ if (!AGENT_API_TOKEN || AGENT_API_TOKEN.trim() === '') {
 // Initial public setup must require a separate operator-held secret. A blank
 // setup token would allow anyone who reaches the domain first to become admin.
 const INITIAL_SETUP_TOKEN = process.env.SETUP_TOKEN || '';
-if (process.env.NODE_ENV === 'production' && INITIAL_SETUP_TOKEN.length < 32) {
+// Only the explicit test profile may use seeded credentials without setup.
+const REQUIRE_SECURE_SETUP = process.env.NODE_ENV !== 'test';
+if (REQUIRE_SECURE_SETUP && INITIAL_SETUP_TOKEN.length < 32) {
   console.error('FATAL: SETUP_TOKEN (at least 32 characters) is required in production.');
   process.exit(1);
 }
@@ -868,7 +870,7 @@ async function handleLogin(req, res) {
     });
   }
 
-  if (process.env.NODE_ENV === 'production') {
+  if (REQUIRE_SECURE_SETUP) {
     const branding = await db.getBranding();
     if (!branding.setup_complete) {
       return res.status(403).json({ error: 'SETUP_REQUIRED', detail: 'Complete authorized first-run setup before logging in.' });
@@ -888,7 +890,7 @@ async function handleLogin(req, res) {
 
   // Migration-safe guard: shipped sample bcrypt hashes must never be accepted
   // on a public deployment, even if accounts were seeded before this upgrade.
-  if (process.env.NODE_ENV === 'production' && isSeededDemoPasswordHash(user.password_hash)) {
+  if (REQUIRE_SECURE_SETUP && isSeededDemoPasswordHash(user.password_hash)) {
     return res.status(403).json({ error: 'PASSWORD_ROTATION_REQUIRED', detail: 'A shipped demo account must have its password reset by an administrator.' });
   }
 
@@ -1805,14 +1807,14 @@ app.post(['/api/v1/setup', '/api/setup'], async (req, res, next) => {
     if (normalizeRole(req.user?.role) !== 'SUPER_ADMIN') {
       return res.status(403).json({ error: 'FORBIDDEN', detail: 'Administrator role required to change setup.' });
     }
-  } else if (process.env.NODE_ENV === 'production' &&
+  } else if (REQUIRE_SECURE_SETUP &&
              !isValidSetupKey(req.headers['x-setup-token'], INITIAL_SETUP_TOKEN)) {
     return res.status(403).json({ error: 'FORBIDDEN', detail: 'Valid initial setup key required.' });
   }
   return next();
 }, validateBody(setupSchema), async (req, res) => {
   const { company_name, server_host, admin_username, admin_password, branding, build_mode, github_repo, github_token } = req.body;
-  if (process.env.NODE_ENV === 'production' && req.isInitialSetup &&
+  if (REQUIRE_SECURE_SETUP && req.isInitialSetup &&
       (typeof admin_password !== 'string' || admin_password.length < 12 ||
        ['Admin123!', 'Operator123!', 'Monitor123!'].includes(admin_password))) {
     return res.status(400).json({ error: 'WEAK_INITIAL_PASSWORD', detail: 'Choose a new administrator password of at least 12 characters, not a shipped demo password.' });

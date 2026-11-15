@@ -11,6 +11,7 @@ describe('Server & API Integration Test Suite', () => {
   let agentHostname = '';
   let agentDeviceId = '';
   let agentTenantId = '';
+  let secondAgentToken = '';
 
   beforeAll(async () => {
     // Authenticate test personas
@@ -337,6 +338,7 @@ describe('Server & API Integration Test Suite', () => {
         });
       expect(fresh.status).toBe(201);
       expect(fresh.body.device_token).toMatch(/^itk_dev_/);
+      secondAgentToken = fresh.body.device_token;
     });
 
     it('delivers only per-device signed executable commands with verified tenant/expiry', async () => {
@@ -373,6 +375,26 @@ describe('Server & API Integration Test Suite', () => {
         deviceToken: agentToken,
         device: { ...device, tenant_id: 'wrong-tenant' }
       })).toBe(false);
+
+      // A command result belongs to the exact enrolled device, not merely a
+      // valid fleet HMAC, admin JWT, URL token or a different tenant's agent.
+      const resultUrl = `/api/v1/commands/${delivered.id}/result`;
+      const body = { status: 'completed', output: 'Signed command executed', exit_code: 0 };
+      const jwtResult = await request(app).post(resultUrl)
+        .set('Authorization', `Bearer ${token}`).send(body);
+      expect(jwtResult.status).toBe(403);
+
+      const queryResult = await request(app).post(`${resultUrl}?device_token=${agentToken}`)
+        .send(body);
+      expect(queryResult.status).toBe(403);
+
+      const crossTenantResult = await request(app).post(resultUrl)
+        .set('X-Device-Token', secondAgentToken).send(body);
+      expect([401, 403]).toContain(crossTenantResult.status);
+
+      const realResult = await request(app).post(resultUrl)
+        .set('X-Device-Token', agentToken).send(body);
+      expect(realResult.status).toBe(200);
     });
 
     it('GET /api/v1/features returns enabled feature flags', async () => {
@@ -805,7 +827,9 @@ describe('Server & API Integration Test Suite', () => {
             output: 'Ping successful',
             exit_code: 0
           });
-        expect([200, 404]).toContain(resultRes.status);
+        // This is an agent-only endpoint. An admin JWT cannot forge a
+        // result for an arbitrary device, even if that user dispatched it.
+        expect(resultRes.status).toBe(403);
       }
     });
 

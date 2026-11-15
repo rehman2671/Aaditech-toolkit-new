@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-15T16:15:00+00:00",
-  "last_verified_commit": "705de9a001ca22bc36a00495f1c5ac9ff5deafc7",
-  "last_verified_date": "2026-11-15T21:44:48+05:30",
+  "generated": "2026-11-15T16:15:32+00:00",
+  "last_verified_commit": "dc707a1a760108f1062c5d3b60f367d3a5c0c8e1",
+  "last_verified_date": "2026-11-15T21:45:19+05:30",
   "overall_progress_percent": 100.0,
   "progress_scope": "historic audit issue closure only; production acceptance pending",
   "production_ready": false,
@@ -20,15 +20,6 @@
     "unchanged": 224
   },
   "delta_history": [
-    {
-      "detected_at": "2026-11-15T15:57:01+00:00",
-      "added": [],
-      "removed": [],
-      "changed": [
-        "Enterprise/agent/build/build-agent.ps1"
-      ],
-      "unchanged_count": 220
-    },
     {
       "detected_at": "2026-11-15T15:57:40+00:00",
       "added": [],
@@ -198,6 +189,15 @@
       "removed": [],
       "changed": [
         "tests/integration/server.integration.test.js"
+      ],
+      "unchanged_count": 224
+    },
+    {
+      "detected_at": "2026-11-15T16:15:32+00:00",
+      "added": [],
+      "removed": [],
+      "changed": [
+        "Enterprise/tests/Test-ConfigureAgent.ps1"
       ],
       "unchanged_count": 224
     }

@@ -112,6 +112,20 @@ if (!AGENT_API_TOKEN || AGENT_API_TOKEN.trim() === '') {
   process.exit(1);
 }
 
+// Initial public setup must require a separate operator-held secret. A blank
+// setup token would allow anyone who reaches the domain first to become admin.
+const INITIAL_SETUP_TOKEN = process.env.SETUP_TOKEN || '';
+if (process.env.NODE_ENV === 'production' && INITIAL_SETUP_TOKEN.length < 32) {
+  console.error('FATAL: SETUP_TOKEN (at least 32 characters) is required in production.');
+  process.exit(1);
+}
+function matchesInitialSetupToken(supplied) {
+  if (typeof supplied !== 'string' || supplied.length > 512 || !INITIAL_SETUP_TOKEN) return false;
+  const expected = crypto.createHash('sha256').update(INITIAL_SETUP_TOKEN).digest();
+  const actual = crypto.createHash('sha256').update(supplied).digest();
+  return crypto.timingSafeEqual(expected, actual);
+}
+
 // Server-side revocation registry for invalidated tokens and JTIs (cached in memory + persistent in MySQL)
 const revokedTokens = new Set();
 
@@ -880,8 +894,8 @@ async function handleLogin(req, res) {
   // Issue real HS256 signed JWT
   const token = issueUserToken(user);
 
-  res.cookie('auth_token', token, { httpOnly: true, sameSite: 'lax', maxAge: 8 * 3600 * 1000 });
-  res.cookie('itk_session', token, { httpOnly: true, sameSite: 'lax', maxAge: 8 * 3600 * 1000 });
+  res.cookie('auth_token', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', maxAge: 8 * 3600 * 1000 });
+  res.cookie('itk_session', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', maxAge: 8 * 3600 * 1000 });
 
   logAudit(user, "USER_LOGIN_SUCCESS", "AuthService", { result: "SUCCESS" }, req);
 
@@ -1774,7 +1788,21 @@ app.get(['/api/v1/setup/status', '/api/setup/status'], async (req, res) => {
 });
 
 // Run setup (Canonical v1 + Legacy alias)
-app.post(['/api/v1/setup', '/api/setup'], validateBody(setupSchema), async (req, res) => {
+app.post(['/api/v1/setup', '/api/setup'], async (req, res, next) => {
+  const branding = await db.getBranding();
+  if (branding.setup_complete) {
+    // Never let an ordinary authenticated user reset the administrator via
+    // the wizard after initial setup. The API gateway has already checked
+    // authentication; this is the additional authorization requirement.
+    if (normalizeRole(req.user?.role) !== 'SUPER_ADMIN') {
+      return res.status(403).json({ error: 'FORBIDDEN', detail: 'Administrator role required to change setup.' });
+    }
+  } else if (process.env.NODE_ENV === 'production' &&
+             !matchesInitialSetupToken(req.headers['x-setup-token'])) {
+    return res.status(403).json({ error: 'FORBIDDEN', detail: 'Valid initial setup key required.' });
+  }
+  return next();
+}, validateBody(setupSchema), async (req, res) => {
   const { company_name, server_host, admin_username, admin_password, branding, build_mode, github_repo, github_token } = req.body;
   const updates = { setup_complete: true };
   if (company_name) updates.company_name = company_name;

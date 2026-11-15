@@ -234,8 +234,13 @@ function Ensure-ClientCert {
 
         $issuedToken = if ($resp.device_token) { $resp.device_token } elseif ($resp.agent_token) { $resp.agent_token } else { $null }
         if ($issuedToken) {
+            if (-not $resp.device_id -or -not $resp.tenant_id -or -not $resp.device_uid) {
+                throw 'Enrollment response did not bind device and tenant identity'
+            }
+            $identity = @{ device_id = [string]$resp.device_id; tenant_id = [string]$resp.tenant_id; device_uid = [string]$resp.device_uid } | ConvertTo-Json -Compress
+            [IO.File]::WriteAllText((Join-Path $dir 'agent.identity.json'), $identity)
             [IO.File]::WriteAllText($tokenPath, [string]$issuedToken)
-            Write-AgentLog "Per-agent device token persisted successfully"
+            Write-AgentLog 'Per-device token and signed-command identity persisted'
         }
 
         if ($resp.pfx) {

@@ -136,7 +136,11 @@ try {
     # Versioned artifact name so every build is distinguishable at a glance:
     # IT-Toolkit-Agent-<semver>.msi (semver, NOT the 4-part upgrade revision).
     $MsiName = "IT-Toolkit-Agent-$AgentVersion.msi"
-    & $wix.Source build 'Agent.wxs' -o "$(Join-Path $BuildOut $MsiName)" -d "AgentVersion=$MsiVersion" -d "AgentInterval=$AgentInterval"
+    # WiX v5 defaults to x86 unless -arch is explicit; the agent bundles an
+    # x64 sqlite3.exe and installs under ProgramFiles64Folder. A default x86
+    # package may redirect its payload into Program Files (x86), breaking the
+    # canonical first-run/setup paths on real machines.
+    & $wix.Source build -arch x64 'Agent.wxs' -o "$(Join-Path $BuildOut $MsiName)" -d "AgentVersion=$MsiVersion" -d "AgentInterval=$AgentInterval"
     if ($LASTEXITCODE -ne 0) { throw "WiX build failed with exit code $LASTEXITCODE (see output above)" }
 }
 finally {

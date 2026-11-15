@@ -34,6 +34,19 @@ if (-not $manifest.SelectSingleNode('//*[local-name()="Shortcut" and @Id="AgentS
 if (-not $manifest.SelectSingleNode('//*[local-name()="ComponentRef" and @Id="AgentSetupMenu"]')) {
     throw 'MSI feature does not include the Start Menu shortcut'
 }
+foreach ($actionName in @('HardenRuntimeJsonAcl', 'HardenAgentDataAcl', 'HardenLocalJsonAcl')) {
+    $action = $manifest.SelectSingleNode("//*[local-name()='CustomAction' and @Id='$actionName']")
+    if (-not $action -or $action.Return -ne 'check') {
+        throw "MSI credential hardening must fail installation on failure: $actionName"
+    }
+    if ($action.ExeCommand -match ' /C(?:\s|$)') {
+        throw "MSI ACL hardening must never continue after a protected-file permission error: $actionName"
+    }
+}
+$runtimeAcl = $manifest.SelectSingleNode("//*[local-name()='CustomAction' and @Id='HardenRuntimeJsonAcl']")
+if ($runtimeAcl.ExeCommand -notmatch 'ITToolkit-Agent\\agent.json') {
+    throw 'MSI does not explicitly protect the runtime agent.json file'
+}
 if (-not (Get-Content $builder -Raw).Contains('Configure-Agent-GUI.ps1')) {
     throw 'MSI build does not stage GUI setup script'
 }

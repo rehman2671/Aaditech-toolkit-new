@@ -52,6 +52,9 @@
         <Component Id="AgentSetupWizard" Guid="5CB3B8A7-A921-4E32-B6D0-6CD02A23A0CC">
           <File Id="AgentSetupWizardFile" Name="Configure-Agent.ps1" Source="stage\Configure-Agent.ps1" KeyPath="yes" />
         </Component>
+        <Component Id="AgentSetupGui" Guid="32A638E7-BCEF-47E2-883F-645B3F1215A6">
+          <File Id="AgentSetupGuiFile" Name="Configure-Agent-GUI.ps1" Source="stage\Configure-Agent-GUI.ps1" KeyPath="yes" />
+        </Component>
 
         <Directory Id="SCRIPTS_DIR" Name="Scripts">
           <Component Id="ScriptQuickCheck" Guid="B2C3D4E5-1111-1111-1111-111111111111">
@@ -151,6 +154,24 @@
       </Directory>
     </StandardDirectory>
 
+    <!-- All-users Start Menu entry for configuring the server after install.
+         The PowerShell GUI requests UAC elevation on first launch. -->
+    <StandardDirectory Id="CommonProgramsFolder">
+      <Directory Id="ITTK_SETUP_MENU" Name="IT-Toolkit">
+        <Component Id="AgentSetupMenu" Guid="D14039B5-2A35-4CC7-A618-B2A8A0EE4A51">
+          <Shortcut Id="AgentSetupMenuShortcut"
+                    Name="Configure Agent Server"
+                    Description="Configure or change the AadiTech HTTPS server"
+                    Target="[SystemFolder]WindowsPowerShell\v1.0\powershell.exe"
+                    Arguments="-NoProfile -STA -ExecutionPolicy Bypass -File &quot;[INSTALLFOLDER]Configure-Agent-GUI.ps1&quot;"
+                    WorkingDirectory="INSTALLFOLDER" />
+          <RemoveFolder Id="RemoveAgentSetupMenu" Directory="ITTK_SETUP_MENU" On="uninstall" />
+          <RegistryValue Root="HKLM" Key="SOFTWARE\ITToolkit\Agent"
+                         Name="SetupShortcutInstalled" Type="integer" Value="1" KeyPath="yes" />
+        </Component>
+      </Directory>
+    </StandardDirectory>
+
     <!-- ==================== registry override knob ==================== -->
     <!-- GPO/manual override: set HKLM\SOFTWARE\ITToolkit\Agent\EndpointUrl
          and/or ApiToken to redirect this agent without reinstalling. The
@@ -236,6 +257,8 @@
       <ComponentRef Id="SqliteBin" />
       <ComponentRef Id="AgentJsonLocal" />
       <ComponentRef Id="AgentSetupWizard" />
+      <ComponentRef Id="AgentSetupGui" />
+      <ComponentRef Id="AgentSetupMenu" />
       <ComponentRef Id="ScriptQuickCheck" />
       <ComponentRef Id="ScriptEventLogs" />
       <ComponentRef Id="ScriptNetwork" />

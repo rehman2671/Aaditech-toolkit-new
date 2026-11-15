@@ -565,7 +565,10 @@ async function verifyDeviceCredential(req, targetDeviceIdentifier) {
   let isMasterAgentToken = false;
 
   if (rawToken) {
-    isMasterAgentToken = (rawToken === AGENT_API_TOKEN || (process.env.NODE_ENV !== 'production' && rawToken === 'itk_agent_sec_token_998877'));
+    // Only explicit test fixtures may use a fleet-wide secret as device auth.
+    // Production agents must enroll for per-device credentials first.
+    isMasterAgentToken = (process.env.NODE_ENV === 'test') &&
+      (rawToken === AGENT_API_TOKEN || rawToken === 'itk_agent_sec_token_998877');
     const tokenHash = hashDeviceToken(rawToken);
 
     if (isMasterAgentToken) {
@@ -597,8 +600,10 @@ async function verifyDeviceCredential(req, targetDeviceIdentifier) {
       matchedDevice = await db.getDeviceByTokenHash(tokenHash);
     }
 
-    // 2. Check if this is an initial bootstrap token enrollment/check-in
-    if (!matchedDevice) {
+    // Production never silently consumes bootstrap tokens on telemetry or
+    // command endpoints. Enrollment must use the explicit POST route, where
+    // tenant and UID collisions are verified before token consumption.
+    if (!matchedDevice && process.env.NODE_ENV === 'test') {
       const bVer = await verifyBootstrapToken(rawToken);
       if (bVer.valid) {
         const targetHost = (targetDeviceIdentifier || req.body?.hostname || req.body?.device_uid || "NEW-AGENT").trim();

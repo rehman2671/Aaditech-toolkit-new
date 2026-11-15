@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-15T17:24:43+00:00",
-  "last_verified_commit": "806a3dda033ae3fd3965dcee9372675ea1fd625f",
-  "last_verified_date": "2026-11-15T22:54:31+05:30",
+  "generated": "2026-11-15T17:25:01+00:00",
+  "last_verified_commit": "c58ceb803d03bb0f842b26c53bf80dc952c13c2c",
+  "last_verified_date": "2026-11-15T22:54:51+05:30",
   "overall_progress_percent": 100.0,
   "progress_scope": "historic audit issue closure only; production acceptance pending",
   "production_ready": false,
@@ -20,15 +20,6 @@
     "unchanged": 227
   },
   "delta_history": [
-    {
-      "detected_at": "2026-11-15T16:53:04+00:00",
-      "added": [],
-      "removed": [],
-      "changed": [
-        "Enterprise/tests/Test-ConfigureAgent.ps1"
-      ],
-      "unchanged_count": 226
-    },
     {
       "detected_at": "2026-11-15T16:54:28+00:00",
       "added": [],
@@ -197,6 +188,15 @@
       "removed": [],
       "changed": [
         "Enterprise/agent/wix/Agent.wxs"
+      ],
+      "unchanged_count": 227
+    },
+    {
+      "detected_at": "2026-11-15T17:25:01+00:00",
+      "added": [],
+      "removed": [],
+      "changed": [
+        "Enterprise/tests/Test-ConfigureAgent.ps1"
       ],
       "unchanged_count": 227
     }

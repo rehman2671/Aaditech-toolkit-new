@@ -28,6 +28,17 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ENV_FILE="$HERE/.env"
 CONFIG_OUT="$HERE/agent/agent-config.json"
 
+# Deployment safety gate: this script targets a PostgreSQL/FastAPI stack, while
+# the checked-in Compose file currently declares MySQL/Node.js. Refuse to
+# regenerate secrets or mutate running services until the stacks are reconciled.
+if grep -Eq '^[[:space:]]*image:[[:space:]]*mysql:' "$HERE/docker-compose.yml"; then
+    printf '%s\n' '[deploy][ERROR] Incompatible deployment configuration:' >&2
+    printf '%s\n' '  deploy.sh expects PostgreSQL/FastAPI, but docker-compose.yml uses MySQL/Node.js.' >&2
+    printf '%s\n' '  No secrets, agent configuration, certificates, or containers were changed.' >&2
+    printf '%s\n' '  Align the deployment scripts and Compose services before deploying.' >&2
+    exit 1
+fi
+
 compose() { docker compose -f "$HERE/docker-compose.yml" "$@"; }
 
 log()  { printf '\033[1;34m[deploy]\033[0m %s\n' "$*"; }

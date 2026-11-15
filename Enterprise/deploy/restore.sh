@@ -1,82 +1,105 @@
 #!/usr/bin/env bash
-# restore.sh - restore the IT-Toolkit Enterprise DB from a backup.sh dump.
+# Restore a MySQL backup created by Enterprise/deploy/backup.sh.
+# Destructive by design: explicit --yes approval is required.
 #
-# Usage:
-#   ./restore.sh                                # latest dump in deploy/backups/
-#   ./restore.sh path/to/ittoolkit-<date>.dump  # explicit file
+#   ./restore.sh --yes                              # newest backup
+#   ./restore.sh --yes /path/to/ittoolkit-*.sql     # specified backup
 #
-# Steps:
-#   1. stop caddy + api (no writers)
-#   2. ensure db is up
-#   3. docker cp the dump into the db container and pg_restore --clean
-#   4. start api + caddy again
-#
-# NOTE: replaces current DB contents with the dump.
-
+# The script stops application writers, saves an independent safety backup,
+# replaces the configured database, verifies connectivity, then restarts the
+# application. If anything fails, application services stay stopped.
 set -euo pipefail
+umask 077
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ENV_FILE="$HERE/.env"
-
-# Safety gate: pg_dump/pg_restore cannot operate on the MySQL service declared
-# by the current Compose stack. Refuse before stopping services or creating
-# misleading backup files. Reconcile database engine and tooling first.
-if grep -Eq '^[[:space:]]*image:[[:space:]]*mysql:' "$HERE/docker-compose.yml"; then
-    printf '%s\n' '[ERROR] Database tooling mismatch: this script requires PostgreSQL, but Compose runs MySQL.' >&2
-    printf '%s\n' 'No database, backup, or application services were modified.' >&2
-    exit 1
-fi
+COMPOSE_FILE="$HERE/docker-compose.yml"
 BACKUP_DIR="$HERE/deploy/backups"
 
-compose() { docker compose -f "$HERE/docker-compose.yml" "$@"; }
+log() { printf '[restore] %s\n' "$*"; }
+die() { printf '[restore][ERROR] %s\n' "$*" >&2; exit 1; }
+compose() { docker compose -f "$COMPOSE_FILE" "$@"; }
+
+CONFIRMED=0
+FILE=""
+for arg in "$@"; do
+  case "$arg" in
+    --yes) CONFIRMED=1 ;;
+    --help|-h)
+      echo "Usage: $0 --yes [path/to/ittoolkit-*.sql]"
+      exit 0 ;;
+    -*) die "Unknown option: $arg" ;;
+    *) [ -z "$FILE" ] || die "Supply at most one backup file."; FILE="$arg" ;;
+  esac
+done
+[ "$CONFIRMED" -eq 1 ] || die "Restore replaces database contents. Rerun with --yes to authorize."
+[ -f "$ENV_FILE" ] || die "Missing $ENV_FILE."
+[ -f "$COMPOSE_FILE" ] || die "Missing $COMPOSE_FILE."
+grep -Eq '^[[:space:]]*image:[[:space:]]*mysql:' "$COMPOSE_FILE" || die "This script only supports MySQL Docker Compose."
+command -v docker >/dev/null 2>&1 || die "Docker is required."
 
 # shellcheck disable=SC1090
 set -a; source "$ENV_FILE"; set +a
-DB_USER="${POSTGRES_USER:-ittoolkit}"
-DB_NAME="${POSTGRES_DB:-ittoolkit}"
+DB_NAME="${MYSQL_DATABASE:-it_toolkit}"
+DB_USER="${MYSQL_USER:-itk_user}"
+[[ "$DB_NAME" =~ ^[A-Za-z0-9_]+$ ]] || die "Invalid MYSQL_DATABASE."
+[ -n "$DB_USER" ] && [ -n "${MYSQL_PASSWORD:-}" ] || die "MYSQL_USER/MYSQL_PASSWORD must be configured."
 
-if [ "$#" -gt 1 ]; then
-    echo "usage: $0 [dump-file]" >&2
-    exit 1
+if [ -z "$FILE" ]; then
+  shopt -s nullglob
+  files=("$BACKUP_DIR"/ittoolkit-*.sql)
+  shopt -u nullglob
+  [ "${#files[@]}" -gt 0 ] || die "No .sql backups found in $BACKUP_DIR."
+  FILE="${files[${#files[@]}-1]}"
 fi
+[ -f "$FILE" ] && [ -r "$FILE" ] || die "Backup is not a readable file: $FILE"
+[ "$(head -n 1 "$FILE")" = "-- aaditech-mysql-backup-v1 database=$DB_NAME" ] || die "Backup signature or database name does not match $DB_NAME."
+grep -q '^-- MySQL dump' "$FILE" || die "Not a valid MySQL dump."
+grep -q '^-- Dump completed on ' "$FILE" || die "Backup is truncated (missing completion marker)."
+log "Validated MySQL backup: $FILE"
+log "Stopping API and Caddy to prevent writes during the restore."
+STOPPED=0
+on_exit() {
+  status=$?
+  if [ "$status" -ne 0 ] && [ "$STOPPED" -eq 1 ]; then
+    compose stop caddy api >/dev/null 2>&1 || true
+    printf '%s\n' '[restore][ERROR] Restore did not complete. API/Caddy are stopped to protect the database. Inspect logs and recover from the safety backup before restarting.' >&2
+  fi
+}
+trap on_exit EXIT
+compose stop caddy api
+STOPPED=1
 
-if [ "$#" -eq 1 ]; then
-    FILE="$1"
-    [ -f "$FILE" ] || { echo "no such file: $FILE" >&2; exit 1; }
-else
-    FILE="$(ls -1t "$BACKUP_DIR"/ittoolkit-*.dump 2>/dev/null | head -1 || true)"
-    [ -n "$FILE" ] || { echo "no backup found in $BACKUP_DIR (run ./backup.sh first)" >&2; exit 1; }
-fi
+log "Creating a separate safety backup of current data before replacement."
+BACKUP_KEEP=0 "$HERE/deploy/backup.sh"
 
-log() { printf '[restore] %s\n' "$*"; }
+log "Replacing database $DB_NAME (previous contents will be removed)."
+# The standard MySQL image grants its MYSQL_USER full rights on MYSQL_DATABASE.
+# Validate identifier before interpolating it into a SQL statement.
+compose exec -T db sh -ec '
+  export MYSQL_PWD="$MYSQL_PASSWORD"
+  case "$MYSQL_DATABASE" in
+    ""|*[!a-zA-Z0-9_]* ) echo "Invalid MYSQL_DATABASE" >&2; exit 2 ;;
+  esac
+  mysql --host=127.0.0.1 --user="$MYSQL_USER" \
+    --execute="DROP DATABASE IF EXISTS \`$MYSQL_DATABASE\`; CREATE DATABASE \`$MYSQL_DATABASE\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+'
+compose exec -T db sh -ec '
+  export MYSQL_PWD="$MYSQL_PASSWORD"
+  exec mysql --host=127.0.0.1 --user="$MYSQL_USER" \
+    --default-character-set=utf8mb4 --binary-mode=1 \
+    --database="$MYSQL_DATABASE"
+' < "$FILE"
 
-log "Restoring from: $FILE"
-log "Stopping caddy + api (no writers during restore) — ok if already down"
-compose stop caddy api || true
+compose exec -T db sh -ec '
+  export MYSQL_PWD="$MYSQL_PASSWORD"
+  mysql --host=127.0.0.1 --user="$MYSQL_USER" \
+    --database="$MYSQL_DATABASE" --batch --skip-column-names \
+    --execute="SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE();" |
+    grep -Eq "^[1-9][0-9]*$"
+'
 
-log "Ensuring db is up + healthy (schema.sql init runs on fresh volume)"
-compose up -d db
-compose exec -T db sh -lc \
-    "until pg_isready -U '$DB_USER' -d '$DB_NAME' >/dev/null 2>&1; do sleep 1; done"
-
-CID="$(compose ps -q db)"
-docker cp "$FILE" "$CID:/tmp/itk-restore.dump"
-
-log "pg_restore --clean --if-exists"
-compose exec -T db pg_restore -U "$DB_USER" -d "$DB_NAME" --clean --if-exists \
-    --no-owner --no-privileges /tmp/itk-restore.dump
-compose exec -T db rm -f /tmp/itk-restore.dump
-
-log "Regenerating mTLS CA + server cert (down -v wiped /data/certs)"
-compose up -d api
-HOST="$(grep '^SERVER_HOST=' "$ENV_FILE" | cut -d= -f2)"
-if [ -z "$HOST" ] || [ "$HOST" = "auto" ]; then
-    HOST="$(ifconfig 2>/dev/null | awk '/^((en[0-9])|(eth[0-9])):/ {f=1} f && /inet / && $2 !~ /^127\./ && $2 !~ /^169\.254\./ { print $2; exit }')"
-fi
-compose exec -T api python -c "from app.certs import ensure_certs; ensure_certs('$HOST')"
-log "Certs regenerated for SAN=$HOST"
-
-log "Bringing api + caddy back up"
-compose up -d api caddy
-
-log "Restore complete."
+log "Database import verified. Starting API and Caddy."
+compose up -d --wait --wait-timeout 120 api caddy
+STOPPED=0
+log "Restore successful. Check application functionality and tenant data before accepting production traffic."

@@ -92,6 +92,12 @@ try {
         }
     }
 
+    # Diagnose effective on-disk permissions on an ephemeral runner without
+    # ever logging the protected token/config contents.
+    Write-Host 'Installed agent credential ACLs (metadata only):'
+    & icacls.exe $dataDir
+    & icacls.exe (Join-Path $dataDir 'agent.json')
+    & icacls.exe (Join-Path $installDir 'agent.json')
     foreach ($configPath in @((Join-Path $dataDir 'agent.json'), (Join-Path $installDir 'agent.json'))) {
         $config = Get-Content -LiteralPath $configPath -Raw | ConvertFrom-Json
         if (-not $config.needs_setup -or $config.endpoint -or $config.token -or

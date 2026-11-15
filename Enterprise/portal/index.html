@@ -440,7 +440,10 @@ function renderSetup() {
   app.innerHTML = `
     <div class="center card">
       <h2>IT-Toolkit Enterprise setup</h2>
-      <p class="muted">First-time configuration — done once on the server. Certs and secrets are generated here and kept on this machine.</p>
+      <p class="muted">First-time configuration. The deployment script creates secure server secrets; only an authorized operator can finish setup.</p>
+      <label>Initial setup key (from server Enterprise/.env: SETUP_TOKEN)</label>
+      <input id="initial_setup_token" type="password" autocomplete="off" placeholder="Enter operator-held setup key" />
+      <p class="muted">Keep this key private. It is never stored in the browser or sent as a URL parameter.</p>
       <label>Company name</label><input id="company_name" placeholder="Acme Inc." />
       <label>Server address (used for agent connections)</label><input id="server_host" value="${esc(host)}" />
       <div class="row">
@@ -556,7 +559,10 @@ async function doSetup() {
     github_repo: (document.getElementById('github_repo')?.value || '').trim(),
     github_token: (document.getElementById('github_token')?.value || '').trim(),
   };
-  const res = await fetch('/api/setup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  const setupKey = document.getElementById('initial_setup_token')?.value || '';
+  const setupHeaders = { 'Content-Type': 'application/json' };
+  if (setupKey) setupHeaders['X-Setup-Token'] = setupKey;
+  const res = await fetch('/api/setup', { method: 'POST', headers: setupHeaders, body: JSON.stringify(body) });
   if (!res.ok) { if (err) err.textContent = (await res.json()).detail || 'Setup failed'; return; }
   const data = await res.json();
   if (data.session_secret) return renderSecretBackup(data.session_secret);

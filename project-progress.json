@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-15T15:52:41+00:00",
-  "last_verified_commit": "1a272a320a88cc2030de18d1b715eec5db185922",
-  "last_verified_date": "2026-11-15T21:22:21+05:30",
+  "generated": "2026-11-15T15:54:15+00:00",
+  "last_verified_commit": "da11e0600bbf2264ccb0e22a9c472d23dc9f89a9",
+  "last_verified_date": "2026-11-15T21:24:00+05:30",
   "overall_progress_percent": 100.0,
   "progress_scope": "historic audit issue closure only; production acceptance pending",
   "production_ready": false,
@@ -20,25 +20,6 @@
     "unchanged": 219
   },
   "delta_history": [
-    {
-      "detected_at": "2026-08-09T14:22:08+00:00",
-      "added": [
-        "Enterprise/agent/wix/Create-ElevatedTask.ps1"
-      ],
-      "removed": [],
-      "changed": [
-        "Enterprise/agent/agent-config.example.json",
-        "Enterprise/api/features.json",
-        "Enterprise/agent/wix/build-msi.ps1",
-        "Enterprise/agent/Agent-Collect.ps1",
-        "Enterprise/api/app/main.py",
-        "Enterprise/deploy/deploy.ps1",
-        "Enterprise/api/app/bundle.py",
-        "Enterprise/SCALING-PLAN.md",
-        "Enterprise/agent/wix/Agent.wxs"
-      ],
-      "unchanged_count": 111
-    },
     {
       "detected_at": "2026-08-09T15:42:27+00:00",
       "added": [
@@ -453,6 +434,15 @@
       "removed": [],
       "changed": [
         "Scripts/Index/Update-ProjectIndex.ps1"
+      ],
+      "unchanged_count": 219
+    },
+    {
+      "detected_at": "2026-11-15T15:54:15+00:00",
+      "added": [],
+      "removed": [],
+      "changed": [
+        "db.js"
       ],
       "unchanged_count": 219
     }

@@ -1041,6 +1041,8 @@ app.post('/api/v1/devices', requireRole(['SUPER_ADMIN', 'OPERATOR']), validateBo
 
   const tenantId = String(req.user?.tenant_id || '00000000-0000-0000-0000-000000000001');
   const resolvedUid = String(device_uid || `dev-uid-${hostname.toLowerCase().split('.')[0]}`);
+  try {
+    return await db.withDeviceIdentityLock(hostname, resolvedUid, async () => {
   const [matchingDevices, companies] = await Promise.all([
     db.getEnrollmentIdentityMatches(hostname, resolvedUid),
     db.getCompanies()
@@ -1095,6 +1097,11 @@ app.post('/api/v1/devices', requireRole(['SUPER_ADMIN', 'OPERATOR']), validateBo
     device_token: devToken,
     command_signing_key: COMMAND_SIGNING_KEY
   });
+    });
+  } catch (error) {
+    console.error('Device registration identity lock failed:', error.message);
+    return res.status(503).json({ error: 'DEVICE_IDENTITY_LOCK_UNAVAILABLE' });
+  }
 });
 
 // Device Enrollment Endpoint (V1 & Legacy)
@@ -1134,6 +1141,8 @@ const handleAgentEnroll = async (req, res) => {
   // tenant. Check BOTH identifiers and the destination company before
   // consuming a one-use bootstrap token or updating any device credentials.
   const resolvedUid = String(device_uid || `dev-uid-${host.toLowerCase().split('.')[0]}`).trim();
+  try {
+    return await db.withDeviceIdentityLock(host, resolvedUid, async () => {
   const [matchingDevices, companies] = await Promise.all([
     db.getEnrollmentIdentityMatches(host, resolvedUid),
     db.getCompanies()
@@ -1216,6 +1225,11 @@ const handleAgentEnroll = async (req, res) => {
     command_signing_key: COMMAND_SIGNING_KEY,
     interval_seconds: 30
   });
+    });
+  } catch (error) {
+    console.error('Device enrollment identity lock failed:', error.message);
+    return res.status(503).json({ error: 'DEVICE_IDENTITY_LOCK_UNAVAILABLE' });
+  }
 };
 
 app.post(['/api/v1/agent/enroll', '/api/agent/enroll'], agentLimiter, handleAgentEnroll);

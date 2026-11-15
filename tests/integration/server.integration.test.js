@@ -292,6 +292,38 @@ describe('Server & API Integration Test Suite', () => {
       agentToken = enrollRes.body.device_token;
     });
 
+    it('rejects an existing hostname with a different UID without spending a one-use token', async () => {
+      const msi = await request(app)
+        .post('/api/v1/msi/generate')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ package_name: 'Tenant-Collision-Guard', version: '1.2.0', single_use: true });
+      expect(msi.status).toBe(201);
+      const oneUseToken = msi.body.bootstrap_token;
+      expect(oneUseToken).toBeDefined();
+
+      const conflict = await request(app)
+        .post('/api/v1/agent/enroll')
+        .send({
+          hostname: agentHostname,
+          device_uid: 'unrelated-uid-' + Date.now(),
+          bootstrap_token: oneUseToken
+        });
+      expect(conflict.status).toBe(409);
+      expect(conflict.body.error).toBe('DEVICE_UID_CONFLICT');
+
+      // Same valid token must remain available because the rejected device
+      // could not consume it, so an actual fresh device can still enroll.
+      const fresh = await request(app)
+        .post('/api/v1/agent/enroll')
+        .send({
+          hostname: 'INTEG-FRESH-' + Date.now(),
+          device_uid: 'INTEG-FRESH-UID-' + Date.now(),
+          bootstrap_token: oneUseToken
+        });
+      expect(fresh.status).toBe(201);
+      expect(fresh.body.device_token).toMatch(/^itk_dev_/);
+    });
+
     it('GET /api/v1/features returns enabled feature flags', async () => {
       const res = await request(app)
         .get('/api/v1/features')

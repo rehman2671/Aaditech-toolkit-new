@@ -27,11 +27,17 @@ ignored. For each new release without a semver patch bump, increase the
 `msi_revision` explicitly; do **not** rely on the build date. Keep the
 stable WiX `UpgradeCode` unchanged.
 
-On disposable GitHub-hosted Windows runners, CI performs actual silent
-installation, checks the scheduled task, program files, protected runtime
-directory, Start Menu link and installed setup wizard, then uninstalls and
-checks cleanup. It does not drive the GUI or prove a signed artifact works
-on your organization's real managed endpoints.
+On a disposable GitHub-hosted Windows runner, full CI run
+[43739352090](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43739352090)
+**passed** actual silent installation of the x64 `1.1.2001` diagnostic
+MSI, verified Program Files payload, restricted ProgramData agent.json ACL,
+NETWORK SERVICE scheduled task, Start Menu link and the **installed** CLI
+setup wizard, then successfully uninstalled and verified scheduled-task
+and shortcut removal. This proves real Windows Installer execution on a
+GitHub-hosted test runner, not signed-artifact trust, GUI/UAC interaction,
+upgrade preservation or acceptance on your organization's managed endpoints.
+Without `CODESIGN_PFX_B64`, CI correctly skips publication of the unsigned
+diagnostic installer.
 
 ## First installation on any supported Windows machine
 
@@ -115,8 +121,9 @@ those values.
 
 **Not yet verified:** Complete mTLS client-certificate issuance
 (the production Node API uses HTTPS + per-device tokens), a physical
-Windows MSI installation with a real administrator/UAC interaction, and
-live Hostinger deployment acceptance. CI now checks the WinForms script
+MSI installation on the customer's own Windows machine with real
+administrator/UAC interaction, a verified signed release, and live Hostinger
+deployment acceptance. CI now checks the WinForms script
 syntax, WiX components/shortcut, SecureString configuration lifecycle,
 and extracts the MSI payload to verify the GUI and blank credentials.
 These scripted checks are not substitutes for testing on a real Windows

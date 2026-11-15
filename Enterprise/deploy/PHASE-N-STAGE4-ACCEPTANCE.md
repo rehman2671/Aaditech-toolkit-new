@@ -112,7 +112,12 @@ Production connections reject missing/blank settings instead of relying on
 development defaults. `DB_PORT` must be in the valid TCP range, and
 `DB_POOL_SIZE` must be between 2 and 500 to reserve capacity for identity
 advisory locks and their protected database operations. A validation failure
-does not permanently latch the connection retry state. The supplied Docker
+does not permanently latch the connection retry state. **Production Node
+startup does not bind its HTTP port until MySQL is healthy; a missing database
+credential or exhausted startup retries terminates the process.** After a
+runtime database outage, production API routes fail closed with HTTP 503
+rather than mutating in-memory tenant state. `/healthz` also reports 503 and
+`components.database=DEGRADED` during the outage. The supplied Docker
 Compose configuration passes the database values through from the host's
 approved `Enterprise/.env`. Never put that file in Git or the MSI.
 

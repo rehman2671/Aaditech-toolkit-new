@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-15T16:13:02+00:00",
-  "last_verified_commit": "aa59da587900e07761ad96f2de1e1f80cef72ea7",
-  "last_verified_date": "2026-11-15T21:42:55+05:30",
+  "generated": "2026-11-15T16:13:36+00:00",
+  "last_verified_commit": "1fb17ea5ce83ebccf42b6477b4a118b96a4da657",
+  "last_verified_date": "2026-11-15T21:43:28+05:30",
   "overall_progress_percent": 100.0,
   "progress_scope": "historic audit issue closure only; production acceptance pending",
   "production_ready": false,
@@ -14,21 +14,12 @@
     "percent": 100.0
   },
   "latest_delta": {
-    "added": 0,
+    "added": 1,
     "removed": 0,
-    "changed": 1,
-    "unchanged": 222
+    "changed": 0,
+    "unchanged": 223
   },
   "delta_history": [
-    {
-      "detected_at": "2026-11-15T15:52:41+00:00",
-      "added": [],
-      "removed": [],
-      "changed": [
-        "Scripts/Index/Update-ProjectIndex.ps1"
-      ],
-      "unchanged_count": 219
-    },
     {
       "detected_at": "2026-11-15T15:54:15+00:00",
       "added": [],
@@ -200,6 +191,15 @@
         "Enterprise/agent/Configure-Agent.ps1"
       ],
       "unchanged_count": 222
+    },
+    {
+      "detected_at": "2026-11-15T16:13:36+00:00",
+      "added": [
+        "tests/unit/command-signing.test.js"
+      ],
+      "removed": [],
+      "changed": [],
+      "unchanged_count": 223
     }
   ],
   "next_recommended_tasks": [

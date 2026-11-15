@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-15T16:09:11+00:00",
-  "last_verified_commit": "98248afea2f4b39d6c11de26dbe016ba72dd2bc0",
-  "last_verified_date": "2026-11-15T21:38:59+05:30",
+  "generated": "2026-11-15T16:10:29+00:00",
+  "last_verified_commit": "3be8680dd0113c46c85b32bbe8ccab71a494ee1a",
+  "last_verified_date": "2026-11-15T21:40:18+05:30",
   "overall_progress_percent": 100.0,
   "progress_scope": "historic audit issue closure only; production acceptance pending",
   "production_ready": false,
@@ -20,22 +20,6 @@
     "unchanged": 222
   },
   "delta_history": [
-    {
-      "detected_at": "2026-08-11T22:47:04+00:00",
-      "added": [],
-      "removed": [],
-      "changed": [
-        "Enterprise/api/app/main.py",
-        "Enterprise/README.md",
-        "Enterprise/agent/wix/build-msi.ps1",
-        ".github/workflows/ci.yml",
-        "Enterprise/api/app/github.py",
-        "Enterprise/api/app/bundle.py",
-        "Enterprise/deploy/deploy.sh",
-        "Enterprise/deploy/deploy.ps1"
-      ],
-      "unchanged_count": 123
-    },
     {
       "detected_at": "2026-08-11T22:59:10+00:00",
       "added": [],
@@ -370,6 +354,15 @@
       "removed": [],
       "changed": [
         "server.js"
+      ],
+      "unchanged_count": 222
+    },
+    {
+      "detected_at": "2026-11-15T16:10:29+00:00",
+      "added": [],
+      "removed": [],
+      "changed": [
+        "Enterprise/agent/Agent-Collect.ps1"
       ],
       "unchanged_count": 222
     }

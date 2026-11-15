@@ -119,7 +119,7 @@ const INITIAL_SETUP_TOKEN = process.env.SETUP_TOKEN || '';
 // Only the explicit test profile may use seeded credentials without setup.
 const REQUIRE_SECURE_SETUP = process.env.NODE_ENV !== 'test';
 if (REQUIRE_SECURE_SETUP && INITIAL_SETUP_TOKEN.length < 32) {
-  console.error('FATAL: SETUP_TOKEN (at least 32 characters) is required in production.');
+  console.error('FATAL: SETUP_TOKEN (at least 32 characters) is required outside the explicit test environment.');
   process.exit(1);
 }
 

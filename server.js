@@ -1812,9 +1812,14 @@ app.post(['/api/v1/setup', '/api/setup'], async (req, res, next) => {
   if (github_repo) updates.github_repo = github_repo;
   if (github_token) updates.github_token = github_token;
 
-  await db.updateBranding(updates);
-
-  let adminUser = await db.getUserByUsername('admin') || (await db.getUsers())[0];
+  // Never mark onboarding complete without a real persistent super-admin.
+  // The old code issued a JWT for a fabricated admin when the DB was empty.
+  let adminUser = await db.getUserByUsername('admin') || (await db.getUsers()).find(
+    user => normalizeRole(user.role) === 'SUPER_ADMIN'
+  );
+  if (!adminUser || normalizeRole(adminUser.role) !== 'SUPER_ADMIN') {
+    return res.status(503).json({ error: 'SETUP_UNAVAILABLE', detail: 'A persistent super-admin must exist before setup can complete.' });
+  }
   if (adminUser) {
     const userUpdates = {};
     if (admin_username) userUpdates.username = admin_username;
@@ -1825,7 +1830,9 @@ app.post(['/api/v1/setup', '/api/setup'], async (req, res, next) => {
     }
   }
 
-  const token = issueUserToken(adminUser || { id: 1, username: admin_username || 'admin', role: 'SUPER_ADMIN' });
+  // Only finalize the setup flag after the admin credentials are persisted.
+  await db.updateBranding(updates);
+  const token = issueUserToken(adminUser);
   res.cookie('auth_token', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', maxAge: 8 * 3600 * 1000 });
   res.cookie('itk_session', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', maxAge: 8 * 3600 * 1000 });
 

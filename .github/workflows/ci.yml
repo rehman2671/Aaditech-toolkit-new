@@ -89,9 +89,16 @@ jobs:
           }
           Write-Host "No PSScriptAnalyzer errors."
 
-      - name: Verify project index is up to date
+      - name: Verify project metadata generator and JSON output
+        # A separate write-scoped maintenance job commits refreshed metadata.
+        # This read-only CI job still requires a working generator; a code
+        # change should not fail solely because maintenance has not pushed.
         run: |
-          pwsh -NoProfile -File ./Scripts/Index/Update-ProjectIndex.ps1 -Check
+          pwsh -NoProfile -File ./Scripts/Index/Update-ProjectIndex.ps1
+          foreach ($name in @('project-index.json','project-state.json','project-progress.json')) {
+            $meta = Get-Content -LiteralPath $name -Raw | ConvertFrom-Json -ErrorAction Stop
+            if ($meta.path -ne $name) { throw "Generated project metadata invalid: $name" }
+          }
 
   node-tests:
     name: Node.js Unit & Integration Tests (Vitest + MySQL 8)

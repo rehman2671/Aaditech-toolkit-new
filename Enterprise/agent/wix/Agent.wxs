@@ -2,14 +2,15 @@
 <!-- IT-Toolkit-Agent MSI
      Build: build-msi.ps1 stages files into wix\stage\, then runs:
        wix build Agent.wxs -o out.msi
-     Silent install: msiexec /i IT-Toolkit-Agent.msi /qn
-     Auto-deploy: push via Intune / GPO / SCCM. Endpoint + token are baked
-     into agent.json (staged from build/out by deploy.sh), so no input needed.
+     Silent install: msiexec /i IT-Toolkit-Agent-<version>.msi /qn
+     Auto-deploy: push via Intune / GPO / SCCM. Endpoint + token are NEVER
+     embedded in the package. Configure Agent Server from the Start Menu
+     only after the HTTPS server exists and a workspace token is issued.
 
      Install layout:
        C:\Program Files\IT-Toolkit\
          ├─ IT-Toolkit-Agent.exe      (ps2exe-packaged worker)
-         ├─ agent.json                (endpoint + token; also copied to ProgramData)
+         ├─ agent.json                (blank unprovisioned template)
          ├─ Scripts\*.ps1             (the feature scripts the agent wraps)
          ├─ Scripts\Modules\*.psm1    (SanitizeEngine/ToolkitData/etc. — reused as-is)
          └─ Config\config.json

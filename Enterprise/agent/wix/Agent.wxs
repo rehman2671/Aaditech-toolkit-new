@@ -223,7 +223,7 @@
     <!-- Modify so collection still writes; restricted to privileged identities.   -->
     <CustomAction Id="HardenAgentDataAcl"
                   Directory="INSTALLFOLDER"
-                  Return="ignore"
+                  Return="check"
                   Impersonate="no"
                   Execute="deferred"
                   ExeCommand="&quot;[SystemFolder]icacls.exe&quot; &quot;[CommonAppDataFolder]ITToolkit-Agent&quot; /inheritance:r /grant:r SYSTEM:(OI)(CI)F Administrators:(OI)(CI)F &quot;NETWORK SERVICE&quot;:(OI)(CI)M /T /C" />
@@ -234,7 +234,7 @@
          Read on this one. -->
     <CustomAction Id="HardenLocalJsonAcl"
                   Directory="INSTALLFOLDER"
-                  Return="ignore"
+                  Return="check"
                   Impersonate="no"
                   Execute="deferred"
                   ExeCommand="&quot;[SystemFolder]icacls.exe&quot; &quot;[INSTALLFOLDER]agent.json&quot; /inheritance:r /grant:r SYSTEM:R Administrators:R &quot;NETWORK SERVICE&quot;:R /C" />

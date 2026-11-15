@@ -64,16 +64,14 @@ services:
       api:
         condition: service_healthy
     environment:
-      CADDY_HOST: ${CADDY_HOST:-:80}
+      CADDY_HOST: ${CADDY_HOST:?set public DNS hostname in Enterprise/.env}
     ports:
       - "80:80"
       - "443:443"
-      - "9443:9443"
     volumes:
       - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
-      - api_data:/agent_data:ro
     networks: [ittoolkit]
 
 volumes:

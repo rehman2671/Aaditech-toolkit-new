@@ -224,17 +224,13 @@ function Ensure-ClientCert {
             agent_version   = (Get-InstalledAgentVersion)
         } | ConvertTo-Json -Compress
 
-        $resp = $null
-        try {
-            $resp = Invoke-RestMethod -Uri $Config.enroll_url -Method Post `
-                -Headers @{ 
-                    Authorization       = "Bearer $($Config.token)"
-                    "X-Bootstrap-Token" = $Config.token
-                } -ContentType 'application/json' -Body $enrollBody
-        } catch {
-            $resp = Invoke-RestMethod -Uri $Config.enroll_url -Method Get `
-                -Headers @{ Authorization = "Bearer $($Config.token)" }
-        }
+        # Enroll via POST only. GET/query-token fallbacks risk credential
+        # exposure in access logs, browser history and intermediary caches.
+        $resp = Invoke-RestMethod -Uri $Config.enroll_url -Method Post `
+            -Headers @{
+                Authorization       = "Bearer $($Config.token)"
+                "X-Bootstrap-Token" = $Config.token
+            } -ContentType 'application/json' -Body $enrollBody
 
         $issuedToken = if ($resp.device_token) { $resp.device_token } elseif ($resp.agent_token) { $resp.agent_token } else { $null }
         if ($issuedToken) {

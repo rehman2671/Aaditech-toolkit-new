@@ -60,10 +60,23 @@ but the MSI is **not uploaded as a deployable artifact**. A passing build
 is therefore not proof of a signed installer; verify the upload and
 certificate on a real Windows machine.
 
-The global `COMMAND_SIGNING_KEY` remains in the server for legacy
-non-command request HMAC support and must not be distributed to clients;
-its complete removal/rotation and residual legacy agent support must be
-reviewed before production rollout.
+**Post-enrollment command result authorization:** the command result API
+requires an enrolled `X-Device-Token` that resolves to the **exact command
+device ID**. Operator JWTs, URL query-string credentials and tokens for
+another workspace's device cannot report execution of that command. The
+universal gateway returns HTTP 401 for unauthenticated URL-only secrets,
+while the agent endpoint returns HTTP 403 for missing/wrong device credentials.
+
+**Legacy fleet HMAC hard stop:** production now rejects requests authenticated
+solely using the fleet-wide `X-Agent-Signature` / `X-Device-UID` /
+`X-Timestamp` headers instead of auto-provisioning a device into the default
+tenant. The old HMAC mechanism is retained solely for isolated
+`NODE_ENV=test` fixtures. All real agents must use per-device enrollment
+tokens; this intentionally breaks legacy fleets until re-enrolled.
+
+The server still requires `COMMAND_SIGNING_KEY` for legacy configuration
+compatibility and must never distribute it. Its complete removal/rotation
+and old-agent migration remain release-acceptance tasks.
 
 The existing Node backend uses HTTPS with per-device tokens; full mTLS
 certificate issuance/enforcement is not yet implemented. Do not claim mTLS.

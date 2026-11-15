@@ -43,6 +43,15 @@ describe('Server & API Integration Test Suite', () => {
       expect(res.status).toBe(401);
     });
 
+    it('POST enrollment rejects missing device hostname before token verification', async () => {
+      const res = await request(app)
+        .post('/api/v1/agent/enroll')
+        .set('X-Bootstrap-Token', 'nonempty-test-token')
+        .send({});
+      expect(res.status).toBe(400);
+      expect(res.body.detail).toContain('hostname');
+    });
+
     it('POST enrollment rejects a malformed bootstrap token', async () => {
       const res = await request(app)
         .post('/api/v1/agent/enroll')

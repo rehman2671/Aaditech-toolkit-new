@@ -112,11 +112,34 @@ function Read-AgentConfig {
         if ($endpoint) { $cfg.endpoint = $endpoint; Write-AgentLog "Registry override: endpoint -> $endpoint" }
         if ($token)    { $cfg.token    = $token;    Write-AgentLog 'Registry override: token applied' }
     }
-    # Validate AFTER the supported GPO/registry override is applied. A generic
-    # installer can be provisioned by either the wizard or managed policy.
-    if (([string]::IsNullOrWhiteSpace([string]$cfg.endpoint)) -or
-        ([string]::IsNullOrWhiteSpace([string]$cfg.token))) {
-        throw "Agent is not provisioned. Run Configure-Agent.ps1 as Administrator or configure both registry overrides."
+    # Validate AFTER GPO/registry overrides. On first run the bootstrap
+    # token authorizes enrollment; afterwards that secret is removed and the
+    # paired enrolled device token + tenant identity authorize the agent.
+    $configDir = Split-Path $ConfigPath -Parent
+    $tokenPath = Join-Path $configDir 'agent.token'
+    $identityPath = Join-Path $configDir 'agent.identity.json'
+    $hasToken = Test-Path -LiteralPath $tokenPath -PathType Leaf
+    $hasIdentity = Test-Path -LiteralPath $identityPath -PathType Leaf
+    if ($hasToken -ne $hasIdentity) {
+        throw 'Incomplete enrolled device identity. Re-run setup with a new tenant enrollment token.'
+    }
+    $enrolled = $false
+    if ($hasToken) {
+        try {
+            $deviceToken = (Get-Content -LiteralPath $tokenPath -Raw -ErrorAction Stop).Trim()
+            $identity = Get-Content -LiteralPath $identityPath -Raw -ErrorAction Stop | ConvertFrom-Json
+            $enrolled = $deviceToken.StartsWith('itk_dev_') -and
+                -not [string]::IsNullOrWhiteSpace([string]$identity.device_id) -and
+                -not [string]::IsNullOrWhiteSpace([string]$identity.tenant_id) -and
+                -not [string]::IsNullOrWhiteSpace([string]$identity.device_uid)
+        } catch {
+            $enrolled = $false
+        }
+        if (-not $enrolled) { throw 'Invalid enrolled device credential or tenant identity. Re-run setup.' }
+    }
+    if ([string]::IsNullOrWhiteSpace([string]$cfg.endpoint) -or
+        (([string]::IsNullOrWhiteSpace([string]$cfg.token)) -and -not $enrolled)) {
+        throw 'Agent is not provisioned. Configure the HTTPS server and a tenant enrollment token.'
     }
     return $cfg
 }

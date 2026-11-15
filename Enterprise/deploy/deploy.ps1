@@ -52,7 +52,7 @@ function Die  { Write-Host "[deploy][ERROR] $args" -ForegroundColor Red; exit 1 
 # This legacy installer assumes PostgreSQL/FastAPI, but the authoritative
 # Docker stack runs MySQL/Node.js. Disable unsafe automated deployment until
 # the Windows provisioning flow is migrated to the actual server architecture.
-if ((Get-Content -LiteralPath $ComposeFile -Raw) -match '(?m)^\\s*image:\\s*mysql:') {
+if ((Get-Content -LiteralPath $ComposeFile -Raw) -match '(?m)^\s*image:\s*mysql:') {
     Die "Incompatible deployment architecture: deploy.ps1 expects PostgreSQL/FastAPI, but docker-compose.yml runs MySQL/Node.js. No configuration or containers were changed. Use the documented MySQL deployment procedure until Windows provisioning is reconciled."
 }
 

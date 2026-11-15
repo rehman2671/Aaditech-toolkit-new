@@ -45,9 +45,19 @@ verifies a publicly trusted HTTPS connection and MySQL health before
 reporting success. See the [deployment runbook](deploy/MYSQL-RECOVERY-AND-DEPLOYMENT.md)
 for database precautions, backup/restore and migration.
 
-The MSI is intentionally unprovisioned. Once a server address and
-tenant-scoped enrollment token exist, run `Configure-Agent.ps1` as
-Administrator on the Windows endpoint. [Instructions](agent/SETUP-WINDOWS.md).
+The MSI is intentionally **unprovisioned**. Once an HTTPS server and
+tenant-scoped enrollment token exist, open **Start Menu → IT-Toolkit →
+Configure Agent Server** on the Windows endpoint. The new WinForms wizard
+requests UAC elevation, validates the endpoint and configures the agent
+without embedding secrets at build time. An administrative PowerShell CLI
+remains available. [Windows instructions](agent/SETUP-WINDOWS.md).
+
+**Tenant enrollment safety:** Device enrollment is POST-only, and the
+server checks all matching hostnames and device UIDs for cross-workspace
+collisions before consuming a one-use bootstrap token. Ambiguous legacy
+device records are rejected; they must be resolved by an administrator.
+This is not yet a substitute for a complete tenant-scoped database redesign
+and concurrent enrollment stress testing.
 
 **Legacy deployment commands:** `deploy.sh` and `deploy.ps1` are
 retained for historical reference only and fail closed on this stack.

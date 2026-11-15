@@ -149,7 +149,11 @@
     <!-- ==================== ProgramData runtime config ==================== -->
     <StandardDirectory Id="CommonAppDataFolder">
       <Directory Id="ITTK_AGENT_DIR" Name="ITToolkit-Agent">
-        <Component Id="AgentConfig" Guid="A1B2C3D4-5555-6666-7777-888899990000">
+        <!-- Runtime configuration is user-managed state, not a replaceable
+             build artifact. A major upgrade must never reset this file;
+             Permanent keeps it during old-product removal and NeverOverwrite
+             prevents the new MSI's blank template from replacing it. -->
+        <Component Id="AgentConfig" Guid="A1B2C3D4-5555-6666-7777-888899990000" NeverOverwrite="yes" Permanent="yes">
           <File Id="AgentConfigFile" Name="agent.json" Source="stage\agent.json" KeyPath="yes" />
         </Component>
       </Directory>

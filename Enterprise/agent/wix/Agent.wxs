@@ -156,7 +156,7 @@
 
     <!-- All-users Start Menu entry for configuring the server after install.
          The PowerShell GUI requests UAC elevation on first launch. -->
-    <StandardDirectory Id="CommonProgramsFolder">
+    <StandardDirectory Id="ProgramMenuFolder">
       <Directory Id="ITTK_SETUP_MENU" Name="IT-Toolkit">
         <Component Id="AgentSetupMenu" Guid="D14039B5-2A35-4CC7-A618-B2A8A0EE4A51">
           <Shortcut Id="AgentSetupMenuShortcut"

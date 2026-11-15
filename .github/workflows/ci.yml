@@ -337,6 +337,32 @@ jobs:
           $env:Path = "$env:USERPROFILE\.dotnet\tools;$env:Path"
           ./Enterprise/agent/wix/build-msi.ps1
 
+      - name: Validate MSI payload by Windows Installer administrative extraction
+        shell: pwsh
+        run: |
+          $msi = Get-ChildItem Enterprise/agent/build/out -Filter 'IT-Toolkit-Agent-*.msi' |
+            Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if (-not $msi) { throw 'WiX did not produce a versioned MSI' }
+          $extracted = Join-Path $env:RUNNER_TEMP 'itk-msi-verify'
+          $log = Join-Path $env:RUNNER_TEMP 'itk-msi-verify.log'
+          New-Item -ItemType Directory -Path $extracted -Force | Out-Null
+          $arguments = "/a `"$($msi.FullName)`" /qn TARGETDIR=`"$extracted`" /l*v `"$log`""
+          $proc = Start-Process msiexec.exe -ArgumentList $arguments -Wait -PassThru
+          if ($proc.ExitCode -ne 0) { throw "Administrative extraction failed: msiexec exit $($proc.ExitCode), see $log" }
+          foreach ($name in @('IT-Toolkit-Agent.exe', 'Configure-Agent.ps1', 'Configure-Agent-GUI.ps1')) {
+            $file = Get-ChildItem -Path $extracted -Recurse -File -Filter $name | Select-Object -First 1
+            if (-not $file) { throw "MSI payload is missing $name" }
+          }
+          $configs = @(Get-ChildItem -Path $extracted -Recurse -File -Filter 'agent.json')
+          if ($configs.Count -eq 0) { throw 'MSI payload is missing unprovisioned agent.json' }
+          foreach ($entry in $configs) {
+            $cfg = Get-Content -LiteralPath $entry.FullName -Raw | ConvertFrom-Json
+            if (-not $cfg.needs_setup -or $cfg.endpoint -or $cfg.token -or $cfg.bootstrap_token) {
+              throw "MSI contains a server endpoint or credential: $($entry.FullName)"
+            }
+          }
+          Write-Host 'MSI administrative extraction passed; GUI, worker and blank setup config included.'
+
       - name: Code-sign agent exe + MSI (internal CA)
         shell: pwsh
         env:

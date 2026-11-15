@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-15T17:15:30+00:00",
-  "last_verified_commit": "8c5661494fda401c9fa6653116ee38b7ab74c1d3",
-  "last_verified_date": "2026-11-15T22:45:20+05:30",
+  "generated": "2026-11-15T17:16:38+00:00",
+  "last_verified_commit": "10ff7a5eeca3dce05bc2ec4047522192f9d86ce0",
+  "last_verified_date": "2026-11-15T22:46:28+05:30",
   "overall_progress_percent": 100.0,
   "progress_scope": "historic audit issue closure only; production acceptance pending",
   "production_ready": false,
@@ -20,15 +20,6 @@
     "unchanged": 227
   },
   "delta_history": [
-    {
-      "detected_at": "2026-11-15T16:44:37+00:00",
-      "added": [],
-      "removed": [],
-      "changed": [
-        ".github/workflows/ci.yml"
-      ],
-      "unchanged_count": 226
-    },
     {
       "detected_at": "2026-11-15T16:46:35+00:00",
       "added": [],
@@ -197,6 +188,15 @@
       "removed": [],
       "changed": [
         ".github/workflows/ci.yml"
+      ],
+      "unchanged_count": 227
+    },
+    {
+      "detected_at": "2026-11-15T17:16:38+00:00",
+      "added": [],
+      "removed": [],
+      "changed": [
+        "Enterprise/agent/wix/Agent.wxs"
       ],
       "unchanged_count": 227
     }

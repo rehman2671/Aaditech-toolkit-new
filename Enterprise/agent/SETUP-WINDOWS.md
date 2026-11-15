@@ -42,12 +42,14 @@ server-side device token and securely remove the local runtime data using
 their approved device-decommissioning procedure. Never assume an MSI
 uninstall automatically erases secrets.
 
-A separate disposable Windows CI major-upgrade rehearsal installs a base
-MSI, configures a fake HTTPS origin and a synthetic per-device identity,
-then installs a higher MSI revision. It asserts endpoint, token and tenant
-identity preservation, scheduled task continuity and uninstall cleanup.
-A successful CI result remains separate from a signed release and real
-production Windows fleet migration.
+A separate disposable Windows CI major-upgrade rehearsal
+[passed in full CI run #43740938121](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43740938121).
+It installed the base `1.1.2001` MSI, configured a synthetic HTTPS origin
+and per-device identity, upgraded to `1.1.2002` and confirmed that the
+endpoint, enrolled token and tenant identity remained intact. The scheduled
+task and upgraded-product uninstall/cleanup also passed. This is a verified
+Windows-runner upgrade, **not** signed release approval or proof of success
+on managed production endpoints.
 
 On a disposable GitHub-hosted Windows runner, full CI run
 [43739352090](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43739352090)
@@ -57,7 +59,7 @@ NETWORK SERVICE scheduled task, Start Menu link and the **installed** CLI
 setup wizard, then successfully uninstalled and verified scheduled-task
 and shortcut removal. This proves real Windows Installer execution on a
 GitHub-hosted test runner, not signed-artifact trust, GUI/UAC interaction,
-upgrade preservation or acceptance on your organization's managed endpoints.
+acceptance on your organization's managed endpoints.
 Without `CODESIGN_PFX_B64`, CI correctly skips publication of the unsigned
 diagnostic installer.
 

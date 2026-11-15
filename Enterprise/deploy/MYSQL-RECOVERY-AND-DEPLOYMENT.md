@@ -6,18 +6,44 @@ The checked-in production application uses **Node.js/Express** (`server.js`,
 `Dockerfile`) and **MySQL 8** (`db.js`, `Enterprise/docker-compose.yml`).
 Do **not** attempt to restore PostgreSQL `.dump` files into MySQL.
 
-**Deployment blocker:** `Enterprise/deploy/deploy.sh` and `deploy.ps1`
-still contain legacy PostgreSQL/FastAPI bootstrap and certificate logic.
-They now **fail before making changes** when used with the MySQL Compose
-stack. This is intentional. Do not remove these guards or use `--regen`
-as a workaround. A verified Node/MySQL provisioning and mTLS certificate
-issuance flow is required before one-command installer claims can be made.
+**Deployment architecture:** The legacy `deploy.sh` and `deploy.ps1`
+still contain PostgreSQL/FastAPI logic and intentionally **fail before
+making changes**. Use `deploy-mysql.sh` instead on a Docker-capable Linux
+server with a real public DNS hostname. It provisions the actual Node/MySQL
+stack, preserves existing database credentials and uses Caddy ACME HTTPS.
 
-The current Caddy configuration also expects CA/server certificate files
-in the `api_data` volume. The Node container does not implement the old
-Python `app.certs.ensure_certs` invocation. **Do not expose the portal
-publicly until Caddy TLS/mTLS and enrollment are provisioned and tested.**
-Do not disable certificate verification to work around this blocker.
+**Security boundary:** The old `:9443` mTLS listener was not operable with
+the Node enrollment endpoint (which issues a per-device token but not a
+client PFX). It has been removed from the current Compose/Caddy stack.
+Agent traffic now uses regular **HTTPS + server-issued device tokens**.
+This is **not mTLS**; implementing and verifying client certificate issuance
+and enforcement remains a separate release requirement. Never disable
+server TLS verification or copy a shared admin token into a public MSI.
+
+## Docker VPS deployment (new supported path; live acceptance still required)
+
+Set a real domain's A/AAAA DNS record to the VPS, make ports 80/443
+reachable, and install Docker Engine + Docker Compose v2. Hostinger
+**shared hosting without Docker** is not compatible with this Compose
+deployment; choose VPS or another Docker-capable environment.
+
+```bash
+cd Enterprise/deploy
+bash deploy-mysql.sh --host toolkit.your-company.com --dry-run
+bash deploy-mysql.sh --host toolkit.your-company.com
+# Later redeploy without rotating secrets:
+bash deploy-mysql.sh
+# After DNS/hostname migration, explicitly update hostname ONLY:
+bash deploy-mysql.sh --host new-toolkit.your-company.com --update-host
+```
+
+The first real run generates independent secure secrets in
+`Enterprise/.env` if missing; subsequent runs preserve them. It aborts
+when an existing MySQL Docker volume exists without its original .env.
+Never delete a volume to make a deployment appear successful.
+Successful completion requires genuine publicly trusted HTTPS and MySQL
+reporting `HEALTHY` on `/healthz`. A dry run is only a configuration
+check. Live Hostinger/Windows acceptance is still pending.
 
 ## Configure Compose secrets (before deploying)
 

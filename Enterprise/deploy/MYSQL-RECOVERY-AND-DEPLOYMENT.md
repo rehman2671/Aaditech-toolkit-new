@@ -37,8 +37,15 @@ bash deploy-mysql.sh
 bash deploy-mysql.sh --host new-toolkit.your-company.com --update-host
 ```
 
-The first real run generates independent secure secrets in
-`Enterprise/.env` if missing; subsequent runs preserve them. It aborts
+The first real run generates eight independent secure secrets in
+`Enterprise/.env` if missing, including a private `SETUP_TOKEN` for the
+first browser setup. After HTTPS and DB health pass, an authorized operator
+on the VPS can retrieve it with `grep '^SETUP_TOKEN=' Enterprise/.env` from
+the repository root and enter the value in the browser setup form. Never
+share or paste the key into chat, logs, a URL, or the public MSI. Existing
+`.env` files must explicitly include `SETUP_TOKEN` (32+ characters) before
+the new API is started; no database passwords should be rotated.
+ subsequent runs preserve them. It aborts
 when an existing MySQL Docker volume exists without its original .env.
 Never delete a volume to make a deployment appear successful.
 Successful completion requires genuine publicly trusted HTTPS and MySQL

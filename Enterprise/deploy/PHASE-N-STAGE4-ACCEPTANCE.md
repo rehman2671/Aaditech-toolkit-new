@@ -52,6 +52,14 @@ signed-command end-to-end acceptance remain **mandatory**; older agents
 without this verification must be upgraded or command execution disabled
 until replaced. TLS alone remains insufficient to authorize commands.
 
+**MSI publication policy:** CI builds a generic agent executable and installer
+for diagnostics. Published release artifacts are now gated on the presence of
+`CODESIGN_PFX_B64` and successful Authenticode chain verification by
+`signtool`. If signing credentials are absent, the code-build job can pass
+but the MSI is **not uploaded as a deployable artifact**. A passing build
+is therefore not proof of a signed installer; verify the upload and
+certificate on a real Windows machine.
+
 The global `COMMAND_SIGNING_KEY` remains in the server for legacy
 non-command request HMAC support and must not be distributed to clients;
 its complete removal/rotation and residual legacy agent support must be

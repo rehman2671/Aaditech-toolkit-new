@@ -30,6 +30,20 @@ describe('Server & API Integration Test Suite', () => {
     monitorToken = monitorRes.body.token;
   });
 
+  describe('0. Agent enrollment transport hardening', () => {
+    it('GET enrollment is rejected instead of treating a bootstrap token in a URL as valid', async () => {
+      const res = await request(app).get('/api/v1/agent/enroll?bootstrap_token=invalid&hostname=TEST-LAPTOP');
+      expect(res.status).toBe(405);
+      expect(res.headers.allow).toContain('POST');
+    });
+    it('POST enrollment without bootstrap credentials is rejected', async () => {
+      const res = await request(app)
+        .post('/api/v1/agent/enroll')
+        .send({ hostname: 'TEST-LAPTOP' });
+      expect(res.status).toBe(401);
+    });
+  });
+
   describe('1. Public & Operational Health Endpoints', () => {
     it('GET /healthz returns 200 OK with system status', async () => {
       const res = await request(app).get('/healthz');

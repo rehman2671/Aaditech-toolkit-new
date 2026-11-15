@@ -4,13 +4,16 @@
 
 The Windows agent MSI is now intentionally **server-independent**. CI no
 longer embeds `API_TOKEN`, a private LAN IP, or any final server endpoint.
-It installs the agent binary, an unconfigured `agent.json`, and
-`Configure-Agent.ps1`. The scheduled agent cannot send telemetry until
-configuration is completed by an administrator.
+It installs the agent binary, an unconfigured `agent.json`, both
+`Configure-Agent.ps1` and `Configure-Agent-GUI.ps1`, and an all-users
+Start Menu shortcut named **IT-Toolkit → Configure Agent Server**. The
+scheduled agent cannot send telemetry until configuration is completed.
 
-The first-run setup is currently a **PowerShell interactive wizard**, not a
-graphical MSI dialog or browser page. A full native Windows GUI is still a
-separate planned enhancement.
+The Windows graphical wizard prompts for an HTTPS server hostname and a
+hidden tenant-scoped enrollment token after the server is deployed. It
+prompts for administrator approval via UAC and supports later reconfiguration.
+The installer does **not** yet open a native graphical dialog as part of
+`msiexec` itself; setup is launched from the Start Menu after installation.
 
 ## First installation on any supported Windows machine
 
@@ -21,13 +24,16 @@ separate planned enhancement.
 3. From the authenticated administrator portal, issue a **single-use device
    enrollment bootstrap token** for the correct tenant/workspace. Do not
    use JWT_SECRET, API_TOKEN or other server-wide secrets for this step.
-4. Open Windows PowerShell **as Administrator** and run:
+4. Launch **Start Menu → IT-Toolkit → Configure Agent Server**.
+   Accept the Windows UAC prompt and enter the HTTPS server hostname and
+   single-use token. Leave connection verification enabled.
+   Alternatively, run the CLI setup as Administrator:
 
 ```powershell
 & "C:\Program Files\IT-Toolkit\Configure-Agent.ps1" -TestConnection
 ```
 
-The wizard asks for the server base URL (for example,
+The GUI/CLI asks for the server base URL (for example,
 `https://toolkit.example.com`) and an enrollment token using hidden
 input. It validates the URL, tests genuine TLS trust (if `-TestConnection`
 is selected), and stores credentials under
@@ -53,7 +59,7 @@ in installer artifacts, images, or repository secrets.
 
 Re-run the same wizard with the new HTTPS hostname and a fresh single-use
 tenant enrollment token. It retains the feature manifest and interval
-settings, but clears the old `agent.token` and `client.pfx` when the
+settings, but clears the old `agent.token`, `client.pfx` and `ca.crt` when the
 server or bootstrap credentials change. This prevents silently sending
 device credentials from one server/workspace to another. If the server and
 bootstrap token are unchanged, the existing device identity is preserved.
@@ -78,8 +84,14 @@ those values.
 - Rehearse server migration with a fresh token; confirm the old device
   token is no longer used after switching servers.
 
-**Not yet verified:** Complete mTLS client certificate issuance (the
-current production Node API uses HTTPS + per-device tokens instead), native
-GUI first-run wizard, a physical Windows MSI installation, and live Hostinger
-acceptance. Automated Windows regression checks verify the script contract
-and configuration lifecycle but are not substitutes for those tests.
+**Not yet verified:** Complete mTLS client-certificate issuance
+(the production Node API uses HTTPS + per-device tokens), a physical
+Windows MSI installation with a real administrator/UAC interaction, and
+live Hostinger deployment acceptance. CI now checks the WinForms script
+syntax, WiX components/shortcut, SecureString configuration lifecycle,
+and extracts the MSI payload to verify the GUI and blank credentials.
+These scripted checks are not substitutes for testing on a real Windows
+machine. The existing device storage uses global hostname lookups; enrollment
+now rejects ambiguous cross-tenant hostname/UID conflicts instead of
+updating another tenant, but concurrent enrollment and full tenant-scoped
+storage migrations remain separate production hardening work.

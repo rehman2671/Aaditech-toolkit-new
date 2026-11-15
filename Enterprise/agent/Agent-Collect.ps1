@@ -969,7 +969,15 @@ if ($ElevatedOnce) {
                 Write-AgentLog "Command $($cmd.id) already executed — skipping (at-most-once)"
                 continue
             }
-            $result = Invoke-RemoteCommand -Config $Config -Cmd $cmd
+            $trustedCmd = Resolve-VerifiedAgentCommand -Config $Config -Cmd $cmd
+            if (-not $trustedCmd) {
+                Write-AgentLog "SECURITY: Rejected unsigned, tampered, wrong-tenant or expired command $($cmd.id)"
+                Send-CommandResult -Config $Config -CmdId $cmd.id -Result @{
+                    status = 'failed'; output = 'Invalid signed command or recipient'; exit_code = 403
+                }
+                continue
+            }
+            $result = Invoke-RemoteCommand -Config $Config -Cmd $trustedCmd
             if ($null -ne $cmd.id) { Record-ExecutedCommand -CommandId $cmd.id -Result $result }
             Send-CommandResult -Config $Config -CmdId $cmd.id -Result $result
         }
@@ -1015,7 +1023,15 @@ do {
                 continue
             }
             Write-AgentLog "Executing command $($cmd.id) kind=$($cmd.kind)"
-            $result = Invoke-RemoteCommand -Config $Config -Cmd $cmd
+            $trustedCmd = Resolve-VerifiedAgentCommand -Config $Config -Cmd $cmd
+            if (-not $trustedCmd) {
+                Write-AgentLog "SECURITY: Rejected unsigned, tampered, wrong-tenant or expired command $($cmd.id)"
+                Send-CommandResult -Config $Config -CmdId $cmd.id -Result @{
+                    status = 'failed'; output = 'Invalid signed command or recipient'; exit_code = 403
+                }
+                continue
+            }
+            $result = Invoke-RemoteCommand -Config $Config -Cmd $trustedCmd
             if ($null -ne $cmd.id) { Record-ExecutedCommand -CommandId $cmd.id -Result $result }
             Send-CommandResult -Config $Config -CmdId $cmd.id -Result $result
         }

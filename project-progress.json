@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-15T16:14:28+00:00",
-  "last_verified_commit": "563f87b4deabb62fd5686aedd39441afdb1d1184",
-  "last_verified_date": "2026-11-15T21:44:09+05:30",
+  "generated": "2026-11-15T16:15:00+00:00",
+  "last_verified_commit": "705de9a001ca22bc36a00495f1c5ac9ff5deafc7",
+  "last_verified_date": "2026-11-15T21:44:48+05:30",
   "overall_progress_percent": 100.0,
   "progress_scope": "historic audit issue closure only; production acceptance pending",
   "production_ready": false,
@@ -20,15 +20,6 @@
     "unchanged": 224
   },
   "delta_history": [
-    {
-      "detected_at": "2026-11-15T15:56:09+00:00",
-      "added": [
-        "tests/unit/device-identity-lock.test.js"
-      ],
-      "removed": [],
-      "changed": [],
-      "unchanged_count": 220
-    },
     {
       "detected_at": "2026-11-15T15:57:01+00:00",
       "added": [],
@@ -198,6 +189,15 @@
       "removed": [],
       "changed": [
         ".github/workflows/ci.yml"
+      ],
+      "unchanged_count": 224
+    },
+    {
+      "detected_at": "2026-11-15T16:15:00+00:00",
+      "added": [],
+      "removed": [],
+      "changed": [
+        "tests/integration/server.integration.test.js"
       ],
       "unchanged_count": 224
     }

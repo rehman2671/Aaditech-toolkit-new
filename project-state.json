@@ -1,22 +1,22 @@
 {
   "state_version": "1.0",
   "path": "project-state.json",
-  "generated": "2026-11-15T16:53:04+00:00",
+  "generated": "2026-11-15T16:54:28+00:00",
   "phase": "PHASE N STAGE 4 / PRODUCTION ACCEPTANCE IN PROGRESS",
-  "last_verified_commit": "ff57f3fc995534ba1da6acbc86beeb4c05e47713",
-  "last_verified_date": "2026-11-15T22:22:49+05:30",
+  "last_verified_commit": "a5856e6ea78c7d54b981354f7b50c6a433e7f5d5",
+  "last_verified_date": "2026-11-15T22:24:17+05:30",
   "git": {
     "branch": "main",
     "commit_count": 1,
     "clean_working_tree": true,
-    "head": "ff57f3fc995534ba1da6acbc86beeb4c05e47713"
+    "head": "a5856e6ea78c7d54b981354f7b50c6a433e7f5d5"
   },
   "latest_delta": {
-    "detected_at": "2026-11-15T16:53:04+00:00",
+    "detected_at": "2026-11-15T16:54:28+00:00",
     "added": [],
     "removed": [],
     "changed": [
-      "Enterprise/tests/Test-ConfigureAgent.ps1"
+      "Enterprise/agent/wix/Agent.wxs"
     ],
     "unchanged_count": 226
   },

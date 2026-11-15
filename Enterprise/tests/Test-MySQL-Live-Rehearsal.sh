@@ -16,17 +16,31 @@ grep -q '^MYSQL_DATABASE=it_toolkit_rehearsal$' "$ENV_FILE" || {
 }
 
 compose up -d --wait --wait-timeout 180 db
-compose exec -T db sh -ec '
-  export MYSQL_PWD="$MYSQL_PASSWORD"
-  mysql --user="$MYSQL_USER" --database="$MYSQL_DATABASE" --execute="
-    CREATE TABLE IF NOT EXISTS rehearsal_marker (
-      id INT PRIMARY KEY,
-      content VARCHAR(64) NOT NULL
-    );
-    INSERT INTO rehearsal_marker (id, content) VALUES (1, '\''before'\'')
-    ON DUPLICATE KEY UPDATE content = VALUES(content);
-  "
-'
+# The official MySQL image can briefly report healthy during initial
+# restart while its Unix socket is unavailable. This is an isolated CI-only
+# bootstrap fixture: retry its idempotent SQL until the app credentials work.
+initialized=0
+for attempt in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
+  if compose exec -T db sh -ec '
+      export MYSQL_PWD="$MYSQL_PASSWORD"
+      mysql --user="$MYSQL_USER" --database="$MYSQL_DATABASE" --execute="
+        CREATE TABLE IF NOT EXISTS rehearsal_marker (
+          id INT PRIMARY KEY,
+          content VARCHAR(64) NOT NULL
+        );
+        INSERT INTO rehearsal_marker (id, content) VALUES (1, '\''before'\'')
+        ON DUPLICATE KEY UPDATE content = VALUES(content);
+      "
+    ' >/dev/null 2>&1; then
+    initialized=1
+    break
+  fi
+  sleep 2
+done
+[ "$initialized" -eq 1 ] || {
+  echo '[rehearsal][ERROR] MySQL test fixture was not ready after retries.' >&2
+  exit 1
+}
 
 bash "$HERE/deploy/backup.sh"
 shopt -s nullglob

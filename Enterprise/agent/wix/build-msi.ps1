@@ -39,6 +39,11 @@ if (-not (Test-Path -LiteralPath $wizard -PathType Leaf)) {
     throw "Required Windows agent setup wizard missing: $wizard"
 }
 Copy-Item -LiteralPath $wizard -Destination (Join-Path $Stage 'Configure-Agent.ps1') -Force
+$guiWizard = Join-Path $RepoRoot 'Enterprise\agent\Configure-Agent-GUI.ps1'
+if (-not (Test-Path -LiteralPath $guiWizard -PathType Leaf)) {
+    throw "Required Windows GUI setup wizard missing: $guiWizard"
+}
+Copy-Item -LiteralPath $guiWizard -Destination (Join-Path $Stage 'Configure-Agent-GUI.ps1') -Force
 
 # Bundle the official sqlite3.exe CLI so the agent's outbox queue works on
 # stock Windows with no system-wide SQLite install. The agent prepends this

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isValidSetupKey } from '../../setup-security.js';
+import { isValidSetupKey, isSeededDemoPasswordHash } from '../../setup-security.js';
 
 const secret = 'a'.repeat(64);
 
@@ -25,5 +25,21 @@ describe('production initial setup authorization', () => {
   it('never coerces case or whitespace for setup keys', () => {
     expect(isValidSetupKey(secret.toUpperCase(), secret)).toBe(false);
     expect(isValidSetupKey(secret + '\n', secret)).toBe(false);
+  });
+});
+
+describe('shipped demo credentials', () => {
+  it('blocks the public sample admin/operator/monitor password hashes', () => {
+    for (const hash of [
+      '$2b$10$TdjPGYqvBhQ/znxrISK4leR0Q7x4QAQW2ZGzOCAx.YK35eHrbROmW',
+      '$2b$10$tL4nJuWXUzt/0GCKKGBdYONSEz3DaUwJY/CjeNyFSymTjnLsG3tTu',
+      '$2b$10$NsbjYaSfny5cA4RBHXyw5OtEBfolN57DqRLAzNv2rpA22laPAd1Fe'
+    ]) {
+      expect(isSeededDemoPasswordHash(hash)).toBe(true);
+    }
+  });
+  it('allows separately reset bcrypt password hashes', () => {
+    expect(isSeededDemoPasswordHash('$2b$10$totallyDifferentHash')).toBe(false);
+    expect(isSeededDemoPasswordHash(undefined)).toBe(false);
   });
 });

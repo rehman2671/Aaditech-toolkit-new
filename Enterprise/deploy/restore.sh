@@ -17,6 +17,15 @@ set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ENV_FILE="$HERE/.env"
+
+# Safety gate: pg_dump/pg_restore cannot operate on the MySQL service declared
+# by the current Compose stack. Refuse before stopping services or creating
+# misleading backup files. Reconcile database engine and tooling first.
+if grep -Eq '^[[:space:]]*image:[[:space:]]*mysql:' "$HERE/docker-compose.yml"; then
+    printf '%s\n' '[ERROR] Database tooling mismatch: this script requires PostgreSQL, but Compose runs MySQL.' >&2
+    printf '%s\n' 'No database, backup, or application services were modified.' >&2
+    exit 1
+fi
 BACKUP_DIR="$HERE/deploy/backups"
 
 compose() { docker compose -f "$HERE/docker-compose.yml" "$@"; }

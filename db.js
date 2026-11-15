@@ -2632,14 +2632,16 @@ export async function updateTicketConfig(updates) {
 export async function getBranding() {
   const defaults = {
     company_name: 'Aaditech Enterprise',
-    server_host: 'localhost',
+    server_host: process.env.SERVER_HOST || 'localhost',
     branding: { color: '#38bdf8', logo_text: 'IT-Toolkit' },
-    build_mode: 'github',
-    github_repo: 'rehman2671/Aaditech-toolkit',
-    github_token: process.env.GITHUB_TOKEN || process.env.API_TOKEN || '',
+    build_mode: 'manual',
+    github_repo: '',
+    // Never leak or repurpose the agent API secret as a GitHub token.
+    github_token: '',
     rollout_target: '',
     default_company_id: 1,
-    setup_complete: true
+    // A fresh MySQL database must require explicit operator authorization.
+    setup_complete: false
   };
   const saved = await getSetting('branding', defaults);
   return { ...defaults, ...saved };

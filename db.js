@@ -93,7 +93,15 @@ let dbHealthCheckTimer = null;
 
 export async function attemptConnection() {
   if (isConnecting) return isConnected;
-  isConnecting = true;
+  // Read/validate configuration BEFORE setting isConnecting. A validation
+  // failure must not poison all future health-check/reconnect attempts.
+  if (process.env.NODE_ENV === 'production') {
+    for (const name of ['DB_HOST', 'DB_USER', 'DB_PASSWORD', 'DB_NAME']) {
+      if (!process.env[name] || !process.env[name].trim()) {
+        throw new Error(`${name} must be explicitly configured in production`);
+      }
+    }
+  }
 
   const host = process.env.DB_HOST || '127.0.0.1';
   const user = process.env.DB_USER || 'itk_user';
@@ -103,9 +111,15 @@ export async function attemptConnection() {
   const poolSize = parseInt(process.env.DB_POOL_SIZE || '20', 10);
   // Device identity advisory locks pin one connection temporarily; require
   // at least one additional connection for the protected DB operations.
-  if (process.env.NODE_ENV === 'production' && (!Number.isInteger(poolSize) || poolSize < 2)) {
-    throw new Error('DB_POOL_SIZE must be at least 2 in production for device identity locking');
+  if (process.env.NODE_ENV === 'production') {
+    if (!Number.isInteger(port) || port < 1 || port > 65535) {
+      throw new Error('DB_PORT must be a valid TCP port in production');
+    }
+    if (!Number.isInteger(poolSize) || poolSize < 2 || poolSize > 500) {
+      throw new Error('DB_POOL_SIZE must be between 2 and 500 in production for device identity locking');
+    }
   }
+  isConnecting = true;
 
   if (pool) {
     try {

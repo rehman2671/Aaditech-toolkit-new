@@ -1218,6 +1218,8 @@ const handleAgentEnroll = async (req, res) => {
     hostname: dev.hostname,
     device_token: devToken,
     agent_token: devToken,
+    tenant_id: ver.tenantId,
+    company_id: company.id,
     interval_seconds: 30
   });
     });

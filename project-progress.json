@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-15T15:54:28+00:00",
-  "last_verified_commit": "c01a25c24555751300e143cb28b40ff4c34496a5",
-  "last_verified_date": "2026-11-15T21:24:21+05:30",
+  "generated": "2026-11-15T15:56:09+00:00",
+  "last_verified_commit": "e43a8e3f28615ee40aa12fc7d09017584c93aeb5",
+  "last_verified_date": "2026-11-15T21:25:58+05:30",
   "overall_progress_percent": 100.0,
   "progress_scope": "historic audit issue closure only; production acceptance pending",
   "production_ready": false,
@@ -14,21 +14,12 @@
     "percent": 100.0
   },
   "latest_delta": {
-    "added": 0,
+    "added": 1,
     "removed": 0,
-    "changed": 1,
-    "unchanged": 219
+    "changed": 0,
+    "unchanged": 220
   },
   "delta_history": [
-    {
-      "detected_at": "2026-08-09T15:51:28+00:00",
-      "added": [],
-      "removed": [],
-      "changed": [
-        "Enterprise/api/tests/conftest.py"
-      ],
-      "unchanged_count": 126
-    },
     {
       "detected_at": "2026-08-10T15:23:09+00:00",
       "added": [
@@ -434,6 +425,15 @@
         "server.js"
       ],
       "unchanged_count": 219
+    },
+    {
+      "detected_at": "2026-11-15T15:56:09+00:00",
+      "added": [
+        "tests/unit/device-identity-lock.test.js"
+      ],
+      "removed": [],
+      "changed": [],
+      "unchanged_count": 220
     }
   ],
   "next_recommended_tasks": [

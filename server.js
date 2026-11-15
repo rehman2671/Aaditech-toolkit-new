@@ -26,6 +26,7 @@ import rateLimit from 'express-rate-limit';
 import * as db from './db.js';
 import { isValidSetupKey, isSeededDemoPasswordHash } from './setup-security.js';
 import { validateEnrollmentIdentity } from './enrollment-security.js';
+import { signDeviceCommand } from './command-signing.js';
 import {
   getAgentVersion,
   getAgentVersionInfo,
@@ -257,11 +258,7 @@ async function consumeBootstrapToken(token, enrolledDeviceHostname, tenantId) {
   return await db.markBootstrapTokenUsed(token, tokenHash, enrolledDeviceHostname, tenantId);
 }
 
-function signCommandPayload(deviceId, commandType, payload) {
-  const content = `${deviceId}:${commandType}:${JSON.stringify(payload || {})}:${Date.now()}`;
-  const signature = crypto.createHmac('sha256', COMMAND_SIGNING_KEY).update(content).digest('hex');
-  return { content, signature };
-}
+// Remote executable commands use a per-device HMAC key from the authenticated poll, never a fleet-wide signing secret.
 
 // ---------------- OUTBOUND WEBHOOK DISPATCHER ----------------
 async function dispatchWebhookNotification(title, message, severity = "info", details = {}) {
@@ -1094,8 +1091,7 @@ app.post('/api/v1/devices', requireRole(['SUPER_ADMIN', 'OPERATOR']), validateBo
 
   res.status(201).json({
     ...createdDev,
-    device_token: devToken,
-    command_signing_key: COMMAND_SIGNING_KEY
+    device_token: devToken
   });
     });
   } catch (error) {
@@ -1222,7 +1218,6 @@ const handleAgentEnroll = async (req, res) => {
     hostname: dev.hostname,
     device_token: devToken,
     agent_token: devToken,
-    command_signing_key: COMMAND_SIGNING_KEY,
     interval_seconds: 30
   });
     });
@@ -2048,6 +2043,12 @@ app.get(['/api/commands/poll', '/api/v1/commands/poll'], async (req, res) => {
   }
 
   const device = ver.device;
+  const pollToken = req.headers['x-device-token'];
+  const tokenHash = typeof pollToken === 'string' ? hashDeviceToken(pollToken) : '';
+  if (!pollToken?.startsWith('itk_dev_') || !device.device_token_hash ||
+      device.agent_token_revoked || tokenHash !== device.device_token_hash) {
+    return res.status(403).json({ error: 'DEVICE_CREDENTIAL_REQUIRED' });
+  }
 
   // Rate limit protection for high frequency polling
   const rateLimitKey = device.id || device.hostname || target;
@@ -2060,13 +2061,12 @@ app.get(['/api/commands/poll', '/api/v1/commands/poll'], async (req, res) => {
 
   const signedPending = [];
   for (const c of pending) {
-    const kind = c.kind || c.command_type || "EXEC_POWERSHELL";
-    const sig = signCommandPayload(device.hostname, kind, c.payload);
+    const sig = signDeviceCommand({ device, command: c, deviceToken: pollToken });
     await db.markCommandPickedUp(c.id);
     signedPending.push({
       ...c,
       status: "running",
-      signed_content: sig.content,
+      signed_content: sig.signed_content,
       signature: sig.signature
     });
   }

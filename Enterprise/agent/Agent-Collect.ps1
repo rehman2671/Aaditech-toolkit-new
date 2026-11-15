@@ -174,6 +174,41 @@ function Install-ServerCa {
     }
 }
 
+# Once an individual device credential has been persisted, remove the
+# bootstrap credential from persistent agent.json. Bootstrap tokens may be
+# reusable across a workspace and are not runtime authentication tokens.
+# Atomic replacement preserves the current config on interruption.
+function Clear-EnrollmentBootstrapToken {
+    param($Config)
+    if (-not (Test-Path -LiteralPath $ConfigPath -PathType Leaf)) {
+        throw 'Cannot clear enrollment token: agent config is missing'
+    }
+    $onDisk = Get-Content -LiteralPath $ConfigPath -Raw -ErrorAction Stop | ConvertFrom-Json
+    if ($onDisk.PSObject.Properties.Name -notcontains 'token') { return }
+    if (-not $onDisk.token) {
+        $Config.token = ''
+        return
+    }
+    $configDir = Split-Path $ConfigPath -Parent
+    $tempPath = Join-Path $configDir ("agent.json.tmp." + [guid]::NewGuid().ToString('N'))
+    $backupPath = Join-Path $configDir ("agent.json.backup." + [guid]::NewGuid().ToString('N'))
+    $replaced = $false
+    try {
+        $onDisk.token = ''
+        $cleanConfig = $onDisk | ConvertTo-Json -Depth 12
+        [IO.File]::WriteAllText($tempPath, $cleanConfig, ([Text.UTF8Encoding]::new($false)))
+        [IO.File]::Replace($tempPath, $ConfigPath, $backupPath)
+        $replaced = $true
+        $Config.token = ''
+    }
+    finally {
+        if (Test-Path -LiteralPath $tempPath) { Remove-Item -LiteralPath $tempPath -Force }
+        if ($replaced -and (Test-Path -LiteralPath $backupPath)) {
+            Remove-Item -LiteralPath $backupPath -Force
+        }
+    }
+}
+
 function Ensure-ClientCert {
     param($Config)
     $pfx = Get-ClientCertPath -Config $Config
@@ -240,7 +275,16 @@ function Ensure-ClientCert {
             $identity = @{ device_id = [string]$resp.device_id; tenant_id = [string]$resp.tenant_id; device_uid = [string]$resp.device_uid } | ConvertTo-Json -Compress
             [IO.File]::WriteAllText((Join-Path $dir 'agent.identity.json'), $identity)
             [IO.File]::WriteAllText($tokenPath, [string]$issuedToken)
-            Write-AgentLog 'Per-device token and signed-command identity persisted'
+            try {
+                Clear-EnrollmentBootstrapToken -Config $Config
+            } catch {
+                # Never leave a usable device token beside an uncleared,
+                # potentially reusable workspace enrollment secret.
+                Remove-Item -LiteralPath $tokenPath -Force -ErrorAction SilentlyContinue
+                Remove-Item -LiteralPath (Join-Path $dir 'agent.identity.json') -Force -ErrorAction SilentlyContinue
+                throw "Unable to clear bootstrap secret after enrollment: $($_.Exception.Message)"
+            }
+            Write-AgentLog 'Per-device token saved; reusable bootstrap token cleared from agent.json'
         }
 
         if ($resp.pfx) {

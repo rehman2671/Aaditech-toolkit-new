@@ -74,7 +74,9 @@ compose stop caddy api
 STOPPED=1
 
 log "Creating a separate safety backup of current data before replacement."
-BACKUP_KEEP=0 "$HERE/deploy/backup.sh"
+# CI checkouts and zip deployments do not reliably preserve executable bits.
+# Invoke via bash rather than relying on chmod +x from git mode metadata.
+BACKUP_KEEP=0 bash "$HERE/deploy/backup.sh"
 
 log "Replacing database $DB_NAME (previous contents will be removed)."
 # The standard MySQL image grants its MYSQL_USER full rights on MYSQL_DATABASE.

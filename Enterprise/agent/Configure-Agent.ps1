@@ -22,6 +22,14 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+# Writing ProgramData and the machine-wide configuration is an elevated
+# operation. Reject before reading a secret or creating any files.
+if ($env:OS -eq 'Windows_NT') {
+    $principal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+    if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+        throw 'Run Configure-Agent.ps1 in an elevated Administrator PowerShell session.'
+    }
+}
 if (-not $ConfigPath) { throw 'Agent configuration path is required.' }
 
 $dir = Split-Path -Parent $ConfigPath

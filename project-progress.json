@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-15T16:23:36+00:00",
-  "last_verified_commit": "9de5ec379adb3dc66b42166a7ece23cc04a926a8",
-  "last_verified_date": "2026-11-15T21:53:27+05:30",
+  "generated": "2026-11-15T16:24:08+00:00",
+  "last_verified_commit": "102ee96ed02207d7e73ac769cfdba17b04c1ef05",
+  "last_verified_date": "2026-11-15T21:53:59+05:30",
   "overall_progress_percent": 100.0,
   "progress_scope": "historic audit issue closure only; production acceptance pending",
   "production_ready": false,
@@ -14,21 +14,12 @@
     "percent": 100.0
   },
   "latest_delta": {
-    "added": 0,
+    "added": 1,
     "removed": 0,
-    "changed": 1,
-    "unchanged": 224
+    "changed": 0,
+    "unchanged": 225
   },
   "delta_history": [
-    {
-      "detected_at": "2026-11-15T16:09:11+00:00",
-      "added": [],
-      "removed": [],
-      "changed": [
-        "server.js"
-      ],
-      "unchanged_count": 222
-    },
     {
       "detected_at": "2026-11-15T16:10:29+00:00",
       "added": [],
@@ -201,6 +192,15 @@
         "Enterprise/agent/Agent-Collect.ps1"
       ],
       "unchanged_count": 224
+    },
+    {
+      "detected_at": "2026-11-15T16:24:08+00:00",
+      "added": [
+        "Enterprise/tests/Test-EnrollmentBootstrapCleanup.ps1"
+      ],
+      "removed": [],
+      "changed": [],
+      "unchanged_count": 225
     }
   ],
   "next_recommended_tasks": [

@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-15T16:43:03+00:00",
-  "last_verified_commit": "8ddf19e6b54839b4461d44686ba8c3560109d57f",
-  "last_verified_date": "2026-11-15T22:12:56+05:30",
+  "generated": "2026-11-15T16:43:28+00:00",
+  "last_verified_commit": "c4ae78c8304f74586b0d5847a55897474908a0cc",
+  "last_verified_date": "2026-11-15T22:13:16+05:30",
   "overall_progress_percent": 100.0,
   "progress_scope": "historic audit issue closure only; production acceptance pending",
   "production_ready": false,
@@ -20,15 +20,6 @@
     "unchanged": 226
   },
   "delta_history": [
-    {
-      "detected_at": "2026-11-15T16:20:47+00:00",
-      "added": [],
-      "removed": [],
-      "changed": [
-        "tests/integration/server.integration.test.js"
-      ],
-      "unchanged_count": 224
-    },
     {
       "detected_at": "2026-11-15T16:22:08+00:00",
       "added": [],
@@ -197,6 +188,15 @@
       "removed": [],
       "changed": [
         "Enterprise/agent/wix/Agent.wxs"
+      ],
+      "unchanged_count": 226
+    },
+    {
+      "detected_at": "2026-11-15T16:43:28+00:00",
+      "added": [],
+      "removed": [],
+      "changed": [
+        "Enterprise/agent/SETUP-WINDOWS.md"
       ],
       "unchanged_count": 226
     }

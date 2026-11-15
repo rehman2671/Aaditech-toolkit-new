@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-15T17:15:05+00:00",
-  "last_verified_commit": "325b120aa4836494ab84820003c9243bfb38871f",
-  "last_verified_date": "2026-11-15T22:44:54+05:30",
+  "generated": "2026-11-15T17:15:30+00:00",
+  "last_verified_commit": "8c5661494fda401c9fa6653116ee38b7ab74c1d3",
+  "last_verified_date": "2026-11-15T22:45:20+05:30",
   "overall_progress_percent": 100.0,
   "progress_scope": "historic audit issue closure only; production acceptance pending",
   "production_ready": false,
@@ -14,21 +14,12 @@
     "percent": 100.0
   },
   "latest_delta": {
-    "added": 1,
+    "added": 0,
     "removed": 0,
-    "changed": 0,
+    "changed": 1,
     "unchanged": 227
   },
   "delta_history": [
-    {
-      "detected_at": "2026-11-15T16:43:28+00:00",
-      "added": [],
-      "removed": [],
-      "changed": [
-        "Enterprise/agent/SETUP-WINDOWS.md"
-      ],
-      "unchanged_count": 226
-    },
     {
       "detected_at": "2026-11-15T16:44:37+00:00",
       "added": [],
@@ -198,6 +189,15 @@
       ],
       "removed": [],
       "changed": [],
+      "unchanged_count": 227
+    },
+    {
+      "detected_at": "2026-11-15T17:15:30+00:00",
+      "added": [],
+      "removed": [],
+      "changed": [
+        ".github/workflows/ci.yml"
+      ],
       "unchanged_count": 227
     }
   ],

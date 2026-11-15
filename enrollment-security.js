@@ -7,7 +7,7 @@
  * tenant-scoped. Until that storage layer is migrated, refuse collisions,
  * including same hostname in a second tenant, instead of hijacking tokens.
  */
-export function validateEnrollmentIdentity({ tenantId, existingHost, existingUid, company, matchingDevices = null }) {
+export function validateEnrollmentIdentity({ tenantId, existingHost, existingUid, company, matchingDevices = null, requestedUid = null }) {
   if (!tenantId || typeof tenantId !== 'string') {
     return { ok: false, status: 403, code: 'INVALID_TENANT' };
   }
@@ -24,6 +24,10 @@ export function validateEnrollmentIdentity({ tenantId, existingHost, existingUid
   }
   // Multiple DB records claiming the same hostname or UID are ambiguous even
   // when all belong to one tenant. Do not arbitrarily rotate a cached match.
+  if (requestedUid && existingHost?.device_uid &&
+      String(existingHost.device_uid).toLowerCase() !== String(requestedUid).toLowerCase()) {
+    return { ok: false, status: 409, code: 'DEVICE_UID_CONFLICT' };
+  }
   const uniqueIds = new Set(records.map(record => String(record.id)));
   if (uniqueIds.size > 1 ||
       (existingUid && (!existingHost || String(existingUid.id) !== String(existingHost.id)))) {

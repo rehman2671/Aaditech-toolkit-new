@@ -28,6 +28,11 @@ if (-not (Get-Content $builder -Raw).Contains("Configure-Agent.ps1")) {
 if (-not $manifest.SelectSingleNode('//*[local-name()="Component" and @Id="AgentSetupGui"]')) {
     throw 'MSI does not install graphical setup script'
 }
+$runtimeComponent = $manifest.SelectSingleNode('//*[local-name()="Component" and @Id="AgentConfig"]')
+if (-not $runtimeComponent -or $runtimeComponent.NeverOverwrite -ne 'yes' -or
+    $runtimeComponent.Permanent -ne 'yes') {
+    throw 'MSI must preserve the tenant/server runtime config across major upgrades'
+}
 if (-not $manifest.SelectSingleNode('//*[local-name()="Shortcut" and @Id="AgentSetupMenuShortcut"]')) {
     throw 'MSI does not expose Start Menu graphical setup shortcut'
 }

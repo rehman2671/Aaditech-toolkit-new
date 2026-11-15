@@ -24,7 +24,7 @@ import helmet from 'helmet';
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 import * as db from './db.js';
-import { isValidSetupKey } from './setup-security.js';
+import { isValidSetupKey, isSeededDemoPasswordHash } from './setup-security.js';
 import {
   getAgentVersion,
   getAgentVersionInfo,
@@ -868,6 +868,12 @@ async function handleLogin(req, res) {
     });
   }
 
+  if (process.env.NODE_ENV === 'production') {
+    const branding = await db.getBranding();
+    if (!branding.setup_complete) {
+      return res.status(403).json({ error: 'SETUP_REQUIRED', detail: 'Complete authorized first-run setup before logging in.' });
+    }
+  }
   const user = await db.getUserByUsernameOrEmail(target);
 
   if (!user) {
@@ -878,6 +884,12 @@ async function handleLogin(req, res) {
   if (user.active === false) {
     logAudit(user, "USER_LOGIN_FAILED", "AuthService", { reason: "Account disabled" }, req);
     return res.status(401).json({ error: "Unauthorized", detail: "Account has been deactivated" });
+  }
+
+  // Migration-safe guard: shipped sample bcrypt hashes must never be accepted
+  // on a public deployment, even if accounts were seeded before this upgrade.
+  if (process.env.NODE_ENV === 'production' && isSeededDemoPasswordHash(user.password_hash)) {
+    return res.status(403).json({ error: 'PASSWORD_ROTATION_REQUIRED', detail: 'A shipped demo account must have its password reset by an administrator.' });
   }
 
   const isMatch = await bcrypt.compare(password, user.password_hash);
@@ -1785,6 +1797,7 @@ app.get(['/api/v1/setup/status', '/api/setup/status'], async (req, res) => {
 // Run setup (Canonical v1 + Legacy alias)
 app.post(['/api/v1/setup', '/api/setup'], async (req, res, next) => {
   const branding = await db.getBranding();
+  req.isInitialSetup = !branding.setup_complete;
   if (branding.setup_complete) {
     // Never let an ordinary authenticated user reset the administrator via
     // the wizard after initial setup. The API gateway has already checked
@@ -1799,6 +1812,11 @@ app.post(['/api/v1/setup', '/api/setup'], async (req, res, next) => {
   return next();
 }, validateBody(setupSchema), async (req, res) => {
   const { company_name, server_host, admin_username, admin_password, branding, build_mode, github_repo, github_token } = req.body;
+  if (process.env.NODE_ENV === 'production' && req.isInitialSetup &&
+      (typeof admin_password !== 'string' || admin_password.length < 12 ||
+       ['Admin123!', 'Operator123!', 'Monitor123!'].includes(admin_password))) {
+    return res.status(400).json({ error: 'WEAK_INITIAL_PASSWORD', detail: 'Choose a new administrator password of at least 12 characters, not a shipped demo password.' });
+  }
   const updates = { setup_complete: true };
   if (company_name) updates.company_name = company_name;
   if (server_host) updates.server_host = server_host;

@@ -94,7 +94,13 @@ if ([string]::IsNullOrWhiteSpace($token) -or
 $reg = 'HKLM:\SOFTWARE\ITToolkit\Agent'
 if (Test-Path $reg) {
     $override = Get-ItemProperty -Path $reg -ErrorAction Stop
-    if (($override.EndpointUrl -or $override.ApiToken) -and -not $ClearRegistryOverride) {
+    # MSI writes Installed=<version> into this key; the optional EndpointUrl
+    # and ApiToken values are absent until a managed policy supplies them.
+    # Property access must be safe even under Set-StrictMode -Version Latest.
+    $endpointValue = $override.PSObject.Properties['EndpointUrl']
+    $tokenValue = $override.PSObject.Properties['ApiToken']
+    if ((($endpointValue -and $endpointValue.Value) -or
+         ($tokenValue -and $tokenValue.Value)) -and -not $ClearRegistryOverride) {
         throw 'Registry EndpointUrl/ApiToken override exists and would mask this setup. Remove it via authorized policy or rerun with -ClearRegistryOverride.'
     }
 }

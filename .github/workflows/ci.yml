@@ -290,48 +290,31 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Stage agent config (endpoint + token from repo secrets)
+      - name: Stage generic agent config (no server credentials baked into MSI)
         shell: pwsh
-        env:
-          SERVER_ENDPOINT: ${{ secrets.SERVER_ENDPOINT }}
-          API_TOKEN: ${{ secrets.API_TOKEN }}
-          MTLS_ENDPOINT: ${{ secrets.MTLS_ENDPOINT }}
-          ENROLL_URL: ${{ secrets.ENROLL_URL }}
-          RUN_SCRIPT_ALLOWLIST: ${{ secrets.RUN_SCRIPT_ALLOWLIST }}
         run: |
-          # Endpoint comes from the repo's committed endpoint.json (authoritative
-          # for this deployment) so a stale/missing SERVER_ENDPOINT secret can't
-          # bake the wrong URL; the secret only wins when the file is absent.
-          $fileCfg = if (Test-Path ./Enterprise/agent/endpoint.json) { Get-Content ./Enterprise/agent/endpoint.json -Raw | ConvertFrom-Json } else { $null }
-          $endpoint = if ($fileCfg -and $fileCfg.endpoint) { $fileCfg.endpoint } elseif ($env:SERVER_ENDPOINT) { $env:SERVER_ENDPOINT } else { 'http://CHANGE-ME/ingest' }
-          $token = if ($env:API_TOKEN) { $env:API_TOKEN } else { 'CHANGE-ME' }
-          $featuresFile = if (Test-Path ./Enterprise/agent/features.json) { './Enterprise/agent/features.json' } elseif (Test-Path ./Enterprise/api/features.json) { './Enterprise/api/features.json' } else { './Enterprise/agent/agent-config.example.json' }
+          # This installer must work before a production server/domain exists.
+          # Bootstrap credentials are acquired after installation via
+          # Configure-Agent.ps1, NEVER embedded in published MSI artifacts.
+          $featuresFile = if (Test-Path ./Enterprise/agent/features.json) { './Enterprise/agent/features.json' } else { './Enterprise/api/features.json' }
           $manifest = (Get-Content $featuresFile -Raw | ConvertFrom-Json).features
           $features = @($manifest | ForEach-Object {
             @{ name = $_.name; script = $_.script; enabled = [bool]$_.default_enabled; requires_elevation = [bool]$_.requires_elevation }
           })
           $agentMeta = Get-Content ./Enterprise/agent/agent-version.json -Raw | ConvertFrom-Json
-          # C5: run-script allowlist mirrors what deploy.sh/deploy.ps1 bake
-          # (from the RUN_SCRIPT_ALLOWLIST env), so CI-built agents enforce the
-          # same defense when the server issues run-script commands. Empty -> [].
-          $runScripts = if ($env:RUN_SCRIPT_ALLOWLIST) { $env:RUN_SCRIPT_ALLOWLIST -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ } } else { @() }
           $cfg = [ordered]@{
-            endpoint = $endpoint
-            token = $token
+            endpoint = ''
+            enroll_url = ''
+            token = ''
+            bootstrap_token = ''
+            needs_setup = $true
             agent_version = [string]$agentMeta.agent_version
             interval_minutes = [int]$agentMeta.interval_minutes
             features = $features
-            run_script_allowlist = @($runScripts)
+            run_script_allowlist = @()
           }
-          # Optional mTLS: only when the committed endpoint.json does NOT pin the
-          # endpoint (file is authoritative), MTLS_ENDPOINT points agents at the
-          # :9443 client-auth port and they enroll for a client cert over the
-          # main port. MTLS_ENDPOINT is also honored standalone if set.
-          if ($env:MTLS_ENDPOINT -and (-not $fileCfg -or -not $fileCfg.endpoint)) {
-            $cfg.endpoint = $env:MTLS_ENDPOINT
-            $cfg.enroll_url = if ($env:ENROLL_URL) { $env:ENROLL_URL } else { ($env:MTLS_ENDPOINT -replace '/ingest$', '/api/agent/enroll') }
-          }
-          $cfg | ConvertTo-Json -Depth 5 | Set-Content ./Enterprise/agent/agent-config.json
+          $cfg | ConvertTo-Json -Depth 6 | Set-Content ./Enterprise/agent/agent-config.json
+          Write-Host 'Staged unprovisioned agent configuration (HTTPS setup required after MSI install).'
 
       - name: Install ps2exe
         # MScholtes/PS2EXE requires Windows PowerShell 5.1 (uses the .NET

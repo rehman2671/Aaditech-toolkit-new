@@ -38,8 +38,8 @@ bash deploy-mysql.sh --host toolkit.your-company.com --dry-run
 bash deploy-mysql.sh --host toolkit.your-company.com
 ```
 
-A first real deployment generates `Enterprise/.env` with seven independent
-secrets and starts MySQL, Node and Caddy. Re-running preserves database
+A first real deployment generates `Enterprise/.env` with eight independent
+secrets (including the operator-held initial `SETUP_TOKEN`) and starts MySQL, Node and Caddy. Re-running preserves database
 credentials; `--update-host` changes ONLY the DNS hostname. The script
 verifies a publicly trusted HTTPS connection and MySQL health before
 reporting success. See the [deployment runbook](deploy/MYSQL-RECOVERY-AND-DEPLOYMENT.md)

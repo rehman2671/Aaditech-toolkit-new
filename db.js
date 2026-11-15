@@ -1088,6 +1088,63 @@ export async function getDeviceById(id) {
   return rec;
 }
 
+// Serializes enrolment and registration across all Node instances. MySQL
+// advisory locks belong to a dedicated connection and are released even when
+// the callback fails. Locks cover BOTH global hostname and UID because legacy
+// devices currently lack tenant-scoped unique identifiers.
+const localIdentityLocks = new Map();
+export async function withDeviceIdentityLock(hostname, deviceUid, fn) {
+  if (typeof fn !== 'function') throw new TypeError('Identity lock callback required');
+  const host = String(hostname || '').trim().toLowerCase();
+  const uid = String(deviceUid || '').trim().toLowerCase();
+  if (!host || !uid) throw new Error('Hostname and device UID required for locking');
+  const keys = [...new Set([
+    'itk:' + crypto.createHash('sha256').update('host:' + host).digest('hex').slice(0, 56),
+    'itk:' + crypto.createHash('sha256').update('uid:' + uid).digest('hex').slice(0, 56)
+  ])].sort();
+
+  if (isMysqlConnected() && pool && typeof pool.getConnection === 'function') {
+    const connection = await pool.getConnection();
+    const held = [];
+    try {
+      for (const key of keys) {
+        const [rows] = await connection.query('SELECT GET_LOCK(?, 10) AS acquired', [key]);
+        if (Number(rows?.[0]?.acquired) !== 1) {
+          throw new Error('Device identity lock acquisition timed out');
+        }
+        held.push(key);
+      }
+      return await fn();
+    } finally {
+      for (const key of held.reverse()) {
+        try { await connection.query('SELECT RELEASE_LOCK(?)', [key]); }
+        catch (error) { console.error('Failed to release MySQL device lock:', error.message); }
+      }
+      connection.release();
+    }
+  }
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('Refusing device identity operation without MySQL advisory locks');
+  }
+
+  // Deterministic in-process serialization for test/development fallback.
+  // Claims are installed synchronously before the first await, so overlapping
+  // calls cannot both pass preflight before one changes the fallback DB.
+  const pending = keys.map(key => localIdentityLocks.get(key) || Promise.resolve());
+  let unlock;
+  const current = new Promise(resolve => { unlock = resolve; });
+  for (const key of keys) localIdentityLocks.set(key, current);
+  await Promise.all(pending);
+  try {
+    return await fn();
+  } finally {
+    for (const key of keys) {
+      if (localIdentityLocks.get(key) === current) localIdentityLocks.delete(key);
+    }
+    unlock();
+  }
+}
+
 /**
  * Enrollment security needs ALL rows matching a hostname or device UID,
  * not the first cached global match. Different workspaces may currently

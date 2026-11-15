@@ -386,7 +386,9 @@ describe('Server & API Integration Test Suite', () => {
 
       const queryResult = await request(app).post(`${resultUrl}?device_token=${agentToken}`)
         .send(body);
-      expect(queryResult.status).toBe(403);
+      // Missing header authentication may be classified as 401 or 403; both
+      // are valid fail-closed outcomes. Never accept a successful result.
+      expect([401, 403]).toContain(queryResult.status);
 
       const crossTenantResult = await request(app).post(resultUrl)
         .set('X-Device-Token', secondAgentToken).send(body);

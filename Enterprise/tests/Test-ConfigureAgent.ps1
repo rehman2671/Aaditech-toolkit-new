@@ -52,6 +52,10 @@ $runtimeAcl = $manifest.SelectSingleNode("//*[local-name()='CustomAction' and @I
 if ($runtimeAcl.ExeCommand -notmatch 'ITToolkit-Agent\\agent.json') {
     throw 'MSI does not explicitly protect the runtime agent.json file'
 }
+$directoryAcl = $manifest.SelectSingleNode("//*[local-name()='CustomAction' and @Id='HardenAgentDataAcl']")
+if ($directoryAcl.ExeCommand -match ' /T(?:\s|$)') {
+    throw 'Recursive directory ACL rewriting destroys existing enrolled-token inheritance on upgrade'
+}
 if (-not (Get-Content $builder -Raw).Contains('Configure-Agent-GUI.ps1')) {
     throw 'MSI build does not stage GUI setup script'
 }

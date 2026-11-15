@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-15T17:29:15+00:00",
-  "last_verified_commit": "f5bceb3b648bfb9df17c0aed3e82b22f83276233",
-  "last_verified_date": "2026-11-15T22:59:05+05:30",
+  "generated": "2026-11-15T17:29:41+00:00",
+  "last_verified_commit": "583ca02ddbf537a944db93d5b32763de736e5f1b",
+  "last_verified_date": "2026-11-15T22:59:25+05:30",
   "overall_progress_percent": 100.0,
   "progress_scope": "historic audit issue closure only; production acceptance pending",
   "production_ready": false,
@@ -20,15 +20,6 @@
     "unchanged": 227
   },
   "delta_history": [
-    {
-      "detected_at": "2026-11-15T16:54:51+00:00",
-      "added": [],
-      "removed": [],
-      "changed": [
-        "Enterprise/tests/Test-Windows-MsiInstall.ps1"
-      ],
-      "unchanged_count": 226
-    },
     {
       "detected_at": "2026-11-15T17:00:53+00:00",
       "added": [],
@@ -197,6 +188,15 @@
       "removed": [],
       "changed": [
         "Enterprise/deploy/PHASE-N-STAGE4-ACCEPTANCE.md"
+      ],
+      "unchanged_count": 227
+    },
+    {
+      "detected_at": "2026-11-15T17:29:41+00:00",
+      "added": [],
+      "removed": [],
+      "changed": [
+        "Enterprise/agent/SETUP-WINDOWS.md"
       ],
       "unchanged_count": 227
     }

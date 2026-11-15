@@ -101,19 +101,33 @@ $agentMeta = Get-Content (Join-Path $metaRoot 'agent\agent-version.json') -Raw |
 $AgentVersion = [string]$agentMeta.agent_version
 $AgentInterval = [string]$agentMeta.interval_minutes
 
-# MSI upgrade path (A3): Windows Installer refuses upgrades to an equal or
-# lower ProductVersion, and <MajorUpgrade> compares on the whole 4-part number.
-# So we keep UpgradeCode stable and stamp a monotonic build revision on top of
-# the semver:  <major>.<minor>.<patch>.<days-since-epoch>.  Any release made on
-# a later day (or after bumping agent-version.json) therefore upgrades cleanly.
-$verParts = ($AgentVersion -split '\.')
-$maj = [int]($verParts[0] -replace '[^0-9]', '')
-$min = if ($verParts.Count -gt 1) { [int]($verParts[1] -replace '[^0-9]', '') } else { 0 }
-$pat = if ($verParts.Count -gt 2) { [int]($verParts[2] -replace '[^0-9]', '') } else { 0 }
-if ($verParts.Count -gt 3) { $pat = [int]($verParts[3] -replace '[^0-9]', '') }
-$days = [int][math]::Floor((Get-Date).ToUniversalTime().Subtract([datetime]'1970-01-01').TotalDays)
-$MsiVersion = "$maj.$min.$pat.$days"
-Write-Host "Baking AgentVersion=$AgentVersion AgentInterval=$AgentInterval MsiVersion=$MsiVersion"
+# Windows Installer compares only THREE ProductVersion fields.
+# The older date-in-fourth-field scheme never changed the upgrade order.
+# Pack explicit semver patch and a monotonically maintained MSI revision
+# into field three: Major.Minor.(Patch * 1000 + MsiRevision). This upgrades
+# previously published 1.1.2.<date> installers because 1.1.2001 > 1.1.2.
+# Never silently use the clock: release builds must be reproducible.
+$match = [regex]::Match($AgentVersion, '^(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)$')
+if (-not $match.Success) {
+    throw 'agent_version must be numeric major.minor.patch for an MSI release.'
+}
+$maj = [int]$match.Groups['major'].Value
+$min = [int]$match.Groups['minor'].Value
+$pat = [int]$match.Groups['patch'].Value
+$revision = 0
+if ($null -ne $agentMeta.msi_revision) {
+    if ("$($agentMeta.msi_revision)" -cnotmatch '^(0|[1-9][0-9]{0,2})$') {
+        throw 'msi_revision must be an integer between 0 and 999.'
+    }
+    $revision = [int]$agentMeta.msi_revision
+}
+if ($maj -gt 255 -or $min -gt 255 -or $pat -gt 64) {
+    throw 'MSI version bounds exceeded: major/minor <=255 and patch <=64.'
+}
+if ($revision -lt 1) { throw 'Explicit positive msi_revision is required for release builds.' }
+$build = $pat * 1000 + $revision
+$MsiVersion = "$maj.$min.$build"
+Write-Host "Baking AgentVersion=$AgentVersion AgentInterval=$AgentInterval MsiVersion=$MsiVersion (revision=$revision)"
 
 # Run wix from the WXS directory so its relative Source paths (stage\...) resolve
 # against the WXS location regardless of the caller's working directory.

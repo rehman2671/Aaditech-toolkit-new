@@ -113,7 +113,9 @@ cd Enterprise/deploy
 ```
 
 The script checks the MySQL backup signature and database identity **before**
-stopping services. It then:
+stopping services. In an isolated rehearsal environment you can use
+`./restore.sh --yes --db-only path/to/backup.sql`; this deliberately leaves
+the API and Caddy stopped and never reopens public traffic. It then:
 
 1. Stops the API and Caddy to quiesce application writes.
 2. Makes a **new, independent safety backup** of the current database.
@@ -132,6 +134,22 @@ Rehearse on a separate, isolated deployment before using in production;
 this repository change alone does **not** constitute a live restore test.
 If TLS/mTLS certificates are missing, Caddy restart can fail even after a
 successful DB import. Keep the production portal offline until PKI is fixed.
+
+## Automated real MySQL 8 recovery rehearsal (CI only)
+
+GitHub Actions now includes a separate `mysql-live-rehearsal` job in
+`.github/workflows/deployment-safety.yml`. It creates random credentials,
+uses a disposable MySQL 8 Docker Compose volume, inserts a known record,
+takes a backup, modifies the record, restores the snapshot with
+`--db-only`, verifies the original value and checks the safety backup.
+The CI job destroys ONLY its disposable project volume afterward.
+
+To invoke the rehearsal script locally, use a dedicated disposable Docker
+project and `MYSQL_DATABASE=it_toolkit_rehearsal`; the guard
+`AADITECH_REHEARSAL=isolated-ci` is also required. **Never** point this
+script at an existing production database. Successful CI execution is still
+separate from a real Hostinger migration/recovery drill and physical Windows
+acceptance.
 
 ## Automated no-database checks
 

@@ -85,11 +85,16 @@ if (Test-Path -LiteralPath $ConfigFile) {
     Copy-Item -LiteralPath $ConfigFile -Destination $targetConfig -Force
     Write-Host "Staged agent-config.json to $targetConfig"
 } else {
-    Write-Warning "Source agent config $ConfigFile not found; staging placeholder agent-config.json"
+    Write-Warning "Source agent config $ConfigFile not found; staging generic unprovisioned agent-config.json"
     @{
-        endpoint = "https://localhost:3000/api/v1/ingest/telemetry"
+        endpoint = ''
+        enroll_url = ''
+        token = ''
+        needs_setup = $true
         agent_version = $agentVersion
         interval_minutes = 30
+        features = @()
+        run_script_allowlist = @()
     } | ConvertTo-Json -Depth 3 | Set-Content -LiteralPath $targetConfig
 }
 

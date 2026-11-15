@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-15T16:01:54+00:00",
-  "last_verified_commit": "57d2c95b0049b8396e196458826ce9d276565fb9",
-  "last_verified_date": "2026-11-15T21:31:47+05:30",
+  "generated": "2026-11-15T16:03:31+00:00",
+  "last_verified_commit": "187b1ab27d34f475b9a784b546ab85e01b80cf8f",
+  "last_verified_date": "2026-11-15T21:33:13+05:30",
   "overall_progress_percent": 100.0,
   "progress_scope": "historic audit issue closure only; production acceptance pending",
   "production_ready": false,
@@ -16,22 +16,10 @@
   "latest_delta": {
     "added": 0,
     "removed": 0,
-    "changed": 1,
-    "unchanged": 221
+    "changed": 2,
+    "unchanged": 220
   },
   "delta_history": [
-    {
-      "detected_at": "2026-08-10T18:25:50+00:00",
-      "added": [
-        "Enterprise/deploy/Install-Prereqs.ps1"
-      ],
-      "removed": [],
-      "changed": [
-        "VERSION.md",
-        "Documentation/Deployment-AI-Runbook.md"
-      ],
-      "unchanged_count": 126
-    },
     {
       "detected_at": "2026-08-10T23:42:31+00:00",
       "added": [],
@@ -407,6 +395,16 @@
         "Enterprise/agent/wix/Agent.wxs"
       ],
       "unchanged_count": 221
+    },
+    {
+      "detected_at": "2026-11-15T16:03:31+00:00",
+      "added": [],
+      "removed": [],
+      "changed": [
+        "Enterprise/deploy/restore.sh",
+        "Enterprise/deploy/backup.sh"
+      ],
+      "unchanged_count": 220
     }
   ],
   "next_recommended_tasks": [

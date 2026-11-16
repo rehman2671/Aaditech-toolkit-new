@@ -255,6 +255,12 @@ export const setupSchema = z.object({
   github_token: z.string().optional()
 });
 
+export const tenantBrandingSchema = z.object({
+  company_name: z.string().trim().min(1).max(128).optional(),
+  logo_text: z.string().trim().min(1).max(48).optional(),
+  color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional()
+}).strict();
+
 export const workspaceSelectSchema = z.object({
   // MySQL's persisted legacy tenant IDs use canonical 8-4-4-4-12 hex
   // formatting but may have a zero UUID-version nibble. Validate shape, not

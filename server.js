@@ -2271,8 +2271,9 @@ app.put(['/api/v1/features/:name', '/api/features/:name'], validateBody(updateFe
 });
 
 // Users (Canonical v1 + Legacy alias)
-app.get(['/api/v1/users', '/api/users'], async (req, res) => {
-  const users = await db.getUsers();
+app.get(['/api/v1/users', '/api/users'], requireRole(['SUPER_ADMIN']), async (req, res) => {
+  if (!req.user?.tenant_id) return res.status(403).json({ error: 'TENANT_REQUIRED' });
+  const users = await db.getUsers(req.user.tenant_id);
   const safeUsers = users.map(({ password_hash, ...u }) => ({
     ...u,
     role: normalizeRole(u.role)
@@ -2289,6 +2290,14 @@ app.post(['/api/v1/users', '/api/users'], requireRole(['SUPER_ADMIN']), validate
     return res.status(409).json({ detail: "Username already exists" });
   }
 
+  if (!req.user?.tenant_id) return res.status(403).json({ error: 'TENANT_REQUIRED' });
+  if (process.env.NODE_ENV === 'production' && !password) {
+    return res.status(400).json({ error: 'EXPLICIT_PASSWORD_REQUIRED' });
+  }
+  const companies = await db.getCompanies(req.user.tenant_id);
+  const actingUser = await db.getUserById(req.user.id);
+  const company = companies.find(c => String(c.id) === String(actingUser?.company_id)) || companies[0];
+  if (!company) return res.status(409).json({ error: 'TENANT_COMPANY_REQUIRED' });
   const rawPassword = password || "ChangeMe123!";
   const password_hash = await bcrypt.hash(rawPassword, 10);
 
@@ -2298,8 +2307,8 @@ app.post(['/api/v1/users', '/api/users'], requireRole(['SUPER_ADMIN']), validate
     password_hash,
     role: normalizeRole(role || "MONITORING"),
     active: true,
-    company_id: 1,
-    tenant_id: "00000000-0000-0000-0000-000000000001"
+    company_id: company.id,
+    tenant_id: req.user.tenant_id
   };
 
   const created = await db.createUser(newUser);
@@ -2311,7 +2320,7 @@ app.post(['/api/v1/users', '/api/users'], requireRole(['SUPER_ADMIN']), validate
 
 app.put(['/api/v1/users/:id', '/api/users/:id'], requireRole(['SUPER_ADMIN']), validateBody(updateUserSchema), async (req, res) => {
   const user = await db.getUserById(req.params.id);
-  if (!user) return res.status(404).json({ detail: "User not found" });
+  if (!belongsToCurrentTenant(req.user, user)) return res.status(404).json({ detail: "User not found" });
 
   const updates = {};
   if (req.body.role) updates.role = normalizeRole(req.body.role);
@@ -2327,7 +2336,8 @@ app.put(['/api/v1/users/:id', '/api/users/:id'], requireRole(['SUPER_ADMIN']), v
 
 // Companies (Canonical v1 + Legacy alias)
 app.get(['/api/v1/companies', '/api/companies'], async (req, res) => {
-  const comps = await db.getCompanies();
+  if (!req.user?.tenant_id) return res.status(403).json({ error: 'TENANT_REQUIRED' });
+  const comps = await db.getCompanies(req.user.tenant_id);
   sendPaginated(req, res, comps, 50, 500);
 });
 
@@ -2335,7 +2345,8 @@ app.post(['/api/v1/companies', '/api/companies'], requireRole(['SUPER_ADMIN']), 
   const { name } = req.body;
   if (!name) return res.status(400).json({ detail: "Company name required" });
 
-  const comp = await db.createCompany({ name, users: 1, agents: 0 });
+  if (!req.user?.tenant_id) return res.status(403).json({ error: 'TENANT_REQUIRED' });
+  const comp = await db.createCompany({ name, users: 1, agents: 0, tenant_id: req.user.tenant_id });
   logAudit(req.user, "COMPANY_CREATED", `Company:${name}`, {}, req);
   res.status(201).json(comp);
 });

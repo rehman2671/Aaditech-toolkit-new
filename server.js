@@ -1658,11 +1658,19 @@ app.post('/api/v1/workspaces/memberships', requireRole(['SUPER_ADMIN']),
     if (String(target.tenant_id) === String(req.user.tenant_id)) {
       return res.status(409).json({ error: 'PRIMARY_WORKSPACE_ROLE_MANAGED_BY_USER_PROFILE' });
     }
-    await db.grantWorkspaceMembership(target.id, req.user.tenant_id, req.body.role, req.user.id);
-    logAudit(req.user, 'WORKSPACE_MEMBERSHIP_GRANTED', `User:${target.id}`,
+    // Invitations do NOT grant privileges until the invited account
+    // explicitly accepts from its own authenticated session.
+    const invite = await db.grantWorkspaceMembership(
+      target.id, req.user.tenant_id, req.body.role, req.user.id
+    );
+    if (!invite || invite.status !== 'INVITED') {
+      return res.status(409).json({ error: 'WORKSPACE_ALREADY_ACTIVE' });
+    }
+    logAudit(req.user, 'WORKSPACE_INVITATION_CREATED', `User:${target.id}`,
       { user_id: target.id, tenant_id: req.user.tenant_id, role: req.body.role }, req);
-    return res.status(201).json({ ok: true, user_id: target.id,
-      tenant_id: req.user.tenant_id, role: req.body.role });
+    return res.status(201).json({ ok: true, status: 'INVITED',
+      user_id: target.id, tenant_id: req.user.tenant_id, role: req.body.role,
+      expires_at: invite.expires_at });
   });
 
 app.delete('/api/v1/workspaces/memberships/:userId', requireRole(['SUPER_ADMIN']),
@@ -1674,13 +1682,42 @@ app.delete('/api/v1/workspaces/memberships/:userId', requireRole(['SUPER_ADMIN']
         String(target.id) === String(req.user.id)) {
       return res.status(409).json({ error: 'PRIMARY_OR_SELF_MEMBERSHIP_CANNOT_BE_REVOKED_HERE' });
     }
-    const active = await db.getActiveWorkspaceMembership(target.id, req.user.tenant_id);
-    if (!active) return res.status(404).json({ error: 'MEMBERSHIP_NOT_FOUND' });
-    await db.revokeWorkspaceMembership(target.id, req.user.tenant_id);
+    const existing = await db.getWorkspaceMembership(target.id, req.user.tenant_id);
+    if (!existing || !['ACTIVE', 'INVITED'].includes(String(existing.status))) {
+      return res.status(404).json({ error: 'MEMBERSHIP_NOT_FOUND' });
+    }
+    const revoked = await db.revokeWorkspaceMembership(target.id, req.user.tenant_id);
+    if (!revoked) return res.status(409).json({ error: 'MEMBERSHIP_ALREADY_CHANGED' });
     logAudit(req.user, 'WORKSPACE_MEMBERSHIP_REVOKED', `User:${target.id}`,
       { user_id: target.id, tenant_id: req.user.tenant_id }, req);
     return res.json({ ok: true, user_id: target.id, tenant_id: req.user.tenant_id });
   });
+
+// Only the invited account can see and accept/decline its own invitation.
+// No bearer invite token or emailed secret is required: account login and
+// current MySQL invitation status provide the proof of identity and consent.
+app.get('/api/v1/workspaces/invitations', async (req, res) => {
+  const invitations = await db.listWorkspaceInvitations(req.user?.id);
+  return res.json(invitations);
+});
+
+app.post('/api/v1/workspaces/invitations/:tenantId/:decision', async (req, res) => {
+  const { tenantId, decision } = req.params;
+  if (!/^[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}$/i.test(tenantId) ||
+      !['accept', 'decline'].includes(decision)) {
+    return res.status(400).json({ error: 'INVALID_INVITATION_RESPONSE' });
+  }
+  const applied = await db.respondWorkspaceInvitation(req.user?.id, tenantId, decision);
+  if (!applied) return res.status(409).json({
+    error: 'INVITATION_EXPIRED_OR_NOT_PENDING',
+    detail: 'Invitation was revoked, already answered, inactive or older than 7 days.'
+  });
+  logAudit(req.user, decision === 'accept' ? 'WORKSPACE_INVITATION_ACCEPTED' :
+    'WORKSPACE_INVITATION_DECLINED', `Tenant:${tenantId}`,
+    { tenant_id: tenantId }, req);
+  return res.json({ ok: true, status: decision === 'accept' ? 'ACTIVE' : 'DECLINED',
+    tenant_id: tenantId });
+});
 
 // ---------------- PHASE 2: OPERATIONAL MANAGEMENT API ROUTES ----------------
 

@@ -21,5 +21,8 @@ describe('Production TLS root CA trust boundary', () => {
     expect(source).not.toMatch(/Import-Certificate\s+-FilePath/i);
     expect(source).toContain('LEGACY_CA_DISTRIBUTION_DISABLED');
     expect(source).toContain('Do NOT auto-import any CA file');
+    const staticInstaller = fs.readFileSync('Enterprise/agent/install-agent.cmd', 'utf8');
+    expect(staticInstaller).not.toMatch(/certutil\s+-addstore/i);
+    expect(staticInstaller).toContain('Never import bundled/self-signed roots');
   });
 });

@@ -6,7 +6,7 @@
 - **Release provenance:** publication accepts signed artifacts only from a successful, manually triggered, same-repo main-branch CI run, not routine push builds; GitHub Release creation remains manual.
 - **Backup integrity:** new MySQL dumps carry a mode-600 SHA-256 sidecar. Restore validates both filename/digest *before* stopping API or dropping data; malformed/tampered backups are rejected even with a legacy override. Explicit override is available only for trusted older backups without a sidecar.
 - **Recovery acceptance:** offline tamper and old-backup controls and real disposable Docker/MySQL backup/restore run as mandatory deployment safety tests.
-- **Correction:** outdated Enterprise README claims about baked-in MSI API tokens, functional PostgreSQL deploy scripts, private-CA installation and proven live production deployment were replaced with the current verified boundaries.
+- **Windows TLS trust:** production legacy CA download/generation is disabled; generated and static deployment scripts no longer silently import custom trust roots into LocalMachine ROOT.\n- **Correction:** outdated Enterprise README claims about baked-in MSI API tokens, functional PostgreSQL deploy scripts, private-CA installation and proven live production deployment were replaced with the current verified boundaries.
 - **Production status:** trusted signing keys, protected GitHub environment settings, Hostinger VPS evidence and physical Windows/UAC signoff are still operator-controlled blockers.
 
 

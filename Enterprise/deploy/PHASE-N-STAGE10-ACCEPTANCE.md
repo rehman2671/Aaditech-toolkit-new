@@ -85,3 +85,18 @@ read-only HTTPS/MySQL smoke check. This is necessary but not sufficient.
 **Production release decision: BLOCKED** until trusted signing,
 protected environment review, signed artifact publication, real
 infrastructure recovery, migration and Windows acceptance are verified.
+
+
+## Legacy CA trust hardening
+
+The Node API now returns HTTP 410 LEGACY_CA_DISTRIBUTION_DISABLED at
+/api/ca.crt and /api/v1/ca.crt in production. getCaCertificate() does not
+generate or serve a private root there, and production ZIP bundles omit
+the obsolete ca.crt. Both generated CMD/PowerShell installers and the
+checked-in Enterprise/agent/install-agent.cmd have removed automatic
+Windows Trusted Root CA installation. Modern agent bootstrap requires
+normal publicly trusted HTTPS and device-scoped credentials. Custom
+enterprise CA rollout, if ever required, needs explicit organization
+certificate-policy approval outside of public downloadable scripts.
+The non-production fixture/testing helper retains the old behavior
+only for compatibility tests; it is NOT a production trust scheme.

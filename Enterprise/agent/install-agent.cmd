@@ -35,10 +35,8 @@ if exist "%SCRIPT_DIR%Agent-Collect.ps1" copy /y "%SCRIPT_DIR%Agent-Collect.ps1"
 if exist "%SCRIPT_DIR%collectors" xcopy /y /e /i "%SCRIPT_DIR%collectors" "%TARGET_DIR%\collectors" >nul
 copy /y "%SCRIPT_DIR%agent.json" "%TARGET_DIR%\agent.json" >nul
 
-if exist "%SCRIPT_DIR%ca.crt" (
-    echo [*] Registering Enterprise SSL Root Certificate...
-    certutil -addstore -f "ROOT" "%SCRIPT_DIR%ca.crt" >nul 2>&1
-)
+:: TLS server trust comes from Windows built-in trusted roots.
+:: Never import bundled/self-signed roots into LocalMachine\ROOT automatically.
 
 :: 3. Configure File Security Permissions
 icacls "%TARGET_DIR%" /inheritance:r /grant:r SYSTEM:(OI)(CI)F Administrators:(OI)(CI)F "NETWORK SERVICE":(OI)(CI)M /C >nul 2>&1

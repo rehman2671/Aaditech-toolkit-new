@@ -268,8 +268,10 @@ export async function runDatabaseMigrations() {
       memAppliedMigrations.add('002');
       memAppliedMigrations.add('003');
       memAppliedMigrations.add('004');
+      memAppliedMigrations.add('005');
+      memAppliedMigrations.add('006');
     }
-    return { applied: [], skipped: ['001_init_schema.sql', '002_partitioning.sql', '003_rbac_and_audit.sql', '004_workspace_memberships.sql'], status: 'FALLBACK_MODE' };
+    return { applied: [], skipped: ['001_init_schema.sql', '002_partitioning.sql', '003_rbac_and_audit.sql', '004_workspace_memberships.sql', '005_remediation_tenant_logs.sql', '006_notification_outbox.sql'], status: 'FALLBACK_MODE' };
   }
 
   let lockAcquired = false;
@@ -2046,7 +2048,7 @@ export async function getAlertById(id) {
   return { ...r, agent_id: r.device_id, rule: r.rule_name };
 }
 
-export async function createAlert(alt) {
+export async function createAlert(alt, notifications = []) {
   if (process.env.NODE_ENV === 'production' && !alt?.tenant_id) {
     throw new Error('TENANT_REQUIRED');
   }
@@ -2054,17 +2056,51 @@ export async function createAlert(alt) {
     INSERT INTO alerts (tenant_id, device_id, agent_id, hostname, rule, rule_name, severity, message, status, created_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(3))
   `;
-  const res = await executeQuery(sql, [
+  const values = [
     alt.tenant_id || '00000000-0000-0000-0000-000000000001',
     String(alt.device_id || alt.agent_id || ''),
-    alt.agent_id || null,
-    alt.hostname || 'Unknown',
+    alt.agent_id || null, alt.hostname || 'Unknown',
     alt.rule || alt.rule_name || 'System Alert',
     alt.rule_name || alt.rule || 'System Alert',
-    alt.severity || 'warning',
-    alt.message || '',
-    alt.status || 'open'
-  ]);
+    alt.severity || 'warning', alt.message || '', alt.status || 'open'
+  ];
+  const jobs = Array.isArray(notifications) ? notifications : [];
+  for (const job of jobs) {
+    if (!['webhook', 'email'].includes(job?.channel) ||
+        !job?.event || typeof job.event !== 'object' || Array.isArray(job.event)) {
+      throw new Error('INVALID_NOTIFICATION_CHANNEL');
+    }
+  }
+  let res;
+  if (process.env.NODE_ENV === 'production' && jobs.length) {
+    if (!isMysqlConnected() || !pool?.getConnection) throw new Error('OUTBOX_DATABASE_UNAVAILABLE');
+    const conn = await pool.getConnection();
+    try {
+      await conn.beginTransaction();
+      [res] = await conn.query(sql, values);
+      for (const job of jobs) {
+        await conn.query(
+          'INSERT IGNORE INTO notification_outbox (tenant_id, alert_id, channel, payload_json) VALUES (?, ?, ?, ?)',
+          [values[0], res.insertId, job.channel, JSON.stringify(job.event)]
+        );
+      }
+      await conn.commit();
+    } catch (err) {
+      await conn.rollback();
+      throw err;
+    } finally {
+      conn.release();
+    }
+  } else {
+    // Retain development fixture behavior, but still exercise enqueue SQL.
+    res = await executeQuery(sql, values);
+    for (const job of jobs) {
+      await executeQuery(
+        'INSERT IGNORE INTO notification_outbox (tenant_id, alert_id, channel, payload_json) VALUES (?, ?, ?, ?)',
+        [values[0], res.insertId, job.channel, JSON.stringify(job.event)]
+      );
+    }
+  }
   const alertObj = {
     id: res.insertId,
     tenant_id: alt.tenant_id || '00000000-0000-0000-0000-000000000001',

@@ -484,3 +484,26 @@ VALUES
 ('3', '00000000-0000-0000-0000-000000000001', 1, 'LAPTOP-EXEC-03', 'dev-uid-laptop-exec-03', 'Windows 11 Pro', 'x64', '192.168.1.155', 'ONLINE', 8.2, 38.4, 85.0, 92, 'ENCRYPTED', 'Windows Defender', 'ACTIVE', 'ACTIVE', NOW(3));
 
 SET FOREIGN_KEY_CHECKS = 1;
+
+-- N17: alert outbox baseline
+-- N17: tenant-bound, durable alert outbox.
+CREATE TABLE IF NOT EXISTS `notification_outbox` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `tenant_id` VARCHAR(36) NOT NULL,
+  `alert_id` BIGINT UNSIGNED NOT NULL,
+  `channel` VARCHAR(16) NOT NULL,
+  `payload_json` JSON NOT NULL,
+  `status` VARCHAR(16) NOT NULL DEFAULT 'PENDING',
+  `attempts` INT UNSIGNED NOT NULL DEFAULT 0,
+  `available_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  `lease_token` VARCHAR(36) NULL,
+  `lease_expires_at` DATETIME(3) NULL,
+  `last_error` VARCHAR(64) NULL,
+  `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  `updated_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)
+    ON UPDATE CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uniq_notification_alert_channel` (`alert_id`, `channel`),
+  INDEX `idx_notification_ready` (`status`, `available_at`, `lease_expires_at`),
+  INDEX `idx_notification_tenant` (`tenant_id`, `status`, `id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

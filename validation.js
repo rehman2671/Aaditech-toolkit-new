@@ -201,10 +201,11 @@ export const updateAlertRuleSchema = z.object({
 });
 
 export const webhookConfigSchema = z.object({
-  type: z.string().optional(),
-  url: z.string().url("Valid webhook URL is required").optional(),
+  type: z.enum(['generic', 'slack', 'teams']).optional(),
+  // An empty URL is allowed when disabling an integration.
+  url: z.string().max(2048).optional(),
   enabled: z.boolean().optional()
-});
+}).strict();
 
 export const createGroupSchema = z.object({
   name: z.string().min(1, "Group name is required"),

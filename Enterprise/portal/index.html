@@ -1270,12 +1270,13 @@ async function renderAlerts() {
   const [alerts, rules, webhook] = await Promise.all([
     api('/api/alerts?status=' + (alertFilter === 'all' ? '' : alertFilter) + '&limit=200'),
     api('/api/alert-rules'),
-    (window.user && window.user.role === 'admin') ? api('/api/alerts/webhook') : null,
+    (window.user && String(window.user.role).toUpperCase() === 'SUPER_ADMIN') ? api('/api/alerts/webhook') : null,
   ]);
   if (!alerts) return;
   if (webhook) window.__webhook = webhook;
-  const canAct = window.user && (window.user.role === 'admin' || window.user.role === 'operation');
-  const isAdmin = window.user && window.user.role === 'admin';
+  const alertRole = String(window.user?.role || '').toUpperCase();
+  const canAct = alertRole === 'SUPER_ADMIN' || alertRole === 'OPERATOR';
+  const isAdmin = alertRole === 'SUPER_ADMIN';
   const severityBadge = s => `<span class="badge ${s === 'critical' ? 'off' : s === 'warning' ? 'warn' : 'info'}">${esc(s)}</span>`;
   const statusBadge = s => `<span class="badge ${s === 'open' ? 'off' : s === 'acknowledged' ? 'warn' : 'on'}">${esc(s)}</span>`;
 
@@ -1307,7 +1308,7 @@ async function renderAlerts() {
 
   const webhookBlock = isAdmin ? `
     <div class="card"><h3>Webhook notifications (admin)</h3>
-      <p class="muted">POST new-alert digests to a generic webhook, Slack incoming webhook, or Teams connector. Separate alert emails can run at the same time.</p>
+      <p class="muted">Webhook delivery is disabled by default for each workspace. Configure an HTTPS URL whose exact host is approved by the deployment operator; legacy global webhooks are never inherited. No SMTP email delivery is currently implemented.</p>
       <label>Webhook URL</label><input id="webhook_url" value="${esc((window.__webhook && window.__webhook.url) || '')}" placeholder="https://hooks.slack.com/services/..." />
       <div class="row">
         <div style="flex:1"><label>Channel format</label>
@@ -1317,7 +1318,6 @@ async function renderAlerts() {
             <option value="teams" ${(window.__webhook && window.__webhook.type) === 'teams' ? 'selected' : ''}>Microsoft Teams</option>
           </select>
         </div>
-        <div style="flex:1"><label>Bearer token (optional)</label><input id="webhook_token" value="${esc((window.__webhook && window.__webhook.token) || '')}" placeholder="sk-..." /></div>
       </div>
       <div class="row" style="align-items:center;margin-top:10px">
         <button class="action" onclick="saveWebhook()">Save webhook</button>
@@ -1379,7 +1379,6 @@ async function saveWebhook() {
     enabled,
     url: (document.getElementById('webhook_url')?.value || '').trim(),
     type: document.getElementById('webhook_type')?.value || 'slack',
-    token: (document.getElementById('webhook_token')?.value || '').trim(),
   };
   if (out) out.textContent = 'Saving…';
   try {

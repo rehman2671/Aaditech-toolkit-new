@@ -1,3 +1,4 @@
+import { scopedAlertRules, isApprovedWebhookUrl, deliverTenantWebhook } from './tenant-alert-safety.js';
 /**
  * ARCHITECTURAL HARD PREREQUISITE: STATELESSNESS FOR MULTI-INSTANCE / CLUSTER DEPLOYMENTS
  * 
@@ -268,43 +269,16 @@ async function consumeBootstrapToken(token, enrolledDeviceHostname, tenantId) {
 
 // Remote executable commands use a per-device HMAC key from the authenticated poll, never a fleet-wide signing secret.
 
-// ---------------- OUTBOUND WEBHOOK DISPATCHER ----------------
-async function dispatchWebhookNotification(title, message, severity = "info", details = {}) {
+// ---------------- TENANT-ISOLATED OUTBOUND ALERT DISPATCHER ----------------
+// Never use platform-global retention/webhook URLs for customer telemetry.
+// Explicit per-tenant consent and an operator-owned HTTPS host allowlist are required.
+async function dispatchWebhookNotification(tenantId, title, message, severity = 'info', details = {}) {
+  if (!tenantId) return;
   try {
-    const retention = await db.getRetentionSettings();
-    const webhook = await db.getWebhookConfig();
-    const slackUrl = retention?.slack_webhook_url || webhook?.url;
-    const teamsUrl = retention?.teams_webhook_url;
-
-    if (slackUrl && slackUrl.startsWith('http') && !slackUrl.includes('XXXX')) {
-      await fetch(slackUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          text: `*[Aaditech Alert - ${severity.toUpperCase()}]* ${title}\n> ${message}\n\`\`\`${JSON.stringify(details, null, 2)}\`\`\``
-        })
-      }).catch(() => {});
-    }
-
-    if (teamsUrl && teamsUrl.startsWith('http')) {
-      await fetch(teamsUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          "@type": "MessageCard",
-          "@context": "http://schema.org/extensions",
-          "themeColor": severity === 'critical' ? 'EF4444' : 'F59E0B',
-          "summary": title,
-          "title": `[Aaditech Endpoint] ${title}`,
-          "sections": [{
-            "activityTitle": message,
-            "facts": Object.entries(details).map(([k, v]) => ({ name: k, value: String(v) }))
-          }]
-        })
-      }).catch(() => {});
-    }
-  } catch (e) {
-    // Non-blocking notification
+    const config = await db.getTenantWebhookConfig(tenantId);
+    await deliverTenantWebhook(tenantId, config, { title, message, severity, details });
+  } catch {
+    // Best-effort notification; never send tenant data through a fallback URL.
   }
 }
 
@@ -1415,7 +1389,7 @@ app.post(['/api/v1/ingest/telemetry', '/api/ingest'], agentLimiter, validateBody
 
   // Evaluate alert rules against live telemetry
   if (metrics) {
-    const alertRules = await db.getAlertRules();
+    const alertRules = scopedAlertRules(dev.tenant_id, await db.getAlertRules());
     for (const rule of alertRules) {
       if (!rule.enabled) continue;
       let triggered = false;
@@ -1434,6 +1408,7 @@ app.post(['/api/v1/ingest/telemetry', '/api/ingest'], agentLimiter, validateBody
 
       if (triggered) {
         const alt = {
+          tenant_id: dev.tenant_id,
           device_id: dev.id,
           hostname: dev.hostname,
           severity: rule.severity || "warning",
@@ -1442,7 +1417,7 @@ app.post(['/api/v1/ingest/telemetry', '/api/ingest'], agentLimiter, validateBody
           rule: rule.name
         };
         await db.createAlert(alt);
-        dispatchWebhookNotification(rule.name, `${dev.hostname}: ${msg}`, rule.severity, {
+        dispatchWebhookNotification(dev.tenant_id, rule.name, `${dev.hostname}: ${msg}`, rule.severity, {
           hostname: dev.hostname,
           metric: rule.metric,
           threshold: rule.threshold
@@ -1842,45 +1817,62 @@ app.post(['/api/v1/alerts/:id/resolve', '/api/alerts/:id/resolve'], requireRole(
   res.json({ ok: true, alert: alt });
 });
 
-app.get(['/api/v1/alerts/webhook', '/api/alerts/webhook'], requirePlatformSettingsAdmin, async (req, res) => {
-  const cfg = await db.getWebhookConfig();
-  // Never serialize a configured secret token back into API responses.
-  const { token, ...publicConfig } = cfg;
-  res.json({ ...publicConfig, token_configured: Boolean(token) });
+// Per-workspace webhook settings are owned by that workspace SUPER_ADMIN.
+// Global legacy webhook settings are intentionally NOT inherited or dispatched.
+app.get(['/api/v1/alerts/webhook', '/api/alerts/webhook'], requireRole(['SUPER_ADMIN']), async (req, res) => {
+  if (!req.user?.tenant_id) return res.status(403).json({ error: 'TENANT_REQUIRED' });
+  const config = await db.getTenantWebhookConfig(req.user.tenant_id);
+  return res.json(config);
 });
 
-app.put(['/api/v1/alerts/webhook', '/api/alerts/webhook'], requirePlatformSettingsAdmin, validateBody(webhookConfigSchema), async (req, res) => {
-  await db.updateWebhookConfig(req.body);
-  // Do not persist secret webhook credentials in an audit record.
-  logAudit(req.user, "WEBHOOK_CONFIG_UPDATED", "AlertWebhook",
-    { changed_fields: Object.keys(req.body) }, req);
-  res.json({ ok: true });
-});
+app.put(['/api/v1/alerts/webhook', '/api/alerts/webhook'], requireRole(['SUPER_ADMIN']),
+  validateBody(webhookConfigSchema), async (req, res) => {
+    const tenantId = req.user?.tenant_id;
+    if (!tenantId) return res.status(403).json({ error: 'TENANT_REQUIRED' });
+    const current = await db.getTenantWebhookConfig(tenantId);
+    const next = { ...current, ...req.body };
+    if (next.enabled && !next.url) {
+      return res.status(400).json({ error: 'WEBHOOK_URL_REQUIRED' });
+    }
+    if (next.url && !isApprovedWebhookUrl(next.url)) {
+      return res.status(400).json({ error: 'WEBHOOK_URL_NOT_APPROVED',
+        detail: 'Use an HTTPS destination explicitly listed in WEBHOOK_ALLOWED_HOSTS.' });
+    }
+    const config = await db.updateTenantWebhookConfig(tenantId, req.body);
+    logAudit(req.user, 'TENANT_WEBHOOK_CONFIG_UPDATED', 'Tenant:' + tenantId,
+      { changed_fields: Object.keys(req.body) }, req);
+    return res.json({ ok: true, enabled: config.enabled, url: config.url, type: config.type });
+  });
 
-app.post(['/api/v1/alerts/test-webhook', '/api/alerts/test-webhook'], requirePlatformSettingsAdmin, async (req, res) => {
-  const cfg = await db.getWebhookConfig();
-  if (!cfg.url && !cfg.webhook_url) {
-    return res.status(400).json({ ok: false, error: "NOT_CONFIGURED", detail: "Webhook URL has not been configured." });
-  }
-  try {
-    const testUrl = cfg.url || cfg.webhook_url;
-    const testRes = await fetch(testUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ event: 'test', message: 'IT-Toolkit Alert Webhook Delivery Test', timestamp: new Date().toISOString() })
-    });
-    return res.json({ ok: testRes.ok, status_code: testRes.status, type: cfg.type || "generic" });
-  } catch (err) {
-    return res.status(502).json({ ok: false, error: "DELIVERY_FAILED", detail: err.message });
-  }
-});
+app.post(['/api/v1/alerts/test-webhook', '/api/alerts/test-webhook'],
+  requireRole(['SUPER_ADMIN']), async (req, res) => {
+    const tenantId = req.user?.tenant_id;
+    if (!tenantId) return res.status(403).json({ error: 'TENANT_REQUIRED' });
+    const config = await db.getTenantWebhookConfig(tenantId);
+    if (!config.enabled || !config.url) {
+      return res.status(400).json({ ok: false, error: 'NOT_CONFIGURED' });
+    }
+    if (!isApprovedWebhookUrl(config.url)) {
+      return res.status(400).json({ ok: false, error: 'WEBHOOK_URL_NOT_APPROVED' });
+    }
+    try {
+      const delivery = await deliverTenantWebhook(tenantId, config, {
+        title: 'Webhook delivery test', message: 'Test from the current workspace',
+        severity: 'info', details: { test: true }
+      });
+      if (!delivery.dispatched) {
+        return res.status(502).json({ ok: false, error: 'DELIVERY_FAILED' });
+      }
+      return res.json({ ok: true, status_code: delivery.status_code, type: config.type });
+    } catch {
+      return res.status(502).json({ ok: false, error: 'DELIVERY_FAILED' });
+    }
+  });
 
-app.post(['/api/v1/alerts/test-email', '/api/alerts/test-email'], async (req, res) => {
-  const settings = await db.getRetentionSettings();
-  if (!settings.notification_email) {
-    return res.status(400).json({ ok: false, error: "NOT_CONFIGURED", detail: "Notification email is not configured in settings." });
-  }
-  res.json({ ok: true, status: "DISPATCHED", to: settings.notification_email });
+app.post(['/api/v1/alerts/test-email', '/api/alerts/test-email'], requirePlatformSettingsAdmin, async (req, res) => {
+  // No SMTP delivery implementation exists. Never fabricate a delivery receipt.
+  return res.status(501).json({ ok: false, error: 'EMAIL_TRANSPORT_NOT_IMPLEMENTED',
+    detail: 'No email was sent. Configure and verify a real mail transport before enabling tests.' });
 });
 
 // Device Groups & Policy Management V1

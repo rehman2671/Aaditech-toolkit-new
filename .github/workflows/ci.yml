@@ -1,5 +1,11 @@
 name: CI
 
+# Running superseded push builds wastes Windows runners and delays the
+# newest production-security acceptance result. Manual runs are isolated.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: true
+
 on:
   push:
     branches: [main]

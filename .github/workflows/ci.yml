@@ -255,18 +255,6 @@ jobs:
           NODE_ENV: test
         run: node test-migrations-runner.js
 
-      - name: Rehearse workspace invitation consent and tenant configuration on real MySQL
-        timeout-minutes: 5
-        env:
-          DB_HOST: 127.0.0.1
-          DB_PORT: 3306
-          DB_USER: itk_user
-          DB_PASSWORD: itk_password_ci
-          DB_NAME: it_toolkit
-          NODE_ENV: test
-          AADITECH_WORKSPACE_REHEARSAL: isolated-ci
-        run: node test-workspace-invitations-mysql.js
-
       - name: Rehearse multi-process tenant/device identity concurrency against real MySQL
         env:
           DB_HOST: 127.0.0.1
@@ -289,6 +277,18 @@ jobs:
           NODE_ENV: test
           AADITECH_HTTP_REHEARSAL: isolated-ci
         run: node test-http-tenant-concurrency.js
+
+      - name: Rehearse workspace invitation consent and tenant configuration on real MySQL
+        timeout-minutes: 5
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_USER: itk_user
+          DB_PASSWORD: itk_password_ci
+          DB_NAME: it_toolkit
+          NODE_ENV: test
+          AADITECH_WORKSPACE_REHEARSAL: isolated-ci
+        run: node test-workspace-invitations-mysql.js
 
       - name: Inject production-mode MySQL TCP partitions and verify fail-closed recovery
         timeout-minutes: 5

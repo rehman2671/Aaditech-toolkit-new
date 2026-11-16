@@ -577,6 +577,27 @@ describe('Server & API Integration Test Suite', () => {
       }
     });
 
+    it('denies cross-workspace audit query overrides and scopes resource access', async () => {
+      const foreignTenant = '00000000-0000-0000-0000-000000000002';
+      const logs = await request(app).get('/api/v1/audit/logs?tenant_id=' + foreignTenant)
+        .set('Authorization', `Bearer ${token}`);
+      expect(logs.status).toBe(403);
+      expect(logs.body.error).toBe('TENANT_ACCESS_DENIED');
+
+      const allowed = await request(app).get('/api/v1/audit/logs')
+        .set('Authorization', `Bearer ${token}`);
+      expect(allowed.status).toBe(200);
+
+      for (const url of [
+        '/api/v1/devices/UNOWNED-UNKNOWN-DEVICE/processes',
+        '/api/v1/devices/UNOWNED-UNKNOWN-DEVICE/app-usage'
+      ]) {
+        const missing = await request(app).get(url)
+          .set('Authorization', `Bearer ${token}`);
+        expect(missing.status).toBe(404);
+      }
+    });
+
     it('Policies and Groups lifecycle', async () => {
       const polRes = await request(app)
         .post('/api/v1/policies')

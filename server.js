@@ -28,6 +28,7 @@ import { isValidSetupKey, isSeededDemoPasswordHash } from './setup-security.js';
 import { validateEnrollmentIdentity } from './enrollment-security.js';
 import { resolveAgentOrigin } from './agent-origin.js';
 import { resolveVerifiedUserPrincipal } from './auth-principal.js';
+import { isPlatformSettingsAdmin } from './platform-settings-admin.js';
 import { belongsToCurrentTenant, publicDeviceRecord } from './device-visibility.js';
 import { signDeviceCommand } from './command-signing.js';
 import {
@@ -60,6 +61,8 @@ import {
   setupSchema,
   createUserSchema,
   updateUserSchema,
+  workspaceSelectSchema,
+  workspaceGrantSchema,
   createCompanySchema,
   defaultCompanySchema,
   updateFeatureSchema,
@@ -1004,14 +1007,12 @@ app.post(['/api/v1/auth/login', '/api/login'], authLimiter, validateBody(loginSc
 app.post(['/api/v1/auth/logout', '/api/logout'], handleLogout);
 
 app.get(['/api/v1/auth/me', '/api/me'], async (req, res) => {
-  const user = await db.getUserById(req.user.id) || await db.getUserByUsername(req.user.username) || req.user;
+  const current = req.user;
   res.json({
-    id: user.id,
-    username: user.username,
-    email: user.email || `${user.username}@aaditech.com`,
-    full_name: user.full_name || user.username,
-    role: normalizeRole(user.role),
-    tenant_id: user.tenant_id || "00000000-0000-0000-0000-000000000001"
+    id: current.id, username: current.username,
+    email: current.email || `${current.username}@aaditech.com`,
+    full_name: current.username,
+    role: current.role, tenant_id: current.tenant_id
   });
 });
 
@@ -1602,11 +1603,74 @@ app.get('/api/v1/audit/logs', async (req, res) => {
   sendPaginated(req, res, logs, 50, 500);
 });
 
-// Tenants & RBAC V1
-app.get('/api/v1/tenants', async (req, res) => {
-  const tenants = await db.getTenants();
-  sendPaginated(req, res, tenants, 50, 500);
+// Workspace selection: a tenant ID in a query/body is NOT an authorization.
+const listAuthorizedWorkspaces = async (req, res) => {
+  const workspaces = await db.listUserWorkspaces(req.user?.id);
+  if (!workspaces.length) return res.status(403).json({ error: 'NO_ACTIVE_WORKSPACE' });
+  return sendPaginated(req, res, workspaces, 50, 500);
+};
+
+// Legacy /tenants must never enumerate every customer workspace.
+app.get(['/api/v1/tenants', '/api/v1/workspaces'], listAuthorizedWorkspaces);
+
+app.post('/api/v1/workspaces/select', validateBody(workspaceSelectSchema), async (req, res) => {
+  const owner = await db.getUserById(req.user?.id);
+  if (!owner || owner.active === false || String(owner.status || 'ACTIVE').toUpperCase() !== 'ACTIVE') {
+    return res.status(401).json({ error: 'ACCOUNT_INACTIVE' });
+  }
+  const choices = await db.listUserWorkspaces(owner.id);
+  const selected = choices.find(w => String(w.tenant_id) === String(req.body.tenant_id));
+  if (!selected) return res.status(403).json({ error: 'WORKSPACE_MEMBERSHIP_REQUIRED' });
+  // Issue a fresh JWT only AFTER checking ACTIVE tenant membership and role.
+  // The old JWT remains bound to its prior tenant; it never grants privileges
+  // in the new workspace by adding a query or header.
+  const token = issueUserToken({ ...owner, tenant_id: selected.tenant_id, role: selected.role });
+  res.cookie('auth_token', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax', maxAge: 8 * 3600 * 1000 });
+  res.cookie('itk_session', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax', maxAge: 8 * 3600 * 1000 });
+  logAudit(req.user, 'WORKSPACE_SELECTED', `Tenant:${selected.tenant_id}`,
+    { tenant_id: selected.tenant_id }, req);
+  return res.json({ ok: true, token, token_type: 'Bearer', expires_in: 28800,
+    workspace: selected, tenant_id: selected.tenant_id, role: selected.role });
 });
+
+// A super-admin can grant membership ONLY in the workspace currently
+// authenticated. No request field can select the destination tenant.
+app.post('/api/v1/workspaces/memberships', requireRole(['SUPER_ADMIN']),
+  validateBody(workspaceGrantSchema), async (req, res) => {
+    if (!req.user?.tenant_id) return res.status(403).json({ error: 'TENANT_REQUIRED' });
+    const target = await db.getUserById(req.body.user_id);
+    if (!target || target.active === false ||
+        String(target.status || 'ACTIVE').toUpperCase() !== 'ACTIVE') {
+      return res.status(404).json({ error: 'ACCOUNT_NOT_FOUND' });
+    }
+    if (String(target.tenant_id) === String(req.user.tenant_id)) {
+      return res.status(409).json({ error: 'PRIMARY_WORKSPACE_ROLE_MANAGED_BY_USER_PROFILE' });
+    }
+    await db.grantWorkspaceMembership(target.id, req.user.tenant_id, req.body.role, req.user.id);
+    logAudit(req.user, 'WORKSPACE_MEMBERSHIP_GRANTED', `User:${target.id}`,
+      { user_id: target.id, tenant_id: req.user.tenant_id, role: req.body.role }, req);
+    return res.status(201).json({ ok: true, user_id: target.id,
+      tenant_id: req.user.tenant_id, role: req.body.role });
+  });
+
+app.delete('/api/v1/workspaces/memberships/:userId', requireRole(['SUPER_ADMIN']),
+  async (req, res) => {
+    if (!req.user?.tenant_id) return res.status(403).json({ error: 'TENANT_REQUIRED' });
+    const target = await db.getUserById(req.params.userId);
+    if (!target) return res.status(404).json({ error: 'ACCOUNT_NOT_FOUND' });
+    if (String(target.tenant_id) === String(req.user.tenant_id) ||
+        String(target.id) === String(req.user.id)) {
+      return res.status(409).json({ error: 'PRIMARY_OR_SELF_MEMBERSHIP_CANNOT_BE_REVOKED_HERE' });
+    }
+    const active = await db.getActiveWorkspaceMembership(target.id, req.user.tenant_id);
+    if (!active) return res.status(404).json({ error: 'MEMBERSHIP_NOT_FOUND' });
+    await db.revokeWorkspaceMembership(target.id, req.user.tenant_id);
+    logAudit(req.user, 'WORKSPACE_MEMBERSHIP_REVOKED', `User:${target.id}`,
+      { user_id: target.id, tenant_id: req.user.tenant_id }, req);
+    return res.json({ ok: true, user_id: target.id, tenant_id: req.user.tenant_id });
+  });
 
 // ---------------- PHASE 2: OPERATIONAL MANAGEMENT API ROUTES ----------------
 

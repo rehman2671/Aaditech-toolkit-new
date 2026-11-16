@@ -7,6 +7,7 @@ on:
       - 'Enterprise/deploy/**'
       - 'Enterprise/tests/Test-MySQL-Backup-Restore.sh'
       - 'Enterprise/tests/Test-DeployMySQL.sh'
+      - 'Enterprise/tests/Test-LegacyMsiMigration.sh'
       - 'Enterprise/tests/Test-MySQL-Live-Rehearsal.sh'
       - '.github/workflows/deployment-safety.yml'
   pull_request:
@@ -14,6 +15,7 @@ on:
       - 'Enterprise/deploy/**'
       - 'Enterprise/tests/Test-MySQL-Backup-Restore.sh'
       - 'Enterprise/tests/Test-DeployMySQL.sh'
+      - 'Enterprise/tests/Test-LegacyMsiMigration.sh'
       - 'Enterprise/tests/Test-MySQL-Live-Rehearsal.sh'
       - '.github/workflows/deployment-safety.yml'
   workflow_dispatch:
@@ -33,6 +35,7 @@ jobs:
           bash -n Enterprise/deploy/deploy-mysql.sh
           bash -n Enterprise/deploy/backup.sh
           bash -n Enterprise/deploy/restore.sh
+          bash -n Enterprise/deploy/migrate-legacy-msi-bootstrap.sh
           bash -n Enterprise/deploy/verify-hostinger-acceptance.sh
       - name: Verify VPS public HTTPS acceptance CLI is safe in offline dry-run
         shell: bash
@@ -43,6 +46,9 @@ jobs:
       - name: Verify HTTPS/MySQL deployment dry-run isolation
         shell: bash
         run: bash Enterprise/tests/Test-DeployMySQL.sh
+      - name: Verify legacy bootstrap migration refuses unsafe operations
+        shell: bash
+        run: bash Enterprise/tests/Test-LegacyMsiMigration.sh
 
   mysql-live-rehearsal:
     name: Isolated MySQL 8 backup and restore data integrity

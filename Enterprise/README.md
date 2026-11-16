@@ -11,13 +11,15 @@
 > The current Node API uses HTTPS + per-device tokens; **mutual TLS is not
 > implemented**, and live Windows/Hostinger production acceptance is pending.
 
-> **Latest hardening:** [Phase N Stage 11 acceptance](deploy/PHASE-N-STAGE11-ACCEPTANCE.md)
-> covers tenant-scoped MSI package inventory/downloads, hash-only bootstrap
-> token persistence, validated installer input, manual-only release builds
-> and trusted SERVER_HOST/HTTPS download origins. All four CI jobs passed in
-> [run #43903827797](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43903827797),
-> including Windows MSI install/upgrade rehearsals. This is not live deployment.
-> See also [Stage 10 recovery/signing acceptance](deploy/PHASE-N-STAGE10-ACCEPTANCE.md).
+> **Latest hardening:** [Phase N Stage 12 acceptance](deploy/PHASE-N-STAGE12-ACCEPTANCE.md)
+> adds current-DB role/tenant verification for production JWTs, tenant-owned
+> device/user/company/event/alert/command APIs, secret-free device responses,
+> and an audited, recovery-backed migration of old plaintext MSI enrollment
+> tokens. [All four Stage 12 CI jobs passed](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43920480028)
+> alongside the [real MySQL migration/restore safety rehearsal](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43919034394).
+> This is code-level acceptance, **not** a signed installer or live deployment.
+> [Stage 10 release signing gates](deploy/PHASE-N-STAGE10-ACCEPTANCE.md)
+> remain mandatory before production rollout.
 > **No real production migration, signed public release or Hostinger VPS
 > acceptance has been performed.** Historical setup sections below may
 > describe obsolete FastAPI/PostgreSQL, self-signed CA, or MSI token-embedding

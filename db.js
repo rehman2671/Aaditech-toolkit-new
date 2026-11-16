@@ -2220,8 +2220,13 @@ export async function isBootstrapTokenUsed(tokenOrHash) {
 }
 
 export async function markBootstrapTokenUsed(token, tokenHash, hostname, tenantId) {
-  const hash = tokenHash || (token ? crypto.createHash('sha256').update(String(token).trim()).digest('hex') : '');
-  if (!hash) return false;
+  const expected = token
+    ? crypto.createHash('sha256').update(String(token).trim()).digest('hex')
+    : '';
+  const hash = tokenHash || expected;
+  // A caller must not be able to mark an unrelated hash as used while
+  // redeeming a different bearer credential. Require canonical SHA-256.
+  if (!/^[a-f0-9]{64}$/.test(String(hash)) || (expected && hash !== expected)) return false;
 
   if (memBootstrapTokens.has(hash) || (token && memBootstrapTokens.has(token))) {
     return false;

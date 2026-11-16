@@ -234,6 +234,10 @@
         </select>
         <div id="workspaceError" class="muted" role="status"></div>
       </div>
+      <div id="workspaceInvites" style="display:none; margin-bottom:12px" aria-live="polite">
+        <div class="nav-label">Workspace invitations</div>
+        <div id="workspaceInviteItems"></div>
+      </div>
       <div class="side-user">
         <span class="avatar" id="whoAvatar">?</span>
         <div class="u-meta">
@@ -413,6 +417,7 @@ async function start() {
   setupNav();
   pruneNavGroups();
   await refreshWorkspacePicker(boot.user?.tenant_id);
+  await refreshWorkspaceInvitations();
   refreshAlertBadge();
   setInterval(refreshAlertBadge, 30000);
   checkIngestStatus();
@@ -449,6 +454,73 @@ async function refreshWorkspacePicker(currentTenant) {
     select.onchange = () => switchAuthorizedWorkspace(select.value, currentTenant);
   } catch (_) {
     // Network failure never changes authenticated workspace.
+  }
+}
+
+// Invitations are shown only to the target's signed-in account. No
+// membership is activated until that user explicitly chooses Accept.
+async function refreshWorkspaceInvitations() {
+  const wrap = document.getElementById('workspaceInvites');
+  const content = document.getElementById('workspaceInviteItems');
+  if (!wrap || !content) return;
+  wrap.style.display = 'none';
+  content.replaceChildren();
+  const token = localStorage.getItem('auth_token');
+  if (!token) return;
+  try {
+    const response = await fetch('/api/v1/workspaces/invitations', {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!response.ok) return;
+    const invitations = await response.json();
+    if (!Array.isArray(invitations) || !invitations.length) return;
+    for (const invitation of invitations) {
+      const box = document.createElement('div');
+      box.style.cssText = 'border:1px solid var(--line-2);border-radius:7px;padding:8px;margin:6px 0';
+      const label = document.createElement('div');
+      label.style.cssText = 'font-size:12px;margin-bottom:6px';
+      label.textContent = (invitation.tenant_name || invitation.tenant_id) +
+        ' · ' + invitation.role;
+      box.appendChild(label);
+      for (const [decision, name] of [['accept', 'Accept'], ['decline', 'Decline']]) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.textContent = name;
+        button.style.cssText = 'padding:5px 9px;margin-right:5px;font-size:12px';
+        button.onclick = () => answerWorkspaceInvitation(invitation.tenant_id, decision, box);
+        box.appendChild(button);
+      }
+      content.appendChild(box);
+    }
+    wrap.style.display = '';
+  } catch (_) { /* Network failures leave permissions unchanged. */ }
+}
+
+async function answerWorkspaceInvitation(tenantId, decision, container) {
+  if (!['accept','decline'].includes(decision)) return;
+  const token = localStorage.getItem('auth_token');
+  if (!token) return;
+  const buttons = container.querySelectorAll('button');
+  buttons.forEach(b => { b.disabled = true; });
+  try {
+    const response = await fetch('/api/v1/workspaces/invitations/' +
+      encodeURIComponent(tenantId) + '/' + decision, {
+      method: 'POST', headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!response.ok) {
+      const result = await response.json().catch(() => ({}));
+      const message = document.getElementById('workspaceError');
+      if (message) message.textContent = result.error || 'Invitation could not be answered';
+    } else {
+      // The new accepted workspace becomes selectable, not automatically
+      // switched: the account owner chooses when to change context.
+      await refreshWorkspacePicker(window.user?.tenant_id);
+    }
+    await refreshWorkspaceInvitations();
+  } catch (_) {
+    const message = document.getElementById('workspaceError');
+    if (message) message.textContent = 'Invitation response failed';
+    buttons.forEach(b => { b.disabled = false; });
   }
 }
 

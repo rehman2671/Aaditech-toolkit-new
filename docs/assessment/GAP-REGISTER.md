@@ -1,5 +1,7 @@
 # Prioritized Gap Register
 
+> **Stage 16 status update (2026-11-17):** Cross-tenant software/license/fleet/security-posture/predictive device inventory queries and unauthorized manual remediation are **code-fixed / CI-verified** in [main CI #43976367121](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43976367121). Tenant SMTP opt-in and real TLS/STARTTLS client code are also CI-verified, but live relay/inbox acceptance is still an **OPEN_GATE**. External production release signing, Hostinger VPS/DNS/TLS, real-data recovery and physical Windows UAC verification remain **OPEN_GATE**. The original entries below are a dated November 3 snapshot.
+
 **Authoritative Status as of:** 2026-11-03  
 **Status Lifecycle:** `RESOLVED_VERIFIED` | `OPEN_GATE` | `IN_PROGRESS` | `DEFERRED_PREREQUISITE`  
 

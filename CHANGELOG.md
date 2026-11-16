@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased — Phase N Stage 16 (tenant inventory and opt-in TLS SMTP)
+
+- **Cross-workspace inventory fix:** restrict software search/export, license compliance/export, fleet CSV, security posture and predictive analytics device reads to the authenticated tenant, never the global fleet.
+- **Manual remediation authorization:** unknown/foreign hostname cannot enqueue a remote remediation command or write a successful action log; verified device ownership is required before mutation.
+- **Email notification transport:** server-controlled TLS/STARTTLS SMTP with validated certificates, authenticated relay, operator-approved recipient domains and explicit tenant opt-in. A successful test response means SMTP DATA 250 relay acceptance, **not** confirmed inbox arrival.
+- **Setup workflow correction:** remove SMTP password collection that was never processed; use private `SMTP_*` server environment and tenant email opt-in in the portal.
+- **Verification:** [main CI #43976367121](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43976367121) SUCCESS 4/4 and [deployment-safety #43976367102](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43976367102) SUCCESS 2/2. Windows diagnostic MSI rehearsal is **not** a signed/public installer or production release.
+
+
 ## Unreleased — Phase N Stage 15 (tenant alert and webhook containment)
 
 - **Critical isolation fix:** evaluate telemetry alert rules only for the authenticated device tenant and assign the same tenant ID to generated alerts. Production alert creation with no tenant fails closed rather than adopting a default global owner.

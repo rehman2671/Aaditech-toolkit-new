@@ -1,6 +1,6 @@
 # Phase N Stage 16 — Tenant inventory/operational isolation and SMTP delivery
 
-**Production remains blocked.** This stage first closes cross-workspace inventory/report data leaks before any multi-tenant roll-out.
+**Stage 16 CODE/CI ACCEPTED; production rollout remains BLOCKED.** Main [CI #43976367121](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43976367121) completed 4/4 mandatory jobs successfully (Node/Vitest, PowerShell, real isolated MySQL/API, diagnostic Windows EXE/MSI install/uninstall/major upgrade). Main [deployment-safety #43976367102](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43976367102) passed 2/2 jobs. Automated proof is not a real relay/inbox test, protected publisher-signing approval or live Hostinger deployment.
 
 ## Inventory isolation
 - Software search/export, license compliance/export, fleet CSV, security posture and predictive analysis now read devices with an explicit authenticated `tenant_id` SQL predicate.
@@ -22,3 +22,11 @@
 - New tests verify missing credentials, forbidden plaintext SMTP, domain allowlist, CRLF injection, tenant isolation, no sending without consent, and API RBAC. No CI test can assert actual external SMTP certificate/trust, deliverability or recipient inbox arrival.
 
 **Important follow-up:** alert email is best-effort, not persisted in an outbox. This phase does not yet include dead-letter handling, retries, bounce tracking, guaranteed delivery or network-rebinding detection for webhooks. These require separate operational acceptance.
+
+## Verified Stage 16 evidence (2026-11-17)
+
+- [Pull request #6](https://github.com/rehman2671/Aaditech-toolkit-new/pull/6) was squash-merged to main after clean PR [CI #43975986561](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43975986561) and [deployment-safety #43975986567](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43975986567).
+- Main merge commit: `7904ebb73333bb310c43a1be3ed4be58f9d53e97`.
+- [Main CI #43976367121](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43976367121): **SUCCESS 4/4**, including Windows EXE/MSI diagnostic packaging, MSI install/uninstall and major-upgrade rehearsals.
+- [Main deployment-safety #43976367102](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43976367102): **SUCCESS 2/2**, offline deployment safety and disposable MySQL backup/restore.
+- **Still NOT accepted for production:** a human-approved and independently verified Authenticode-signed public MSI, real Hostinger VPS/DNS/TLS, approved production data migration and offsite restore rehearsal, physical managed Windows UAC/upgrade/configuration, and an end-to-end SMTP relay certificate and actual customer inbox receipt. The SMTP service is deliberately disabled until operator credentials/domain policy and workspace opt-in are configured.

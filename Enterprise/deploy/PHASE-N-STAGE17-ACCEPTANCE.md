@@ -1,6 +1,6 @@
 # Phase N Stage 17 — Remediation tenant isolation and pinned webhook DNS
 
-**Status: Code implemented in PR branch; independent CI + production acceptance required.**
+**Status: STAGE 17 CODE/CI ACCEPTED; PRODUCTION BLOCKED.** [PR #7](https://github.com/rehman2671/Aaditech-toolkit-new/pull/7) merged; [main CI #43981328283](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43981328283) **SUCCESS 4/4**, including diagnostic Windows MSI install/uninstall/major-upgrade; [main deployment safety #43981328387](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43981328387) **SUCCESS 2/2**. This is not public signed MSI, live Hostinger or real SMTP inbox acceptance.
 
 ## Remediation authorization and historical data safety
 
@@ -32,3 +32,10 @@
 - Tenant SUPER_ADMIN may inspect scoped aggregate counts via `GET /api/v1/alerts/notifications/status`. API never returns payload/recipient credentials via that endpoint.
 - Delivery semantics are **at-least-once**; if a worker crashes after the receiver accepted data but before the database marks completion, a retry can deliver a duplicate. Downstream consumers should deduplicate by alert identifier if required.
 - A redirection, DNS private-IP response, SMTP failure, MySQL outage, or unauthorized recipient may not bypass the configured allowlist/tenant consent. Live network/inbox acceptance still pending.
+
+## Verified Stage 17 acceptance (2026-11-17)
+
+- PR merge commit: `57921c4dd74b93c8031dbc4f97534ccee36eac6a`. [PR CI #43980985118](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43980985118) and [PR deployment safety #43980984905](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43980984905) passed.
+- [Main CI #43981328283](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43981328283): **SUCCESS 4/4**, including Node/Vitest, PowerShell, real MySQL/API fault injection and diagnostic Windows MSI install/uninstall/upgrade.
+- [Main safety #43981328387](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43981328387): **SUCCESS 2/2**.
+- **NOT VERIFIED IN PRODUCTION:** protected signed public MSI, live Hostinger VPS/DNS/TLS, approved production data restore, real SMTP/inbox and physical customer Windows.

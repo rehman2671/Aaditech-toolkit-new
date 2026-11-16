@@ -1,6 +1,6 @@
 # Phase N Stage 18 — Closed remaining workspace audit, inventory and process-read boundaries
 
-**Status: Code implemented; PR CI and post-merge CI required.** Production rollout remains blocked by external signed-MSI, Hostinger, physical Windows and live SMTP gates.
+**Status: STAGE 18 CODE/CI ACCEPTED; PRODUCTION BLOCKED.** [PR #8](https://github.com/rehman2671/Aaditech-toolkit-new/pull/8) merged; [main CI #43982225279](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43982225279) **SUCCESS 4/4**, including diagnostic Windows MSI extraction, install/uninstall and major-upgrade rehearsals; [main safety #43982225214](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43982225214) **SUCCESS 2/2**. Signed public release, Hostinger live, real SMTP and physical Windows acceptance remain independently blocked.
 
 ## API containment
 
@@ -14,3 +14,9 @@
 
 - A successful CI suite cannot verify customer data migration on Hostinger, Authenticode publisher signature acceptance, actual SMTP relay/inbox delivery or managed physical Windows endpoint upgrade.
 - Legacy global patch setting remains persisted but disconnected from tenant endpoints. Review and explicitly migrate per tenant only after operator authorization.
+
+## Verified Stage 18 acceptance (2026-11-17)
+
+- PR merge commit `74158915e153d1d95675ea20abe39a5dda907659`. [PR CI #43981861732](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43981861732) and [PR safety #43981861681](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43981861681) passed.
+- [Main CI #43982225279](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43982225279) **SUCCESS 4/4** and [main safety #43982225214](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43982225214) **SUCCESS 2/2**.
+- See `Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md` for production owner acceptance; CI does **not** prove live deployment, production restore, real mailbox receipt, human-signed MSI or customer Windows approval.

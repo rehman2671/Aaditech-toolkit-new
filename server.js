@@ -1595,11 +1595,14 @@ app.get('/api/v1/msi/download/:id', requireRole(['SUPER_ADMIN']), async (req, re
 // Immutable Audit Logs V1
 app.get('/api/v1/audit/logs', async (req, res) => {
   const { limit, offset } = parsePagination(req, 50, 500);
-  const tenantId = (req.user?.role === 'SUPER_ADMIN' && req.user?.tenant_id === '00000000-0000-0000-0000-000000000001')
-    ? req.query.tenant_id
-    : req.user?.tenant_id;
+  const tenantId = req.user?.tenant_id;
+  // Even the default workspace SUPER_ADMIN cannot enumerate foreign audit logs.
+  // Cross-workspace access requires approved membership + explicit workspace switch.
+  if (!tenantId || (req.query.tenant_id && String(req.query.tenant_id) !== String(tenantId))) {
+    return res.status(403).json({ error: 'TENANT_ACCESS_DENIED' });
+  }
   const logs = await db.getAuditLogs(limit + offset, tenantId);
-  sendPaginated(req, res, logs, 50, 500);
+  return sendPaginated(req, res, logs, 50, 500);
 });
 
 // Workspace selection: a tenant ID in a query/body is NOT an authorization.
@@ -1948,19 +1951,29 @@ app.post(['/api/v1/alerts/test-email', '/api/alerts/test-email'], requireRole(['
 
 // Device Groups & Policy Management V1
 app.get('/api/v1/groups', async (req, res) => {
-  const grps = await db.getGroups();
-  sendPaginated(req, res, grps, 50, 500);
+  if (!req.user?.tenant_id) return res.status(403).json({ error: 'TENANT_REQUIRED' });
+  const grps = await db.getGroups(req.user.tenant_id);
+  return sendPaginated(req, res, grps, 50, 500);
 });
 
 app.post('/api/v1/groups', requireRole(['SUPER_ADMIN']), validateBody(createGroupSchema), async (req, res) => {
   const { name, description, policy_id } = req.body;
   if (!name) return res.status(400).json({ error: "Group name required" });
 
+  const tenantId = req.user?.tenant_id;
+  if (!tenantId) return res.status(403).json({ error: 'TENANT_REQUIRED' });
+  if (policy_id) {
+    const policy = await db.getPolicyById(policy_id);
+    if (!policy || String(policy.tenant_id) !== String(tenantId)) {
+      return res.status(404).json({ error: 'POLICY_NOT_FOUND' });
+    }
+  }
   const newGrp = {
+    tenant_id: tenantId,
     name,
     description: description || "",
     member_count: 0,
-    policy_id: policy_id || "pol-1"
+    policy_id: policy_id || null
   };
 
   const created = await db.createGroup(newGrp);
@@ -1969,15 +1982,18 @@ app.post('/api/v1/groups', requireRole(['SUPER_ADMIN']), validateBody(createGrou
 });
 
 app.get('/api/v1/policies', async (req, res) => {
-  const pols = await db.getPolicies();
-  sendPaginated(req, res, pols, 50, 500);
+  if (!req.user?.tenant_id) return res.status(403).json({ error: 'TENANT_REQUIRED' });
+  const pols = await db.getPolicies(req.user.tenant_id);
+  return sendPaginated(req, res, pols, 50, 500);
 });
 
 app.post('/api/v1/policies', requireRole(['SUPER_ADMIN']), validateBody(createPolicySchema), async (req, res) => {
   const { name, checkin_interval_sec, auto_update, maintenance_mode, data_retention_days } = req.body;
   if (!name) return res.status(400).json({ error: "Policy name required" });
 
+  if (!req.user?.tenant_id) return res.status(403).json({ error: 'TENANT_REQUIRED' });
   const newPol = {
+    tenant_id: req.user.tenant_id,
     name,
     checkin_interval_sec: parseInt(checkin_interval_sec, 10) || 30,
     auto_update: auto_update !== false,
@@ -1992,13 +2008,14 @@ app.post('/api/v1/policies', requireRole(['SUPER_ADMIN']), validateBody(createPo
 
 // Patch & Security Posture V1
 app.get('/api/v1/patches/summary', async (req, res) => {
-  const patches = await db.getPatchInventory();
-  res.json(patches);
+  if (!req.user?.tenant_id) return res.status(403).json({ error: 'TENANT_REQUIRED' });
+  return res.json(await db.getTenantPatchInventory(req.user.tenant_id));
 });
 
 app.post('/api/v1/patches/:id/approve', requireRole(['SUPER_ADMIN', 'OPERATOR']), async (req, res) => {
   const kbId = req.params.id;
-  const patch = await db.updatePatchStatus(kbId, "APPROVED");
+  if (!req.user?.tenant_id) return res.status(403).json({ error: 'TENANT_REQUIRED' });
+  const patch = await db.updateTenantPatchStatus(req.user.tenant_id, kbId, 'APPROVED');
   if (!patch) return res.status(404).json({ error: "Patch not found" });
 
   logAudit(req.user, "PATCH_APPROVED_FOR_DEPLOYMENT", `Patch:${kbId}`, { title: patch.title }, req);
@@ -2030,6 +2047,9 @@ app.get('/api/v1/devices/:id/processes', async (req, res) => {
   const dev = await db.getDeviceById(devId) || await db.getDeviceByHostname(devId);
   if (!dev) return res.status(404).json({ error: "Device not found" });
 
+  if (!belongsToCurrentTenant(req.user, dev)) {
+    return res.status(404).json({ error: 'Device not found' });
+  }
   const liveProcs = await db.getDeviceProcesses(dev.id);
   if (liveProcs && Array.isArray(liveProcs) && liveProcs.length > 0) {
     return res.json({ 
@@ -2058,7 +2078,11 @@ app.get('/api/v1/devices/:id/app-usage', async (req, res) => {
   const dev = await db.getDeviceById(devId) || await db.getDeviceByHostname(devId);
   if (!dev) return res.status(404).json({ error: "Device not found" });
 
-  const liveUsage = await db.cacheGet(`app_usage:${dev.id}`) || await db.cacheGet(`app_usage:${dev.hostname}`);
+  if (!belongsToCurrentTenant(req.user, dev)) {
+    return res.status(404).json({ error: 'Device not found' });
+  }
+  // Hostname-only cache keys are not tenant-unique across old enrollments.
+  const liveUsage = await db.cacheGet(`app_usage:${dev.id}`);
   if (liveUsage && Array.isArray(liveUsage) && liveUsage.length > 0) {
     return res.json({ device_id: dev.id, hostname: dev.hostname, source: "live_agent_telemetry", app_usage: liveUsage });
   }

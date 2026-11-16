@@ -11,9 +11,13 @@
 > The current Node API uses HTTPS + per-device tokens; **mutual TLS is not
 > implemented**, and live Windows/Hostinger production acceptance is pending.
 
-> **Latest hardening:** [Phase N Stage 9 acceptance](deploy/PHASE-N-STAGE9-ACCEPTANCE.md)
-> adds actual CI-only MySQL unique-index migration rehearsal, two-replica
-> database partition/recovery tests, and default-deny signing checks.
+> **Latest hardening:** [Phase N Stage 11 acceptance](deploy/PHASE-N-STAGE11-ACCEPTANCE.md)
+> covers tenant-scoped MSI package inventory/downloads, hash-only bootstrap
+> token persistence, validated installer input, manual-only release builds
+> and trusted SERVER_HOST/HTTPS download origins. All four CI jobs passed in
+> [run #43903827797](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43903827797),
+> including Windows MSI install/upgrade rehearsals. This is not live deployment.
+> See also [Stage 10 recovery/signing acceptance](deploy/PHASE-N-STAGE10-ACCEPTANCE.md).
 > **No real production migration, signed public release or Hostinger VPS
 > acceptance has been performed.** Historical setup sections below may
 > describe obsolete FastAPI/PostgreSQL, self-signed CA, or MSI token-embedding

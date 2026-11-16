@@ -725,6 +725,9 @@ export async function executeQuery(sql, params = []) {
   }
 
   if (upperSql.includes('FROM TICKETS')) {
+    if (upperSql.includes('WHERE TENANT_ID = ?')) {
+      return memTickets.filter(x => String(x.tenant_id) === String(params[0]));
+    }
     if (upperSql.includes('WHERE ID = ?') || upperSql.includes('ID = ?')) {
       const targetId = String(params[0]);
       const found = memTickets.find(x => String(x.id) === targetId);

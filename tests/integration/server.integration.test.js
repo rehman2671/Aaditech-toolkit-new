@@ -773,27 +773,34 @@ describe('Server & API Integration Test Suite', () => {
       expect(fleet.status).toBe(200);
     });
 
-    it('Alerts webhooks and notifications', async () => {
+    it('Alerts webhooks require tenant opt-in, allowlisted HTTPS and real delivery', async () => {
       const hookGet = await request(app)
         .get('/api/v1/alerts/webhook')
         .set('Authorization', `Bearer ${token}`);
       expect(hookGet.status).toBe(200);
+      expect(hookGet.body).toMatchObject({ enabled: false, type: 'generic', url: '' });
 
+      // No deployment operator has approved a webhook host in this test.
+      // A tenant admin alone cannot exfiltrate event data to arbitrary URLs.
       const hookPut = await request(app)
         .put('/api/v1/alerts/webhook')
         .set('Authorization', `Bearer ${token}`)
-        .send({ type: 'slack', webhook_url: 'https://hooks.slack.com/services/integ' });
-      expect(hookPut.status).toBe(200);
+        .send({ type: 'slack', url: 'https://unapproved.example.com/integration', enabled: true });
+      expect(hookPut.status).toBe(400);
+      expect(hookPut.body.error).toBe('WEBHOOK_URL_NOT_APPROVED');
 
       const hookTest = await request(app)
         .post('/api/v1/alerts/test-webhook')
         .set('Authorization', `Bearer ${token}`);
-      expect(hookTest.status).toBe(200);
+      expect(hookTest.status).toBe(400);
+      expect(hookTest.body.error).toBe('NOT_CONFIGURED');
 
+      // No SMTP transport exists; false successful delivery receipts are unsafe.
       const emailTest = await request(app)
         .post('/api/v1/alerts/test-email')
         .set('Authorization', `Bearer ${token}`);
-      expect(emailTest.status).toBe(200);
+      expect(emailTest.status).toBe(501);
+      expect(emailTest.body.error).toBe('EMAIL_TRANSPORT_NOT_IMPLEMENTED');
     });
 
     it('Branding, bootstrap, retention trigger, and system status', async () => {

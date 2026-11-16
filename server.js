@@ -1386,6 +1386,9 @@ app.post(['/api/v1/ingest/telemetry', '/api/ingest'], agentLimiter, validateBody
   // Evaluate alert rules against live telemetry
   if (metrics) {
     const alertRules = scopedAlertRules(dev.tenant_id, await db.getAlertRules());
+    // Consent is checked when the alert is created as well as at dispatch.
+    // Newly enabling a channel must never retroactively export old telemetry.
+    let authorizedChannels = null;
     for (const rule of alertRules) {
       if (!rule.enabled) continue;
       let triggered = false;
@@ -1418,12 +1421,20 @@ app.post(['/api/v1/ingest/telemetry', '/api/ingest'], agentLimiter, validateBody
           severity: rule.severity || 'warning',
           details: { hostname: dev.hostname, metric: rule.metric, threshold: rule.threshold }
         };
-        // Production writes the alert and both durable delivery jobs in ONE
-        // MySQL transaction. No network request occurs inside telemetry ingest.
-        await db.createAlert(alt, [
-          { channel: 'webhook', event: notification },
-          { channel: 'email', event: notification }
-        ]);
+        if (authorizedChannels === null) {
+          const [webhook, email] = await Promise.all([
+            db.getTenantWebhookConfig(dev.tenant_id),
+            db.getTenantEmailConfig(dev.tenant_id)
+          ]);
+          authorizedChannels = [];
+          if (webhook?.enabled) authorizedChannels.push('webhook');
+          if (email?.enabled) authorizedChannels.push('email');
+        }
+        // On production MySQL, the alert and enabled channel jobs share one
+        // transaction. Disabled channels leave no backlog of historical data.
+        await db.createAlert(alt, authorizedChannels.map(channel => ({
+          channel, event: notification
+        })));
       }
     }
   }

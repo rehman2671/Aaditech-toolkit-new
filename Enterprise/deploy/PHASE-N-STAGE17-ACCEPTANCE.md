@@ -25,7 +25,7 @@
 ## Durable alert notifications (Stage 17)
 
 - Schema migration `006_notification_outbox.sql` creates an indexed, tenant-owned, unique-per-alert/channel outbox.
-- Telemetry alert creation and both notification delivery jobs commit in one MySQL transaction in production. Queue insert errors roll back the alert (not silently swallowed). No SMTP/webhook network send blocks telemetry ingest.
+- For opted-in channels, telemetry alert creation and notification jobs commit in one MySQL transaction in production. Disabled channels are NOT enqueued; enabling later cannot retroactively export old telemetry. Queue insert errors roll back the alert. No SMTP/webhook network send blocks telemetry ingest.
 - Multiple PM2 workers claim available jobs with a single atomic `UPDATE ... ORDER BY id LIMIT ?`, followed by reading only their own random lease token. Each claim has a 90-second lease; crash recovery retries expired leases.
 - Five bounded attempts with exponential delay; exhausted jobs go to `DEAD` for operator investigation. Permanent disabled/unapproved destinations go to `SKIPPED`. Successful send means SMTP relay acceptance or HTTP 2xx, *not actual user receipt*.
 - Worker starts only with the production MySQL-backed server; Vitest/development fixtures do not run background network sends. Terminal records older than 30 days are pruned.

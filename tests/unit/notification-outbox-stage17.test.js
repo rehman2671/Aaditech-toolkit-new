@@ -56,3 +56,70 @@ describe('Stage N17 durable tenant notification worker', () => {
     expect(retry).toHaveBeenCalledWith(rows[1], 'WEBHOOK_DELIVERY_FAILED');
   });
 });
+
+describe('Stage N17 MySQL outbox transactional SQL contract', () => {
+  it('leaves delivery permanently uncommitted after SQL enqueue failure', async () => {
+    const db = await import('../../db.js');
+    const originalEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'production';
+    const actions = [];
+    const connection = {
+      beginTransaction: async () => actions.push('begin'),
+      query: async sql => {
+        actions.push(sql.trim().startsWith('INSERT INTO alerts') ? 'alert'
+          : sql.trim().startsWith('INSERT IGNORE INTO notification_outbox') ? 'job' : 'unexpected');
+        if (sql.includes('notification_outbox')) throw new Error('SQL_OUTBOX_WRITE_FAILED');
+        return [{ insertId: 14, affectedRows: 1 }, []];
+      },
+      commit: async () => actions.push('commit'),
+      rollback: async () => actions.push('rollback'),
+      release: () => actions.push('release')
+    };
+    db.setConnectionStateForTesting(true, { getConnection: async () => connection });
+    try {
+      await expect(db.createAlert({ tenant_id: 'tenant-A', device_id: 'PC-1',
+        hostname: 'PC-1', rule: 'CPU overload' }, [
+          { channel: 'email', event: { title: 'CPU alert' } }
+        ])).rejects.toThrow('SQL_OUTBOX_WRITE_FAILED');
+      expect(actions).toEqual(['begin', 'alert', 'job', 'rollback', 'release']);
+    } finally {
+      db.setConnectionStateForTesting(false, null);
+      if (originalEnv === undefined) delete process.env.NODE_ENV;
+      else process.env.NODE_ENV = originalEnv;
+    }
+  });
+  it('atomically records both selected channels and commits only once', async () => {
+    const db = await import('../../db.js');
+    const originalEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'production';
+    const calls = [];
+    const connection = {
+      beginTransaction: async () => calls.push('begin'),
+      query: async (sql, params) => {
+        calls.push({ sql, params });
+        return [{ insertId: 20, affectedRows: 1 }, []];
+      },
+      commit: async () => calls.push('commit'),
+      rollback: async () => calls.push('rollback'),
+      release: () => calls.push('release')
+    };
+    db.setConnectionStateForTesting(true, { getConnection: async () => connection });
+    try {
+      const alert = await db.createAlert({ tenant_id: 'tenant-A', device_id: 'PC-1' }, [
+        { channel: 'webhook', event: { title: 'CPU' } },
+        { channel: 'email', event: { title: 'CPU' } }
+      ]);
+      expect(alert.id).toBe(20);
+      expect(calls.filter(c => c === 'commit')).toHaveLength(1);
+      expect(calls.filter(c => c === 'rollback')).toHaveLength(0);
+      const inserts = calls.filter(c => typeof c === 'object' && c.sql.includes('notification_outbox'));
+      expect(inserts.map(x => x.params.slice(0, 3))).toEqual([
+        ['tenant-A', 20, 'webhook'], ['tenant-A', 20, 'email']
+      ]);
+    } finally {
+      db.setConnectionStateForTesting(false, null);
+      if (originalEnv === undefined) delete process.env.NODE_ENV;
+      else process.env.NODE_ENV = originalEnv;
+    }
+  });
+});

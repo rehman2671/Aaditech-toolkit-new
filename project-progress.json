@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-16T18:45:49+00:00",
-  "last_verified_commit": "b29dd726ab55badaee85047465ea6aa62bf2073b",
-  "last_verified_date": "2026-11-17T00:15:37+05:30",
+  "generated": "2026-11-16T18:47:07+00:00",
+  "last_verified_commit": "c850c8faf3ef856a7a60252138cd61326c9d3a5e",
+  "last_verified_date": "2026-11-17T00:16:59+05:30",
   "overall_progress_percent": 100.0,
   "progress_scope": "historic audit issue closure only; production acceptance pending",
   "production_ready": false,
@@ -14,21 +14,12 @@
     "percent": 100.0
   },
   "latest_delta": {
-    "added": 0,
+    "added": 1,
     "removed": 0,
-    "changed": 1,
-    "unchanged": 271
+    "changed": 0,
+    "unchanged": 272
   },
   "delta_history": [
-    {
-      "detected_at": "2026-11-16T18:17:19+00:00",
-      "added": [],
-      "removed": [],
-      "changed": [
-        "server.js"
-      ],
-      "unchanged_count": 265
-    },
     {
       "detected_at": "2026-11-16T18:18:12+00:00",
       "added": [],
@@ -205,6 +196,15 @@
         "db.js"
       ],
       "unchanged_count": 271
+    },
+    {
+      "detected_at": "2026-11-16T18:47:07+00:00",
+      "added": [
+        "test-workspace-invitations-mysql.js"
+      ],
+      "removed": [],
+      "changed": [],
+      "unchanged_count": 272
     }
   ],
   "next_recommended_tasks": [

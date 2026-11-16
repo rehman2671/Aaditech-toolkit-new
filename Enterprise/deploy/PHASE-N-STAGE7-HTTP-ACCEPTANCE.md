@@ -1,6 +1,6 @@
 # Phase N Stage 7 — Real multi-process HTTP enrollment acceptance
 
-**Status: automated rehearsal implemented; release gate is not complete until CI is green.**
+**Status: real HTTP concurrency rehearsal PASSED in GitHub CI; NOT PRODUCTION CERTIFIED.**
 
 ## Scope
 
@@ -39,10 +39,15 @@ rows are deleted in cleanup even on assertion failure.
 
 ## CI evidence
 
-GitHub Actions job `API test suite (Node.js vs MySQL 8)` runs this gate
-after schema migration and the lower-level advisory-lock concurrency probe.
-Confirm a **green run** before citing HTTP concurrency as accepted.
-A red run is a release blocker, not a production-ready result.
+GitHub Actions run
+[#43870822762](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43870822762)
+executed this gate in its `API test suite (Node.js vs MySQL 8)` job,
+after lower-level advisory-lock concurrency checks. Its log explicitly
+confirmed: two healthy production-mode HTTP workers; hostname contention,
+UID contention, one-use token replay (hash-only), rejected-token reuse,
+JWT-backed cross-tenant registration and independent enrollment all PASSED.
+The HTTP integration job completed successfully. The full four-job CI
+status and Windows MSI job must be verified separately for a release.
 
 ## Not covered
 

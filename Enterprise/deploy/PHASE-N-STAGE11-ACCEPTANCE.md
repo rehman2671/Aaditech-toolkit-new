@@ -1,6 +1,6 @@
 # Phase N Stage 11 — MSI tenant isolation and release authorization
 
-**State:** Security hardening under CI verification; NOT production certified.
+**State:** Tenant/security code fixes committed and three CI suites verified. Windows MSI gate still must finish; NOT production certified.
 
 ## Delivered code changes
 
@@ -17,19 +17,41 @@
 - Package names, versions and group identifiers are validated before being
   interpolated into filenames and artifact paths. Unbounded expiry and
   client-supplied tenant override fields are rejected.
-- Agent setup origin is being hardened to use the real operator-owned
-  production SERVER_HOST and HTTPS, not request Host/X-Forwarded-Proto.
+- Generated agent JSON, install CMD/PS1 scripts and ZIP bundle now use the
+  operator-configured production SERVER_HOST and HTTPS, never incoming Host
+  or X-Forwarded-Proto. An absent/invalid production hostname fails closed
+  (HTTP 503). The MSI itself remains independent of the server URL.
 
-## Verification and pending items
+## Verification evidence and remaining gates
 
-Run the Node/Vitest and API/MySQL CI integration suites, followed by Windows
-MSI build. Security changes alter previous unit expectations of anonymous
-named downloads and plaintext bootstrap persistence; these tests must use
-an authenticated tenant and a valid SHA-256 one-use token.
+Stage 10 baseline: https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43888103896
 
-Stage 10 baseline was green at:
-https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43888103896
+Stage 11 code repair commits:
+- Bootstrap SHA-256 one-use regression: 518968e0efe71b8acd9cca897fb6dc6eec13a0e3
+- Trusted agent origin wired into server: 8f951b17887161b071f9064e4baca9c7b8385a5f
 
-Do not approve production until latest Stage 11 CI is fully green; signing
-certificate/environment review, live Hostinger VPS acceptance and real
-Windows device enrollment remain external operator-controlled blockers.
+Latest four-job CI:
+https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43903827797
+
+Verified in that run: Node/Vitest unit+coverage passed, PowerShell
+validation passed, and the isolated MySQL 8 / API integration suite
+(including MSI package generation, authorization and streaming) passed.
+The Windows EXE/MSI packaging and install/upgrade job was still running
+at the last verification point. Do not declare the complete CI green
+without checking the live run conclusion.
+
+Negative-path unit tests cover missing tenant scopes, withheld plaintext
+bootstrap tokens, untrusted host/forwarded headers, invalid package
+filenames, cross-tenant package query parameters and an explicitly missing
+production hostname.
+
+Historical rows may still hold legacy plaintext MSI bootstrap tokens;
+new writes intentionally store only token hashes. Operator must review
+legacy credential invalidation and old-row cleanup in a controlled
+production migration, not simply delete credentials used by active devices.
+
+**Production release: BLOCKED.** Do not distribute the diagnostic unsigned
+MSI. Human-reviewed code signing/environment settings, trusted published
+release, actual Hostinger VPS with real DNS/public HTTPS, production database
+migration/recovery and physical Windows UAC/setup/upgrade acceptance
+still need operator-owned evidence.

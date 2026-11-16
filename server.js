@@ -319,11 +319,11 @@ function logAudit(actor, action, targetResource, details, req) {
 }
 
 // ---------------- HEALTHZ & PROMETHEUS METRICS ----------------
-app.get(['/healthz', '/api/health', '/api/v1/health'], (req, res) => {
+app.get(['/healthz', '/api/health', '/api/v1/health'], async (req, res) => {
   const retentionRun = db.getLastRetentionRun();
   // Readiness must reflect the backing database, not just an open HTTP port.
   // Test fixtures intentionally exercise the in-memory fallback separately.
-  const databaseReady = isMysqlConnected();
+  const databaseReady = await db.probeDbReadiness();
   const isProductionDatabaseDown = process.env.NODE_ENV === 'production' &&
     process.env.VITEST !== 'true' && process.env.VITEST !== '1' && !databaseReady;
   res.status(isProductionDatabaseDown ? 503 : 200).json({
@@ -331,7 +331,7 @@ app.get(['/healthz', '/api/health', '/api/v1/health'], (req, res) => {
     timestamp: new Date().toISOString(),
     uptime_seconds: Math.floor(process.uptime()),
     components: {
-      database: isMysqlConnected() ? "HEALTHY" : "DEGRADED",
+      database: databaseReady ? "HEALTHY" : "DEGRADED",
       ingest_queue: "OPERATIONAL",
       msi_builder: "READY",
       audit_engine: "ACTIVE"

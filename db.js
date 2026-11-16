@@ -152,7 +152,7 @@ export async function attemptConnection() {
     try {
       await newPool.query('SELECT 1 + 1 AS solution');
     } catch (conErr) {
-      if ((conErr.code === 'ECONNREFUSED' || conErr.message?.includes('ECONNREFUSED')) && (host === '127.0.0.1' || host === 'localhost')) {
+      if (process.env.NODE_ENV !== 'production' && (conErr.code === 'ECONNREFUSED' || conErr.message?.includes('ECONNREFUSED')) && (host === '127.0.0.1' || host === 'localhost')) {
         try {
           const { execSync } = await import('node:child_process');
           execSync('/etc/init.d/mariadb start', { stdio: 'ignore' });
@@ -458,6 +458,21 @@ export function isMysqlConnected() {
   return isConnected && pool !== null;
 }
 
+// A readiness request must probe real MySQL, not a potentially stale 30s
+// background health flag. Fail closed immediately after a network partition.
+// The periodic worker owns reconnect attempts; never query demo state here.
+export async function probeDbReadiness() {
+  if (!isMysqlConnected()) return false;
+  try {
+    await pool.query('SELECT 1');
+    return true;
+  } catch (error) {
+    isConnected = false;
+    console.warn('[DB Readiness] MySQL probe failed:', error.code || error.message);
+    return false;
+  }
+}
+
 export function getPool() {
   return pool;
 }
@@ -539,6 +554,9 @@ export async function executeQuery(sql, params = []) {
     } catch (err) {
       if (process.env.NODE_ENV === 'production') {
         console.error("MySQL query execution error in production:", err.message);
+        if (err.fatal || ['ECONNRESET', 'ECONNREFUSED', 'EPIPE', 'ETIMEDOUT', 'PROTOCOL_CONNECTION_LOST'].includes(err.code)) {
+          isConnected = false;
+        }
         throw err;
       }
       console.warn("MySQL query error, using in-memory engine:", err.message);

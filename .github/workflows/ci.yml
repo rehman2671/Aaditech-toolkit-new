@@ -269,6 +269,18 @@ jobs:
           AADITECH_HTTP_REHEARSAL: isolated-ci
         run: node test-http-tenant-concurrency.js
 
+      - name: Inject production-mode MySQL TCP partitions and verify fail-closed recovery
+        timeout-minutes: 5
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_USER: itk_user
+          DB_PASSWORD: itk_password_ci
+          DB_NAME: it_toolkit
+          NODE_ENV: test
+          AADITECH_DB_FAULT_REHEARSAL: isolated-ci
+        run: node test-network-db-fault-injection.js
+
       - name: Start Background Server for API verification
         env:
           DB_HOST: 127.0.0.1

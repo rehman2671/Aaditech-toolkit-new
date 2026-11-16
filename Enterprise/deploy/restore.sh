@@ -5,6 +5,7 @@
 #   ./restore.sh --yes                              # newest backup
 #   ./restore.sh --yes /path/to/ittoolkit-*.sql     # specified backup
 #   ./restore.sh --yes --db-only /path/to/backup.sql  # isolated rehearsal; leaves API/Caddy stopped
+#   ./restore.sh --yes --allow-legacy-without-sha256 /trusted/older.sql  # explicit legacy override
 #
 # The script stops application writers, saves an independent safety backup,
 # replaces the configured database, verifies connectivity, then restarts the
@@ -23,13 +24,15 @@ compose() { docker compose -f "$COMPOSE_FILE" "$@"; }
 
 CONFIRMED=0
 DB_ONLY=0
+ALLOW_LEGACY=0
 FILE=""
 for arg in "$@"; do
   case "$arg" in
     --yes) CONFIRMED=1 ;;
     --db-only) DB_ONLY=1 ;;
+    --allow-legacy-without-sha256) ALLOW_LEGACY=1 ;;
     --help|-h)
-      echo "Usage: $0 --yes [--db-only] [path/to/ittoolkit-*.sql]"
+      echo "Usage: $0 --yes [--db-only] [--allow-legacy-without-sha256] [path/to/ittoolkit-*.sql]"
       exit 0 ;;
     -*) die "Unknown option: $arg" ;;
     *) [ -z "$FILE" ] || die "Supply at most one backup file."; FILE="$arg" ;;
@@ -56,6 +59,27 @@ if [ -z "$FILE" ]; then
   FILE="${files[${#files[@]}-1]}"
 fi
 [ -f "$FILE" ] && [ -r "$FILE" ] || die "Backup is not a readable file: $FILE"
+# Validate bytes BEFORE stopping any service or dropping a database. SHA-256
+# detects damaged/incomplete backups, not malicious re-signing by an attacker.
+# The override permits explicitly reviewed old dumps with no digest sidecar;
+# a PRESENT BUT INVALID sidecar is always fatal, even with that override.
+if [ -e "$FILE.sha256" ]; then
+  [ -f "$FILE.sha256" ] && [ -r "$FILE.sha256" ] || die "Backup SHA-256 sidecar is not readable."
+  command -v sha256sum >/dev/null 2>&1 || die "sha256sum is required."
+  line="$(cat "$FILE.sha256")"
+  [[ "$line" =~ ^([a-f0-9]{64})[[:space:]][[:space:]]([A-Za-z0-9._-]+)$ ]] ||
+    die "Malformed SHA-256 backup sidecar."
+  expected_hash="${BASH_REMATCH[1]}"
+  expected_name="${BASH_REMATCH[2]}"
+  [ "$expected_name" = "$(basename "$FILE")" ] || die "SHA-256 sidecar references the wrong backup."
+  actual="$(sha256sum -- "$FILE")"
+  actual="${actual%% *}"
+  [ "$actual" = "$expected_hash" ] || die "Backup SHA-256 mismatch: restore aborted before shutdown."
+elif [ "$ALLOW_LEGACY" -ne 1 ]; then
+  die "Missing SHA-256 backup sidecar. For an independently reviewed legacy dump only, explicitly use --allow-legacy-without-sha256."
+else
+  log "WARNING: explicit legacy backup without SHA-256 accepted by operator; check trusted origin independently."
+fi
 [ "$(head -n 1 "$FILE")" = "-- aaditech-mysql-backup-v1 database=$DB_NAME" ] || die "Backup signature or database name does not match $DB_NAME."
 grep -q '^-- MySQL dump' "$FILE" || die "Not a valid MySQL dump."
 grep -q '^-- Dump completed on ' "$FILE" || die "Backup is truncated (missing completion marker)."

@@ -22,6 +22,7 @@ compose() { docker compose -f "$COMPOSE_FILE" "$@"; }
 [ -f "$COMPOSE_FILE" ] || die "Missing $COMPOSE_FILE."
 grep -Eq '^[[:space:]]*image:[[:space:]]*mysql:' "$COMPOSE_FILE" || die "This script only supports the MySQL Docker Compose database service."
 command -v docker >/dev/null 2>&1 || die "Docker is required."
+command -v sha256sum >/dev/null 2>&1 || die "sha256sum is required for backup integrity."
 [[ "$BACKUP_KEEP" =~ ^[0-9]+$ ]] || die "BACKUP_KEEP must be a non-negative integer."
 
 # shellcheck disable=SC1090
@@ -36,7 +37,8 @@ chmod 700 "$BACKUP_DIR"
 STAMP="$(date +%Y%m%d-%H%M%S)-$$"
 FILE="$BACKUP_DIR/ittoolkit-$STAMP.sql"
 TEMP_FILE="$(mktemp "$BACKUP_DIR/.ittoolkit-XXXXXXXX.tmp")"
-trap 'rm -f "$TEMP_FILE"' EXIT
+TEMP_HASH="$(mktemp "$BACKUP_DIR/.ittoolkit-sha256-XXXXXXXX.tmp")"
+trap 'rm -f "$TEMP_FILE" "$TEMP_HASH"' EXIT
 
 log "Waiting for MySQL database readiness."
 compose up -d --wait --wait-timeout 120 db >&2
@@ -83,9 +85,16 @@ done
 [ "$(wc -c < "$TEMP_FILE")" -gt 256 ] || die "Dump is unexpectedly small; refusing to publish it."
 grep -q '^-- MySQL dump' "$TEMP_FILE" || die "Invalid MySQL dump header; refusing to publish it."
 chmod 600 "$TEMP_FILE"
-[ ! -e "$FILE" ] || die "Backup destination already exists: $FILE"
+# Write the digest before promoting the backup. If interrupted between the two
+# atomic renames, restore refuses the orphaned .sql (no approved sidecar).
+digest="$(sha256sum -- "$TEMP_FILE")"
+digest="${digest%% *}"
+printf '%s  %s\n' "$digest" "$(basename "$FILE")" > "$TEMP_HASH"
+chmod 600 "$TEMP_HASH"
+[ ! -e "$FILE" ] && [ ! -e "$FILE.sha256" ] || die "Backup destination already exists: $FILE"
 mv "$TEMP_FILE" "$FILE"
-log "Saved $FILE ($(wc -c < "$FILE" | tr -d ' ') bytes)."
+mv "$TEMP_HASH" "$FILE.sha256"
+log "Saved $FILE ($(wc -c < "$FILE" | tr -d ' ') bytes) with matching SHA-256 sidecar."
 
 # Backup filenames are date-prefixed, so lexical order is chronological.
 if [ "$BACKUP_KEEP" -gt 0 ]; then
@@ -95,8 +104,8 @@ if [ "$BACKUP_KEEP" -gt 0 ]; then
   remove_count=$(("${#files[@]}" - BACKUP_KEEP))
   if [ "$remove_count" -gt 0 ]; then
     for ((i=0; i<remove_count; i++)); do
-      rm -- "${files[i]}"
-      log "Pruned ${files[i]}"
+      rm -- "${files[i]}" "${files[i]}.sha256"
+      log "Pruned dated backup and integrity sidecar: ${files[i]}"
     done
   fi
 fi

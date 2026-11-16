@@ -60,6 +60,10 @@ shopt -u nullglob
 FILE="${files[0]}"
 [ "$(head -n 1 "$FILE")" = '-- aaditech-mysql-backup-v1 database=it_toolkit' ]
 [ "$(stat -c %a "$FILE")" = 600 ]
+[ -f "$FILE.sha256" ] && [ "$(stat -c %a "$FILE.sha256")" = 600 ] || {
+  echo "Missing restricted-permission backup hash sidecar" >&2; exit 1;
+}
+( cd "$BACKUP_DIR" && sha256sum -c "$(basename "$FILE").sha256" )
 
 # Retention must prune only previous backups, keeping the current dump.
 BACKUP_KEEP=1 bash "$BACKUP"
@@ -67,6 +71,10 @@ shopt -s nullglob
 retained=("$BACKUP_DIR"/ittoolkit-*.sql)
 shopt -u nullglob
 [ "${#retained[@]}" -eq 1 ] || { echo "BACKUP_KEEP did not prune old backups" >&2; exit 1; }
+[ -f "${retained[0]}.sha256" ] || { echo "Retention lost hash sidecar" >&2; exit 1; }
+[ "$(find "$BACKUP_DIR" -maxdepth 1 -name '*.sha256' | wc -l)" -eq 1 ] || {
+  echo "Retention left an orphaned hash sidecar" >&2; exit 1;
+}
 FILE="${retained[0]}"
 
 # Restore needs explicit authorization, even when a valid backup exists.
@@ -81,6 +89,29 @@ if bash "$RESTORE" --yes "$TEMP/bad.sql" > "$TEMP/out" 2>&1; then
   echo "Malformed backup was accepted" >&2; exit 1
 fi
 [ ! -s "$FAKE_DOCKER_LOG" ] || { echo "Malformed backup touched Docker" >&2; exit 1; }
+
+# A tampered SQL dump with its original matching-looking digest must fail
+# before any Docker interaction. Explicit legacy override cannot bypass
+# an invalid PRESENT SHA-256 sidecar.
+mkdir -p "$TEMP/unsafe"
+cp "$FILE" "$TEMP/unsafe/$(basename "$FILE")"
+cp "$FILE.sha256" "$TEMP/unsafe/$(basename "$FILE").sha256"
+printf '%s\n' 'DROP TABLE example;' >> "$TEMP/unsafe/$(basename "$FILE")"
+: > "$FAKE_DOCKER_LOG"
+if bash "$RESTORE" --yes "$TEMP/unsafe/$(basename "$FILE")" > "$TEMP/out" 2>&1; then
+  echo "Tampered backup was accepted" >&2; exit 1
+fi
+if bash "$RESTORE" --yes --allow-legacy-without-sha256 "$TEMP/unsafe/$(basename "$FILE")" > "$TEMP/out" 2>&1; then
+  echo "Explicit legacy option bypassed an invalid present SHA-256 sidecar" >&2; exit 1
+fi
+[ ! -s "$FAKE_DOCKER_LOG" ] || { echo "Tampered backup touched Docker" >&2; exit 1; }
+
+# Missing sidecars default to fail-closed even for valid old SQL dumps.
+cp "$FILE" "$TEMP/legacy.sql"
+if bash "$RESTORE" --yes "$TEMP/legacy.sql" > "$TEMP/out" 2>&1; then
+  echo "Backup without SHA-256 was accepted without explicit legacy approval" >&2; exit 1
+fi
+[ ! -s "$FAKE_DOCKER_LOG" ] || { echo "Unsigned backup touched Docker" >&2; exit 1; }
 
 bash "$RESTORE" --yes "$FILE"
 grep -q 'stop caddy api' "$FAKE_DOCKER_LOG"

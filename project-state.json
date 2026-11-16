@@ -1,28 +1,27 @@
 {
   "state_version": "1.0",
   "path": "project-state.json",
-  "generated": "2026-11-16T13:25:14+00:00",
+  "generated": "2026-11-16T13:30:07+00:00",
   "phase": "PHASE N STAGE 4 / PRODUCTION ACCEPTANCE IN PROGRESS",
-  "last_verified_commit": "d52296ffb6c080f9d08a788e06b23e7ad655d535",
-  "last_verified_date": "2026-11-16T18:54:54+05:30",
+  "last_verified_commit": "34208fd954372ef9c59f8fbdec5aa682b4da31e7",
+  "last_verified_date": "2026-11-16T18:59:54+05:30",
   "git": {
     "branch": "main",
     "commit_count": 1,
     "clean_working_tree": true,
-    "head": "d52296ffb6c080f9d08a788e06b23e7ad655d535"
+    "head": "34208fd954372ef9c59f8fbdec5aa682b4da31e7"
   },
   "latest_delta": {
-    "detected_at": "2026-11-16T13:25:14+00:00",
+    "detected_at": "2026-11-16T13:30:07+00:00",
     "added": [
-      "scripts/device-identity-preflight.js",
-      "Enterprise/deploy/PHASE-N-STAGE8-ACCEPTANCE.md",
-      "Enterprise/deploy/migrations/2026-11-global-identity-unique.sql"
+      "Enterprise/agent/build/Release-Sign.ps1"
     ],
     "removed": [],
     "changed": [
+      "Enterprise/deploy/PHASE-N-STAGE8-ACCEPTANCE.md",
       ".github/workflows/ci.yml"
     ],
-    "unchanged_count": 233
+    "unchanged_count": 235
   },
   "production_ready": false,
   "acceptance_gates": [

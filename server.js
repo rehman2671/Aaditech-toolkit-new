@@ -1,5 +1,6 @@
 import { scopedAlertRules, isApprovedWebhookUrl, deliverTenantWebhook } from './tenant-alert-safety.js';
 import { smtpTransportConfig, isApprovedEmailRecipient, deliverTenantEmail } from './smtp-alerts.js';
+import { startNotificationOutboxWorker } from './notification-outbox.js';
 /**
  * ARCHITECTURAL HARD PREREQUISITE: STATELESSNESS FOR MULTI-INSTANCE / CLUSTER DEPLOYMENTS
  * 
@@ -274,25 +275,8 @@ async function consumeBootstrapToken(token, enrolledDeviceHostname, tenantId) {
 // ---------------- TENANT-ISOLATED OUTBOUND ALERT DISPATCHER ----------------
 // Never use platform-global retention/webhook URLs for customer telemetry.
 // Explicit per-tenant consent and an operator-owned HTTPS host allowlist are required.
-async function dispatchWebhookNotification(tenantId, title, message, severity = 'info', details = {}) {
-  if (!tenantId) return;
-  try {
-    const config = await db.getTenantWebhookConfig(tenantId);
-    await deliverTenantWebhook(tenantId, config, { title, message, severity, details });
-  } catch {
-    // Best-effort notification; never send tenant data through a fallback URL.
-  }
-}
-
-async function dispatchEmailNotification(tenantId, title, message, severity = 'info') {
-  if (!tenantId) return;
-  try {
-    const consent = await db.getTenantEmailConfig(tenantId);
-    await deliverTenantEmail(tenantId, consent, { title, message, severity });
-  } catch {
-    // Best effort only; durable notification outbox and retries are not implemented.
-  }
-}
+// Automatic notifications are transactionally queued in createAlert();
+// network delivery is performed only by the MySQL-backed outbox worker.
 
 // Security & Audit Helpers (backed by MySQL audit_logs table)
 function logAudit(actor, action, targetResource, details, req) {
@@ -1428,14 +1412,18 @@ app.post(['/api/v1/ingest/telemetry', '/api/ingest'], agentLimiter, validateBody
           status: "open",
           rule: rule.name
         };
-        await db.createAlert(alt);
-        dispatchWebhookNotification(dev.tenant_id, rule.name, `${dev.hostname}: ${msg}`, rule.severity, {
-          hostname: dev.hostname,
-          metric: rule.metric,
-          threshold: rule.threshold
-        }).catch(() => {});
-        dispatchEmailNotification(dev.tenant_id, rule.name,
-          dev.hostname + ': ' + msg, rule.severity).catch(() => {});
+        const notification = {
+          title: rule.name,
+          message: dev.hostname + ': ' + msg,
+          severity: rule.severity || 'warning',
+          details: { hostname: dev.hostname, metric: rule.metric, threshold: rule.threshold }
+        };
+        // Production writes the alert and both durable delivery jobs in ONE
+        // MySQL transaction. No network request occurs inside telemetry ingest.
+        await db.createAlert(alt, [
+          { channel: 'webhook', event: notification },
+          { channel: 'email', event: notification }
+        ]);
       }
     }
   }
@@ -1748,6 +1736,13 @@ app.get(['/api/v1/alerts', '/api/alerts'], async (req, res) => {
   const list = await db.getAlerts(filters);
   sendPaginated(req, res, list, 50, 500);
 });
+
+app.get(['/api/v1/alerts/notifications/status', '/api/alerts/notifications/status'],
+  requireRole(['SUPER_ADMIN']), async (req, res) => {
+    if (!req.user?.tenant_id) return res.status(403).json({ error: 'TENANT_REQUIRED' });
+    const summary = await db.getTenantOutboxStatus(req.user.tenant_id);
+    return res.json({ status: summary });
+  });
 
 app.get(['/api/v1/alerts/rules', '/api/alert-rules'], async (req, res) => {
   if (!req.user?.tenant_id) return res.status(403).json({ error: 'TENANT_REQUIRED' });
@@ -3372,6 +3367,8 @@ if (!runningUnderVitest) {
   }
   // Initialize scheduled hourly data retention & partition cleanup engine
   db.initRetentionScheduler(3600000);
+  // Each PM2 worker may poll; DB-atomic leases enforce one owner per job.
+  if (isProduction) startNotificationOutboxWorker();
 }
 
 export { app, serverInstance };

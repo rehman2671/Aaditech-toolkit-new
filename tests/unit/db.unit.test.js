@@ -444,8 +444,9 @@ describe('Database Module (db.js) Unit Test Suite', () => {
       });
       expect(pkg).toBeDefined();
 
-      const packages = await db.getMsiPackages();
-      expect(packages.length).toBeGreaterThan(0);
+      const packages = await db.getMsiPackages('00000000-0000-0000-0000-000000000001');
+      expect(Array.isArray(packages)).toBe(true);
+      expect(packages.every(p => !('bootstrap_token' in p) && !('file_path' in p))).toBe(true);
 
       const inc = await db.incrementMsiDownloads(pkg.id);
       expect(inc).toBeDefined();

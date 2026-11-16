@@ -29,9 +29,9 @@ describe('MSI Download Route Regression Suite (/latest unshadowed)', () => {
     }
   });
 
-  it('GET /api/v1/msi/download/:id handles actual package IDs and returns 404 for nonexistent id', async () => {
+  it('GET /api/v1/msi/download/:id rejects unauthenticated requests before package lookup', async () => {
     const res = await request(app).get('/api/v1/msi/download/pkg-nonexistent-12345');
-    expect(res.status).toBe(404);
-    expect(res.body.error).toBe("MSI Package not found or expired");
+    expect(res.status).toBe(401);
+    expect(res.body.error).not.toBe("MSI Package not found or expired");
   });
 });

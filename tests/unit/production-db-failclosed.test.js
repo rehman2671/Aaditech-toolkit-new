@@ -38,6 +38,11 @@ describe('production database and bootstrap credential fail-closed policies', ()
     const token = 'ci-bootstrap-only-' + crypto.randomBytes(22).toString('hex');
     const hash = crypto.createHash('sha256').update(token).digest('hex');
 
+    expect(await db.markBootstrapTokenUsed(
+      token, '0'.repeat(64), 'CI-AGENT-DEVICE', '00000000-0000-0000-0000-000000000091'
+    )).toBe(false);
+    expect(query).not.toHaveBeenCalled();
+
     const result = await db.markBootstrapTokenUsed(
       token, hash, 'CI-AGENT-DEVICE', '00000000-0000-0000-0000-000000000091'
     );

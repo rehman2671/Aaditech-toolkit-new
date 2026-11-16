@@ -1256,20 +1256,24 @@ export async function getDeviceByUid(deviceUid) {
 
 export async function getDeviceByTokenHash(hash) {
   if (!hash) return null;
+  const production = process.env.NODE_ENV === 'production';
   const key = `hash:${hash}`;
-  const cached = deviceLookupCache.get(key);
-  if (cached && Date.now() < cached.expiresAt) return cached.record;
+  // Revocation on other API workers must invalidate authentication immediately.
+  if (!production) {
+    const cached = deviceLookupCache.get(key);
+    if (cached && Date.now() < cached.expiresAt) return cached.record;
+  }
 
   const rows = await executeQuery(
     'SELECT * FROM devices WHERE device_token_hash = ? OR auth_token_hash = ? LIMIT 1',
     [hash, hash]
   );
   let rec = formatDeviceRecord(rows[0]);
-  if (!rec) {
+  if (!rec && !production) {
     const memMatch = memDevices.find(d => d.device_token_hash === hash || d.auth_token_hash === hash);
     if (memMatch) rec = formatDeviceRecord(memMatch);
   }
-  if (rec) {
+  if (rec && !production) {
     const expiresAt = Date.now() + DEVICE_CACHE_TTL_MS;
     deviceLookupCache.set(key, { record: rec, expiresAt });
     if (rec.id) deviceLookupCache.set(`id:${rec.id}`, { record: rec, expiresAt });

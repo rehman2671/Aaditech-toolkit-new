@@ -11,6 +11,15 @@
 - Both regular and SUPER_ADMIN users are confined to their authenticated tenant when listing, reading or deleting devices. A client-supplied tenant_id does not grant access to another tenant. This does not replace a future formally authorized workspace-membership selection feature.
 - Detailed device responses remove bearer credentials, token hashes/prefixes, secrets and private-key material. Neither agent identities nor private credentials should be exposed to portal consumers.
 
+## Cross-tenant inventory, commands and reporting
+
+- User listing requires tenant SUPER_ADMIN and uses a tenant-filtered SQL query; user creation uses the authenticated tenant and one of its registered companies, rather than a hardcoded default. Targeted user updates deny records outside the actor tenant.
+- Company inventory and creation are constrained to the actor tenant. A tenant admin cannot select another tenant by modifying a query parameter.
+- Bootstrap portal data is limited to the actor's companies/current account, and production public origin display does not trust the incoming Host header.
+- Legacy events have no tenant_id column. The portal now joins event rows with their uniquely identified devices in SQL and constrains events/device reports by the current tenant. No cross-tenant report fallback is allowed for missing identifiers.
+- Alert listing and dashboard counts are tenant-filtered. The command_queue table also lacks tenant_id, so command inventory joins owning devices in MySQL and never treats missing tenant_id fields as public. Remote-command dispatch rejects targets outside the actor tenant even for SUPER_ADMIN.
+- Explicit platform-wide administrative membership and truly authorized workspace switching still require a separate implementation; a user-selected tenant ID alone is never proof of authorization. The existing global default-company/branding configuration needs a tenant-aware design review before multi-tenant production acceptance.
+
 ## One-time historical plaintext cleanup (operator action)
 
 New records already store only hashes. Old MySQL installations may still contain plaintext values in BOTH msi_packages.bootstrap_token and used_bootstrap_tokens.token.
@@ -36,4 +45,8 @@ On the configured Docker-capable deployment host:
 - Enterprise/tests/Test-LegacyMsiMigration-Live.sh: CI-only disposable MySQL fixture verifies audit, hash-conflict refusal, verified backup and removal of plaintext while preserving hashes.
 - .github/workflows/deployment-safety.yml runs the offline and real MySQL validation plus existing restore rehearsal.
 
-Pending evidence to record: latest full CI (Node, PowerShell, API/MySQL, Windows MSI) and deployment-safety run IDs and final conclusions. Keep deployment BLOCKED even if those are green until real infrastructure and signing evidence is available.
+Deployment-safety regression https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43919034394 completed SUCCESS in both offline and real disposable MySQL 8 backup/migration jobs, including mismatch refusal and SHA256-backed cleanup.
+
+Full Phase N12 CI https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43920480028 verified SUCCESS for Node/Vitest, PowerShell and real MySQL/API tests; its Windows EXE/MSI job was still in progress at the time of this update. Confirm its final conclusion before declaring all four gates green.
+
+**Production remains BLOCKED** even if all CI gates pass: protected GitHub signing/release approval, genuine Hostinger VPS/DNS/TLS, a live recovery rehearsal, authorized workspace selection and physical Windows acceptance are not yet verified.

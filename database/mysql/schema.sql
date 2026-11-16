@@ -69,6 +69,24 @@ CREATE TABLE IF NOT EXISTS `users` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
+-- Phase N13: pre-approved, user-specific access to additional workspaces
+CREATE TABLE IF NOT EXISTS `user_workspace_memberships` (
+  `user_id` INT NOT NULL,
+  `tenant_id` VARCHAR(36) NOT NULL,
+  `role` VARCHAR(32) NOT NULL DEFAULT 'MONITORING',
+  `status` VARCHAR(16) NOT NULL DEFAULT 'ACTIVE',
+  `granted_by` INT NULL,
+  `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  `updated_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (`user_id`, `tenant_id`),
+  INDEX `idx_workspace_tenant_status` (`tenant_id`, `status`),
+  INDEX `idx_workspace_user_status` (`user_id`, `status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT IGNORE INTO `user_workspace_memberships`
+  (`user_id`, `tenant_id`, `role`, `status`, `granted_by`)
+SELECT `id`, `tenant_id`, `role`, 'ACTIVE', NULL FROM `users`;
+
 -- 4. Devices (Endpoints) Table
 -- --------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `devices` (

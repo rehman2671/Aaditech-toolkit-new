@@ -281,6 +281,17 @@ jobs:
           AADITECH_DB_FAULT_REHEARSAL: isolated-ci
         run: node test-network-db-fault-injection.js
 
+      - name: Verify tenant identity migration preflight catches collisions (CI temporary table)
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_USER: itk_user
+          DB_PASSWORD: itk_password_ci
+          DB_NAME: it_toolkit
+          NODE_ENV: test
+          AADITECH_IDENTITY_PREFLIGHT: isolated-ci
+        run: node scripts/device-identity-preflight.js --ci-fixtures
+
       - name: Start Background Server for API verification
         env:
           DB_HOST: 127.0.0.1

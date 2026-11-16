@@ -1442,7 +1442,7 @@ app.post('/api/v1/msi/generate', requireRole(['SUPER_ADMIN']), validateBody(msiG
   const { package_name, version, group_id, bootstrap_expiry_hours } = req.body;
   const pkgVer = version || getAgentVersion();
   const pkgName = package_name || "Aaditech-Agent-Installer";
-  const expiryHours = bootstrap_expiry_hours || 24;
+  const expiryHours = bootstrap_expiry_hours || req.body.expires_in_hours || 24;
 
   const tenantId = req.user.tenant_id || "00000000-0000-0000-0000-000000000001";
   const bootstrapToken = generateBootstrapToken(tenantId, group_id || "default", expiryHours);

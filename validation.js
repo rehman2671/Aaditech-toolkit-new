@@ -171,13 +171,16 @@ export const commandResultSchema = z.object({
 });
 
 export const msiGenerateSchema = z.object({
-  package_name: z.string().min(1, "package_name is required"),
-  version: z.string().optional(),
-  tenant_id: z.string().optional(),
-  group_id: z.string().optional(),
+  // These values are embedded in a path and filename: never accept slashes,
+  // traversal segments, shell control characters or arbitrary free-form text.
+  package_name: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/, 'Invalid package name'),
+  version: z.string().regex(/^\d{1,3}\.\d{1,3}\.\d{1,5}(?:-[A-Za-z0-9][A-Za-z0-9.-]{0,31})?$/, 'Invalid agent version').optional(),
+  // Tenant ID is taken from the authenticated principal, never from the form.
+  group_id: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/, 'Invalid device group').optional(),
   single_use: z.boolean().optional(),
-  expires_in_hours: z.number().positive().optional()
-});
+  expires_in_hours: z.number().int().min(1).max(168).optional(),
+  bootstrap_expiry_hours: z.number().int().min(1).max(168).optional()
+}).strict();
 
 export const createAlertRuleSchema = z.object({
   name: z.string().min(1, "Alert rule name is required"),

@@ -2118,6 +2118,74 @@ export async function createAlert(alt, notifications = []) {
   return alertObj;
 }
 
+// Durable multi-worker queue: atomic MySQL claim and lease-token guarded writes.
+// Concurrent PM2 workers cannot claim the same PENDING row at the same time.
+export async function claimNotificationOutbox(batchSize = 20) {
+  const limit = Math.min(50, Math.max(1, Math.floor(Number(batchSize) || 20)));
+  const lease = crypto.randomUUID();
+  await executeQuery(
+    "UPDATE notification_outbox SET status = 'DEAD', lease_token = NULL, lease_expires_at = NULL, last_error = 'LEASE_EXPIRED' " +
+    "WHERE status = 'PROCESSING' AND attempts >= 5 AND lease_expires_at <= UTC_TIMESTAMP(3)"
+  );
+  const claimed = await executeQuery(
+    "UPDATE notification_outbox SET status = 'PROCESSING', lease_token = ?, attempts = attempts + 1, " +
+    "lease_expires_at = DATE_ADD(UTC_TIMESTAMP(3), INTERVAL 90 SECOND) " +
+    "WHERE attempts < 5 AND ((status = 'PENDING' AND available_at <= UTC_TIMESTAMP(3)) " +
+    "OR (status = 'PROCESSING' AND lease_expires_at <= UTC_TIMESTAMP(3))) " +
+    "ORDER BY id ASC LIMIT ?",
+    [lease, limit]
+  );
+  if (!claimed?.affectedRows) return [];
+  return executeQuery(
+    "SELECT * FROM notification_outbox WHERE lease_token = ? AND status = 'PROCESSING' ORDER BY id ASC",
+    [lease]
+  );
+}
+
+export async function finishNotificationOutbox(id, lease, status) {
+  if (!['DELIVERED', 'SKIPPED'].includes(status) || !id || !lease) {
+    throw new Error('INVALID_OUTBOX_COMPLETION');
+  }
+  const result = await executeQuery(
+    "UPDATE notification_outbox SET status = ?, lease_token = NULL, lease_expires_at = NULL, last_error = NULL " +
+    "WHERE id = ? AND lease_token = ? AND status = 'PROCESSING'",
+    [status, id, lease]
+  );
+  return result?.affectedRows === 1;
+}
+
+export async function retryNotificationOutbox(row, code = 'DELIVERY_FAILED') {
+  if (!row?.id || !row?.lease_token) throw new Error('OUTBOX_LEASE_REQUIRED');
+  const attempts = Math.max(1, Number(row.attempts || 1));
+  const safe = /^[A-Z0-9_]{1,64}$/.test(String(code)) ? code : 'DELIVERY_FAILED';
+  const delay = Math.min(3600, 15 * (2 ** Math.min(10, attempts - 1)));
+  const updated = await executeQuery(
+    "UPDATE notification_outbox SET status = ?, lease_token = NULL, lease_expires_at = NULL, " +
+    "available_at = DATE_ADD(UTC_TIMESTAMP(3), INTERVAL ? SECOND), last_error = ? " +
+    "WHERE id = ? AND lease_token = ? AND status = 'PROCESSING'",
+    [attempts >= 5 ? 'DEAD' : 'PENDING', delay, safe, row.id, row.lease_token]
+  );
+  return updated?.affectedRows === 1;
+}
+
+export async function getTenantOutboxStatus(tenantId) {
+  if (!tenantId || typeof tenantId !== 'string') throw new Error('TENANT_REQUIRED');
+  const rows = await executeQuery(
+    'SELECT channel, status, COUNT(*) AS total FROM notification_outbox ' +
+    'WHERE tenant_id = ? GROUP BY channel, status',
+    [tenantId]
+  );
+  return rows.map(row => ({ channel: row.channel, status: row.status, total: Number(row.total) }));
+}
+
+export async function pruneNotificationOutbox() {
+  const deleted = await executeQuery(
+    "DELETE FROM notification_outbox WHERE status IN ('DELIVERED','SKIPPED','DEAD') " +
+    "AND updated_at < DATE_SUB(UTC_TIMESTAMP(3), INTERVAL 30 DAY)"
+  );
+  return deleted?.affectedRows || 0;
+}
+
 export async function updateAlert(id, updates) {
   const idx = memAlerts.findIndex(a => a.id === id || String(a.id) === String(id));
   if (idx >= 0) {

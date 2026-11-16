@@ -815,8 +815,15 @@ describe('Server & API Integration Test Suite', () => {
       const brandPut = await request(app)
         .post('/api/v1/settings/default-company')
         .set('Authorization', `Bearer ${token}`)
-        .send({ name: 'Aaditech Enterprise Corp' });
+        .send({ name: 'Aaditech Enterprise' });
       expect(brandPut.status).toBe(200);
+      expect(brandPut.body.company_name).toBe('Aaditech Enterprise');
+
+      const unowned = await request(app)
+        .post('/api/v1/settings/default-company')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ name: 'Unowned Tenant Company' });
+      expect(unowned.status).toBe(404);
     });
 
     it('Public artifacts: CA cert, bundle, installer scripts', async () => {

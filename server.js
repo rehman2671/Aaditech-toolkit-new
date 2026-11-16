@@ -27,6 +27,7 @@ import * as db from './db.js';
 import { isValidSetupKey, isSeededDemoPasswordHash } from './setup-security.js';
 import { validateEnrollmentIdentity } from './enrollment-security.js';
 import { resolveAgentOrigin } from './agent-origin.js';
+import { resolveVerifiedUserPrincipal } from './auth-principal.js';
 import { signDeviceCommand } from './command-signing.js';
 import {
   getAgentVersion,
@@ -463,22 +464,19 @@ async function authenticateUserToken(req, res, next) {
       });
     }
 
-    const userInDb = await db.getUserById(decoded.id) || await db.getUserByUsername(decoded.username);
-    if (userInDb && userInDb.active === false) {
+    const isProduction = process.env.NODE_ENV === 'production';
+    // In production the JWT cannot self-assert a role or tenant. Always
+    // fetch by immutable user ID, never fall back to an unrelated username.
+    const userInDb = await db.getUserById(decoded.id);
+    const principal = resolveVerifiedUserPrincipal(decoded, userInDb, normalizeRole, isProduction);
+    if (!principal) {
       return res.status(401).json({
         error: "Unauthorized",
-        detail: "User account is inactive or disabled."
+        detail: "Account deleted, disabled or session privileges changed. Sign in again."
       });
     }
 
-    req.user = {
-      id: decoded.id,
-      username: decoded.username,
-      email: decoded.email,
-      role: normalizeRole(decoded.role),
-      tenant_id: decoded.tenant_id || "00000000-0000-0000-0000-000000000001",
-      jti: decoded.jti
-    };
+    req.user = principal;
     req.token = token;
     next();
   } catch (err) {
@@ -784,17 +782,15 @@ async function authenticateAgentOrUser(req, res, next) {
     try {
       const decoded = jwt.verify(userToken, EFFECTIVE_JWT_SECRET, { algorithms: ['HS256'] });
       if (!decoded.jti || (!revokedTokens.has(decoded.jti) && !(await db.isTokenRevokedInDb(decoded.jti)))) {
-        req.user = {
-          id: decoded.id,
-          username: decoded.username,
-          email: decoded.email,
-          role: normalizeRole(decoded.role),
-          tenant_id: decoded.tenant_id,
-          jti: decoded.jti
-        };
-        req.token = userToken;
-        req.authType = 'user';
-        return next();
+        const isProduction = process.env.NODE_ENV === 'production';
+        const stored = isProduction ? await db.getUserById(decoded.id) : null;
+        const principal = resolveVerifiedUserPrincipal(decoded, stored, normalizeRole, isProduction);
+        if (principal) {
+          req.user = principal;
+          req.token = userToken;
+          req.authType = 'user';
+          return next();
+        }
       }
     } catch (e) {
       // Not a valid user JWT, proceed to agent credential check
@@ -2543,16 +2539,23 @@ Write-Host "============================================================" -Foreg
 }
 
 // Helper to grant bootstrap tokens ONLY to authenticated administrators
-function resolveAuthorizedBootstrapToken(req) {
+async function resolveAuthorizedBootstrapToken(req) {
   const userToken = extractToken(req);
-  if (userToken && !revokedTokens.has(userToken)) {
-    try {
-      const decoded = jwt.verify(userToken, EFFECTIVE_JWT_SECRET, { algorithms: ['HS256'] });
-      if (['SUPER_ADMIN', 'OPERATOR'].includes(normalizeRole(decoded.role))) {
-        const tenantId = decoded.tenant_id || "00000000-0000-0000-0000-000000000001";
-        return generateBootstrapToken(tenantId, "authorized-bundle", 24);
-      }
-    } catch {}
+  if (!userToken || revokedTokens.has(userToken) ||
+      await db.isTokenRevokedInDb(userToken)) return null;
+  try {
+    const decoded = jwt.verify(userToken, EFFECTIVE_JWT_SECRET, { algorithms: ['HS256'] });
+    if (decoded.jti && (revokedTokens.has(decoded.jti) ||
+        await db.isTokenRevokedInDb(decoded.jti))) return null;
+    const isProduction = process.env.NODE_ENV === 'production';
+    const stored = isProduction ? await db.getUserById(decoded.id) : null;
+    const principal = resolveVerifiedUserPrincipal(decoded, stored, normalizeRole, isProduction);
+    if (principal && ['SUPER_ADMIN', 'OPERATOR'].includes(principal.role)) {
+      return generateBootstrapToken(principal.tenant_id, "authorized-bundle", 24);
+    }
+  } catch (err) {
+    // A malformed bearer credential may access the public bundle as an
+    // unauthenticated download, but it never receives enrollment privileges.
   }
   return null;
 }
@@ -2567,7 +2570,7 @@ app.get(['/api/v1/agent-bundle', '/api/agent-bundle', '/api/v1/agent/bundle'], a
   const version = getAgentVersion();
   const msiInfo = resolveAgentMsi(version);
   const caCert = getCaCertificate();
-  const bootstrapToken = resolveAuthorizedBootstrapToken(req);
+  const bootstrapToken = await resolveAuthorizedBootstrapToken(req);
 
   res.json({
     company: branding.company_name,
@@ -2601,7 +2604,7 @@ app.get(['/api/v1/agent/agent.json', '/api/agent/agent.json'], async (req, res) 
   if (!origin) return res.status(503).json({ error: 'AGENT_ORIGIN_NOT_CONFIGURED' });
   const { host, protocol } = origin;
   const version = getAgentVersion();
-  const bootstrapToken = resolveAuthorizedBootstrapToken(req);
+  const bootstrapToken = await resolveAuthorizedBootstrapToken(req);
 
   res.setHeader('Content-Type', 'application/json');
   res.setHeader('Content-Disposition', 'attachment; filename="agent.json"');
@@ -2645,7 +2648,7 @@ const handleAgentBundleZip = async (req, res) => {
   if (!origin) return res.status(503).json({ error: 'AGENT_ORIGIN_NOT_CONFIGURED' });
   const { host, protocol } = origin;
   const version = getAgentVersion();
-  const bootstrapToken = resolveAuthorizedBootstrapToken(req);
+  const bootstrapToken = await resolveAuthorizedBootstrapToken(req);
 
   const zip = new JSZip();
   const agentJson = JSON.stringify({

@@ -13,7 +13,9 @@ permissions:
 
 concurrency:
   group: project-index-maintenance-main
-  cancel-in-progress: false
+  # Only newest main HEAD should regenerate and push project metadata.
+  # Cancel outdated work to avoid predictable non-fast-forward failures.
+  cancel-in-progress: true
 
 jobs:
   refresh-index:

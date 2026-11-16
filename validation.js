@@ -255,6 +255,15 @@ export const setupSchema = z.object({
   github_token: z.string().optional()
 });
 
+export const workspaceSelectSchema = z.object({
+  tenant_id: z.string().uuid()
+}).strict();
+
+export const workspaceGrantSchema = z.object({
+  user_id: z.number().int().positive(),
+  role: z.enum(['SUPER_ADMIN', 'OPERATOR', 'MONITORING'])
+}).strict();
+
 export const createUserSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters"),
   password: z.string().min(6, "Password must be at least 6 characters").optional(),

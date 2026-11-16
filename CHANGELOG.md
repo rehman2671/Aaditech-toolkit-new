@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased — Phase N Stage 13 (workspace selection and global settings security)
+
+- **Explicit workspace membership:** additive MySQL migration 004 introduces user-to-tenant role/status grants without rewriting primary workspace ownership. Workspace JWTs for secondary tenants require active database memberships and matching current tenant roles on every authenticated request.
+- **Dynamic workspace selector:** `/api/v1/workspaces` returns only authorized tenants; a protected select API issues a fresh tenant-scoped JWT/cookie. The web portal sidebar offers a workspace dropdown, and a destination tenant SUPER_ADMIN can grant/revoke secondary memberships without specifying a foreign destination tenant.
+- **Legacy tenant discovery privacy:** `/api/v1/tenants` is now membership-limited instead of listing every organization. `/api/v1/auth/me` and portal bootstrap display the selected tenant/role, not always the account's primary workspace.
+- **Global configuration guard:** completed server setup, webhook configuration/test, retention settings and purge, feature mutations and ticket integration config require a separately designated platform operator in production. New `PLATFORM_ADMIN_USER_ID` and `PLATFORM_OWNER_TENANT_ID` deployment env variables intentionally default to blank (deny writes).
+- **Credential safety and tenant defaults:** webhook secrets are not serialized from config GET or logged in audit payloads; default company is saved under a workspace-specific settings key and must belong to that tenant.
+- **Verification:** four-of-four Node/Vitest, PowerShell, real MySQL/API migration and Windows EXE/MSI build/install/upgrade jobs passed in CI #43927772995. See `Enterprise/deploy/PHASE-N-STAGE13-ACCEPTANCE.md`.
+- **Still blocked:** signing environment and publisher approval, actual Hostinger VPS/TLS/production migration and recovery rehearsal, and representative physical Windows acceptance. Tenant-specific customization of currently platform-global settings and an invitation/consent flow remain design follow-ups.
+
 ## Unreleased — Phase N Stage 12 (live-user JWT and tenant-boundary hardening)
 
 - **Current-user security:** every production user JWT authenticated through regular API, agent telemetry user alternative or public installer bootstrap issuance is bound to the active persisted MySQL user ID, tenant, role and username; stale/deleted/suspended identities cannot retain privileges.

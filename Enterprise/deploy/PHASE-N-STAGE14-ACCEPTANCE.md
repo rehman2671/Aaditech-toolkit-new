@@ -1,6 +1,6 @@
 # Phase N Stage 14 — Consent-Driven Workspaces, Tenant Configuration and Deployment Preflight
 
-**Production status: BLOCKED.** Code is under CI acceptance; green disposable CI is not a signed public Windows MSI, live Hostinger approval or customer machine acceptance.
+**Production status: BLOCKED.** Stage 14 automated code acceptance passed all four CI jobs in run #43933248099. Disposable CI is not a signed public Windows MSI, live Hostinger approval or customer machine acceptance.
 
 ## 1. Invitation and consent security
 
@@ -49,7 +49,9 @@ https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43931969524
 Latest full CI acceptance run:
 https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43932726029
 
-**Verification note:** Record the final statuses of all four mandatory full CI jobs before declaring Stage 14 code accepted. Operator-signed release and live infrastructure evidence are independent and still missing.
+**Verified:** All four jobs in [full Stage 14 CI #43933248099](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43933248099) completed SUCCESS: PowerShell validation, Node/Vitest tests and coverage, real isolated MySQL/API integration including invitation consent/replay/expiry/tenant settings, and Windows EXE/MSI packaging with install/uninstall/major-upgrade rehearsals. [Deployment-safety #43931969524](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43931969524) also completed SUCCESS for offline signed-release preflight controls and disposable MySQL backup/restore regression.
+
+Operator-signed public release and live infrastructure/physical customer Windows evidence are **independent and still missing**.
 
 ## 5. Remaining production acceptance
 

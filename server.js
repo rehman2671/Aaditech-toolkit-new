@@ -26,6 +26,7 @@ import rateLimit from 'express-rate-limit';
 import * as db from './db.js';
 import { isValidSetupKey, isSeededDemoPasswordHash } from './setup-security.js';
 import { validateEnrollmentIdentity } from './enrollment-security.js';
+import { resolveAgentOrigin } from './agent-origin.js';
 import { signDeviceCommand } from './command-signing.js';
 import {
   getAgentVersion,
@@ -2559,8 +2560,10 @@ function resolveAuthorizedBootstrapToken(req) {
 // Agent bundle & downloads (Canonical v1 + Legacy aliases)
 app.get(['/api/v1/agent-bundle', '/api/agent-bundle', '/api/v1/agent/bundle'], async (req, res) => {
   const branding = await db.getBranding();
-  const host = req.headers.host || branding.server_host;
-  const protocol = req.protocol || 'http';
+  // Production setup URLs are bound to configured DNS + HTTPS, never request headers.
+  const origin = resolveAgentOrigin(req, branding);
+  if (!origin) return res.status(503).json({ error: 'AGENT_ORIGIN_NOT_CONFIGURED' });
+  const { host, protocol } = origin;
   const version = getAgentVersion();
   const msiInfo = resolveAgentMsi(version);
   const caCert = getCaCertificate();
@@ -2593,8 +2596,10 @@ app.get(['/api/v1/agent-bundle', '/api/agent-bundle', '/api/v1/agent/bundle'], a
 
 app.get(['/api/v1/agent/agent.json', '/api/agent/agent.json'], async (req, res) => {
   const branding = await db.getBranding();
-  const host = req.headers.host || branding.server_host;
-  const protocol = req.protocol || 'http';
+  // Production setup URLs are bound to configured DNS + HTTPS, never request headers.
+  const origin = resolveAgentOrigin(req, branding);
+  if (!origin) return res.status(503).json({ error: 'AGENT_ORIGIN_NOT_CONFIGURED' });
+  const { host, protocol } = origin;
   const version = getAgentVersion();
   const bootstrapToken = resolveAuthorizedBootstrapToken(req);
 
@@ -2613,8 +2618,10 @@ app.get(['/api/v1/agent/agent.json', '/api/agent/agent.json'], async (req, res) 
 
 app.get(['/api/v1/agent/install.cmd', '/api/agent/install.cmd'], async (req, res) => {
   const branding = await db.getBranding();
-  const host = req.headers.host || branding.server_host;
-  const protocol = req.protocol || 'http';
+  // Production setup URLs are bound to configured DNS + HTTPS, never request headers.
+  const origin = resolveAgentOrigin(req, branding);
+  if (!origin) return res.status(503).json({ error: 'AGENT_ORIGIN_NOT_CONFIGURED' });
+  const { host, protocol } = origin;
   res.setHeader('Content-Type', 'text/plain');
   res.setHeader('Content-Disposition', 'attachment; filename="install-agent.cmd"');
   res.send(getInstallCmdContent(host, protocol, getAgentVersion()));
@@ -2622,8 +2629,10 @@ app.get(['/api/v1/agent/install.cmd', '/api/agent/install.cmd'], async (req, res
 
 app.get(['/api/v1/agent/install.ps1', '/api/agent/install.ps1'], async (req, res) => {
   const branding = await db.getBranding();
-  const host = req.headers.host || branding.server_host;
-  const protocol = req.protocol || 'http';
+  // Production setup URLs are bound to configured DNS + HTTPS, never request headers.
+  const origin = resolveAgentOrigin(req, branding);
+  if (!origin) return res.status(503).json({ error: 'AGENT_ORIGIN_NOT_CONFIGURED' });
+  const { host, protocol } = origin;
   res.setHeader('Content-Type', 'text/plain');
   res.setHeader('Content-Disposition', 'attachment; filename="install-agent.ps1"');
   res.send(getInstallPs1Content(host, protocol, getAgentVersion()));
@@ -2631,8 +2640,10 @@ app.get(['/api/v1/agent/install.ps1', '/api/agent/install.ps1'], async (req, res
 
 const handleAgentBundleZip = async (req, res) => {
   const branding = await db.getBranding();
-  const host = req.headers.host || branding.server_host;
-  const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'http';
+  // Production setup URLs are bound to configured DNS + HTTPS, never request headers.
+  const origin = resolveAgentOrigin(req, branding);
+  if (!origin) return res.status(503).json({ error: 'AGENT_ORIGIN_NOT_CONFIGURED' });
+  const { host, protocol } = origin;
   const version = getAgentVersion();
   const bootstrapToken = resolveAuthorizedBootstrapToken(req);
 

@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-16T17:27:50+00:00",
-  "last_verified_commit": "b9bb162949173bbcaa598c5bdb5fbfc4c8a7dd37",
-  "last_verified_date": "2026-11-16T22:57:41+05:30",
+  "generated": "2026-11-16T17:28:55+00:00",
+  "last_verified_commit": "2f2869fd2ba944fd379be546ccc5755c9ec8bdc2",
+  "last_verified_date": "2026-11-16T22:58:45+05:30",
   "overall_progress_percent": 100.0,
   "progress_scope": "historic audit issue closure only; production acceptance pending",
   "production_ready": false,
@@ -14,21 +14,12 @@
     "percent": 100.0
   },
   "latest_delta": {
-    "added": 0,
+    "added": 1,
     "removed": 0,
-    "changed": 1,
-    "unchanged": 257
+    "changed": 0,
+    "unchanged": 258
   },
   "delta_history": [
-    {
-      "detected_at": "2026-11-16T14:32:54+00:00",
-      "added": [],
-      "removed": [],
-      "changed": [
-        "Enterprise/deploy/backup.sh"
-      ],
-      "unchanged_count": 245
-    },
     {
       "detected_at": "2026-11-16T14:33:18+00:00",
       "added": [],
@@ -225,6 +216,15 @@
         ".github/workflows/deployment-safety.yml"
       ],
       "unchanged_count": 257
+    },
+    {
+      "detected_at": "2026-11-16T17:28:55+00:00",
+      "added": [
+        "Enterprise/tests/Test-LegacyMsiMigration-Live.sh"
+      ],
+      "removed": [],
+      "changed": [],
+      "unchanged_count": 258
     }
   ],
   "next_recommended_tasks": [

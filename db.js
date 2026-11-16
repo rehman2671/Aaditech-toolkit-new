@@ -3022,7 +3022,9 @@ export async function updateTenantTicketConfig(tenantId, updates) {
 
 export async function getTenantBranding(tenantId) {
   if (!tenantId || typeof tenantId !== 'string') throw new Error('TENANT_REQUIRED');
-  const defaults = { company_name: '', logo_text: 'IT-Toolkit', color: '#38bdf8' };
+  // Empty fields deliberately inherit the operator-owned visual defaults
+  // until the tenant super-admin customizes them.
+  const defaults = { company_name: '', logo_text: '', color: '' };
   const stored = await getSetting(`tenant:${tenantId}:branding`, null);
   return { ...defaults, ...(stored || {}) };
 }

@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-16T13:38:53+00:00",
-  "last_verified_commit": "c928c8686178db016aa81c6e3bfd3fbb3a760148",
-  "last_verified_date": "2026-11-16T19:08:43+05:30",
+  "generated": "2026-11-16T13:39:53+00:00",
+  "last_verified_commit": "34c38c884b3f3cca3b25d9a62b2d72b16bbcd844",
+  "last_verified_date": "2026-11-16T19:09:27+05:30",
   "overall_progress_percent": 100.0,
   "progress_scope": "historic audit issue closure only; production acceptance pending",
   "production_ready": false,
@@ -17,18 +17,9 @@
     "added": 1,
     "removed": 0,
     "changed": 0,
-    "unchanged": 240
+    "unchanged": 241
   },
   "delta_history": [
-    {
-      "detected_at": "2026-11-16T12:23:13+00:00",
-      "added": [
-        "Enterprise/deploy/PHASE-N-STAGE6-CONCURRENCY-ACCEPTANCE.md"
-      ],
-      "removed": [],
-      "changed": [],
-      "unchanged_count": 230
-    },
     {
       "detected_at": "2026-11-16T12:26:40+00:00",
       "added": [],
@@ -219,6 +210,15 @@
       "removed": [],
       "changed": [],
       "unchanged_count": 240
+    },
+    {
+      "detected_at": "2026-11-16T13:39:53+00:00",
+      "added": [
+        ".github/workflows/publish-signed-installer.yml"
+      ],
+      "removed": [],
+      "changed": [],
+      "unchanged_count": 241
     }
   ],
   "next_recommended_tasks": [

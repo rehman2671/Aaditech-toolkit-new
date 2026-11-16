@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased — Phase N Stage 11 (tenant MSI isolation and trusted setup origins)
+
+- **MSI isolation:** named package downloads require authenticated tenant super-admin; inventory uses mandatory tenant-scoped MySQL queries and excludes plaintext credentials, token hashes and server filesystem paths.
+- **Bootstrap secrecy:** new MSI package records persist only SHA-256 bootstrap hashes; the privileged creator receives the bearer token once in the creation response. Historic rows require a reviewed legacy credential clean-up.
+- **Release separation:** package generation no longer dispatches GitHub release/CI workflow with app/admin API credentials; signed publication stays manually approved.
+- **Installer origin integrity:** agent JSON, bundle and generated setup scripts use the operator-configured SERVER_HOST over HTTPS in production rather than caller-controlled Host/X-Forwarded-Proto headers; invalid/missing production DNS fails closed.
+- **Validation and regressions:** file-safe names, versions and bounded expirations; negative-path tenant access, host spoofing and one-use SHA-256 token tests.
+- **Verification:** all four jobs passed in CI #43903827797, including disposable MySQL/API and Windows EXE/MSI install/upgrade rehearsals. Real signed public release, Hostinger deployment and customer Windows acceptance are still pending. See Enterprise/deploy/PHASE-N-STAGE11-ACCEPTANCE.md.
+
+
 ## Unreleased — Phase N Stage 10 (release approval and recovery integrity)
 
 - **Signing approval isolation:** ordinary push CI receives no code-signing keys, and the signing script rejects automatic events/non-main refs even when keys are accidentally present. Manual CI uses the production-installer environment, which repository admins must protect with human reviewers and main-only deployment restrictions.

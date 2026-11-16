@@ -1935,7 +1935,9 @@ app.post('/api/v1/patches/:id/approve', requireRole(['SUPER_ADMIN', 'OPERATOR'])
 });
 
 app.get('/api/v1/security/posture', async (req, res) => {
-  const agents = await db.getDevices();
+  const tenantId = req.user?.tenant_id;
+  if (!tenantId) return res.status(403).json({ error: 'TENANT_REQUIRED' });
+  const agents = await db.getDevices({ tenant_id: tenantId });
   const posture = agents.map(a => ({
     device_id: a.id,
     hostname: a.hostname,
@@ -2322,7 +2324,9 @@ app.post(['/api/commands/:id/result', '/api/v1/commands/:id/result'], agentLimit
 // Software (Canonical v1 + Legacy alias)
 app.get(['/api/v1/software/search', '/api/software/search'], async (req, res) => {
   const q = (req.query.q || "").toLowerCase();
-  const agents = await db.getDevices();
+  const tenantId = req.user?.tenant_id;
+  if (!tenantId) return res.status(403).json({ error: 'TENANT_REQUIRED' });
+  const agents = await db.getDevices({ tenant_id: tenantId });
   const results = [];
 
   for (const a of agents) {
@@ -2346,7 +2350,9 @@ app.get(['/api/v1/software/search', '/api/software/search'], async (req, res) =>
 });
 
 app.get(['/api/v1/software/export', '/api/software/export'], async (req, res) => {
-  const agents = await db.getDevices();
+  const tenantId = req.user?.tenant_id;
+  if (!tenantId) return res.status(403).json({ error: 'TENANT_REQUIRED' });
+  const agents = await db.getDevices({ tenant_id: tenantId });
   let csv = 'Hostname,Application,Version,Publisher\n';
   for (const a of agents) {
     const procs = await db.getDeviceProcesses(a.id);
@@ -2361,7 +2367,9 @@ app.get(['/api/v1/software/export', '/api/software/export'], async (req, res) =>
 
 // License (Canonical v1 + Legacy alias)
 app.get(['/api/v1/license/compliance', '/api/license/compliance'], async (req, res) => {
-  const agents = await db.getDevices();
+  const tenantId = req.user?.tenant_id;
+  if (!tenantId) return res.status(403).json({ error: 'TENANT_REQUIRED' });
+  const agents = await db.getDevices({ tenant_id: tenantId });
   res.json({
     compliance: agents.map(a => ({
       hostname: a.hostname,
@@ -2376,7 +2384,9 @@ app.get(['/api/v1/license/compliance', '/api/license/compliance'], async (req, r
 });
 
 app.get(['/api/v1/license/export', '/api/license/export'], async (req, res) => {
-  const agents = await db.getDevices();
+  const tenantId = req.user?.tenant_id;
+  if (!tenantId) return res.status(403).json({ error: 'TENANT_REQUIRED' });
+  const agents = await db.getDevices({ tenant_id: tenantId });
   let csv = 'Hostname,WindowsStatus,OfficeStatus,Compliant\n';
   for (const a of agents) {
     csv += `"${a.hostname}","UNKNOWN","NOT_CONFIGURED","UNKNOWN"\n`;
@@ -2389,7 +2399,9 @@ app.get(['/api/v1/license/export', '/api/license/export'], async (req, res) => {
 // Reports (Canonical v1 + Legacy alias)
 app.get(['/api/v1/reports/fleet', '/api/report/fleet'], async (req, res) => {
   const version = getAgentVersion();
-  const agents = await db.getDevices();
+  const tenantId = req.user?.tenant_id;
+  if (!tenantId) return res.status(403).json({ error: 'TENANT_REQUIRED' });
+  const agents = await db.getDevices({ tenant_id: tenantId });
   let csv = 'Hostname,OS,IP,AgentVersion,Status,LastSeen\n';
   for (const a of agents) {
     csv += `"${a.hostname}","${a.os_version || a.os || ''}","${a.ip_address || a.ip || ''}","${a.agent_version || version}","${a.status || 'offline'}","${a.last_seen || ''}"\n`;
@@ -3024,7 +3036,9 @@ app.post(['/api/v1/build/trigger', '/api/build/trigger'], validateBody(buildTrig
 
 // ---------------- GAP FULFILLMENT: PREDICTIVE ANALYTICS ----------------
 app.get(['/api/v1/analytics/predictive', '/api/analytics/predictive'], async (req, res) => {
-  const agents = await db.getDevices();
+  const tenantId = req.user?.tenant_id;
+  if (!tenantId) return res.status(403).json({ error: 'TENANT_REQUIRED' });
+  const agents = await db.getDevices({ tenant_id: tenantId });
   const analysis = await Promise.all(agents.map(async agent => {
     const history = await db.getTelemetryHistory(agent.id, 20);
     const freeGB = parseInt(agent.disk_free, 10) || 120;
@@ -3119,6 +3133,12 @@ app.put(['/api/v1/remediation/policies/:id', '/api/remediation/policies/:id'], r
 
 app.post(['/api/v1/remediation/trigger', '/api/remediation/trigger'], requireRole(['SUPER_ADMIN', 'OPERATOR']), validateBody(remediationTriggerSchema), async (req, res) => {
   const { hostname, action_type } = req.body;
+  // A matching hostname is not authorization to mutate another workspace.
+  if (!req.user?.tenant_id) return res.status(403).json({ error: 'TENANT_REQUIRED' });
+  const targetDevice = await db.getDeviceByHostname(hostname);
+  if (!belongsToCurrentTenant(req.user, targetDevice)) {
+    return res.status(404).json({ error: 'Target agent/device not found' });
+  }
   const pol = (await db.getRemediationPolicyByActionType(action_type)) || { name: "Manual Remediation" };
 
   const actionMsg = `Dispatched remediation script Remediate-${action_type}.ps1 to agent queue`;
@@ -3132,7 +3152,7 @@ app.post(['/api/v1/remediation/trigger', '/api/remediation/trigger'], requireRol
 
   // Record command in MySQL with 'pending' status for agent execution
   let commandId = null;
-  const dev = await db.getDeviceByHostname(hostname || "DESKTOP-DEV018");
+  const dev = targetDevice;
   if (dev) {
     commandId = crypto.randomUUID();
     await db.queueCommandInDb({

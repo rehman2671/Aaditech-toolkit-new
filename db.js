@@ -676,10 +676,22 @@ export async function executeQuery(sql, params = []) {
   }
 
   if (upperSql.includes('FROM GROUPS')) {
+    if (upperSql.includes('WHERE TENANT_ID = ?')) {
+      return memGroups.filter(g => String(g.tenant_id) === String(params[0]));
+    }
+    if (upperSql.includes('WHERE ID = ?')) {
+      return memGroups.filter(g => String(g.id) === String(params[0]));
+    }
     return [...memGroups];
   }
 
   if (upperSql.includes('FROM POLICIES')) {
+    if (upperSql.includes('WHERE TENANT_ID = ?')) {
+      return memPolicies.filter(p => String(p.tenant_id) === String(params[0]));
+    }
+    if (upperSql.includes('WHERE ID = ?')) {
+      return memPolicies.filter(p => String(p.id) === String(params[0]));
+    }
     return [...memPolicies];
   }
 
@@ -2323,9 +2335,10 @@ export async function deleteAlertRule(id) {
 }
 
 // ---------------- GROUPS ----------------
-export async function getGroups() {
-  const rows = await executeQuery('SELECT * FROM groups ORDER BY created_at ASC');
-  return rows;
+export async function getGroups(tenantId = null) {
+  return tenantId
+    ? executeQuery('SELECT * FROM groups WHERE tenant_id = ? ORDER BY created_at ASC', [tenantId])
+    : executeQuery('SELECT * FROM groups ORDER BY created_at ASC');
 }
 
 export async function getGroupById(id) {
@@ -2369,8 +2382,10 @@ export async function deleteGroup(id) {
 }
 
 // ---------------- POLICIES ----------------
-export async function getPolicies() {
-  const rows = await executeQuery('SELECT * FROM policies ORDER BY created_at ASC');
+export async function getPolicies(tenantId = null) {
+  const rows = tenantId
+    ? await executeQuery('SELECT * FROM policies WHERE tenant_id = ? ORDER BY created_at ASC', [tenantId])
+    : await executeQuery('SELECT * FROM policies ORDER BY created_at ASC');
   return rows.map(r => ({
     ...r,
     auto_update: Boolean(r.auto_update),
@@ -3292,6 +3307,29 @@ export async function isTokenRevokedInDb(tokenOrJti) {
     [tokenOrJti]
   );
   return Boolean(rows && rows.length > 0);
+}
+
+// Tenant patch approvals must not mutate the historical global patchInventory key.
+// Templates are metadata only; affected device counts are not fabricated.
+export async function getTenantPatchInventory(tenantId) {
+  if (!tenantId || typeof tenantId !== 'string') throw new Error('TENANT_REQUIRED');
+  const defaults = [
+    { id: 'kb-5034441', title: 'Windows cumulative security update', severity: 'Critical',
+      status: 'PENDING_APPROVAL', affected_devices: 0 },
+    { id: 'kb-5034123', title: '.NET security update', severity: 'Important',
+      status: 'PENDING_APPROVAL', affected_devices: 0 }
+  ];
+  const saved = await getSetting('tenant:' + tenantId + ':patchInventory', null);
+  return Array.isArray(saved) ? saved : defaults;
+}
+
+export async function updateTenantPatchStatus(tenantId, id, status) {
+  const patches = await getTenantPatchInventory(tenantId);
+  const patch = patches.find(p => p.id === id);
+  if (!patch) return null;
+  patch.status = status;
+  await setSetting('tenant:' + tenantId + ':patchInventory', patches);
+  return patch;
 }
 
 // ---------------- FEATURES & PATCHES ----------------

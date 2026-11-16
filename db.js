@@ -878,6 +878,11 @@ export async function executeQuery(sql, params = []) {
     return { insertId: ++monotonicInsertId, affectedRows: 1 };
   }
 
+  // Offline fixtures must not fabricate acceptance of an invitation that
+  // does not exist. Production always uses real MySQL atomic affectedRows.
+  if (upperSql.startsWith('UPDATE USER_WORKSPACE_MEMBERSHIPS')) {
+    return { affectedRows: 0 };
+  }
   if (upperSql.startsWith('UPDATE') || upperSql.startsWith('DELETE')) {
     return { affectedRows: 1 };
   }
@@ -2161,6 +2166,13 @@ export async function createAlertRule(rule) {
     rule.enabled !== false ? 1 : 0,
     JSON.stringify(rule.condition || {})
   ]);
+  if (!isMysqlConnected() && process.env.NODE_ENV !== 'production') {
+    // Test-only data store must mirror MySQL writes so tenant ownership can
+    // be checked in subsequent read/update/delete requests.
+    memAlertRules.push({ ...rule, id: ruleId,
+      tenant_id: rule.tenant_id || '00000000-0000-0000-0000-000000000001',
+      enabled: rule.enabled !== false });
+  }
   invalidateAlertRulesCache();
   return { id: ruleId, ...rule };
 }
@@ -2180,12 +2192,20 @@ export async function updateAlertRule(id, updates) {
   if (fields.length === 0) return false;
   params.push(id);
   await executeQuery(`UPDATE alert_rules SET ${fields.join(', ')} WHERE id = ?`, params);
+  if (!isMysqlConnected() && process.env.NODE_ENV !== 'production') {
+    const fixture = memAlertRules.find(r => String(r.id) === String(id));
+    if (fixture) Object.assign(fixture, updates);
+  }
   invalidateAlertRulesCache();
   return true;
 }
 
 export async function deleteAlertRule(id) {
   await executeQuery('DELETE FROM alert_rules WHERE id = ?', [id]);
+  if (!isMysqlConnected() && process.env.NODE_ENV !== 'production') {
+    const idx = memAlertRules.findIndex(r => String(r.id) === String(id));
+    if (idx >= 0) memAlertRules.splice(idx, 1);
+  }
   invalidateAlertRulesCache();
   return true;
 }

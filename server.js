@@ -2069,7 +2069,11 @@ app.get(['/api/v1/bootstrap', '/api/bootstrap'], async (req, res) => {
   const branding = await db.getBranding();
   if (!req.user?.tenant_id) return res.status(403).json({ error: 'TENANT_REQUIRED' });
   const companies = await db.getCompanies(req.user.tenant_id);
-  const authUser = await db.getUserById(req.user.id) || req.user;
+  const storedUser = await db.getUserById(req.user.id) || req.user;
+  // The active tenant/role comes from the verified workspace JWT principal,
+  // not the user's different primary workspace stored in users.tenant_id.
+  const authUser = { ...storedUser, tenant_id: req.user.tenant_id,
+    role: req.user.role };
   const { password_hash, ...safeUser } = authUser;
   res.json({
     user: safeUser,

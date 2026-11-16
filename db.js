@@ -1715,28 +1715,39 @@ export async function queueCommandInDb(cmd) {
 }
 
 export async function getCommands(filters = {}) {
-  let sql = 'SELECT * FROM command_queue';
+  // command_queue has no tenant_id. Anchor portal queries to the owning
+  // device row instead of trusting missing tenant labels on queue records.
+  const tenantScoped = Boolean(filters.tenant_id);
+  let sql = tenantScoped
+    ? 'SELECT cq.* FROM command_queue cq INNER JOIN devices d ON d.id = cq.device_id'
+    : 'SELECT * FROM command_queue';
+  const pfx = tenantScoped ? 'cq.' : '';
   const conditions = [];
   const params = [];
+  if (tenantScoped) {
+    conditions.push('d.tenant_id = ?');
+    params.push(filters.tenant_id);
+  }
   if (filters.status) {
-    conditions.push('status = ?');
+    conditions.push(pfx + 'status = ?');
     params.push(String(filters.status).toUpperCase());
   }
   if (filters.device_id) {
-    conditions.push('device_id = ?');
+    conditions.push(pfx + 'device_id = ?');
     params.push(String(filters.device_id));
   }
   if (filters.hostname) {
-    conditions.push('hostname = ?');
+    conditions.push(pfx + 'hostname = ?');
     params.push(String(filters.hostname));
   }
   if (conditions.length > 0) {
     sql += ` WHERE ${conditions.join(' AND ')}`;
   }
-  sql += ' ORDER BY dispatched_at DESC';
+  sql += tenantScoped ? ' ORDER BY cq.dispatched_at DESC' : ' ORDER BY dispatched_at DESC';
 
   const rows = await executeQuery(sql, params);
-  if (rows && rows.length > 0) {
+  // Empty production SQL results are authoritative; no in-memory fallback.
+  if (rows && (rows.length > 0 || process.env.NODE_ENV === 'production')) {
     return rows.map(r => ({
       ...r,
       agent_id: r.device_id,
@@ -1755,6 +1766,11 @@ export async function getCommands(filters = {}) {
   }
   if (filters.hostname) {
     filtered = filtered.filter(c => c.hostname && c.hostname.toLowerCase() === String(filters.hostname).toLowerCase());
+  }
+  if (filters.tenant_id) {
+    const allowed = new Set(memDevices.filter(d =>
+      String(d.tenant_id) === String(filters.tenant_id)).map(d => String(d.id)));
+    filtered = filtered.filter(c => allowed.has(String(c.device_id)));
   }
   return filtered;
 }
@@ -1858,6 +1874,10 @@ export async function getAlerts(filters = {}) {
   if (filters.severity) {
     conditions.push('severity = ?');
     params.push(filters.severity);
+  }
+  if (filters.tenant_id) {
+    conditions.push('tenant_id = ?');
+    params.push(filters.tenant_id);
   }
   if (conditions.length > 0) {
     sql += ` WHERE ${conditions.join(' AND ')}`;

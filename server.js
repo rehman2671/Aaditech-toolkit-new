@@ -3177,65 +3177,58 @@ app.get(['/api/v1/analytics/predictive', '/api/analytics/predictive'], async (re
 
 // ---------------- GAP FULFILLMENT: AUTO-REMEDIATION ----------------
 app.get(['/api/v1/remediation/policies', '/api/remediation/policies'], async (req, res) => {
-  const policies = await db.getRemediationPolicies();
-  const logs = await db.getRemediationLogs();
-  res.json({
-    policies,
-    logs
-  });
+  if (!req.user?.tenant_id) return res.status(403).json({ error: 'TENANT_REQUIRED' });
+  const [policies, logs] = await Promise.all([
+    db.getTenantRemediationPolicies(req.user.tenant_id),
+    db.getRemediationLogs(100, req.user.tenant_id)
+  ]);
+  return res.json({ policies, logs });
 });
 
 app.put(['/api/v1/remediation/policies/:id', '/api/remediation/policies/:id'], requireRole(['SUPER_ADMIN']), validateBody(updateRemediationPolicySchema), async (req, res) => {
-  const pol = await db.getRemediationPolicyById(req.params.id);
-  if (!pol) return res.status(404).json({ detail: "Policy not found" });
-  if (req.body.enabled !== undefined) {
-    await db.updateRemediationPolicy(pol.id, { enabled: req.body.enabled });
-    pol.enabled = req.body.enabled;
-  }
-  logAudit(req.user, "REMEDIATION_POLICY_UPDATED", `Policy:${pol.name}`, { enabled: pol.enabled }, req);
-  res.json({ ok: true, policy: pol });
+  const tenantId = req.user?.tenant_id;
+  if (!tenantId) return res.status(403).json({ error: 'TENANT_REQUIRED' });
+  const pol = await db.setTenantRemediationPolicyEnabled(tenantId, req.params.id, req.body.enabled);
+  if (!pol) return res.status(404).json({ detail: 'Policy not found' });
+  logAudit(req.user, 'TENANT_REMEDIATION_POLICY_UPDATED', 'Policy:' + pol.id,
+    { enabled: pol.enabled }, req);
+  return res.json({ ok: true, policy: pol });
 });
 
 app.post(['/api/v1/remediation/trigger', '/api/remediation/trigger'], requireRole(['SUPER_ADMIN', 'OPERATOR']), validateBody(remediationTriggerSchema), async (req, res) => {
   const { hostname, action_type } = req.body;
-  // A matching hostname is not authorization to mutate another workspace.
-  if (!req.user?.tenant_id) return res.status(403).json({ error: 'TENANT_REQUIRED' });
-  const targetDevice = await db.getDeviceByHostname(hostname);
-  if (!belongsToCurrentTenant(req.user, targetDevice)) {
+  const tenantId = req.user?.tenant_id;
+  if (!tenantId) return res.status(403).json({ error: 'TENANT_REQUIRED' });
+  const device = await db.getDeviceByHostname(hostname);
+  if (!belongsToCurrentTenant(req.user, device)) {
     return res.status(404).json({ error: 'Target agent/device not found' });
   }
-  const pol = (await db.getRemediationPolicyByActionType(action_type)) || { name: "Manual Remediation" };
+  // Never convert an unrecognized, client-chosen action_type into a script name.
+  const policy = await db.getTenantRemediationPolicyByActionType(tenantId, action_type);
+  if (!policy) return res.status(400).json({ error: 'UNAPPROVED_REMEDIATION_ACTION' });
+  if (!policy.enabled) return res.status(403).json({ error: 'REMEDIATION_POLICY_DISABLED' });
 
-  const actionMsg = `Dispatched remediation script Remediate-${action_type}.ps1 to agent queue`;
-
-  const newLog = await db.logRemediation({
-    hostname: hostname || "DESKTOP-DEV018",
-    policy_name: pol.name,
-    action: actionMsg,
-    status: "pending"
+  const commandId = crypto.randomUUID();
+  await db.queueCommandInDb({
+    id: commandId,
+    device_id: device.id,
+    agent_id: device.id,
+    hostname: device.hostname,
+    kind: 'run-script',
+    command_type: 'run-script',
+    payload: { script_name: 'Remediate-' + policy.action_type + '.ps1' },
+    status: 'pending',
+    dispatched_by: req.user?.username || 'admin'
   });
-
-  // Record command in MySQL with 'pending' status for agent execution
-  let commandId = null;
-  const dev = targetDevice;
-  if (dev) {
-    commandId = crypto.randomUUID();
-    await db.queueCommandInDb({
-      id: commandId,
-      device_id: dev.id,
-      agent_id: dev.id,
-      hostname: dev.hostname,
-      kind: "run-script",
-      command_type: "run-script",
-      payload: { script_name: `Remediate-${action_type}.ps1` },
-      status: "pending",
-      dispatched_by: req.user?.username || "admin"
-    });
-  }
-
-  logAudit(req.user, "REMEDIATION_TRIGGERED", `Device:${hostname}`, { action_type, command_id: commandId, status: "pending" }, req);
-
-  res.json({ ok: true, log: newLog, command_id: commandId, status: "pending" });
+  const action = 'Queued approved remediation: ' + policy.action_type;
+  const log = await db.logRemediation({
+    tenant_id: tenantId, hostname: device.hostname, policy_name: policy.name,
+    action, status: 'pending'
+  });
+  logAudit(req.user, 'REMEDIATION_TRIGGERED', 'Device:' + device.hostname,
+    { action_type: policy.action_type, policy_id: policy.id, command_id: commandId,
+      status: 'pending' }, req);
+  return res.json({ ok: true, log, command_id: commandId, status: 'pending' });
 });
 
 // ---------------- GAP FULFILLMENT: TICKETING INTEGRATION ----------------

@@ -410,12 +410,14 @@ CREATE TABLE IF NOT EXISTS `remediation_policies` (
 
 CREATE TABLE IF NOT EXISTS `remediation_logs` (
   `id` BIGINT AUTO_INCREMENT NOT NULL,
+  `tenant_id` VARCHAR(36) NULL,
   `hostname` VARCHAR(128) NOT NULL,
   `policy_name` VARCHAR(128) NOT NULL,
   `action` VARCHAR(255) NOT NULL,
   `status` VARCHAR(32) DEFAULT 'success',
   `executed_at` DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3),
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  INDEX `idx_remediation_logs_tenant_time` (`tenant_id`, `executed_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------

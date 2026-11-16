@@ -691,7 +691,12 @@ export async function executeQuery(sql, params = []) {
   }
 
   if (upperSql.includes('FROM REMEDIATION_LOGS')) {
-    return [...memRemediationLogs];
+    // Historical unowned logs are never visible to any customer workspace.
+    if (upperSql.includes('WHERE TENANT_ID = ?')) {
+      return memRemediationLogs.filter(x => String(x.tenant_id) === String(params[0]))
+        .slice(0, Number(params[1]) || 100);
+    }
+    return [];
   }
 
   if (upperSql.includes('FROM SYSTEM_SETTINGS')) {
@@ -2578,6 +2583,40 @@ export async function getRemediationPolicyByActionType(actionType) {
   return { ...rows[0], enabled: Boolean(rows[0].enabled) };
 }
 
+// Per-tenant overrides never alter the shared operator-provided policy catalog.
+export async function getTenantRemediationPolicies(tenantId) {
+  if (!tenantId || typeof tenantId !== 'string') throw new Error('TENANT_REQUIRED');
+  const [templates, overrides] = await Promise.all([
+    getRemediationPolicies(),
+    getSetting('tenant:' + tenantId + ':remediationPolicyOverrides', {})
+  ]);
+  return templates.map(template => ({
+    ...template,
+    enabled: typeof overrides?.[template.id] === 'boolean'
+      ? overrides[template.id] : template.enabled
+  }));
+}
+
+export async function getTenantRemediationPolicyByActionType(tenantId, actionType) {
+  const policies = await getTenantRemediationPolicies(tenantId);
+  return policies.find(policy => policy.action_type === actionType) || null;
+}
+
+export async function getTenantRemediationPolicyById(tenantId, policyId) {
+  const policies = await getTenantRemediationPolicies(tenantId);
+  return policies.find(policy => policy.id === policyId) || null;
+}
+
+export async function setTenantRemediationPolicyEnabled(tenantId, policyId, enabled) {
+  if (!tenantId || typeof tenantId !== 'string') throw new Error('TENANT_REQUIRED');
+  const template = await getRemediationPolicyById(policyId);
+  if (!template) return null;
+  const key = 'tenant:' + tenantId + ':remediationPolicyOverrides';
+  const overrides = await getSetting(key, {});
+  await setSetting(key, { ...(overrides || {}), [template.id]: enabled === true });
+  return { ...template, enabled: enabled === true };
+}
+
 export async function createRemediationPolicy(pol) {
   const polId = pol.id || `rem-${crypto.randomUUID()}`;
   pol.id = polId;
@@ -2613,27 +2652,27 @@ export async function updateRemediationPolicy(id, updates) {
 }
 
 export async function logRemediation(entry) {
-  const memEntry = { id: Date.now(), ...entry, executed_at: new Date() };
-  memRemediationLogs.push(memEntry);
+  if (!entry?.tenant_id) throw new Error('TENANT_REQUIRED');
   const sql = `
-    INSERT INTO remediation_logs (hostname, policy_name, action, status, executed_at)
-    VALUES (?, ?, ?, ?, NOW(3))
+    INSERT INTO remediation_logs (tenant_id, hostname, policy_name, action, status, executed_at)
+    VALUES (?, ?, ?, ?, ?, NOW(3))
   `;
   const res = await executeQuery(sql, [
-    entry.hostname,
-    entry.policy_name,
-    entry.action,
-    entry.status || 'success'
+    entry.tenant_id, entry.hostname, entry.policy_name, entry.action,
+    entry.status || 'pending'
   ]);
-  return { id: res?.insertId || memEntry.id, ...entry };
+  const record = { id: res?.insertId || Date.now(), ...entry, executed_at: new Date() };
+  // Legacy rows with no tenant remain quarantined; only new rows are owned.
+  memRemediationLogs.push(record);
+  return record;
 }
 
-export async function getRemediationLogs(limit = 100) {
-  const rows = await executeQuery(
-    'SELECT * FROM remediation_logs ORDER BY executed_at DESC LIMIT ?',
-    [limit]
+export async function getRemediationLogs(limit = 100, tenantId) {
+  if (!tenantId || typeof tenantId !== 'string') throw new Error('TENANT_REQUIRED');
+  return executeQuery(
+    'SELECT * FROM remediation_logs WHERE tenant_id = ? ORDER BY executed_at DESC LIMIT ?',
+    [tenantId, limit]
   );
-  return rows;
 }
 
 // ---------------- EVENTS ----------------

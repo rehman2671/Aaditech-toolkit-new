@@ -322,7 +322,7 @@ export const updateRemediationPolicySchema = z.object({
 
 export const remediationTriggerSchema = z.object({
   hostname: z.string().min(1, "hostname is required"),
-  action_type: z.string().min(1, "action_type is required")
+  action_type: z.string().regex(/^[a-z][a-z0-9_]{0,63}$/, 'Invalid remediation action')
 });
 
 export const ticketConfigSchema = z.object({

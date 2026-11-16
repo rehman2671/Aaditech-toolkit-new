@@ -1,0 +1,90 @@
+name: Publish approved signed Windows installer
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_run_id:
+        description: Successful CI run ID containing verified signed it-toolkit-agent artifact
+        type: string
+        required: true
+      release_tag:
+        description: Version + MSI revision (example agent-v1.1.2-r1)
+        type: string
+        required: true
+      confirmation:
+        description: Type PUBLISH_SIGNED_AGENT after operator approval
+        type: string
+        required: true
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  publish:
+    name: Publish only independently verified signed installer
+    if: github.ref == 'refs/heads/main'
+    environment: production-installer
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate source GitHub CI run provenance and manual confirmation
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CI_RUN_ID: ${{ inputs.source_run_id }}
+          APPROVAL_CONFIRMATION: ${{ inputs.confirmation }}
+        run: |
+          if ($env:APPROVAL_CONFIRMATION -cne 'PUBLISH_SIGNED_AGENT') { throw 'Manual approval phrase missing.' }
+          if ($env:CI_RUN_ID -notmatch '^[0-9]{6,20}$') { throw 'Invalid CI run ID.' }
+          $source = & gh api "repos/$env:GITHUB_REPOSITORY/actions/runs/$env:CI_RUN_ID" | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0 -or -not $source) { throw 'Could not confirm CI provenance.' }
+          if ($source.name -ne 'CI' -or $source.conclusion -ne 'success' -or
+              $source.head_branch -ne 'main' -or $source.head_repository.full_name -ne $env:GITHUB_REPOSITORY -or
+              $source.head_sha -notmatch '^[0-9a-f]{40}$') {
+            throw 'Source must be a successful same-repository main branch CI run.'
+          }
+          "SOURCE_SHA=$($source.head_sha)" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SOURCE_SHA }}
+          persist-credentials: false
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: it-toolkit-agent
+          run-id: ${{ inputs.source_run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: release
+
+      - name: Verify version and exact trusted EXE/MSI publisher, timestamp and payload
+        shell: pwsh
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
+          CODESIGN_APPROVED_THUMBPRINT: ${{ secrets.CODESIGN_APPROVED_THUMBPRINT }}
+        run: |
+          $metadata = Get-Content -LiteralPath Enterprise/agent/agent-version.json -Raw | ConvertFrom-Json
+          $expected = "agent-v$($metadata.agent_version)-r$($metadata.msi_revision)"
+          if ($env:RELEASE_TAG -cne $expected) { throw "This source requires tag $expected." }
+          if ([string]::IsNullOrWhiteSpace($env:CODESIGN_APPROVED_THUMBPRINT)) {
+            throw 'Approved publisher certificate thumbprint secret missing.'
+          }
+          ./Enterprise/agent/build/Verify-ReleaseArtifact.ps1 -ArtifactDir release -ApprovedThumbprint $env:CODESIGN_APPROVED_THUMBPRINT
+
+      - name: Create GitHub release only for a new tag
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          $existing = & git ls-remote --tags origin "refs/tags/$env:RELEASE_TAG"
+          if ($LASTEXITCODE -ne 0) { throw 'Could not check remote release tags.' }
+          if ($existing) { throw 'Release tag already exists; refusing overwrite.' }
+          $assets = @(Get-ChildItem -LiteralPath release -File | Where-Object {
+            $_.Name -match '\.(msi|exe)$' -or $_.Name -eq 'SHA256SUMS.txt'
+          } | ForEach-Object { $_.FullName })
+          if ($assets.Count -ne 3) { throw 'Expected EXE, MSI and SHA256SUMS.txt only.' }
+          & gh release create $env:RELEASE_TAG @assets --target $env:SOURCE_SHA --title "Aaditech agent $env:RELEASE_TAG" --notes 'Trusted, timestamped Authenticode-signed agent; verify SHA256SUMS.txt and publisher before install.' --latest=false
+          if ($LASTEXITCODE -ne 0) { throw 'GitHub Release creation failed.' }

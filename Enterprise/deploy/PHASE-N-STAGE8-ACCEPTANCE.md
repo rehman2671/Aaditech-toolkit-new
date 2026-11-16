@@ -68,3 +68,30 @@ On the approved Docker-capable VPS or an independent operator host, run:
   bash Enterprise/deploy/verify-hostinger-acceptance.sh --host YOUR_REAL_DNS_HOST
 
 This verifies public OS-trusted HTTPS, 200 /healthz with persistent MySQL HEALTHY and HTTP-to-HTTPS redirect. Its --dry-run validates inputs offline in CI. It never deploys, changes DNS or accepts secrets. A passing smoke test is ONLY a prerequisite for a live, operator-approved Hostinger readiness decision and is not proof of backups/tenant isolation/Windows enrollment.
+
+
+## Manually approved signed GitHub Release (NOT run automatically)
+
+The workflow .github/workflows/publish-signed-installer.yml is manual only.
+An operator must first configure a publicly trusted code-signing certificate
+as GitHub Actions secrets CODESIGN_PFX_B64, CODESIGN_PFX_PASSWORD and
+CODESIGN_APPROVED_THUMBPRINT. Protect the production-installer GitHub
+environment with required human reviewers and main-branch restrictions.
+
+Once the full CI has passed AND it-toolkit-agent artifact has been uploaded,
+run the manual workflow from main with the successful source CI run ID, exact
+tag matching agent-v<semver>-r<msi_revision> from the source commit (currently
+agent-v1.1.2-r1), and confirmation phrase PUBLISH_SIGNED_AGENT.
+
+Publication refuses an unsuccessful/external CI run, missing signed artifacts,
+untrusted or wrong publisher, missing timestamp, corrupt SHA-256 manifest,
+preprovisioned client secrets, an unsigned/different EXE in the MSI, and an
+existing tag. No release is created until every check succeeds. Do not claim
+a signed release exists until the workflow really publishes one.
+
+After independent verification of the release signature and manifest, the
+operator must set APPROVED_MSI_SHA256 in private Enterprise/.env to the
+approved MSI file digest and restart the production API. Production routes
+refuse any MSI whose exact bytes do not match the approved digest (and
+always reject tiny synthetic fixture packages). The digest pin alone is
+not a substitute for trusted-publisher verification.

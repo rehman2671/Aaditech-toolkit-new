@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased — Phase N Stage 14 (consent-driven tenant workspaces and deploy preflight)
+
+- **Consent before access:** destination tenant SUPER_ADMIN creates an `INVITED` record rather than a live secondary workspace membership. The invited account must explicitly Accept/Decline from its own authenticated session; MySQL enforces seven-day expiry, atomic one-time acceptance and refusal of revoked/expired invitations.
+- **Portal workflow:** the workspace sidebar now includes an invitation inbox and Accept/Decline controls. Acceptance does not silently change context; the account owner must choose the workspace and receives a fresh session JWT.
+- **Tenant-specific customization:** workspace branding `logo_text`/`color`/`company_name` and ticket integration settings have tenant-specific persisted keys. Ticket listing, ticket creation, alert counts/rules/acknowledgements and cloud compliance summaries are tenant-scoped; generic global branding and private server settings are unaffected.
+- **Safe release preflight:** `Enterprise/deploy/preflight-stage14.sh` is read-only, checks private .env permissions, distinct high-entropy configuration secrets, real hostname/DNS consistency, selected global operator, and SHA-256 release pin on `--release`. It does not verify Authenticode or contact live infrastructure. Regression tests run in deployment-safety CI.
+- **CI:** Node/Vitest and PowerShell regression and real MySQL/API rehearsal passed in full run #43933248099. Final Windows MSI job must be verified separately before claiming full CI acceptance. See `Enterprise/deploy/PHASE-N-STAGE14-ACCEPTANCE.md`.
+- **Still externally blocked:** no real signed MSI public release, Hostinger DNS+TLS deployment, production migration/restore rehearsal or physical customer Windows acceptance.
+
 ## Unreleased — Phase N Stage 13 (workspace selection and global settings security)
 
 - **Explicit workspace membership:** additive MySQL migration 004 introduces user-to-tenant role/status grants without rewriting primary workspace ownership. Workspace JWTs for secondary tenants require active database memberships and matching current tenant roles on every authenticated request.

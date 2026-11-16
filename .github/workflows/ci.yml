@@ -246,6 +246,17 @@ jobs:
           NODE_ENV: test
         run: node test-migrations-runner.js
 
+      - name: Rehearse multi-process tenant/device identity concurrency against real MySQL
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_USER: itk_user
+          DB_PASSWORD: itk_password_ci
+          DB_NAME: it_toolkit
+          NODE_ENV: test
+          AADITECH_CONCURRENCY_REHEARSAL: isolated-ci
+        run: node test-device-identity-concurrency.js
+
       - name: Start Background Server for API verification
         env:
           DB_HOST: 127.0.0.1

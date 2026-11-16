@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-16T18:08:17+00:00",
-  "last_verified_commit": "f60a995372559a8fa09a10d4c6525346f037c37a",
-  "last_verified_date": "2026-11-16T23:38:05+05:30",
+  "generated": "2026-11-16T18:08:51+00:00",
+  "last_verified_commit": "3a359dcebde550b41ec07b08c1805b70595524ac",
+  "last_verified_date": "2026-11-16T23:38:40+05:30",
   "overall_progress_percent": 100.0,
   "progress_scope": "historic audit issue closure only; production acceptance pending",
   "production_ready": false,
@@ -20,16 +20,6 @@
     "unchanged": 262
   },
   "delta_history": [
-    {
-      "detected_at": "2026-11-16T17:24:55+00:00",
-      "added": [
-        "tests/unit/device-visibility.test.js",
-        "device-visibility.js"
-      ],
-      "removed": [],
-      "changed": [],
-      "unchanged_count": 254
-    },
     {
       "detected_at": "2026-11-16T17:25:14+00:00",
       "added": [],
@@ -203,6 +193,15 @@
     },
     {
       "detected_at": "2026-11-16T18:08:17+00:00",
+      "added": [],
+      "removed": [],
+      "changed": [
+        "auth-principal.js"
+      ],
+      "unchanged_count": 262
+    },
+    {
+      "detected_at": "2026-11-16T18:08:51+00:00",
       "added": [],
       "removed": [],
       "changed": [

@@ -1,4 +1,5 @@
 import { scopedAlertRules, isApprovedWebhookUrl, deliverTenantWebhook } from './tenant-alert-safety.js';
+import { smtpTransportConfig, isApprovedEmailRecipient, deliverTenantEmail } from './smtp-alerts.js';
 /**
  * ARCHITECTURAL HARD PREREQUISITE: STATELESSNESS FOR MULTI-INSTANCE / CLUSTER DEPLOYMENTS
  * 
@@ -53,6 +54,7 @@ import {
   createAlertRuleSchema,
   updateAlertRuleSchema,
   webhookConfigSchema,
+  tenantEmailConfigSchema,
   createGroupSchema,
   updateGroupSchema,
   createPolicySchema,
@@ -279,6 +281,16 @@ async function dispatchWebhookNotification(tenantId, title, message, severity = 
     await deliverTenantWebhook(tenantId, config, { title, message, severity, details });
   } catch {
     // Best-effort notification; never send tenant data through a fallback URL.
+  }
+}
+
+async function dispatchEmailNotification(tenantId, title, message, severity = 'info') {
+  if (!tenantId) return;
+  try {
+    const consent = await db.getTenantEmailConfig(tenantId);
+    await deliverTenantEmail(tenantId, consent, { title, message, severity });
+  } catch {
+    // Best effort only; durable notification outbox and retries are not implemented.
   }
 }
 
@@ -1422,6 +1434,8 @@ app.post(['/api/v1/ingest/telemetry', '/api/ingest'], agentLimiter, validateBody
           metric: rule.metric,
           threshold: rule.threshold
         }).catch(() => {});
+        dispatchEmailNotification(dev.tenant_id, rule.name,
+          dev.hostname + ': ' + msg, rule.severity).catch(() => {});
       }
     }
   }
@@ -1869,10 +1883,61 @@ app.post(['/api/v1/alerts/test-webhook', '/api/alerts/test-webhook'],
     }
   });
 
-app.post(['/api/v1/alerts/test-email', '/api/alerts/test-email'], requirePlatformSettingsAdmin, async (req, res) => {
-  // No SMTP delivery implementation exists. Never fabricate a delivery receipt.
-  return res.status(501).json({ ok: false, error: 'EMAIL_TRANSPORT_NOT_IMPLEMENTED',
-    detail: 'No email was sent. Configure and verify a real mail transport before enabling tests.' });
+// Workspace admins control recipient consent; the platform operator owns SMTP
+// credentials and exact approved recipient domains via server environment.
+app.get(['/api/v1/alerts/email', '/api/alerts/email'], requireRole(['SUPER_ADMIN']), async (req, res) => {
+  if (!req.user?.tenant_id) return res.status(403).json({ error: 'TENANT_REQUIRED' });
+  const config = await db.getTenantEmailConfig(req.user.tenant_id);
+  return res.json({ enabled: config.enabled, recipient: config.recipient,
+    smtp_configured: Boolean(smtpTransportConfig()) });
+});
+
+app.put(['/api/v1/alerts/email', '/api/alerts/email'], requireRole(['SUPER_ADMIN']),
+  validateBody(tenantEmailConfigSchema), async (req, res) => {
+    const tenantId = req.user?.tenant_id;
+    if (!tenantId) return res.status(403).json({ error: 'TENANT_REQUIRED' });
+    const current = await db.getTenantEmailConfig(tenantId);
+    const next = { ...current, ...req.body };
+    if (next.enabled) {
+      const transport = smtpTransportConfig();
+      if (!transport) return res.status(503).json({ error: 'SMTP_NOT_CONFIGURED' });
+      if (!isApprovedEmailRecipient(next.recipient, transport)) {
+        return res.status(400).json({ error: 'RECIPIENT_NOT_APPROVED' });
+      }
+    }
+    const config = await db.updateTenantEmailConfig(tenantId, req.body);
+    logAudit(req.user, 'TENANT_EMAIL_CONFIG_UPDATED', 'Tenant:' + tenantId,
+      { changed_fields: Object.keys(req.body) }, req);
+    return res.json({ enabled: config.enabled, recipient: config.recipient,
+      smtp_configured: Boolean(smtpTransportConfig()) });
+  });
+
+app.post(['/api/v1/alerts/test-email', '/api/alerts/test-email'], requireRole(['SUPER_ADMIN']), async (req, res) => {
+  const tenantId = req.user?.tenant_id;
+  if (!tenantId) return res.status(403).json({ error: 'TENANT_REQUIRED' });
+  const config = await db.getTenantEmailConfig(tenantId);
+  if (!config.enabled || !config.recipient) {
+    return res.status(400).json({ ok: false, error: 'NOT_CONFIGURED' });
+  }
+  const transport = smtpTransportConfig();
+  if (!transport) return res.status(503).json({ ok: false, error: 'SMTP_NOT_CONFIGURED' });
+  if (!isApprovedEmailRecipient(config.recipient, transport)) {
+    return res.status(400).json({ ok: false, error: 'RECIPIENT_NOT_APPROVED' });
+  }
+  try {
+    const result = await deliverTenantEmail(tenantId, config, {
+      title: 'Alert email relay test', message: 'Test requested from the current workspace',
+      severity: 'info'
+    });
+    if (!result.accepted) return res.status(502).json({ ok: false, error: result.reason });
+    logAudit(req.user, 'TENANT_EMAIL_RELAY_ACCEPTED', 'Tenant:' + tenantId,
+      { recipient_domain: config.recipient.split('@')[1] }, req);
+    return res.json({ ok: true, status: 'ACCEPTED_BY_SMTP_RELAY',
+      recipient: config.recipient });
+  } catch {
+    return res.status(502).json({ ok: false, error: 'SMTP_DELIVERY_FAILED',
+      detail: 'The SMTP relay did not accept the message. No delivery was confirmed.' });
+  }
 });
 
 // Device Groups & Policy Management V1

@@ -3082,6 +3082,21 @@ export async function updateBranding(updates) {
   return merged;
 }
 
+// Tenant email is separately consented per workspace. SMTP secrets are not persisted.
+export async function getTenantEmailConfig(tenantId) {
+  if (!tenantId || typeof tenantId !== 'string') throw new Error('TENANT_REQUIRED');
+  const defaults = { enabled: false, recipient: '' };
+  const stored = await getSetting('tenant:' + tenantId + ':emailConfig', null);
+  return { ...defaults, ...(stored || {}) };
+}
+
+export async function updateTenantEmailConfig(tenantId, updates) {
+  const current = await getTenantEmailConfig(tenantId);
+  const merged = { ...current, ...updates };
+  await setSetting('tenant:' + tenantId + ':emailConfig', merged);
+  return merged;
+}
+
 // Stage N15: webhook destinations are explicitly scoped to a single tenant.
 // Do not copy global webhookConfig or retention endpoints into these settings.
 export async function getTenantWebhookConfig(tenantId) {

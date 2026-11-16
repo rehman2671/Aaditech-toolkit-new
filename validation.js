@@ -200,6 +200,11 @@ export const updateAlertRuleSchema = z.object({
   enabled: z.boolean().optional()
 });
 
+export const tenantEmailConfigSchema = z.object({
+  enabled: z.boolean().optional(),
+  recipient: z.string().email().max(254).or(z.literal('')).optional()
+}).strict();
+
 export const webhookConfigSchema = z.object({
   type: z.enum(['generic', 'slack', 'teams']).optional(),
   // An empty URL is allowed when disabling an integration.

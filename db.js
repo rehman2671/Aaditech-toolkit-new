@@ -1108,16 +1108,17 @@ function formatDeviceRecord(row) {
 export async function getDeviceById(id) {
   if (!id) return null;
   const key = `id:${id}`;
-  const cached = deviceLookupCache.get(key);
-  if (cached && Date.now() < cached.expiresAt) return cached.record;
+
+  const production = process.env.NODE_ENV === 'production';  const cached = deviceLookupCache.get(key);
+  if (!production && cached && Date.now() < cached.expiresAt) return cached.record;
 
   const rows = await executeQuery('SELECT * FROM devices WHERE id = ? LIMIT 1', [String(id)]);
   let rec = formatDeviceRecord(rows[0]);
-  if (!rec) {
+  if (!rec && !production) {
     const memMatch = memDevices.find(d => String(d.id) === String(id));
     if (memMatch) rec = formatDeviceRecord(memMatch);
   }
-  if (rec) {
+  if (rec && !production) {
     const expiresAt = Date.now() + DEVICE_CACHE_TTL_MS;
     deviceLookupCache.set(key, { record: rec, expiresAt });
     if (rec.hostname) deviceLookupCache.set(`host:${rec.hostname.toLowerCase()}`, { record: rec, expiresAt });
@@ -1230,16 +1231,17 @@ export async function getDeviceByHostname(hostname) {
   if (!hostname) return null;
   const hTrim = String(hostname).trim();
   const key = `host:${hTrim.toLowerCase()}`;
-  const cached = deviceLookupCache.get(key);
-  if (cached && Date.now() < cached.expiresAt) return cached.record;
+
+  const production = process.env.NODE_ENV === 'production';  const cached = deviceLookupCache.get(key);
+  if (!production && cached && Date.now() < cached.expiresAt) return cached.record;
 
   const rows = await executeQuery('SELECT * FROM devices WHERE hostname = ? LIMIT 1', [hTrim]);
   let rec = formatDeviceRecord(rows[0]);
-  if (!rec) {
+  if (!rec && !production) {
     const memMatch = memDevices.find(d => d.hostname && d.hostname.toLowerCase() === hTrim.toLowerCase());
     if (memMatch) rec = formatDeviceRecord(memMatch);
   }
-  if (rec) {
+  if (rec && !production) {
     const expiresAt = Date.now() + DEVICE_CACHE_TTL_MS;
     deviceLookupCache.set(key, { record: rec, expiresAt });
     if (rec.id) deviceLookupCache.set(`id:${rec.id}`, { record: rec, expiresAt });
@@ -1253,16 +1255,17 @@ export async function getDeviceByUid(deviceUid) {
   if (!deviceUid) return null;
   const uTrim = String(deviceUid).trim();
   const key = `uid:${uTrim.toLowerCase()}`;
-  const cached = deviceLookupCache.get(key);
-  if (cached && Date.now() < cached.expiresAt) return cached.record;
+
+  const production = process.env.NODE_ENV === 'production';  const cached = deviceLookupCache.get(key);
+  if (!production && cached && Date.now() < cached.expiresAt) return cached.record;
 
   const rows = await executeQuery('SELECT * FROM devices WHERE device_uid = ? LIMIT 1', [uTrim]);
   let rec = formatDeviceRecord(rows[0]);
-  if (!rec) {
+  if (!rec && !production) {
     const memMatch = memDevices.find(d => d.device_uid && d.device_uid.toLowerCase() === uTrim.toLowerCase());
     if (memMatch) rec = formatDeviceRecord(memMatch);
   }
-  if (rec) {
+  if (rec && !production) {
     const expiresAt = Date.now() + DEVICE_CACHE_TTL_MS;
     deviceLookupCache.set(key, { record: rec, expiresAt });
     if (rec.id) deviceLookupCache.set(`id:${rec.id}`, { record: rec, expiresAt });

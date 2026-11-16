@@ -95,3 +95,5 @@ approved MSI file digest and restart the production API. Production routes
 refuse any MSI whose exact bytes do not match the approved digest (and
 always reject tiny synthetic fixture packages). The digest pin alone is
 not a substitute for trusted-publisher verification.
+
+**Production identity lookup consistency:** Device ID, hostname and UID lookups now bypass process-local caches and demo/in-memory records in production; each lookup must reflect MySQL or fail closed. Test/development fixtures keep their prior fallback behavior. Per-device credential lookup had already been hardened in Stage 6.

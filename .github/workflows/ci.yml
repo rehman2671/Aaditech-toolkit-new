@@ -292,6 +292,18 @@ jobs:
           AADITECH_IDENTITY_PREFLIGHT: isolated-ci
         run: node scripts/device-identity-preflight.js --ci-fixtures
 
+      - name: Rehearse approved global identity index DDL against disposable MySQL schema
+        timeout-minutes: 3
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_USER: itk_user
+          DB_PASSWORD: itk_password_ci
+          DB_NAME: it_toolkit
+          NODE_ENV: test
+          AADITECH_IDENTITY_MIGRATION: isolated-ci
+        run: node test-device-identity-index-migration.js
+
       - name: Start Background Server for API verification
         env:
           DB_HOST: 127.0.0.1

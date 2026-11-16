@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-16T18:13:22+00:00",
-  "last_verified_commit": "cc9e964dde1be97ba1d16868fc5268972bc4a0da",
-  "last_verified_date": "2026-11-16T23:43:14+05:30",
+  "generated": "2026-11-16T18:14:31+00:00",
+  "last_verified_commit": "6fe0ea6fec59e983f6061f6eed3f005f94c80484",
+  "last_verified_date": "2026-11-16T23:44:10+05:30",
   "overall_progress_percent": 100.0,
   "progress_scope": "historic audit issue closure only; production acceptance pending",
   "production_ready": false,
@@ -20,15 +20,6 @@
     "unchanged": 264
   },
   "delta_history": [
-    {
-      "detected_at": "2026-11-16T17:30:16+00:00",
-      "added": [
-        "Enterprise/deploy/PHASE-N-STAGE12-ACCEPTANCE.md"
-      ],
-      "removed": [],
-      "changed": [],
-      "unchanged_count": 259
-    },
     {
       "detected_at": "2026-11-16T17:33:00+00:00",
       "added": [],
@@ -205,6 +196,15 @@
       "removed": [],
       "changed": [
         "server.js"
+      ],
+      "unchanged_count": 264
+    },
+    {
+      "detected_at": "2026-11-16T18:14:31+00:00",
+      "added": [],
+      "removed": [],
+      "changed": [
+        "Enterprise/docker-compose.yml"
       ],
       "unchanged_count": 264
     }

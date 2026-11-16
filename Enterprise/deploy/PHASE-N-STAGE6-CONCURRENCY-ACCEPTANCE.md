@@ -26,6 +26,14 @@ multi-server HTTP enrollment/registration load test.
 - Redeemed bootstrap credentials are tracked by **SHA-256 hash only** in
   `used_bootstrap_tokens`; `msi_packages.bootstrap_token` is set to NULL
   after redemption. Invalid/mismatched hashes are rejected.
+- Production `getDeviceByTokenHash()` bypasses process-local caches and
+  in-memory demo records: **each agent credential is rechecked against MySQL**.
+  The shared agent authentication gateway rejects `agent_token_revoked`
+  on telemetry as well as command polling. This closes the stale-token
+  acceptance window when one Node instance revokes a device that another
+  instance previously authenticated. Tests cover revocation, token rotation
+  and both agent routes. Real multi-node network outage/fault acceptance is
+  still outstanding.
 - Historical database rows and backups may still contain earlier secrets.
   After approved backup and change control, check counts without selecting
   plaintext, then scrub **used** records only:

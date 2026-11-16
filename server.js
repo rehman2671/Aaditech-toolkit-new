@@ -2148,7 +2148,9 @@ app.get(['/api/v1/bootstrap', '/api/bootstrap'], async (req, res) => {
     company_name: tenantBrand.company_name || companies[0]?.name || branding.company_name,
     server_host: process.env.NODE_ENV === 'production'
       ? process.env.SERVER_HOST : (branding.server_host || 'localhost'),
-    branding: { ...branding.branding, logo_text: tenantBrand.logo_text, color: tenantBrand.color },
+    branding: { ...branding.branding,
+      logo_text: tenantBrand.logo_text || branding.branding?.logo_text || 'IT-Toolkit',
+      color: tenantBrand.color || branding.branding?.color || '#38bdf8' },
     agent_token_configured: Boolean(AGENT_API_TOKEN),
     company: companies[0] || { id: 1, name: tenantBrand.company_name || branding.company_name },
     companies: companies

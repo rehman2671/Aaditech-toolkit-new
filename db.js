@@ -2463,22 +2463,31 @@ export async function addEvent(event) {
   return newEvt;
 }
 
-export async function getEvents(hostname = null, limit = 100, kind = null) {
-  let sql = 'SELECT * FROM events';
+export async function getEvents(hostname = null, limit = 100, kind = null, tenantId = null) {
+  // Historical events have only a hostname, no tenant column. Tenant-facing
+  // API reads MUST join the globally unique device identity rather than
+  // exposing events from every organization's hosts.
+  let sql = tenantId
+    ? 'SELECT e.* FROM events e INNER JOIN devices d ON d.hostname = e.hostname'
+    : 'SELECT * FROM events';
   const conditions = [];
   const params = [];
+  if (tenantId) {
+    conditions.push('d.tenant_id = ?');
+    params.push(tenantId);
+  }
   if (hostname) {
-    conditions.push('hostname = ?');
+    conditions.push(tenantId ? 'e.hostname = ?' : 'hostname = ?');
     params.push(String(hostname).trim());
   }
   if (kind) {
-    conditions.push('kind = ?');
+    conditions.push(tenantId ? 'e.kind = ?' : 'kind = ?');
     params.push(String(kind).trim());
   }
   if (conditions.length > 0) {
     sql += ` WHERE ${conditions.join(' AND ')}`;
   }
-  sql += ' ORDER BY captured_at DESC LIMIT ?';
+  sql += tenantId ? ' ORDER BY e.captured_at DESC LIMIT ?' : ' ORDER BY captured_at DESC LIMIT ?';
   params.push(limit);
 
   const rows = await executeQuery(sql, params);

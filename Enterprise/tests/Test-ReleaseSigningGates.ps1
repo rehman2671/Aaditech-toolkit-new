@@ -35,6 +35,11 @@ try {
     try { & $signer -Stage PrePackage }
     catch { $blocked = $_.Exception.Message -match 'Incomplete release signing credentials' }
     if (-not $blocked) { throw 'Incomplete signing secrets were not rejected.' }
+    # Reach the fingerprint validator only after satisfying the preceding
+    # manual-event guard (no real PFX/OS signing work will be performed).
+    $env:GITHUB_ACTIONS = 'true'
+    $env:GITHUB_EVENT_NAME = 'workflow_dispatch'
+    $env:GITHUB_REF = 'refs/heads/main'
     $env:CODESIGN_APPROVED_THUMBPRINT = 'not-a-sha1-thumbprint'
     $blocked = $false
     try { & $signer -Stage PrePackage }

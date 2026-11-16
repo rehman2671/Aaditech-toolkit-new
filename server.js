@@ -735,6 +735,19 @@ async function verifyDeviceCredential(req, targetDeviceIdentifier) {
     };
   }
 
+  // Revocation is authoritative for ALL device-agent endpoints, not only
+  // command-poll/result paths. MySQL TINYINT may be returned as 0/1.
+  if (matchedDevice.agent_token_revoked === true ||
+      matchedDevice.agent_token_revoked === 1 ||
+      matchedDevice.agent_token_revoked === '1') {
+    return {
+      authenticated: false,
+      status: 401,
+      error: 'DEVICE_TOKEN_REVOKED',
+      detail: 'Device credential has been revoked; re-enrollment is required.'
+    };
+  }
+
   // Cross-device impersonation prevention
   if (targetDeviceIdentifier) {
     const target = String(targetDeviceIdentifier).toLowerCase().trim();

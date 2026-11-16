@@ -76,6 +76,56 @@ describe('Phase N13 membership-enforced workspace API', () => {
     expect(primaryChange.status).toBe(409);
   });
 
+  it('only the invited account can inspect pending consent invitations', async () => {
+    const unauthorized = await request(app).get('/api/v1/workspaces/invitations');
+    expect(unauthorized.status).toBe(401);
+    const own = await request(app).get('/api/v1/workspaces/invitations')
+      .set('Authorization', `Bearer ${operator}`);
+    expect(own.status).toBe(200);
+    expect(Array.isArray(own.body)).toBe(true);
+  });
+
+  it('rejects nonexistent or unapproved invitation activation', async () => {
+    const unauthorized = await request(app)
+      .post(`/api/v1/workspaces/invitations/${foreign}/accept`);
+    expect(unauthorized.status).toBe(401);
+    const noInvite = await request(app)
+      .post(`/api/v1/workspaces/invitations/${foreign}/accept`)
+      .set('Authorization', `Bearer ${operator}`);
+    expect(noInvite.status).toBe(409);
+    const invalid = await request(app)
+      .post('/api/v1/workspaces/invitations/not-a-tenant/accept')
+      .set('Authorization', `Bearer ${operator}`);
+    expect(invalid.status).toBe(400);
+  });
+
+  it('allows only tenant SUPER_ADMIN to edit own branding and ticket config', async () => {
+    const current = await request(app).get('/api/v1/workspaces/branding')
+      .set('Authorization', `Bearer ${operator}`);
+    expect(current.status).toBe(200);
+    const denied = await request(app).put('/api/v1/workspaces/branding')
+      .set('Authorization', `Bearer ${operator}`)
+      .send({ logo_text: 'Unauthorized' });
+    expect(denied.status).toBe(403);
+    const injected = await request(app).put('/api/v1/workspaces/branding')
+      .set('Authorization', `Bearer ${admin}`)
+      .send({ color: '#123456', tenant_id: foreign });
+    expect(injected.status).toBe(400);
+    const updated = await request(app).put('/api/v1/workspaces/branding')
+      .set('Authorization', `Bearer ${admin}`)
+      .send({ logo_text: 'Primary Business' });
+    expect(updated.status).toBe(200);
+    expect(updated.body.logo_text).toBe('Primary Business');
+    const ticketDenied = await request(app).put('/api/v1/tickets/config')
+      .set('Authorization', `Bearer ${operator}`)
+      .send({ project: 'INTRUDER' });
+    expect(ticketDenied.status).toBe(403);
+    const ticketConfig = await request(app).get('/api/v1/tickets/config')
+      .set('Authorization', `Bearer ${operator}`);
+    expect(ticketConfig.status).toBe(200);
+    expect(ticketConfig.body).not.toHaveProperty('tenant_id');
+  });
+
   it('does not allow operators to change global settings', async () => {
     const attempts = [
       request(app).post('/api/v1/settings/retention/run'),

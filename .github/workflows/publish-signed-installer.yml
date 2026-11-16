@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       source_run_id:
-        description: Successful CI run ID containing verified signed it-toolkit-agent artifact
+        description: Human-approved manual main CI run ID containing verified signed it-toolkit-agent artifact
         type: string
         required: true
       release_tag:
@@ -40,10 +40,13 @@ jobs:
           if ($env:CI_RUN_ID -notmatch '^[0-9]{6,20}$') { throw 'Invalid CI run ID.' }
           $source = & gh api "repos/$env:GITHUB_REPOSITORY/actions/runs/$env:CI_RUN_ID" | ConvertFrom-Json
           if ($LASTEXITCODE -ne 0 -or -not $source) { throw 'Could not confirm CI provenance.' }
-          if ($source.name -ne 'CI' -or $source.conclusion -ne 'success' -or
-              $source.head_branch -ne 'main' -or $source.head_repository.full_name -ne $env:GITHUB_REPOSITORY -or
+          # Signed artifacts now originate ONLY from a human-approved,
+          # manually dispatched main-branch CI build, not a normal push.
+          if ($source.name -ne 'CI' -or $source.event -ne 'workflow_dispatch' -or
+              $source.conclusion -ne 'success' -or $source.head_branch -ne 'main' -or
+              $source.head_repository.full_name -ne $env:GITHUB_REPOSITORY -or
               $source.head_sha -notmatch '^[0-9a-f]{40}$') {
-            throw 'Source must be a successful same-repository main branch CI run.'
+            throw 'Source must be a successful manually dispatched same-repository main branch CI run.'
           }
           "SOURCE_SHA=$($source.head_sha)" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
 

@@ -722,10 +722,17 @@ describe('Server & API Integration Test Suite', () => {
         .set('Authorization', `Bearer ${token}`)
         .send({
           action_type: 'clean_temp_files',
-          hostname: 'DESKTOP-DEV018'
+          hostname: agentHostname
         });
       expect(trigRes.status).toBe(200);
       expect(trigRes.body.ok).toBe(true);
+
+      const foreignOrMissing = await request(app)
+        .post('/api/v1/remediation/trigger')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ action_type: 'clean_temp_files', hostname: 'UNAUTHORIZED-UNKNOWN-HOST' });
+      expect(foreignOrMissing.status).toBe(404);
+      expect(foreignOrMissing.body.error).toBe('Target agent/device not found');
     });
 
     it('Patch inventory and security posture', async () => {

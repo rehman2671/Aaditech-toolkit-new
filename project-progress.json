@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-16T17:34:55+00:00",
-  "last_verified_commit": "0dda2e50c17817e25b4f0df6f8cee1f35d35a4ac",
-  "last_verified_date": "2026-11-16T23:04:47+05:30",
+  "generated": "2026-11-16T17:35:19+00:00",
+  "last_verified_commit": "f573d9270880aeadfe3334d087e67814adad6c0e",
+  "last_verified_date": "2026-11-16T23:05:12+05:30",
   "overall_progress_percent": 100.0,
   "progress_scope": "historic audit issue closure only; production acceptance pending",
   "production_ready": false,
@@ -14,24 +14,12 @@
     "percent": 100.0
   },
   "latest_delta": {
-    "added": 0,
+    "added": 1,
     "removed": 0,
-    "changed": 1,
-    "unchanged": 259
+    "changed": 0,
+    "unchanged": 260
   },
   "delta_history": [
-    {
-      "detected_at": "2026-11-16T14:53:58+00:00",
-      "added": [
-        "tests/unit/msi-tenant-release-boundaries.test.js"
-      ],
-      "removed": [],
-      "changed": [
-        "server.js",
-        "validation.js"
-      ],
-      "unchanged_count": 246
-    },
     {
       "detected_at": "2026-11-16T14:55:42+00:00",
       "added": [],
@@ -212,6 +200,15 @@
         "server.js"
       ],
       "unchanged_count": 259
+    },
+    {
+      "detected_at": "2026-11-16T17:35:19+00:00",
+      "added": [
+        "tests/unit/tenant-read-boundaries.test.js"
+      ],
+      "removed": [],
+      "changed": [],
+      "unchanged_count": 260
     }
   ],
   "next_recommended_tasks": [

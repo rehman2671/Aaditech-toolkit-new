@@ -73,3 +73,34 @@ describe('Stage N15 tenant alert isolation and safe outbound delivery', () => {
       .rejects.toThrow('TENANT_REQUIRED');
   });
 });
+
+describe('Stage N17 webhook DNS rebinding and SSRF prevention', () => {
+  it('allows public IPv4 and rejects reserved, carrier-grade NAT, loopback and RFC1918', async () => {
+    const { isPublicWebhookIpv4 } = await import('../../tenant-alert-safety.js');
+    for (const address of ['1.1.1.1', '8.8.8.8', '104.16.1.1']) {
+      expect(isPublicWebhookIpv4(address)).toBe(true);
+    }
+    for (const address of ['127.0.0.1', '10.2.3.4', '172.16.0.2', '192.168.10.12',
+      '169.254.169.254', '100.64.0.1', '198.18.0.1', '192.0.2.10',
+      '198.51.100.19', '203.0.113.88', '224.0.0.1', '::1', '::ffff:127.0.0.1']) {
+      expect(isPublicWebhookIpv4(address)).toBe(false);
+    }
+  });
+
+  it('pins reviewed IP and rejects DNS responses containing any private address', async () => {
+    const { resolvePinnedWebhookIpv4 } = await import('../../tenant-alert-safety.js');
+    const url = 'https://hooks.slack.com/services/T/XXX';
+    const pin = await resolvePinnedWebhookIpv4(url, 'hooks.slack.com',
+      async () => [{ address: '8.8.8.8', family: 4 }]);
+    expect(pin).toBe('8.8.8.8');
+    await expect(resolvePinnedWebhookIpv4(url, 'hooks.slack.com', async () => [
+      { address: '8.8.8.8', family: 4 }, { address: '169.254.169.254', family: 4 }
+    ])).rejects.toThrow('WEBHOOK_DNS_TARGET_NOT_PUBLIC');
+    await expect(resolvePinnedWebhookIpv4(url, 'hooks.slack.com',
+      async () => [{ address: '::1', family: 6 }]))
+      .rejects.toThrow('WEBHOOK_DNS_TARGET_NOT_PUBLIC');
+    await expect(resolvePinnedWebhookIpv4('https://hooks.slack.com:8443/x',
+      'hooks.slack.com', async () => [{ address: '8.8.8.8', family: 4 }]))
+      .rejects.toThrow('WEBHOOK_URL_NOT_APPROVED');
+  });
+});

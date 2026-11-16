@@ -1,5 +1,6 @@
 import { scopedAlertRules, isApprovedWebhookUrl, deliverTenantWebhook } from './tenant-alert-safety.js';
 import { smtpTransportConfig, isApprovedEmailRecipient, deliverTenantEmail } from './smtp-alerts.js';
+import { startNotificationOutboxWorker } from './notification-outbox.js';
 /**
  * ARCHITECTURAL HARD PREREQUISITE: STATELESSNESS FOR MULTI-INSTANCE / CLUSTER DEPLOYMENTS
  * 
@@ -274,25 +275,8 @@ async function consumeBootstrapToken(token, enrolledDeviceHostname, tenantId) {
 // ---------------- TENANT-ISOLATED OUTBOUND ALERT DISPATCHER ----------------
 // Never use platform-global retention/webhook URLs for customer telemetry.
 // Explicit per-tenant consent and an operator-owned HTTPS host allowlist are required.
-async function dispatchWebhookNotification(tenantId, title, message, severity = 'info', details = {}) {
-  if (!tenantId) return;
-  try {
-    const config = await db.getTenantWebhookConfig(tenantId);
-    await deliverTenantWebhook(tenantId, config, { title, message, severity, details });
-  } catch {
-    // Best-effort notification; never send tenant data through a fallback URL.
-  }
-}
-
-async function dispatchEmailNotification(tenantId, title, message, severity = 'info') {
-  if (!tenantId) return;
-  try {
-    const consent = await db.getTenantEmailConfig(tenantId);
-    await deliverTenantEmail(tenantId, consent, { title, message, severity });
-  } catch {
-    // Best effort only; durable notification outbox and retries are not implemented.
-  }
-}
+// Automatic notifications are transactionally queued in createAlert();
+// network delivery is performed only by the MySQL-backed outbox worker.
 
 // Security & Audit Helpers (backed by MySQL audit_logs table)
 function logAudit(actor, action, targetResource, details, req) {
@@ -1402,6 +1386,9 @@ app.post(['/api/v1/ingest/telemetry', '/api/ingest'], agentLimiter, validateBody
   // Evaluate alert rules against live telemetry
   if (metrics) {
     const alertRules = scopedAlertRules(dev.tenant_id, await db.getAlertRules());
+    // Consent is checked when the alert is created as well as at dispatch.
+    // Newly enabling a channel must never retroactively export old telemetry.
+    let authorizedChannels = null;
     for (const rule of alertRules) {
       if (!rule.enabled) continue;
       let triggered = false;
@@ -1428,14 +1415,26 @@ app.post(['/api/v1/ingest/telemetry', '/api/ingest'], agentLimiter, validateBody
           status: "open",
           rule: rule.name
         };
-        await db.createAlert(alt);
-        dispatchWebhookNotification(dev.tenant_id, rule.name, `${dev.hostname}: ${msg}`, rule.severity, {
-          hostname: dev.hostname,
-          metric: rule.metric,
-          threshold: rule.threshold
-        }).catch(() => {});
-        dispatchEmailNotification(dev.tenant_id, rule.name,
-          dev.hostname + ': ' + msg, rule.severity).catch(() => {});
+        const notification = {
+          title: rule.name,
+          message: dev.hostname + ': ' + msg,
+          severity: rule.severity || 'warning',
+          details: { hostname: dev.hostname, metric: rule.metric, threshold: rule.threshold }
+        };
+        if (authorizedChannels === null) {
+          const [webhook, email] = await Promise.all([
+            db.getTenantWebhookConfig(dev.tenant_id),
+            db.getTenantEmailConfig(dev.tenant_id)
+          ]);
+          authorizedChannels = [];
+          if (webhook?.enabled) authorizedChannels.push('webhook');
+          if (email?.enabled) authorizedChannels.push('email');
+        }
+        // On production MySQL, the alert and enabled channel jobs share one
+        // transaction. Disabled channels leave no backlog of historical data.
+        await db.createAlert(alt, authorizedChannels.map(channel => ({
+          channel, event: notification
+        })));
       }
     }
   }
@@ -1748,6 +1747,13 @@ app.get(['/api/v1/alerts', '/api/alerts'], async (req, res) => {
   const list = await db.getAlerts(filters);
   sendPaginated(req, res, list, 50, 500);
 });
+
+app.get(['/api/v1/alerts/notifications/status', '/api/alerts/notifications/status'],
+  requireRole(['SUPER_ADMIN']), async (req, res) => {
+    if (!req.user?.tenant_id) return res.status(403).json({ error: 'TENANT_REQUIRED' });
+    const summary = await db.getTenantOutboxStatus(req.user.tenant_id);
+    return res.json({ status: summary });
+  });
 
 app.get(['/api/v1/alerts/rules', '/api/alert-rules'], async (req, res) => {
   if (!req.user?.tenant_id) return res.status(403).json({ error: 'TENANT_REQUIRED' });
@@ -3177,65 +3183,58 @@ app.get(['/api/v1/analytics/predictive', '/api/analytics/predictive'], async (re
 
 // ---------------- GAP FULFILLMENT: AUTO-REMEDIATION ----------------
 app.get(['/api/v1/remediation/policies', '/api/remediation/policies'], async (req, res) => {
-  const policies = await db.getRemediationPolicies();
-  const logs = await db.getRemediationLogs();
-  res.json({
-    policies,
-    logs
-  });
+  if (!req.user?.tenant_id) return res.status(403).json({ error: 'TENANT_REQUIRED' });
+  const [policies, logs] = await Promise.all([
+    db.getTenantRemediationPolicies(req.user.tenant_id),
+    db.getRemediationLogs(100, req.user.tenant_id)
+  ]);
+  return res.json({ policies, logs });
 });
 
 app.put(['/api/v1/remediation/policies/:id', '/api/remediation/policies/:id'], requireRole(['SUPER_ADMIN']), validateBody(updateRemediationPolicySchema), async (req, res) => {
-  const pol = await db.getRemediationPolicyById(req.params.id);
-  if (!pol) return res.status(404).json({ detail: "Policy not found" });
-  if (req.body.enabled !== undefined) {
-    await db.updateRemediationPolicy(pol.id, { enabled: req.body.enabled });
-    pol.enabled = req.body.enabled;
-  }
-  logAudit(req.user, "REMEDIATION_POLICY_UPDATED", `Policy:${pol.name}`, { enabled: pol.enabled }, req);
-  res.json({ ok: true, policy: pol });
+  const tenantId = req.user?.tenant_id;
+  if (!tenantId) return res.status(403).json({ error: 'TENANT_REQUIRED' });
+  const pol = await db.setTenantRemediationPolicyEnabled(tenantId, req.params.id, req.body.enabled);
+  if (!pol) return res.status(404).json({ detail: 'Policy not found' });
+  logAudit(req.user, 'TENANT_REMEDIATION_POLICY_UPDATED', 'Policy:' + pol.id,
+    { enabled: pol.enabled }, req);
+  return res.json({ ok: true, policy: pol });
 });
 
 app.post(['/api/v1/remediation/trigger', '/api/remediation/trigger'], requireRole(['SUPER_ADMIN', 'OPERATOR']), validateBody(remediationTriggerSchema), async (req, res) => {
   const { hostname, action_type } = req.body;
-  // A matching hostname is not authorization to mutate another workspace.
-  if (!req.user?.tenant_id) return res.status(403).json({ error: 'TENANT_REQUIRED' });
-  const targetDevice = await db.getDeviceByHostname(hostname);
-  if (!belongsToCurrentTenant(req.user, targetDevice)) {
+  const tenantId = req.user?.tenant_id;
+  if (!tenantId) return res.status(403).json({ error: 'TENANT_REQUIRED' });
+  const device = await db.getDeviceByHostname(hostname);
+  if (!belongsToCurrentTenant(req.user, device)) {
     return res.status(404).json({ error: 'Target agent/device not found' });
   }
-  const pol = (await db.getRemediationPolicyByActionType(action_type)) || { name: "Manual Remediation" };
+  // Never convert an unrecognized, client-chosen action_type into a script name.
+  const policy = await db.getTenantRemediationPolicyByActionType(tenantId, action_type);
+  if (!policy) return res.status(400).json({ error: 'UNAPPROVED_REMEDIATION_ACTION' });
+  if (!policy.enabled) return res.status(403).json({ error: 'REMEDIATION_POLICY_DISABLED' });
 
-  const actionMsg = `Dispatched remediation script Remediate-${action_type}.ps1 to agent queue`;
-
-  const newLog = await db.logRemediation({
-    hostname: hostname || "DESKTOP-DEV018",
-    policy_name: pol.name,
-    action: actionMsg,
-    status: "pending"
+  const commandId = crypto.randomUUID();
+  await db.queueCommandInDb({
+    id: commandId,
+    device_id: device.id,
+    agent_id: device.id,
+    hostname: device.hostname,
+    kind: 'run-script',
+    command_type: 'run-script',
+    payload: { script_name: 'Remediate-' + policy.action_type + '.ps1' },
+    status: 'pending',
+    dispatched_by: req.user?.username || 'admin'
   });
-
-  // Record command in MySQL with 'pending' status for agent execution
-  let commandId = null;
-  const dev = targetDevice;
-  if (dev) {
-    commandId = crypto.randomUUID();
-    await db.queueCommandInDb({
-      id: commandId,
-      device_id: dev.id,
-      agent_id: dev.id,
-      hostname: dev.hostname,
-      kind: "run-script",
-      command_type: "run-script",
-      payload: { script_name: `Remediate-${action_type}.ps1` },
-      status: "pending",
-      dispatched_by: req.user?.username || "admin"
-    });
-  }
-
-  logAudit(req.user, "REMEDIATION_TRIGGERED", `Device:${hostname}`, { action_type, command_id: commandId, status: "pending" }, req);
-
-  res.json({ ok: true, log: newLog, command_id: commandId, status: "pending" });
+  const action = 'Queued approved remediation: ' + policy.action_type;
+  const log = await db.logRemediation({
+    tenant_id: tenantId, hostname: device.hostname, policy_name: policy.name,
+    action, status: 'pending'
+  });
+  logAudit(req.user, 'REMEDIATION_TRIGGERED', 'Device:' + device.hostname,
+    { action_type: policy.action_type, policy_id: policy.id, command_id: commandId,
+      status: 'pending' }, req);
+  return res.json({ ok: true, log, command_id: commandId, status: 'pending' });
 });
 
 // ---------------- GAP FULFILLMENT: TICKETING INTEGRATION ----------------
@@ -3379,6 +3378,8 @@ if (!runningUnderVitest) {
   }
   // Initialize scheduled hourly data retention & partition cleanup engine
   db.initRetentionScheduler(3600000);
+  // Each PM2 worker may poll; DB-atomic leases enforce one owner per job.
+  if (isProduction) startNotificationOutboxWorker();
 }
 
 export { app, serverInstance };

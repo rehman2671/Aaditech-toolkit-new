@@ -268,8 +268,10 @@ export async function runDatabaseMigrations() {
       memAppliedMigrations.add('002');
       memAppliedMigrations.add('003');
       memAppliedMigrations.add('004');
+      memAppliedMigrations.add('005');
+      memAppliedMigrations.add('006');
     }
-    return { applied: [], skipped: ['001_init_schema.sql', '002_partitioning.sql', '003_rbac_and_audit.sql', '004_workspace_memberships.sql'], status: 'FALLBACK_MODE' };
+    return { applied: [], skipped: ['001_init_schema.sql', '002_partitioning.sql', '003_rbac_and_audit.sql', '004_workspace_memberships.sql', '005_remediation_tenant_logs.sql', '006_notification_outbox.sql'], status: 'FALLBACK_MODE' };
   }
 
   let lockAcquired = false;
@@ -691,7 +693,12 @@ export async function executeQuery(sql, params = []) {
   }
 
   if (upperSql.includes('FROM REMEDIATION_LOGS')) {
-    return [...memRemediationLogs];
+    // Historical unowned logs are never visible to any customer workspace.
+    if (upperSql.includes('WHERE TENANT_ID = ?')) {
+      return memRemediationLogs.filter(x => String(x.tenant_id) === String(params[0]))
+        .slice(0, Number(params[1]) || 100);
+    }
+    return [];
   }
 
   if (upperSql.includes('FROM SYSTEM_SETTINGS')) {
@@ -2041,7 +2048,7 @@ export async function getAlertById(id) {
   return { ...r, agent_id: r.device_id, rule: r.rule_name };
 }
 
-export async function createAlert(alt) {
+export async function createAlert(alt, notifications = []) {
   if (process.env.NODE_ENV === 'production' && !alt?.tenant_id) {
     throw new Error('TENANT_REQUIRED');
   }
@@ -2049,17 +2056,51 @@ export async function createAlert(alt) {
     INSERT INTO alerts (tenant_id, device_id, agent_id, hostname, rule, rule_name, severity, message, status, created_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(3))
   `;
-  const res = await executeQuery(sql, [
+  const values = [
     alt.tenant_id || '00000000-0000-0000-0000-000000000001',
     String(alt.device_id || alt.agent_id || ''),
-    alt.agent_id || null,
-    alt.hostname || 'Unknown',
+    alt.agent_id || null, alt.hostname || 'Unknown',
     alt.rule || alt.rule_name || 'System Alert',
     alt.rule_name || alt.rule || 'System Alert',
-    alt.severity || 'warning',
-    alt.message || '',
-    alt.status || 'open'
-  ]);
+    alt.severity || 'warning', alt.message || '', alt.status || 'open'
+  ];
+  const jobs = Array.isArray(notifications) ? notifications : [];
+  for (const job of jobs) {
+    if (!['webhook', 'email'].includes(job?.channel) ||
+        !job?.event || typeof job.event !== 'object' || Array.isArray(job.event)) {
+      throw new Error('INVALID_NOTIFICATION_CHANNEL');
+    }
+  }
+  let res;
+  if (process.env.NODE_ENV === 'production' && jobs.length) {
+    if (!isMysqlConnected() || !pool?.getConnection) throw new Error('OUTBOX_DATABASE_UNAVAILABLE');
+    const conn = await pool.getConnection();
+    try {
+      await conn.beginTransaction();
+      [res] = await conn.query(sql, values);
+      for (const job of jobs) {
+        await conn.query(
+          'INSERT IGNORE INTO notification_outbox (tenant_id, alert_id, channel, payload_json) VALUES (?, ?, ?, ?)',
+          [values[0], res.insertId, job.channel, JSON.stringify(job.event)]
+        );
+      }
+      await conn.commit();
+    } catch (err) {
+      await conn.rollback();
+      throw err;
+    } finally {
+      conn.release();
+    }
+  } else {
+    // Retain development fixture behavior, but still exercise enqueue SQL.
+    res = await executeQuery(sql, values);
+    for (const job of jobs) {
+      await executeQuery(
+        'INSERT IGNORE INTO notification_outbox (tenant_id, alert_id, channel, payload_json) VALUES (?, ?, ?, ?)',
+        [values[0], res.insertId, job.channel, JSON.stringify(job.event)]
+      );
+    }
+  }
   const alertObj = {
     id: res.insertId,
     tenant_id: alt.tenant_id || '00000000-0000-0000-0000-000000000001',
@@ -2075,6 +2116,74 @@ export async function createAlert(alt) {
   };
   memAlerts.push(alertObj);
   return alertObj;
+}
+
+// Durable multi-worker queue: atomic MySQL claim and lease-token guarded writes.
+// Concurrent PM2 workers cannot claim the same PENDING row at the same time.
+export async function claimNotificationOutbox(batchSize = 20) {
+  const limit = Math.min(50, Math.max(1, Math.floor(Number(batchSize) || 20)));
+  const lease = crypto.randomUUID();
+  await executeQuery(
+    "UPDATE notification_outbox SET status = 'DEAD', lease_token = NULL, lease_expires_at = NULL, last_error = 'LEASE_EXPIRED' " +
+    "WHERE status = 'PROCESSING' AND attempts >= 5 AND lease_expires_at <= UTC_TIMESTAMP(3)"
+  );
+  const claimed = await executeQuery(
+    "UPDATE notification_outbox SET status = 'PROCESSING', lease_token = ?, attempts = attempts + 1, " +
+    "lease_expires_at = DATE_ADD(UTC_TIMESTAMP(3), INTERVAL 90 SECOND) " +
+    "WHERE attempts < 5 AND ((status = 'PENDING' AND available_at <= UTC_TIMESTAMP(3)) " +
+    "OR (status = 'PROCESSING' AND lease_expires_at <= UTC_TIMESTAMP(3))) " +
+    "ORDER BY id ASC LIMIT ?",
+    [lease, limit]
+  );
+  if (!claimed?.affectedRows) return [];
+  return executeQuery(
+    "SELECT * FROM notification_outbox WHERE lease_token = ? AND status = 'PROCESSING' ORDER BY id ASC",
+    [lease]
+  );
+}
+
+export async function finishNotificationOutbox(id, lease, status) {
+  if (!['DELIVERED', 'SKIPPED'].includes(status) || !id || !lease) {
+    throw new Error('INVALID_OUTBOX_COMPLETION');
+  }
+  const result = await executeQuery(
+    "UPDATE notification_outbox SET status = ?, lease_token = NULL, lease_expires_at = NULL, last_error = NULL " +
+    "WHERE id = ? AND lease_token = ? AND status = 'PROCESSING'",
+    [status, id, lease]
+  );
+  return result?.affectedRows === 1;
+}
+
+export async function retryNotificationOutbox(row, code = 'DELIVERY_FAILED') {
+  if (!row?.id || !row?.lease_token) throw new Error('OUTBOX_LEASE_REQUIRED');
+  const attempts = Math.max(1, Number(row.attempts || 1));
+  const safe = /^[A-Z0-9_]{1,64}$/.test(String(code)) ? code : 'DELIVERY_FAILED';
+  const delay = Math.min(3600, 15 * (2 ** Math.min(10, attempts - 1)));
+  const updated = await executeQuery(
+    "UPDATE notification_outbox SET status = ?, lease_token = NULL, lease_expires_at = NULL, " +
+    "available_at = DATE_ADD(UTC_TIMESTAMP(3), INTERVAL ? SECOND), last_error = ? " +
+    "WHERE id = ? AND lease_token = ? AND status = 'PROCESSING'",
+    [attempts >= 5 ? 'DEAD' : 'PENDING', delay, safe, row.id, row.lease_token]
+  );
+  return updated?.affectedRows === 1;
+}
+
+export async function getTenantOutboxStatus(tenantId) {
+  if (!tenantId || typeof tenantId !== 'string') throw new Error('TENANT_REQUIRED');
+  const rows = await executeQuery(
+    'SELECT channel, status, COUNT(*) AS total FROM notification_outbox ' +
+    'WHERE tenant_id = ? GROUP BY channel, status',
+    [tenantId]
+  );
+  return rows.map(row => ({ channel: row.channel, status: row.status, total: Number(row.total) }));
+}
+
+export async function pruneNotificationOutbox() {
+  const deleted = await executeQuery(
+    "DELETE FROM notification_outbox WHERE status IN ('DELIVERED','SKIPPED','DEAD') " +
+    "AND updated_at < DATE_SUB(UTC_TIMESTAMP(3), INTERVAL 30 DAY)"
+  );
+  return deleted?.affectedRows || 0;
 }
 
 export async function updateAlert(id, updates) {
@@ -2578,6 +2687,40 @@ export async function getRemediationPolicyByActionType(actionType) {
   return { ...rows[0], enabled: Boolean(rows[0].enabled) };
 }
 
+// Per-tenant overrides never alter the shared operator-provided policy catalog.
+export async function getTenantRemediationPolicies(tenantId) {
+  if (!tenantId || typeof tenantId !== 'string') throw new Error('TENANT_REQUIRED');
+  const [templates, overrides] = await Promise.all([
+    getRemediationPolicies(),
+    getSetting('tenant:' + tenantId + ':remediationPolicyOverrides', {})
+  ]);
+  return templates.map(template => ({
+    ...template,
+    enabled: typeof overrides?.[template.id] === 'boolean'
+      ? overrides[template.id] : template.enabled
+  }));
+}
+
+export async function getTenantRemediationPolicyByActionType(tenantId, actionType) {
+  const policies = await getTenantRemediationPolicies(tenantId);
+  return policies.find(policy => policy.action_type === actionType) || null;
+}
+
+export async function getTenantRemediationPolicyById(tenantId, policyId) {
+  const policies = await getTenantRemediationPolicies(tenantId);
+  return policies.find(policy => policy.id === policyId) || null;
+}
+
+export async function setTenantRemediationPolicyEnabled(tenantId, policyId, enabled) {
+  if (!tenantId || typeof tenantId !== 'string') throw new Error('TENANT_REQUIRED');
+  const template = await getRemediationPolicyById(policyId);
+  if (!template) return null;
+  const key = 'tenant:' + tenantId + ':remediationPolicyOverrides';
+  const overrides = await getSetting(key, {});
+  await setSetting(key, { ...(overrides || {}), [template.id]: enabled === true });
+  return { ...template, enabled: enabled === true };
+}
+
 export async function createRemediationPolicy(pol) {
   const polId = pol.id || `rem-${crypto.randomUUID()}`;
   pol.id = polId;
@@ -2613,27 +2756,27 @@ export async function updateRemediationPolicy(id, updates) {
 }
 
 export async function logRemediation(entry) {
-  const memEntry = { id: Date.now(), ...entry, executed_at: new Date() };
-  memRemediationLogs.push(memEntry);
+  if (!entry?.tenant_id) throw new Error('TENANT_REQUIRED');
   const sql = `
-    INSERT INTO remediation_logs (hostname, policy_name, action, status, executed_at)
-    VALUES (?, ?, ?, ?, NOW(3))
+    INSERT INTO remediation_logs (tenant_id, hostname, policy_name, action, status, executed_at)
+    VALUES (?, ?, ?, ?, ?, NOW(3))
   `;
   const res = await executeQuery(sql, [
-    entry.hostname,
-    entry.policy_name,
-    entry.action,
-    entry.status || 'success'
+    entry.tenant_id, entry.hostname, entry.policy_name, entry.action,
+    entry.status || 'pending'
   ]);
-  return { id: res?.insertId || memEntry.id, ...entry };
+  const record = { id: res?.insertId || Date.now(), ...entry, executed_at: new Date() };
+  // Legacy rows with no tenant remain quarantined; only new rows are owned.
+  memRemediationLogs.push(record);
+  return record;
 }
 
-export async function getRemediationLogs(limit = 100) {
-  const rows = await executeQuery(
-    'SELECT * FROM remediation_logs ORDER BY executed_at DESC LIMIT ?',
-    [limit]
+export async function getRemediationLogs(limit = 100, tenantId) {
+  if (!tenantId || typeof tenantId !== 'string') throw new Error('TENANT_REQUIRED');
+  return executeQuery(
+    'SELECT * FROM remediation_logs WHERE tenant_id = ? ORDER BY executed_at DESC LIMIT ?',
+    [tenantId, limit]
   );
-  return rows;
 }
 
 // ---------------- EVENTS ----------------

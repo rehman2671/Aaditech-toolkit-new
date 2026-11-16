@@ -104,7 +104,8 @@ if [ "$BACKUP_KEEP" -gt 0 ]; then
   remove_count=$(("${#files[@]}" - BACKUP_KEEP))
   if [ "$remove_count" -gt 0 ]; then
     for ((i=0; i<remove_count; i++)); do
-      rm -- "${files[i]}" "${files[i]}.sha256"
+      # Older, explicitly retained legacy dumps may not have a sidecar.
+      rm -f -- "${files[i]}" "${files[i]}.sha256"
       log "Pruned dated backup and integrity sidecar: ${files[i]}"
     done
   fi

@@ -58,7 +58,7 @@ This runbook applies to the repository's Node.js/Express + MySQL 8 service and W
 | Gate | Current verified status | Human acceptance evidence |
 |---|---|---|
 | Stage 17 code + diagnostic CI | Accepted: main CI #43981328283 4/4; safety #43981328387 2/2 | GitHub Actions |
-| Stage 18 tenant boundaries | Merge #8 completed; confirm final main workflow #43982225279 and safety #43982225214 before recording acceptance | GitHub Actions |
+| Stage 18 tenant boundaries | **Accepted diagnostic CI:** main #43982225279 SUCCESS 4/4; safety #43982225214 SUCCESS 2/2 | GitHub Actions |
 | Real Hostinger VPS/DNS/TLS | **BLOCKED** | __________ |
 | Authorized production migration / offsite restore | **BLOCKED** | __________ |
 | Real SMTP inbox + webhook receiver | **BLOCKED** | __________ |

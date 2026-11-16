@@ -1,5 +1,22 @@
 # Changelog
 
+## Unreleased — Phase N Stage 18 (cross-tenant API containment)
+
+- Default workspace SUPER_ADMIN no longer bypasses tenant-scoped audit log filtering; foreign tenant query IDs are rejected, not interpreted as platform-wide entitlement.
+- Device processes and app-usage endpoints verify device tenant ownership; hostname-only Redis app-usage lookup removed.
+- Workspace group/policy listings and creation use tenant predicates. Patch inventory/approval settings are tenant-keyed and do not inherit platform-global data.
+- [PR #8](https://github.com/rehman2671/Aaditech-toolkit-new/pull/8) merged; [main CI #43982225279](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43982225279) **SUCCESS 4/4**, [safety #43982225214](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43982225214) **SUCCESS 2/2**.
+
+## Unreleased — Phase N Stage 17 (remediation, webhook DNS and durable alerts)
+
+- Scope remediation logs/policy overrides by tenant and reject unapproved/disabled remote remediation action types; historical unowned log rows are quarantined.
+- Resolve exact-allowlisted webhook destination to verified public IPv4 and pin the HTTPS request to it; prevent private network/metadata DNS-rebinding, redirects and unbounded payloads.
+- Implement transactional MySQL alert delivery outbox, distributed leases, bounded exponential retry, dead-letter handling, per-tenant status and consent snapshot at alert creation.
+- Migrations `005_remediation_tenant_logs.sql` and `006_notification_outbox.sql` introduced; runbooks and regression tests updated.
+- [PR #7](https://github.com/rehman2671/Aaditech-toolkit-new/pull/7) merged; [main CI #43981328283](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43981328283) **SUCCESS 4/4**, [safety #43981328387](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43981328387) **SUCCESS 2/2**. Notification delivery is *at least once*, not guaranteed unique or inbox verified.
+
+**Production sign-off remains BLOCKED:** public signed MSI approval, real Hostinger VPS/DNS/TLS, real-data restore/recovery, genuine SMTP/webhook receiver and managed Windows endpoint/UAC tests. See `Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md`.
+
 ## Unreleased — Phase N Stage 16 (tenant inventory and opt-in TLS SMTP)
 
 - **Cross-workspace inventory fix:** restrict software search/export, license compliance/export, fleet CSV, security posture and predictive analytics device reads to the authenticated tenant, never the global fleet.

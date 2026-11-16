@@ -227,6 +227,13 @@
       <button data-view="deploy"><svg class="ic" aria-hidden="true"><use href="#ic-package"/></svg>Deploy Guide</button>
     </nav>
     <div class="side-foot">
+      <div id="workspacePicker" style="display:none; margin-bottom:12px">
+        <label for="workspaceSelect" class="nav-label">Active workspace</label>
+        <select id="workspaceSelect" aria-label="Select authorized workspace"
+          style="width:100%;background:var(--panel);color:var(--text);border:1px solid var(--line-2);border-radius:7px;padding:9px">
+        </select>
+        <div id="workspaceError" class="muted" role="status"></div>
+      </div>
       <div class="side-user">
         <span class="avatar" id="whoAvatar">?</span>
         <div class="u-meta">
@@ -405,11 +412,72 @@ async function start() {
   if (av) av.textContent = boot.user && boot.user.username ? boot.user.username[0] : '?';
   setupNav();
   pruneNavGroups();
+  await refreshWorkspacePicker(boot.user?.tenant_id);
   refreshAlertBadge();
   setInterval(refreshAlertBadge, 30000);
   checkIngestStatus();
   setInterval(checkIngestStatus, 60000);
   render();
+}
+
+async function refreshWorkspacePicker(currentTenant) {
+  const wrap = document.getElementById('workspacePicker');
+  const select = document.getElementById('workspaceSelect');
+  if (!wrap || !select) return;
+  wrap.style.display = 'none';
+  const token = localStorage.getItem('auth_token');
+  if (!token) return;
+  try {
+    const response = await fetch('/api/v1/workspaces', {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!response.ok) return;
+    const json = await response.json();
+    const choices = Array.isArray(json) ? json : (json.data || json.items || []);
+    select.replaceChildren();
+    for (const item of choices) {
+      if (!item.tenant_id) continue;
+      const option = document.createElement('option');
+      option.value = item.tenant_id;
+      option.textContent = (item.name || item.slug || item.tenant_id) +
+        ' (' + (item.role || 'MEMBER') + ')';
+      option.selected = item.tenant_id === currentTenant;
+      select.appendChild(option);
+    }
+    if (!select.options.length) return;
+    wrap.style.display = '';
+    select.onchange = () => switchAuthorizedWorkspace(select.value, currentTenant);
+  } catch (_) {
+    // Network failure never changes authenticated workspace.
+  }
+}
+
+async function switchAuthorizedWorkspace(tenantId, currentTenant) {
+  const status = document.getElementById('workspaceError');
+  const select = document.getElementById('workspaceSelect');
+  if (status) status.textContent = '';
+  if (!tenantId || tenantId === currentTenant) return;
+  const token = localStorage.getItem('auth_token');
+  try {
+    const response = await fetch('/api/v1/workspaces/select', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ tenant_id: tenantId })
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok || !result.token) {
+      if (status) status.textContent = result.error || 'Workspace access denied';
+      if (select) select.value = currentTenant;
+      return;
+    }
+    localStorage.setItem('auth_token', result.token);
+    // Rebuild the UI from the new tenant-scoped /api/bootstrap response.
+    window.location.reload();
+  } catch (_) {
+    if (status) status.textContent = 'Could not change workspace';
+    if (select) select.value = currentTenant;
+  }
 }
 
 async function refreshAlertBadge() {

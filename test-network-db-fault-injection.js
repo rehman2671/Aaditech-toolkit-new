@@ -125,18 +125,23 @@ try {
     proxy.once('error', reject).listen(0, '127.0.0.1', resolve));
   listening = true;
   const proxyPort = proxy.address().port;
-  const mainPort = await freePort(), coldPort = await freePort();
+  const mainPort = await freePort(), peerPort = await freePort(), coldPort = await freePort();
   const main = startWorker(mainPort, proxyPort);
   await waitFor(mainPort, 200, 35);
+  const peer = startWorker(peerPort, proxyPort);
+  await waitFor(peerPort, 200, 35);
   assert.equal(main.exitCode, null, 'Primary worker exited during startup');
-  console.log('[PASS] Production worker connects through isolated MySQL TCP fault proxy.');
+  assert.equal(peer.exitCode, null, 'Peer worker exited during startup');
+  console.log('[PASS] Two production workers share isolated MySQL TCP fault proxy.');
 
   const token = bootstrap(), deviceHost = prefix + '-DEVICE';
   setPartition(true);
-  await waitFor(mainPort, 503, 15);
-  const rejected = await enroll(mainPort, deviceHost, token);
-  assert.equal(rejected.status, 503, 'API must fail closed during DB partition');
-  assert.equal(rejected.body.error, 'DATABASE_UNAVAILABLE');
+  await Promise.all([waitFor(mainPort, 503, 15), waitFor(peerPort, 503, 15)]);
+  const rejected = await Promise.all([enroll(mainPort, deviceHost, token), enroll(peerPort, deviceHost, token)]);
+  for (const result of rejected) {
+    assert.equal(result.status, 503, 'Both API nodes must fail closed during DB partition');
+    assert.equal(result.body.error, 'DATABASE_UNAVAILABLE');
+  }
   const cold = startWorker(coldPort, proxyPort, '100,100');
   await Promise.race([
     once(cold, 'exit'),
@@ -144,20 +149,20 @@ try {
   ]);
   assert.notEqual(cold.exitCode, 0, 'Cold production process started without DB');
   assert.notEqual((await health(coldPort)).status, 200);
-  console.log('[PASS] Outage gives healthz 503, API 503, and cold boot refuses to serve.');
+  console.log('[PASS] Both hot nodes fail closed with 503; cold worker cannot serve without MySQL.');
 
   setPartition(false);
-  await waitFor(mainPort, 200, 80);
+  await Promise.all([waitFor(mainPort, 200, 80), waitFor(peerPort, 200, 80)]);
   const accepted = await enroll(mainPort, deviceHost, token);
   assert.equal(accepted.status, 201,
     'Unused bootstrap must succeed after DB recovery: ' + JSON.stringify(accepted.body));
-  const replay = await enroll(mainPort, prefix + '-REPLAY', token);
+  const replay = await enroll(peerPort, prefix + '-REPLAY', token);
   assert.equal(replay.status, 401, 'Recovered worker allowed replay of a consumed token');
   const hash = crypto.createHash('sha256').update(token).digest('hex');
   const [rows] = await pool.execute(
     'SELECT COUNT(*) AS total FROM used_bootstrap_tokens WHERE token_hash = ?', [hash]);
   assert.equal(Number(rows[0].total), 1);
-  console.log('[PASS] DB reconnect preserves one-use token semantics and commits exactly once.');
+  console.log('[PASS] Both nodes recover; bootstrap token redeemed on one is rejected as replay on the other.');
 } finally {
   setPartition(true);
   for (const child of live) child.kill('SIGTERM');

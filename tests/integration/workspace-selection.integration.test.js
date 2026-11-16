@@ -126,6 +126,25 @@ describe('Phase N13 membership-enforced workspace API', () => {
     expect(ticketConfig.body).not.toHaveProperty('tenant_id');
   });
 
+  it('requires workspace SUPER_ADMIN for email consent and rejects tenant override', async () => {
+    const denied = await request(app).put('/api/v1/alerts/email')
+      .set('Authorization', `Bearer ${operator}`)
+      .send({ enabled: true, recipient: 'x@example.com' });
+    expect(denied.status).toBe(403);
+    const invalid = await request(app).put('/api/v1/alerts/email')
+      .set('Authorization', `Bearer ${admin}`)
+      .send({ enabled: false, tenant_id: foreign, recipient: 'x@example.com' });
+    expect(invalid.status).toBe(400);
+    const initial = await request(app).get('/api/v1/alerts/email')
+      .set('Authorization', `Bearer ${admin}`);
+    expect(initial.status).toBe(200);
+    expect(initial.body).toMatchObject({ enabled: false, recipient: '', smtp_configured: false });
+    const blocked = await request(app).post('/api/v1/alerts/test-email')
+      .set('Authorization', `Bearer ${admin}`);
+    expect(blocked.status).toBe(400);
+    expect(blocked.body.error).toBe('NOT_CONFIGURED');
+  });
+
   it('does not allow operators to change global settings', async () => {
     const attempts = [
       request(app).post('/api/v1/settings/retention/run'),

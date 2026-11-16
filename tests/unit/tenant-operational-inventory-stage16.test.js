@@ -27,3 +27,25 @@ describe('Phase N16 tenant inventory SQL boundaries', () => {
     expect(queries.map(q => q.params)).toEqual([['tenant-A'], ['tenant-B']]);
   });
 });
+
+describe('Stage N16 per-workspace email storage isolation', () => {
+  it('does not inherit global retention/email recipients or another tenant config', async () => {
+    process.env.NODE_ENV = 'production';
+    const queries = [];
+    db.setConnectionStateForTesting(true, {
+      query: async (sql, params = []) => {
+        queries.push({ sql, params });
+        if (sql.includes('FROM system_settings')) return [[], []];
+        return [{ affectedRows: 1 }, []];
+      }
+    });
+    expect(await db.getTenantEmailConfig('tenant-A')).toEqual({ enabled: false, recipient: '' });
+    await db.updateTenantEmailConfig('tenant-A', { recipient: 'alerts@example.com', enabled: true });
+    expect(await db.getTenantEmailConfig('tenant-B')).toEqual({ enabled: false, recipient: '' });
+    const keys = queries.filter(q => q.sql.includes('system_settings')).map(q => q.params[0]);
+    expect(keys).toContain('tenant:tenant-A:emailConfig');
+    expect(keys).toContain('tenant:tenant-B:emailConfig');
+    expect(keys).not.toContain('retentionSettings');
+    expect(keys).not.toContain('emailConfig');
+  });
+});

@@ -795,12 +795,26 @@ describe('Server & API Integration Test Suite', () => {
       expect(hookTest.status).toBe(400);
       expect(hookTest.body.error).toBe('NOT_CONFIGURED');
 
-      // No SMTP transport exists; false successful delivery receipts are unsafe.
+      // A tenant without consent must never attempt to deliver email.
       const emailTest = await request(app)
         .post('/api/v1/alerts/test-email')
         .set('Authorization', `Bearer ${token}`);
-      expect(emailTest.status).toBe(501);
-      expect(emailTest.body.error).toBe('EMAIL_TRANSPORT_NOT_IMPLEMENTED');
+      expect(emailTest.status).toBe(400);
+      expect(emailTest.body.error).toBe('NOT_CONFIGURED');
+
+      const emailGet = await request(app)
+        .get('/api/v1/alerts/email')
+        .set('Authorization', `Bearer ${token}`);
+      expect(emailGet.status).toBe(200);
+      expect(emailGet.body).toMatchObject({ enabled: false, smtp_configured: false });
+      expect(emailGet.body).not.toHaveProperty('password');
+
+      const emailEnable = await request(app)
+        .put('/api/v1/alerts/email')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ enabled: true, recipient: 'ops@example.com' });
+      expect(emailEnable.status).toBe(503);
+      expect(emailEnable.body.error).toBe('SMTP_NOT_CONFIGURED');
     });
 
     it('Branding, bootstrap, retention trigger, and system status', async () => {

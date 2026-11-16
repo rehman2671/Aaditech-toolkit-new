@@ -11,6 +11,16 @@
 > The current Node API uses HTTPS + per-device tokens; **mutual TLS is not
 > implemented**, and live Windows/Hostinger production acceptance is pending.
 
+> **Latest hardening:** [Phase N Stage 9 acceptance](deploy/PHASE-N-STAGE9-ACCEPTANCE.md)
+> adds actual CI-only MySQL unique-index migration rehearsal, two-replica
+> database partition/recovery tests, and default-deny signing checks.
+> **No real production migration, signed public release or Hostinger VPS
+> acceptance has been performed.** Historical setup sections below may
+> describe obsolete FastAPI/PostgreSQL, self-signed CA, or MSI token-embedding
+> workflows: those are **not** current production installation instructions.
+> The generic MSI must remain unprovisioned, and production package downloads
+> require APPROVED_MSI_SHA256 after independent publisher verification.
+
 Centralized **agent → server → web portal** stack that scales the existing
 IT-Toolkit **without modifying any existing script or module**. Everything here
 is additive and lives under `Enterprise/`.

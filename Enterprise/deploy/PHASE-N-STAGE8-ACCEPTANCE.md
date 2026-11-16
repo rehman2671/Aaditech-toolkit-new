@@ -2,6 +2,13 @@
 
 **State: CI code and rehearsal gates implemented; NOT production certified.**
 
+**Stage 9 continuation:** two-replica database fault recovery, actual unique-index
+DDL migration on a disposable schema copy and signing negative-path controls
+are documented in [Stage 9 acceptance](PHASE-N-STAGE9-ACCEPTANCE.md).
+Stage 8 CI [#43878381755](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43878381755)
+passed all four jobs; this does not certify a signed release.
+
+
 ## Network / MySQL fail-closed acceptance
 
 The isolated test-network-db-fault-injection.js starts real Node production-mode

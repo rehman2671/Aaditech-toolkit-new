@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased — Phase N Stage 9 (production readiness, not released)
+
+- **Real MySQL identity migration rehearsal:** test the manually controlled global hostname/UID unique-index DDL on a disposable schema copy; reject casefold collisions and prove no partial DDL on failure. No production migration is automatic.
+- **Multi-replica failure injection:** two production-mode API processes share a disposable MySQL TCP fault proxy; both must fail closed during network partition and recover while rejecting cross-node one-use token replays.
+- **Signed release safety:** Windows CI validates unsigned/malformed signing configurations fail closed, and the manual release workflow verifies tag existence using authenticated GitHub API without weakening SHA-pinned checkout.
+- **Runner concurrency:** cancel superseded CI/index runs to reduce stale validations and non-fast-forward metadata pushes.
+- **Release status:** production signing certificate, signed GitHub Release, Hostinger acceptance and physical Windows deployment remain blocked and require operator-owned approvals. See Enterprise/deploy/PHASE-N-STAGE9-ACCEPTANCE.md.
+
+
 ## v1.4.0 — Aaditech Endpoint Monitoring & Operational Management Platform Release
 
 - **Restricted REST API v1 Architecture (`/api/v1/*`)**: Re-architected backend service with tenant-scoped, cryptographic API routes for authentication, device management, remote commands, telemetry ingestion, and package distribution.

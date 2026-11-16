@@ -72,16 +72,25 @@ describe('Phase N13 workspace membership security', () => {
     expect(queries.filter(q => q.sql.includes('FROM user_workspace_memberships'))
       .every(q => q.params[0] === user.id)).toBe(true);
   });
-  it('writes and revokes only caller-supplied server-scoped tenant memberships', async () => {
+  it('stores a pending consent invitation, never immediately activating membership', async () => {
     const queries = [];
     db.setConnectionStateForTesting(true, {
-      query: async (sql, params) => { queries.push({sql, params}); return [[], []]; }
+      query: async (sql, params) => {
+        queries.push({ sql, params });
+        if (sql.includes('SELECT user_id, tenant_id, role, status')) {
+          return [[{ user_id: user.id, tenant_id: secondary,
+            role: 'OPERATOR', status: 'INVITED' }], []];
+        }
+        return [{ affectedRows: 1 }, []];
+      }
     });
-    await db.grantWorkspaceMembership(user.id, secondary, 'OPERATOR', 9);
-    await db.revokeWorkspaceMembership(user.id, secondary);
-    expect(queries[0].sql).toContain('ON DUPLICATE KEY UPDATE');
+    const invite = await db.grantWorkspaceMembership(user.id, secondary, 'OPERATOR', 9);
+    expect(invite.status).toBe('INVITED');
+    expect(queries[0].sql).toContain("VALUES (?, ?, ?, 'INVITED', ?)");
+    expect(queries[0].sql).toContain("IF(status='ACTIVE', status, 'INVITED')");
     expect(queries[0].params).toEqual([user.id, secondary, 'OPERATOR', 9]);
-    expect(queries[1].sql).toContain("status='REVOKED'");
-    expect(queries[1].params).toEqual([user.id, secondary]);
+    expect(await db.revokeWorkspaceMembership(user.id, secondary)).toBe(true);
+    expect(queries[2].sql).toContain("status='REVOKED'");
+    expect(queries[2].params).toEqual([user.id, secondary]);
   });
 });

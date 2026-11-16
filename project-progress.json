@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-16T18:35:33+00:00",
-  "last_verified_commit": "e58afd185e69ea7f8365985f090ec10e1ada1e9c",
-  "last_verified_date": "2026-11-17T00:05:24+05:30",
+  "generated": "2026-11-16T18:36:33+00:00",
+  "last_verified_commit": "a7a88adc09bbceaf0f8d294d12f29e1f81d2559a",
+  "last_verified_date": "2026-11-17T00:06:24+05:30",
   "overall_progress_percent": 100.0,
   "progress_scope": "historic audit issue closure only; production acceptance pending",
   "production_ready": false,
@@ -20,15 +20,6 @@
     "unchanged": 267
   },
   "delta_history": [
-    {
-      "detected_at": "2026-11-16T17:38:32+00:00",
-      "added": [
-        "tests/unit/command-tenant-sql.test.js"
-      ],
-      "removed": [],
-      "changed": [],
-      "unchanged_count": 261
-    },
     {
       "detected_at": "2026-11-16T18:05:59+00:00",
       "added": [
@@ -210,6 +201,15 @@
       "removed": [],
       "changed": [
         "tests/unit/workspace-membership.test.js"
+      ],
+      "unchanged_count": 267
+    },
+    {
+      "detected_at": "2026-11-16T18:36:33+00:00",
+      "added": [],
+      "removed": [],
+      "changed": [
+        "db.js"
       ],
       "unchanged_count": 267
     }

@@ -21,8 +21,8 @@ async function runTests() {
   const migrationFiles = fs.readdirSync(migrationsDir).filter(f => f.endsWith('.sql')).sort();
   assert.deepStrictEqual(
     migrationFiles,
-    ['001_init_schema.sql', '002_partitioning.sql', '003_rbac_and_audit.sql'],
-    'Expected 001, 002, 003 migration files to be present'
+    ['001_init_schema.sql', '002_partitioning.sql', '003_rbac_and_audit.sql', '004_workspace_memberships.sql'],
+    'Expected 001–004 migrations including workspace memberships'
   );
 
   const forbiddenPostgresKeywords = [

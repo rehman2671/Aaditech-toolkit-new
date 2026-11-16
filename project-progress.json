@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-16T18:40:47+00:00",
-  "last_verified_commit": "231196be4f723f8eff5b27188c0e9e99363c9afd",
-  "last_verified_date": "2026-11-17T00:10:39+05:30",
+  "generated": "2026-11-16T18:41:14+00:00",
+  "last_verified_commit": "8afb999a80be72a6500d08e26bf5f31913ae498f",
+  "last_verified_date": "2026-11-17T00:11:01+05:30",
   "overall_progress_percent": 100.0,
   "progress_scope": "historic audit issue closure only; production acceptance pending",
   "production_ready": false,
@@ -14,21 +14,12 @@
     "percent": 100.0
   },
   "latest_delta": {
-    "added": 1,
+    "added": 0,
     "removed": 0,
-    "changed": 0,
+    "changed": 1,
     "unchanged": 269
   },
   "delta_history": [
-    {
-      "detected_at": "2026-11-16T18:11:21+00:00",
-      "added": [],
-      "removed": [],
-      "changed": [
-        "validation.js"
-      ],
-      "unchanged_count": 264
-    },
     {
       "detected_at": "2026-11-16T18:12:01+00:00",
       "added": [],
@@ -203,6 +194,15 @@
       ],
       "removed": [],
       "changed": [],
+      "unchanged_count": 269
+    },
+    {
+      "detected_at": "2026-11-16T18:41:14+00:00",
+      "added": [],
+      "removed": [],
+      "changed": [
+        "tests/integration/workspace-selection.integration.test.js"
+      ],
       "unchanged_count": 269
     }
   ],

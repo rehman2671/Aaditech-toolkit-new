@@ -1,23 +1,23 @@
 {
   "state_version": "1.0",
   "path": "project-state.json",
-  "generated": "2026-11-16T18:40:47+00:00",
+  "generated": "2026-11-16T18:41:14+00:00",
   "phase": "PHASE N STAGE 4 / PRODUCTION ACCEPTANCE IN PROGRESS",
-  "last_verified_commit": "231196be4f723f8eff5b27188c0e9e99363c9afd",
-  "last_verified_date": "2026-11-17T00:10:39+05:30",
+  "last_verified_commit": "8afb999a80be72a6500d08e26bf5f31913ae498f",
+  "last_verified_date": "2026-11-17T00:11:01+05:30",
   "git": {
     "branch": "main",
     "commit_count": 1,
     "clean_working_tree": true,
-    "head": "231196be4f723f8eff5b27188c0e9e99363c9afd"
+    "head": "8afb999a80be72a6500d08e26bf5f31913ae498f"
   },
   "latest_delta": {
-    "detected_at": "2026-11-16T18:40:47+00:00",
-    "added": [
-      "tests/unit/tenant-config-stage14.test.js"
-    ],
+    "detected_at": "2026-11-16T18:41:14+00:00",
+    "added": [],
     "removed": [],
-    "changed": [],
+    "changed": [
+      "tests/integration/workspace-selection.integration.test.js"
+    ],
     "unchanged_count": 269
   },
   "production_ready": false,

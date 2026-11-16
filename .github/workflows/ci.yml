@@ -257,6 +257,18 @@ jobs:
           AADITECH_CONCURRENCY_REHEARSAL: isolated-ci
         run: node test-device-identity-concurrency.js
 
+      - name: Verify real cross-process HTTP tenant enrollment, one-use tokens and registration
+        timeout-minutes: 5
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_USER: itk_user
+          DB_PASSWORD: itk_password_ci
+          DB_NAME: it_toolkit
+          NODE_ENV: test
+          AADITECH_HTTP_REHEARSAL: isolated-ci
+        run: node test-http-tenant-concurrency.js
+
       - name: Start Background Server for API verification
         env:
           DB_HOST: 127.0.0.1

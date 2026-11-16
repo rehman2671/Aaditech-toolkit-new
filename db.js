@@ -2127,16 +2127,37 @@ export async function deletePolicy(id) {
 }
 
 // ---------------- MSI PACKAGES & BOOTSTRAP TOKENS ----------------
-export async function getMsiPackages() {
-  const rows = await executeQuery('SELECT * FROM msi_packages ORDER BY created_at DESC');
+export async function getMsiPackages(tenantId) {
+  // A package inventory may contain historical plaintext bootstrap credentials.
+  // Require an explicit tenant and project ONLY non-sensitive columns, even
+  // when an older production DB still has a populated bootstrap_token field.
+  if (typeof tenantId !== 'string' || !tenantId.trim()) {
+    throw new Error('Tenant scope is required to list MSI packages');
+  }
+  const rows = await executeQuery(
+    'SELECT id, tenant_id, package_name, version, token_expires_at, used, ' +
+    'created_by, download_url, file_hash_sha256, downloads_count, created_at ' +
+    'FROM msi_packages WHERE tenant_id = ? ORDER BY created_at DESC',
+    [tenantId]
+  );
   return rows.map(r => ({
-    ...r,
-    used: Boolean(r.used)
+    id: r.id, tenant_id: r.tenant_id, package_name: r.package_name,
+    version: r.version, token_expires_at: r.token_expires_at,
+    used: Boolean(r.used), created_by: r.created_by,
+    download_url: r.download_url, file_hash_sha256: r.file_hash_sha256,
+    downloads_count: r.downloads_count, created_at: r.created_at
   }));
 }
 
-export async function getMsiPackageById(id) {
-  const rows = await executeQuery('SELECT * FROM msi_packages WHERE id = ? LIMIT 1', [id]);
+export async function getMsiPackageById(id, tenantId) {
+  if (typeof tenantId !== 'string' || !tenantId.trim()) {
+    throw new Error('Tenant scope is required to access an MSI package');
+  }
+  const rows = await executeQuery(
+    'SELECT id, tenant_id, package_name, version, file_path, used, file_hash_sha256 ' +
+    'FROM msi_packages WHERE id = ? AND tenant_id = ? LIMIT 1',
+    [id, tenantId]
+  );
   if (!rows[0]) return null;
   return { ...rows[0], used: Boolean(rows[0].used) };
 }
@@ -2158,7 +2179,7 @@ export async function createMsiPackage(pkg) {
     tenant_id: pkg.tenant_id || '00000000-0000-0000-0000-000000000001',
     package_name: pkg.package_name,
     version: pkg.version || '1.0.0',
-    bootstrap_token: pkg.bootstrap_token || null,
+    bootstrap_token: null, // Never persist plaintext enrollment tokens.
     bootstrap_token_hash: pkg.bootstrap_token_hash || null,
     token_expires_at: pkg.token_expires_at ? new Date(pkg.token_expires_at) : new Date(Date.now() + 86400000),
     used: pkg.used ? 1 : 0,
@@ -2183,7 +2204,7 @@ export async function createMsiPackage(pkg) {
     pkg.tenant_id || '00000000-0000-0000-0000-000000000001',
     pkg.package_name,
     pkg.version || '1.0.0',
-    pkg.bootstrap_token || null,
+    null, // Legacy column retained for schema compatibility; plaintext is not stored.
     pkg.bootstrap_token_hash || null,
     pkg.token_expires_at ? new Date(pkg.token_expires_at) : new Date(Date.now() + 86400000),
     pkg.used ? 1 : 0,

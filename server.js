@@ -862,7 +862,7 @@ app.use(async (req, res, next) => {
     p === '/api/agent-msi' ||
     p === '/api/v1/agent-msi' ||
     p === '/api/v1/msi/download/latest' ||
-    p.startsWith('/api/v1/msi/download/') ||
+    // Named package downloads require authenticated tenant administrator.
     p === '/api/agent-bundle' ||
     p === '/api/v1/agent/bundle' ||
     p === '/api/agent/bundle.zip' ||
@@ -1467,28 +1467,9 @@ app.post('/api/v1/msi/generate', requireRole(['SUPER_ADMIN']), validateBody(msiG
     msiSize = fileBytes.length;
     packageStatus = 'READY';
   } else {
-    // If GitHub actions configured, dispatch workflow
-    const branding = await db.getBranding();
-    const repo = branding.github_repo || "rehman2671/Aaditech-toolkit";
-    const token = branding.github_token || process.env.GITHUB_TOKEN || process.env.API_TOKEN;
-
-    if (token) {
-      try {
-        await fetch(`https://api.github.com/repos/${repo}/actions/workflows/ci.yml/dispatches`, {
-          method: 'POST',
-          headers: {
-            'Accept': 'application/vnd.github+json',
-            'Authorization': `Bearer ${token}`,
-            'X-GitHub-Api-Version': '2022-11-28',
-            'User-Agent': 'IT-Toolkit-Server',
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ ref: 'main' })
-        });
-      } catch (triggerErr) {
-        console.warn('[MSI Generate] Notice triggering CI workflow dispatch:', triggerErr.message);
-      }
-    }
+    // A tenant portal request MUST NOT trigger a workflow_dispatch build.
+    // Signing approval belongs exclusively to the protected GitHub release
+    // workflow and never to application credentials or database branding.
     targetFilePath = path.join(__dirname, 'artifacts', 'msi', pkgId, `${pkgName}-${pkgVer}.msi`);
     fileHash = null;
     packageStatus = 'PENDING';
@@ -1521,11 +1502,22 @@ app.post('/api/v1/msi/generate', requireRole(['SUPER_ADMIN']), validateBody(msiG
     bootstrap_expiry_hours: expiryHours
   }, req);
 
-  res.status(201).json(pkgRecord);
+  // Return bootstrap credential ONLY at creation to the authorized tenant
+  // super-admin. Never include filesystem paths or token hashes in API JSON.
+  res.status(201).json({
+    id: pkgRecord.id, tenant_id: pkgRecord.tenant_id,
+    package_name: pkgRecord.package_name, version: pkgRecord.version,
+    status: pkgRecord.status, bootstrap_token: bootstrapToken,
+    token_expires_at: pkgRecord.token_expires_at,
+    download_url: pkgRecord.download_url,
+    file_hash_sha256: pkgRecord.file_hash_sha256,
+    file_size_bytes: pkgRecord.file_size_bytes
+  });
 });
 
-app.get('/api/v1/msi/packages', async (req, res) => {
-  const pkgs = await db.getMsiPackages();
+app.get('/api/v1/msi/packages', requireRole(['SUPER_ADMIN']), async (req, res) => {
+  if (!req.user?.tenant_id) return res.status(403).json({ error: 'TENANT_REQUIRED' });
+  const pkgs = await db.getMsiPackages(req.user.tenant_id);
   sendPaginated(req, res, pkgs, 50, 500);
 });
 
@@ -1551,8 +1543,9 @@ const handleLatestMsiDownload = (req, res) => {
 
 app.get(['/api/v1/msi/download/latest', '/api/v1/agent-msi', '/api/agent-msi'], handleLatestMsiDownload);
 
-app.get('/api/v1/msi/download/:id', async (req, res) => {
-  const pkg = await db.getMsiPackageById(req.params.id);
+app.get('/api/v1/msi/download/:id', requireRole(['SUPER_ADMIN']), async (req, res) => {
+  if (!req.user?.tenant_id) return res.status(403).json({ error: 'TENANT_REQUIRED' });
+  const pkg = await db.getMsiPackageById(req.params.id, req.user.tenant_id);
   if (!pkg) return res.status(404).json({ error: "MSI Package not found or expired" });
 
   let realFilePath = pkg.file_path;

@@ -89,7 +89,9 @@ async function runTests() {
   console.log(`[PASS] POST /api/v1/msi/generate created package ${genData.id} with status READY and hash ${genData.file_hash_sha256}`);
 
   // 6. Test GET /api/v1/msi/download/:id
-  const dlRes = await fetch(`${BASE_URL}${genData.download_url}`);
+  const dlRes = await fetch(`${BASE_URL}${genData.download_url}`, {
+    headers: { 'Authorization': `Bearer ${adminToken}` }
+  });
   assert.strictEqual(dlRes.status, 200, 'GET /api/v1/msi/download/:id should return 200');
   const dlContentType = dlRes.headers.get('content-type');
   assert.ok(dlContentType && dlContentType.includes('application/x-msi'), 'Content-Type must be application/x-msi, not application/zip');
@@ -103,9 +105,41 @@ async function runTests() {
   console.log(`[PASS] GET /api/v1/msi/download/:id streamed authentic MSI with matching hash ${actualSha256}`);
 
   // 7. Test 404 behavior for non-existent MSI package
-  const fakeRes = await fetch(`${BASE_URL}/api/v1/msi/download/00000000-0000-0000-0000-000000000000`);
+  const fakeRes = await fetch(`${BASE_URL}/api/v1/msi/download/00000000-0000-0000-0000-000000000000`, {
+    headers: { 'Authorization': `Bearer ${adminToken}` }
+  });
   assert.strictEqual(fakeRes.status, 404, 'Non-existent package ID should return 404');
   console.log('[PASS] 404 handling verified for non-existent package');
+
+  // Sensitive package metadata is accessible only to its authenticated tenant,
+  // and the inventory must not reveal bootstrap tokens or filesystem paths.
+  const publicNamed = await fetch(`${BASE_URL}${genData.download_url}`);
+  assert.strictEqual(publicNamed.status, 401, 'Named MSI package must require authentication.');
+  const sameList = await fetch(`${BASE_URL}/api/v1/msi/packages`, {
+    headers: { 'Authorization': `Bearer ${adminToken}` }
+  });
+  assert.strictEqual(sameList.status, 200);
+  const ownInventoryText = await sameList.text();
+  assert.ok(!ownInventoryText.includes(genData.bootstrap_token), 'Inventory leaked a bootstrap secret.');
+  assert.ok(!ownInventoryText.includes('bootstrap_token_hash'), 'Inventory exposed a token hash.');
+  assert.ok(!ownInventoryText.includes('file_path'), 'Inventory exposed host filesystem paths.');
+  const otherTenantId = '00000000-0000-0000-0000-000000000098';
+  const otherTenantToken = jwt.sign({
+    id: 2, username: 'other-admin', role: 'SUPER_ADMIN',
+    tenant_id: otherTenantId, jti: crypto.randomUUID()
+  }, process.env.JWT_SECRET || 'aaditech_enterprise_jwt_super_secret_key_2026_dev', { expiresIn: '1h' });
+  const otherList = await fetch(`${BASE_URL}/api/v1/msi/packages`, {
+    headers: { 'Authorization': `Bearer ${otherTenantToken}` }
+  });
+  assert.strictEqual(otherList.status, 200);
+  assert.ok(!(await otherList.text()).includes(genData.id), 'Package leaked to another tenant.');
+  const otherDownload = await fetch(`${BASE_URL}${genData.download_url}`, {
+    headers: { 'Authorization': `Bearer ${otherTenantToken}` }
+  });
+  assert.strictEqual(otherDownload.status, 404, 'Cross-tenant package lookup must not reveal existence.');
+  assert.ok(!('bootstrap_token_hash' in genData) && !('file_path' in genData),
+    'Creation response must not expose internal token hashes or server filesystem paths.');
+  console.log('[PASS] Package listing and named download enforce tenant isolation and secret redaction.');
 
   // 8. Test GET /api/build/status
   const statusRes = await fetch(`${BASE_URL}/api/build/status`, {

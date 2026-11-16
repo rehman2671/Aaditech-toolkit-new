@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-16T14:23:23+00:00",
-  "last_verified_commit": "ae8a4222ce7e2abaa4d538dfb57d9fb68ced71b5",
-  "last_verified_date": "2026-11-16T19:53:14+05:30",
+  "generated": "2026-11-16T14:24:07+00:00",
+  "last_verified_commit": "a747676345bbb3e64f9930c07d9b69c2dca8640b",
+  "last_verified_date": "2026-11-16T19:54:00+05:30",
   "overall_progress_percent": 100.0,
   "progress_scope": "historic audit issue closure only; production acceptance pending",
   "production_ready": false,
@@ -20,15 +20,6 @@
     "unchanged": 245
   },
   "delta_history": [
-    {
-      "detected_at": "2026-11-16T12:57:01+00:00",
-      "added": [],
-      "removed": [],
-      "changed": [
-        "Enterprise/deploy/PHASE-N-STAGE7-HTTP-ACCEPTANCE.md"
-      ],
-      "unchanged_count": 232
-    },
     {
       "detected_at": "2026-11-16T12:58:11+00:00",
       "added": [],
@@ -222,6 +213,15 @@
       "removed": [],
       "changed": [
         ".github/workflows/ci.yml"
+      ],
+      "unchanged_count": 245
+    },
+    {
+      "detected_at": "2026-11-16T14:24:07+00:00",
+      "added": [],
+      "removed": [],
+      "changed": [
+        ".github/workflows/project-index-maintenance.yml"
       ],
       "unchanged_count": 245
     }

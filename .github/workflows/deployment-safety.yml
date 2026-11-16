@@ -6,6 +6,7 @@ on:
     paths:
       - 'Enterprise/deploy/**'
       - 'Enterprise/tests/Test-MySQL-Backup-Restore.sh'
+      - 'Enterprise/tests/Test-Stage14Preflight.sh'
       - 'Enterprise/tests/Test-DeployMySQL.sh'
       - 'Enterprise/tests/Test-LegacyMsiMigration.sh'
       - 'Enterprise/tests/Test-LegacyMsiMigration-Live.sh'
@@ -15,6 +16,7 @@ on:
     paths:
       - 'Enterprise/deploy/**'
       - 'Enterprise/tests/Test-MySQL-Backup-Restore.sh'
+      - 'Enterprise/tests/Test-Stage14Preflight.sh'
       - 'Enterprise/tests/Test-DeployMySQL.sh'
       - 'Enterprise/tests/Test-LegacyMsiMigration.sh'
       - 'Enterprise/tests/Test-LegacyMsiMigration-Live.sh'
@@ -38,6 +40,8 @@ jobs:
           bash -n Enterprise/deploy/backup.sh
           bash -n Enterprise/deploy/restore.sh
           bash -n Enterprise/deploy/migrate-legacy-msi-bootstrap.sh
+          bash -n Enterprise/deploy/preflight-stage14.sh
+          bash -n Enterprise/tests/Test-Stage14Preflight.sh
           bash -n Enterprise/tests/Test-LegacyMsiMigration-Live.sh
           bash -n Enterprise/deploy/verify-hostinger-acceptance.sh
       - name: Verify VPS public HTTPS acceptance CLI is safe in offline dry-run
@@ -49,6 +53,9 @@ jobs:
       - name: Verify HTTPS/MySQL deployment dry-run isolation
         shell: bash
         run: bash Enterprise/tests/Test-DeployMySQL.sh
+      - name: Verify configuration and signed release preflight reject unsafe inputs
+        shell: bash
+        run: bash Enterprise/tests/Test-Stage14Preflight.sh
       - name: Verify legacy bootstrap migration refuses unsafe operations
         shell: bash
         run: bash Enterprise/tests/Test-LegacyMsiMigration.sh

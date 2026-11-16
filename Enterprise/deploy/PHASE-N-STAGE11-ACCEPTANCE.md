@@ -1,6 +1,6 @@
 # Phase N Stage 11 — MSI tenant isolation and release authorization
 
-**State:** Tenant/security code fixes committed and three CI suites verified. Windows MSI gate still must finish; NOT production certified.
+**State:** All four Stage 11 CI jobs passed in #43903827797; NOT production certified.
 
 ## Delivered code changes
 
@@ -33,12 +33,12 @@ Stage 11 code repair commits:
 Latest four-job CI:
 https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43903827797
 
-Verified in that run: Node/Vitest unit+coverage passed, PowerShell
-validation passed, and the isolated MySQL 8 / API integration suite
-(including MSI package generation, authorization and streaming) passed.
-The Windows EXE/MSI packaging and install/upgrade job was still running
-at the last verification point. Do not declare the complete CI green
-without checking the live run conclusion.
+All four jobs in that exact CI run completed SUCCESS: Node/Vitest
+unit+coverage, PowerShell validation, isolated MySQL 8 / API integration
+(including MSI package generation, authorization and streaming), and
+Windows EXE/MSI packaging with install/uninstall and major-upgrade
+rehearsals. The job produced no approved trusted public signed release.
+Green disposable CI is not live Hostinger or physical Windows acceptance.
 
 Negative-path unit tests cover missing tenant scopes, withheld plaintext
 bootstrap tokens, untrusted host/forwarded headers, invalid package

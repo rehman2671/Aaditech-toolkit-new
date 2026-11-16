@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import crypto from 'node:crypto';
 
 // Create a flexible mock for mysql2/promise pool
 const mockQuery = vi.fn();
@@ -743,12 +744,13 @@ describe('Database Module (db.js) Unit Test Suite', () => {
       await db.incrementMsiDownloads(pkg.id);
       await db.markMsiPackageUsed(pkg.id, 'HOST-WIN');
 
-      const usedBefore = await db.isBootstrapTokenUsed('tok_test');
-      expect(typeof usedBefore).toBe('boolean');
-
-      await db.markBootstrapTokenUsed('tok_test', 'tok_hash_test', 'HOST-WIN', 'tenant-1');
-      const usedAfter = await db.isBootstrapTokenUsed('tok_test');
-      expect(usedAfter).toBe(true);
+      // Bootstrap credentials are stored by hash, not as legacy plaintext.
+      const token = 'unit-bootstrap-' + Date.now();
+      const digest = crypto.createHash('sha256').update(token).digest('hex');
+      expect(await db.isBootstrapTokenUsed(token)).toBe(false);
+      expect(await db.markBootstrapTokenUsed(token, 'not-a-hash', 'HOST-WIN', 'tenant-1')).toBe(false);
+      expect(await db.markBootstrapTokenUsed(token, digest, 'HOST-WIN', 'tenant-1')).toBe(true);
+      expect(await db.isBootstrapTokenUsed(token)).toBe(true);
     });
 
     it('Ticket lookup by ID and update', async () => {

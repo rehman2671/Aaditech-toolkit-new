@@ -1,6 +1,6 @@
 # Phase N Stage 13 — Explicit Workspace Membership and Global Configuration Boundaries
 
-**State:** Stage 13 code pushed; production rollout is still BLOCKED. This is a code/CI acceptance report, not a statement that an operator has deployed to Hostinger or signed a public MSI.
+**State:** Stage 13 security and workflow code accepted by the latest four-job CI run (#43927772995). **Production rollout remains BLOCKED.** This is a code/CI acceptance report, not an operator-signed release or a live Hostinger deployment.
 
 ## Changes and trust boundaries
 
@@ -38,6 +38,6 @@ The webhook GET response never serializes its secret token; webhook configuratio
 - New unit tests: workspace membership/JWT role validation, SQL membership grant and revoke, strict tenant choice validation and platform operator fail-closed policy.
 - New HTTP integration tests: unavailable workspace denial, role-injection rejection, authorized primary selection and fresh JWT, super-admin grant constraints and operator rejection from global settings.
 - Real MySQL migration suite includes `004_workspace_memberships.sql`; the file and schema are present in both new installs and incremental upgrades.
-- Latest full CI: https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43927772995 . Confirm ALL four job conclusions before calling Stage 13 CI-green; unit/PowerShell/API MySQL checks were green when this note was drafted.
+- **Verified full CI**: https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43927772995 completed SUCCESS in all four mandatory jobs: PowerShell validation, Node/Vitest coverage, real MySQL 8/API integration and Windows agent EXE/MSI build with install/uninstall/major-upgrade rehearsals. CI uses disposable test infrastructure and diagnostic unsigned installer artifacts.
 
 **Production acceptance is NOT granted**: operator-protected signing environment, trusted signed/public MSI, Hostinger DNS+HTTPS/deployment, audited production schema migration/restore and physical Windows first-run/reconfiguration are still operator-owned. The initial release also needs review of per-tenant customization for other globally shared settings and of invitation/consent workflows before unrestricted multi-organization onboarding.

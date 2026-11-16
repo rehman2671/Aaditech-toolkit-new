@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-16T12:16:37+00:00",
-  "last_verified_commit": "59e97892cc178ec185f701c397c4272d3642d161",
-  "last_verified_date": "2026-11-16T17:46:22+05:30",
+  "generated": "2026-11-16T12:18:43+00:00",
+  "last_verified_commit": "01018ead82c02d224c3de0d4c904d354292db37c",
+  "last_verified_date": "2026-11-16T17:48:32+05:30",
   "overall_progress_percent": 100.0,
   "progress_scope": "historic audit issue closure only; production acceptance pending",
   "production_ready": false,
@@ -14,21 +14,12 @@
     "percent": 100.0
   },
   "latest_delta": {
-    "added": 1,
+    "added": 0,
     "removed": 0,
-    "changed": 0,
+    "changed": 1,
     "unchanged": 229
   },
   "delta_history": [
-    {
-      "detected_at": "2026-11-15T17:05:32+00:00",
-      "added": [],
-      "removed": [],
-      "changed": [
-        "Enterprise/agent/Agent-Collect.ps1"
-      ],
-      "unchanged_count": 226
-    },
     {
       "detected_at": "2026-11-15T17:08:04+00:00",
       "added": [],
@@ -198,6 +189,15 @@
       ],
       "removed": [],
       "changed": [],
+      "unchanged_count": 229
+    },
+    {
+      "detected_at": "2026-11-16T12:18:43+00:00",
+      "added": [],
+      "removed": [],
+      "changed": [
+        "tests/unit/db.unit.test.js"
+      ],
       "unchanged_count": 229
     }
   ],

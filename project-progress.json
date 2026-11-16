@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-16T14:25:39+00:00",
-  "last_verified_commit": "533f968420abfbf3e0e7a84d2d0fe3a0e81ccabe",
-  "last_verified_date": "2026-11-16T19:55:27+05:30",
+  "generated": "2026-11-16T14:30:31+00:00",
+  "last_verified_commit": "7d829c42e6ef8091ef9a6627862903c0aee39991",
+  "last_verified_date": "2026-11-16T20:00:17+05:30",
   "overall_progress_percent": 100.0,
   "progress_scope": "historic audit issue closure only; production acceptance pending",
   "production_ready": false,
@@ -20,15 +20,6 @@
     "unchanged": 243
   },
   "delta_history": [
-    {
-      "detected_at": "2026-11-16T13:00:19+00:00",
-      "added": [],
-      "removed": [],
-      "changed": [
-        "Enterprise/deploy/PHASE-N-STAGE7-HTTP-ACCEPTANCE.md"
-      ],
-      "unchanged_count": 232
-    },
     {
       "detected_at": "2026-11-16T13:00:53+00:00",
       "added": [],
@@ -224,6 +215,17 @@
         "CHANGELOG.md",
         "Enterprise/README.md",
         "Enterprise/deploy/PHASE-N-STAGE8-ACCEPTANCE.md"
+      ],
+      "unchanged_count": 243
+    },
+    {
+      "detected_at": "2026-11-16T14:30:31+00:00",
+      "added": [],
+      "removed": [],
+      "changed": [
+        "Enterprise/tests/Test-ReleaseSigningGates.ps1",
+        "Enterprise/agent/build/Release-Sign.ps1",
+        ".github/workflows/ci.yml"
       ],
       "unchanged_count": 243
     }

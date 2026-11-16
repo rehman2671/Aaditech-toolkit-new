@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased — Phase N Stage 12 (live-user JWT and tenant-boundary hardening)
+
+- **Current-user security:** every production user JWT authenticated through regular API, agent telemetry user alternative or public installer bootstrap issuance is bound to the active persisted MySQL user ID, tenant, role and username; stale/deleted/suspended identities cannot retain privileges.
+- **Tenant-owned devices:** device inventory/detail/deletion and remote-command dispatch deny unowned targets even to tenant SUPER_ADMIN. Device detail responses remove token, credential hash and private-key fields.
+- **Users and companies:** user inventory requires tenant SUPER_ADMIN, creation uses the actor's actual tenant/company rather than a hardcoded default, updates reject foreign tenant users, and company inventory/creation use tenant-scoped queries.
+- **Other portal reads:** bootstrap response, legacy event join/reporting, alerts, command inventory and dashboard status are filtered by the authenticated tenant; command_queue is joined to owning devices because it has no tenant_id field.
+- **Historic token cleanup:** added operator-confirmed audit/apply script to hash or preserve old MSI enrollment hashes, redact used-token history, reject inconsistent hash/whitespace rows and require a checksum-verified MySQL backup before any mutation. No production DB was touched.
+- **Verification:** full four-job Node/Vitest, PowerShell, real MySQL/API and Windows MSI CI #43920480028 passed. Independent deployment-safety #43919034394 passed, including real disposable MySQL backup/restore/legacy-token migration. Details: Enterprise/deploy/PHASE-N-STAGE12-ACCEPTANCE.md.
+- **Still blocked:** no signed public MSI, approved protected signing environment, real Hostinger VPS/HTTPS, live restoration/migration, or customer Windows acceptance; privileged multi-workspace membership/global branding require further authorization design.
+
 ## Unreleased — Phase N Stage 11 (tenant MSI isolation and trusted setup origins)
 
 - **MSI isolation:** named package downloads require authenticated tenant super-admin; inventory uses mandatory tenant-scoped MySQL queries and excludes plaintext credentials, token hashes and server filesystem paths.

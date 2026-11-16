@@ -2480,8 +2480,10 @@ export async function markBootstrapTokenUsed(token, tokenHash, hostname, tenantI
 }
 
 // ---------------- TICKETS ----------------
-export async function getTickets() {
-  const rows = await executeQuery('SELECT * FROM tickets ORDER BY created_at DESC');
+export async function getTickets(tenantId = null) {
+  const rows = tenantId
+    ? await executeQuery('SELECT * FROM tickets WHERE tenant_id = ? ORDER BY created_at DESC', [tenantId])
+    : await executeQuery('SELECT * FROM tickets ORDER BY created_at DESC');
   return rows;
 }
 
@@ -2976,6 +2978,37 @@ export function initRetentionScheduler(intervalMs = 3600000) {
   }, intervalMs);
 
   return retentionSchedulerTimer;
+}
+
+// Tenant-specific integration settings must never inherit another tenant's
+// global integration endpoints, URLs, secrets or project configuration.
+export async function getTenantTicketConfig(tenantId) {
+  if (!tenantId || typeof tenantId !== 'string') throw new Error('TENANT_REQUIRED');
+  const defaults = { system: 'none', url: '', project: 'ITSUP', auto_create_on_critical: false };
+  const stored = await getSetting(`tenant:${tenantId}:ticketConfig`, null);
+  return { ...defaults, ...(stored || {}) };
+}
+
+export async function updateTenantTicketConfig(tenantId, updates) {
+  if (!tenantId || typeof tenantId !== 'string') throw new Error('TENANT_REQUIRED');
+  const current = await getTenantTicketConfig(tenantId);
+  const merged = { ...current, ...updates };
+  await setSetting(`tenant:${tenantId}:ticketConfig`, merged);
+  return merged;
+}
+
+export async function getTenantBranding(tenantId) {
+  if (!tenantId || typeof tenantId !== 'string') throw new Error('TENANT_REQUIRED');
+  const defaults = { company_name: '', logo_text: 'IT-Toolkit', color: '#38bdf8' };
+  const stored = await getSetting(`tenant:${tenantId}:branding`, null);
+  return { ...defaults, ...(stored || {}) };
+}
+
+export async function updateTenantBranding(tenantId, updates) {
+  if (!tenantId || typeof tenantId !== 'string') throw new Error('TENANT_REQUIRED');
+  const merged = { ...(await getTenantBranding(tenantId)), ...updates };
+  await setSetting(`tenant:${tenantId}:branding`, merged);
+  return merged;
 }
 
 export async function getTicketConfig() {

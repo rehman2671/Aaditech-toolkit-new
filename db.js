@@ -885,8 +885,10 @@ export async function getTenantById(id) {
 }
 
 // ---------------- COMPANIES ----------------
-export async function getCompanies() {
-  const rows = await executeQuery('SELECT * FROM companies ORDER BY id ASC');
+export async function getCompanies(tenantId = null) {
+  const rows = tenantId
+    ? await executeQuery('SELECT * FROM companies WHERE tenant_id = ? ORDER BY id ASC', [tenantId])
+    : await executeQuery('SELECT * FROM companies ORDER BY id ASC');
   return rows.map(r => ({
     ...r,
     users: r.users_count || 1,
@@ -935,8 +937,10 @@ export async function updateCompany(id, updates) {
 }
 
 // ---------------- USERS ----------------
-export async function getUsers() {
-  const rows = await executeQuery('SELECT * FROM users ORDER BY id ASC');
+export async function getUsers(tenantId = null) {
+  const rows = tenantId
+    ? await executeQuery('SELECT * FROM users WHERE tenant_id = ? ORDER BY id ASC', [tenantId])
+    : await executeQuery('SELECT * FROM users ORDER BY id ASC');
   return rows.map(u => ({
     ...u,
     active: Boolean(u.active)

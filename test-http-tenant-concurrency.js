@@ -8,6 +8,7 @@ import { once } from 'node:events';
 import net from 'node:net';
 import mysql from 'mysql2/promise';
 import jwt from 'jsonwebtoken';
+import fs from 'node:fs';
 
 if (process.env.GITHUB_ACTIONS !== 'true' ||
     process.env.AADITECH_HTTP_REHEARSAL !== 'isolated-ci' ||
@@ -22,7 +23,7 @@ for (const key of ['DB_USER','DB_PASSWORD','JWT_SECRET','BOOTSTRAP_SECRET',
 const pool = mysql.createPool({
   host: process.env.DB_HOST || '127.0.0.1', port: Number(process.env.DB_PORT || 3306),
   user: process.env.DB_USER, password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME, connectionLimit: 10
+  database: process.env.DB_NAME, connectionLimit: 10, multipleStatements: true
 });
 const idA = crypto.randomUUID(), idB = crypto.randomUUID();
 const prefix = 'STAGE7-' + crypto.randomBytes(5).toString('hex');
@@ -116,8 +117,15 @@ async function confirmClaims(hostname, uid, expected = 1) {
   assert.equal(total, expected, 'Unexpected persistent device ownership count');
 }
 
+let schemaInitialized = false;
 try {
   await pool.query('SELECT 1');
+  // The prior migration-runner test validates migration SQL but does not
+  // necessarily provision tables in this separate CI service. Apply the
+  // same authoritative schema used by Docker's MySQL init before seeding
+  // the synthetic tenants. The workload still runs with production servers.
+  await pool.query(fs.readFileSync('database/mysql/schema.sql', 'utf8'));
+  schemaInitialized = true;
   const adminA = await createTenant(idA, 'a');
   const adminB = await createTenant(idB, 'b');
   const workerPorts = [await port(), await port()];
@@ -216,11 +224,13 @@ try {
     if (child.exitCode === null && !child.signalCode) child.kill('SIGKILL');
   }));
   try {
-    await pool.query('DELETE FROM used_bootstrap_tokens WHERE tenant_id IN (?, ?)', [idA, idB]);
-    await pool.query('DELETE FROM devices WHERE tenant_id IN (?, ?)', [idA, idB]);
-    await pool.query('DELETE FROM users WHERE tenant_id IN (?, ?)', [idA, idB]);
-    await pool.query('DELETE FROM companies WHERE tenant_id IN (?, ?)', [idA, idB]);
-    await pool.query('DELETE FROM tenants WHERE id IN (?, ?)', [idA, idB]);
+    if (schemaInitialized) {
+      await pool.query('DELETE FROM used_bootstrap_tokens WHERE tenant_id IN (?, ?)', [idA, idB]);
+      await pool.query('DELETE FROM devices WHERE tenant_id IN (?, ?)', [idA, idB]);
+      await pool.query('DELETE FROM users WHERE tenant_id IN (?, ?)', [idA, idB]);
+      await pool.query('DELETE FROM companies WHERE tenant_id IN (?, ?)', [idA, idB]);
+      await pool.query('DELETE FROM tenants WHERE id IN (?, ?)', [idA, idB]);
+    }
   } finally {
     await pool.end();
   }

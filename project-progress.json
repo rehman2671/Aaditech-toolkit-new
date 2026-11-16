@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-16T14:37:15+00:00",
-  "last_verified_commit": "3f031413b4ad1210777aff1dac46e828ae7c6a19",
-  "last_verified_date": "2026-11-16T20:07:05+05:30",
+  "generated": "2026-11-16T14:38:32+00:00",
+  "last_verified_commit": "7154511f229eadfb3d4f0cf22537940d3b8bebbd",
+  "last_verified_date": "2026-11-16T20:08:22+05:30",
   "overall_progress_percent": 100.0,
   "progress_scope": "historic audit issue closure only; production acceptance pending",
   "production_ready": false,
@@ -14,27 +14,12 @@
     "percent": 100.0
   },
   "latest_delta": {
-    "added": 0,
+    "added": 1,
     "removed": 0,
-    "changed": 1,
-    "unchanged": 246
+    "changed": 2,
+    "unchanged": 245
   },
   "delta_history": [
-    {
-      "detected_at": "2026-11-16T13:34:50+00:00",
-      "added": [
-        "tests/unit/msi-production-approval.test.js"
-      ],
-      "removed": [],
-      "changed": [
-        "server.js",
-        "agent-artifacts.js",
-        "Enterprise/deploy/PHASE-N-STAGE8-ACCEPTANCE.md",
-        "Enterprise/.env.example",
-        "Enterprise/docker-compose.yml"
-      ],
-      "unchanged_count": 234
-    },
     {
       "detected_at": "2026-11-16T13:38:53+00:00",
       "added": [
@@ -221,6 +206,18 @@
         "Enterprise/tests/Test-ReleaseSigningGates.ps1"
       ],
       "unchanged_count": 246
+    },
+    {
+      "detected_at": "2026-11-16T14:38:32+00:00",
+      "added": [
+        "tests/unit/production-tls-root-trust.test.js"
+      ],
+      "removed": [],
+      "changed": [
+        "server.js",
+        "agent-artifacts.js"
+      ],
+      "unchanged_count": 245
     }
   ],
   "next_recommended_tasks": [

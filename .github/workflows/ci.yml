@@ -386,6 +386,14 @@ jobs:
         shell: powershell
         run: ./Enterprise/agent/build/build-agent.ps1
 
+      - name: Sign release EXE before WiX embeds it (or keep diagnostic only)
+        shell: pwsh
+        env:
+          CODESIGN_PFX_B64: ${{ secrets.CODESIGN_PFX_B64 }}
+          CODESIGN_PFX_PASSWORD: ${{ secrets.CODESIGN_PFX_PASSWORD }}
+          CODESIGN_APPROVED_THUMBPRINT: ${{ secrets.CODESIGN_APPROVED_THUMBPRINT }}
+        run: ./Enterprise/agent/build/Release-Sign.ps1 -Stage PrePackage
+
       - name: Install WiX toolset
         run: dotnet tool install --global wix --version "5.*"
 
@@ -420,55 +428,20 @@ jobs:
           }
           Write-Host 'MSI administrative extraction passed; GUI, worker and blank setup config included.'
 
-      - name: Code-sign agent exe + MSI (internal CA)
+      - name: Verify pre-signed MSI payload and sign release MSI
         shell: pwsh
         env:
           CODESIGN_PFX_B64: ${{ secrets.CODESIGN_PFX_B64 }}
           CODESIGN_PFX_PASSWORD: ${{ secrets.CODESIGN_PFX_PASSWORD }}
+          CODESIGN_APPROVED_THUMBPRINT: ${{ secrets.CODESIGN_APPROVED_THUMBPRINT }}
         run: |
-          $out = 'Enterprise/agent/build/out'
-          $targets = @(Join-Path $out 'IT-Toolkit-Agent.exe') + @(Get-ChildItem -Path $out -Filter '*.msi' -ErrorAction SilentlyContinue | ForEach-Object { $_.FullName })
-          if (-not $env:CODESIGN_PFX_B64) {
-            Write-Host "::warning::Code-signing certificate absent — MSI remains a diagnostic build and WILL NOT be published."
-            "PUBLISH_SIGNED=false" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
-            exit 0
+          if ($env:RELEASE_SIGNING_ENABLED -eq 'true') {
+            $embedded = Get-ChildItem -Path (Join-Path $env:RUNNER_TEMP 'itk-msi-verify') -Recurse -File -Filter 'IT-Toolkit-Agent.exe' | Select-Object -First 1
+            if (-not $embedded) { throw 'MSI did not embed signed agent EXE.' }
+            $original = 'Enterprise/agent/build/out/IT-Toolkit-Agent.exe'
+            if ((Get-FileHash -LiteralPath $embedded.FullName -Algorithm SHA256).Hash -ne (Get-FileHash -LiteralPath $original -Algorithm SHA256).Hash) { throw 'MSI payload did not match pre-signed EXE.' }
           }
-          $pfx = Join-Path $env:RUNNER_TEMP 'codesign.pfx'
-          [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:CODESIGN_PFX_B64))
-
-          # signtool ships with the Windows SDK (present on windows-latest)
-          $sdk = "${env:ProgramFiles(x86)}\Windows Kits\10\bin"
-          $signtool = Get-ChildItem $sdk -Recurse -Filter signtool.exe -ErrorAction SilentlyContinue |
-            Where-Object { $_.FullName -match '\d+\.\d+\.\d+\.\d+\\x64' } |
-            Sort-Object FullName -Descending | Select-Object -First 1
-          if (-not $signtool) { throw 'signtool.exe not found under Windows SDK' }
-
-          # Import the internal code-signing root into the runner's trust
-          # stores so `signtool verify` can validate the chain (this mirrors the
-          # GPO "Trusted Publishers" push on real clients).
-          $rootCer = './Enterprise/agent/build/codesign/IT-Toolkit-CodeSign-Root.cer'
-          if (Test-Path $rootCer) {
-            Import-Certificate -FilePath $rootCer -CertStoreLocation Cert:\LocalMachine\Root -ErrorAction SilentlyContinue | Out-Null
-            Import-Certificate -FilePath $rootCer -CertStoreLocation Cert:\LocalMachine\TrustedPublisher -ErrorAction SilentlyContinue | Out-Null
-          }
-
-          foreach ($t in $targets) {
-            if (-not (Test-Path $t)) { continue }
-            $signed = $false
-            # Prefer an RFC3161 timestamp so the signature outlives the CA's
-            # expiry; fall back to signing without one if the server is unreachable.
-            foreach ($ts in @('http://timestamp.digicert.com', $null)) {
-              if ($null -eq $ts) { $signed = $false }
-              & $signtool.FullName sign /f $pfx /p $env:CODESIGN_PFX_PASSWORD /fd SHA256 $(if ($ts) { @('/tr', $ts, '/td', 'SHA256') }) $t 2>$null
-              if ($LASTEXITCODE -eq 0) { $signed = $true; break }
-            }
-            if (-not $signed) { throw "signtool failed on $t" }
-            & $signtool.FullName verify /pa /v $t 2>$null
-            if ($LASTEXITCODE -ne 0) { throw "Authenticode chain verification failed for $t. Refusing to publish." }
-            Write-Host "Signed and verified: $t"
-          }
-
-          "PUBLISH_SIGNED=true" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          ./Enterprise/agent/build/Release-Sign.ps1 -Stage Finalize
 
       - name: Rehearse real Windows MSI install, post-setup and clean uninstall
         shell: pwsh
@@ -514,4 +487,5 @@ jobs:
           path: |
             Enterprise/agent/build/out/*.exe
             Enterprise/agent/build/out/*.msi
+            Enterprise/agent/build/out/SHA256SUMS.txt
             Enterprise/agent/build/out/agent-config.json

@@ -56,3 +56,5 @@ credentials, identity collision details or signing private keys in Git.
 
 **Release decision remains BLOCKED** until the above external evidence,
 production identity audit/migration approval and customer Windows acceptance.
+
+**Signing implementation:** GitHub workflow now requires CODESIGN_PFX_B64, CODESIGN_PFX_PASSWORD and CODESIGN_APPROVED_THUMBPRINT. It signs EXE before MSI packaging, checks extracted MSI payload hash, verifies the OS-trusted chain/approved publisher fingerprint and RFC3161 timestamp on both EXE and MSI, then adds SHA256SUMS.txt. No credentials means no upload. The signing root is never imported into CI, so an untrusted internal CA cannot masquerade as public trust.

@@ -589,6 +589,11 @@ export async function executeQuery(sql, params = []) {
   }
 
   if (upperSql.includes('FROM USERS')) {
+    // Mirror parameterized tenant inventory reads in nonproduction fixtures.
+    // A tenant WHERE clause is NOT a lookup by username or user ID.
+    if (/WHERE\s+TENANT_ID\s*=\s*\?/.test(upperSql)) {
+      return memUsers.filter(u => String(u.tenant_id) === String(params[0]));
+    }
     if (params.length >= 1) {
       const p = String(params[0]).toLowerCase();
       const p1 = params.length > 1 ? String(params[1]).toLowerCase() : p;
@@ -607,6 +612,9 @@ export async function executeQuery(sql, params = []) {
   }
 
   if (upperSql.includes('FROM COMPANIES')) {
+    if (/WHERE\s+TENANT_ID\s*=\s*\?/.test(upperSql)) {
+      return memCompanies.filter(c => String(c.tenant_id) === String(params[0]));
+    }
     return [...memCompanies];
   }
 

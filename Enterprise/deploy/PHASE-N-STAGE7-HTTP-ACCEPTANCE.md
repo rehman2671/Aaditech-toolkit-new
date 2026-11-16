@@ -24,6 +24,12 @@ users, then verifies:
   row, and `used_bootstrap_tokens.token IS NULL`.
 - Competing cross-tenant `POST /api/v1/devices` with distinct, real
   MySQL-backed administrator JWTs: one 201 and all remaining 409.
+- Cross-instance **device token revocation**: after initial authenticated
+  telemetry succeeds on both workers, another MySQL connection revokes the
+  enrolled credential. Both workers immediately return HTTP 401 with
+  `DEVICE_TOKEN_REVOKED` (no stale-token cache window). Rotating the
+  device token then causes both workers to reject the old credential and
+  accept the new one without restarting.
 - Independent enrollment requests to both workers remain successful.
 
 ## Isolation and safety
@@ -46,8 +52,11 @@ after lower-level advisory-lock concurrency checks. Its log explicitly
 confirmed: two healthy production-mode HTTP workers; hostname contention,
 UID contention, one-use token replay (hash-only), rejected-token reuse,
 JWT-backed cross-tenant registration and independent enrollment all PASSED.
-The HTTP integration job completed successfully. The full four-job CI
-status and Windows MSI job must be verified separately for a release.
+The HTTP integration job completed successfully. The expanded
+revocation/rotation test also passed in
+[CI #43871350045](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43871350045)
+at the two-server HTTP gate. The full four-job CI status and Windows MSI job
+must be verified separately for a release.
 
 ## Not covered
 

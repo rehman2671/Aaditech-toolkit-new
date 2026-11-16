@@ -45,19 +45,21 @@ compose up -d --wait --wait-timeout 120 db >/dev/null
 sql_counts='SELECT COUNT(*),
  COALESCE(SUM(bootstrap_token_hash IS NOT NULL AND
    bootstrap_token_hash <> SHA2(TRIM(bootstrap_token),256)),0),
- COALESCE(SUM(bootstrap_token <> TRIM(bootstrap_token)),0)
+ COALESCE(SUM(BINARY bootstrap_token <> BINARY TRIM(bootstrap_token)),0)
  FROM msi_packages WHERE bootstrap_token IS NOT NULL;'
 read -r total mismatched whitespace <<< "$(mysql_query "$sql_counts" | tr '\t' ' ')"
 [[ "$total" =~ ^[0-9]+$ && "$mismatched" =~ ^[0-9]+$ && "$whitespace" =~ ^[0-9]+$ ]] ||
   fail 'Unable to inspect legacy MSI rows'
-log "Legacy plaintext rows=$total, mismatched hashes=$mismatched, whitespace anomalies=$whitespace"
+used_plaintext="$(mysql_query 'SELECT COUNT(*) FROM used_bootstrap_tokens WHERE token IS NOT NULL;')"
+[[ "$used_plaintext" =~ ^[0-9]+$ ]] || fail 'Unable to audit redeemed bootstrap credentials'
+log "Legacy MSI plaintext=$total, hash mismatches=$mismatched, whitespace anomalies=$whitespace, used-token plaintext=$used_plaintext"
 if [ "$MODE" = audit ]; then
   log 'Read-only audit: no rows changed.'
   exit 0
 fi
 [ "$mismatched" -eq 0 ] && [ "$whitespace" -eq 0 ] ||
   fail 'Legacy credentials require manual review; no mutation performed'
-[ "$total" -gt 0 ] || { log 'Already hash-only; nothing to modify.'; exit 0; }
+[ "$total" -gt 0 ] || [ "$used_plaintext" -gt 0 ] || { log 'Already hash-only; nothing to modify.'; exit 0; }
 log 'Creating mandatory pre-migration MySQL backup.'
 BACKUP_KEEP=0 bash "$HERE/deploy/backup.sh"
 backup="$(find "$BACKUP_DIR" -maxdepth 1 -type f -name 'ittoolkit-*.sql' | sort | tail -n 1)"
@@ -77,9 +79,12 @@ UPDATE msi_packages
      bootstrap_token = NULL
  WHERE bootstrap_token IS NOT NULL
    AND (bootstrap_token_hash IS NULL OR bootstrap_token_hash = SHA2(TRIM(bootstrap_token),256))
-   AND bootstrap_token = TRIM(bootstrap_token);
+   AND BINARY bootstrap_token = BINARY TRIM(bootstrap_token);
+UPDATE used_bootstrap_tokens SET token = NULL WHERE token IS NOT NULL;
 COMMIT;
 " >/dev/null
 read -r remaining x y <<< "$(mysql_query "$sql_counts" | tr '\t' ' ')"
-[ "$remaining" = 0 ] || fail "Cleanup incomplete: $remaining plaintext rows remain"
-log "Legacy plaintext erased. Verified recovery backup: $backup"
+[ "$remaining" = 0 ] || fail "Cleanup incomplete: $remaining MSI plaintext rows remain"
+used_remaining="$(mysql_query 'SELECT COUNT(*) FROM used_bootstrap_tokens WHERE token IS NOT NULL;')"
+[ "$used_remaining" = 0 ] || fail "Cleanup incomplete: $used_remaining used-token plaintext rows remain"
+log "Legacy MSI and used-token plaintext erased. Verified recovery backup: $backup"

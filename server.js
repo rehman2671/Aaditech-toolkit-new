@@ -517,6 +517,16 @@ function requireRole(allowedRoles) {
   };
 }
 
+// Platform-global configuration is not a tenant resource. Only the
+// explicitly designated persistent operator can change it in production.
+// Missing PLATFORM_ADMIN_USER_ID/PLATFORM_OWNER_TENANT_ID deny by default.
+function requirePlatformSettingsAdmin(req, res, next) {
+  if (!isPlatformSettingsAdmin(req.user)) {
+    return res.status(403).json({ error: 'PLATFORM_ADMIN_REQUIRED' });
+  }
+  return next();
+}
+
 // High-performance O(1) in-memory Map for per-device rate limiting and connection tracking
 // Prevents CPU bottlenecks and O(N) array scans from high-frequency agent polling (15-30s intervals)
 const deviceRateLimitMap = new Map(); // Key: device_id or hostname -> { windowStart, count, lastSeen }
@@ -1765,18 +1775,22 @@ app.post(['/api/v1/alerts/:id/resolve', '/api/alerts/:id/resolve'], requireRole(
   res.json({ ok: true, alert: alt });
 });
 
-app.get(['/api/v1/alerts/webhook', '/api/alerts/webhook'], async (req, res) => {
+app.get(['/api/v1/alerts/webhook', '/api/alerts/webhook'], requirePlatformSettingsAdmin, async (req, res) => {
   const cfg = await db.getWebhookConfig();
-  res.json(cfg);
+  // Never serialize a configured secret token back into API responses.
+  const { token, ...publicConfig } = cfg;
+  res.json({ ...publicConfig, token_configured: Boolean(token) });
 });
 
-app.put(['/api/v1/alerts/webhook', '/api/alerts/webhook'], requireRole(['SUPER_ADMIN']), validateBody(webhookConfigSchema), async (req, res) => {
+app.put(['/api/v1/alerts/webhook', '/api/alerts/webhook'], requirePlatformSettingsAdmin, validateBody(webhookConfigSchema), async (req, res) => {
   await db.updateWebhookConfig(req.body);
-  logAudit(req.user, "WEBHOOK_CONFIG_UPDATED", "AlertWebhook", req.body, req);
+  // Do not persist secret webhook credentials in an audit record.
+  logAudit(req.user, "WEBHOOK_CONFIG_UPDATED", "AlertWebhook",
+    { changed_fields: Object.keys(req.body) }, req);
   res.json({ ok: true });
 });
 
-app.post(['/api/v1/alerts/test-webhook', '/api/alerts/test-webhook'], async (req, res) => {
+app.post(['/api/v1/alerts/test-webhook', '/api/alerts/test-webhook'], requirePlatformSettingsAdmin, async (req, res) => {
   const cfg = await db.getWebhookConfig();
   if (!cfg.url && !cfg.webhook_url) {
     return res.status(400).json({ ok: false, error: "NOT_CONFIGURED", detail: "Webhook URL has not been configured." });
@@ -1928,12 +1942,12 @@ app.get('/api/v1/devices/:id/app-usage', async (req, res) => {
 });
 
 // Data Retention & Webhooks Settings V1
-app.get('/api/v1/settings/retention', async (req, res) => {
+app.get('/api/v1/settings/retention', requirePlatformSettingsAdmin, async (req, res) => {
   const settings = await db.getRetentionSettings();
   res.json(settings);
 });
 
-app.post('/api/v1/settings/retention', requireRole(['SUPER_ADMIN']), validateBody(updateRetentionSchema), async (req, res) => {
+app.post('/api/v1/settings/retention', requirePlatformSettingsAdmin, validateBody(updateRetentionSchema), async (req, res) => {
   const {
     raw_telemetry_days,
     aggregated_metrics_days,
@@ -1960,7 +1974,7 @@ app.post('/api/v1/settings/retention', requireRole(['SUPER_ADMIN']), validateBod
 });
 
 // Manual / on-demand trigger endpoint for operators
-app.post('/api/v1/settings/retention/run', requireRole(['SUPER_ADMIN', 'OPERATOR']), async (req, res) => {
+app.post('/api/v1/settings/retention/run', requirePlatformSettingsAdmin, async (req, res) => {
   const result = await db.runDataRetentionPurge();
   logAudit(req.user, "RETENTION_PURGE_MANUALLY_TRIGGERED", "SystemSettings", result, req);
   res.json({ status: "success", result });
@@ -1990,8 +2004,9 @@ app.post(['/api/v1/setup', '/api/setup'], async (req, res, next) => {
     // Never let an ordinary authenticated user reset the administrator via
     // the wizard after initial setup. The API gateway has already checked
     // authentication; this is the additional authorization requirement.
-    if (normalizeRole(req.user?.role) !== 'SUPER_ADMIN') {
-      return res.status(403).json({ error: 'FORBIDDEN', detail: 'Administrator role required to change setup.' });
+    if (!isPlatformSettingsAdmin(req.user)) {
+      return res.status(403).json({ error: 'PLATFORM_ADMIN_REQUIRED',
+        detail: 'Only the designated platform operator can change completed server setup.' });
     }
   } else if (REQUIRE_SECURE_SETUP &&
              !isValidSetupKey(req.headers['x-setup-token'], INITIAL_SETUP_TOKEN)) {
@@ -2343,7 +2358,7 @@ app.get(['/api/v1/features', '/api/features'], async (req, res) => {
   res.json(features);
 });
 
-app.put(['/api/v1/features/:name', '/api/features/:name'], validateBody(updateFeatureSchema), async (req, res) => {
+app.put(['/api/v1/features/:name', '/api/features/:name'], requirePlatformSettingsAdmin, validateBody(updateFeatureSchema), async (req, res) => {
   await db.updateFeature(req.params.name, req.body);
   res.json({ ok: true });
 });
@@ -2431,17 +2446,20 @@ app.post(['/api/v1/companies', '/api/companies'], requireRole(['SUPER_ADMIN']), 
 
 // Default Company Setting (Canonical v1 + Legacy alias)
 app.get(['/api/v1/settings/default-company', '/api/settings/default-company'], async (req, res) => {
-  const branding = await db.getBranding();
-  res.json({ company_id: branding.default_company_id, company_name: branding.company_name });
+  if (!req.user?.tenant_id) return res.status(403).json({ error: 'TENANT_REQUIRED' });
+  const comp = await db.getTenantDefaultCompany(req.user.tenant_id);
+  return res.json({ company_id: comp?.id || null, company_name: comp?.name || '' });
 });
 
 app.post(['/api/v1/settings/default-company', '/api/settings/default-company'], requireRole(['SUPER_ADMIN']), validateBody(defaultCompanySchema), async (req, res) => {
-  const comp = await db.getCompanyByName(req.body.name);
-  if (comp) {
-    await db.updateBranding({ default_company_id: comp.id });
-  }
-  logAudit(req.user, "DEFAULT_COMPANY_CHANGED", `Company:${req.body.name}`, {}, req);
-  res.json({ ok: true });
+  if (!req.user?.tenant_id) return res.status(403).json({ error: 'TENANT_REQUIRED' });
+  const companies = await db.getCompanies(req.user.tenant_id);
+  const comp = companies.find(c => c.name === req.body.name);
+  if (!comp) return res.status(404).json({ error: 'COMPANY_NOT_IN_WORKSPACE' });
+  await db.setTenantDefaultCompany(req.user.tenant_id, comp.id);
+  logAudit(req.user, 'DEFAULT_COMPANY_CHANGED', `Company:${comp.name}`,
+    { tenant_id: req.user.tenant_id, company_id: comp.id }, req);
+  return res.json({ ok: true, company_id: comp.id, company_name: comp.name });
 });
 
 // Helper functions for Agent Installer Script Generation
@@ -3070,12 +3088,12 @@ app.post(['/api/v1/remediation/trigger', '/api/remediation/trigger'], requireRol
 });
 
 // ---------------- GAP FULFILLMENT: TICKETING INTEGRATION ----------------
-app.get(['/api/v1/tickets/config', '/api/tickets/config'], async (req, res) => {
+app.get(['/api/v1/tickets/config', '/api/tickets/config'], requirePlatformSettingsAdmin, async (req, res) => {
   const cfg = await db.getTicketConfig();
   res.json(cfg);
 });
 
-app.put(['/api/v1/tickets/config', '/api/tickets/config'], requireRole(['SUPER_ADMIN']), validateBody(ticketConfigSchema), async (req, res) => {
+app.put(['/api/v1/tickets/config', '/api/tickets/config'], requirePlatformSettingsAdmin, validateBody(ticketConfigSchema), async (req, res) => {
   const updated = await db.updateTicketConfig(req.body);
   logAudit(req.user, "TICKET_CONFIG_UPDATED", "TicketConfig", updated, req);
   res.json({ ok: true, config: updated });

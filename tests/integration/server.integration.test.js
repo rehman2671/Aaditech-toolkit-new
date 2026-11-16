@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import request from 'supertest';
 import { verifyDeviceCommand } from '../../command-signing.js';
+import * as db from '../../db.js';
 import { app } from '../../server.js';
 
 describe('Server & API Integration Test Suite', () => {
@@ -444,6 +445,28 @@ describe('Server & API Integration Test Suite', () => {
         .query({ hostname: agentHostname });
       expect(res.status).toBe(200);
       expect(Array.isArray(res.body.commands) || Array.isArray(res.body)).toBe(true);
+    });
+
+    it('rejects a revoked per-device credential on BOTH telemetry and command polling', async () => {
+      try {
+        await db.updateDevice(agentDeviceId, { agent_token_revoked: 1 });
+        const telemetry = await request(app)
+          .post('/api/v1/ingest/telemetry')
+          .set('X-Device-Token', agentToken)
+          .send({ hostname: agentHostname, cpu_usage: '5%' });
+        expect(telemetry.status).toBe(401);
+        expect(telemetry.body.error).toBe('DEVICE_TOKEN_REVOKED');
+
+        const polling = await request(app)
+          .get('/api/v1/commands/poll')
+          .set('X-Device-Token', agentToken)
+          .query({ hostname: agentHostname });
+        expect(polling.status).toBe(401);
+        expect(polling.body.error).toBe('DEVICE_TOKEN_REVOKED');
+      } finally {
+        // This suite reuses the enrolled agent in later heartbeat checks.
+        await db.updateDevice(agentDeviceId, { agent_token_revoked: 0 });
+      }
     });
   });
 

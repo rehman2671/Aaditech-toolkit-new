@@ -63,6 +63,7 @@ import {
   updateUserSchema,
   workspaceSelectSchema,
   workspaceGrantSchema,
+  tenantBrandingSchema,
   createCompanySchema,
   defaultCompanySchema,
   updateFeatureSchema,
@@ -1719,6 +1720,21 @@ app.post('/api/v1/workspaces/invitations/:tenantId/:decision', async (req, res) 
     tenant_id: tenantId });
 });
 
+// Safe workspace presentation settings: only the selected tenant is affected.
+app.get('/api/v1/workspaces/branding', async (req, res) => {
+  if (!req.user?.tenant_id) return res.status(403).json({ error: 'TENANT_REQUIRED' });
+  return res.json(await db.getTenantBranding(req.user.tenant_id));
+});
+
+app.put('/api/v1/workspaces/branding', requireRole(['SUPER_ADMIN']),
+  validateBody(tenantBrandingSchema), async (req, res) => {
+    if (!req.user?.tenant_id) return res.status(403).json({ error: 'TENANT_REQUIRED' });
+    const branding = await db.updateTenantBranding(req.user.tenant_id, req.body);
+    logAudit(req.user, 'TENANT_BRANDING_UPDATED', `Tenant:${req.user.tenant_id}`,
+      { changed_fields: Object.keys(req.body) }, req);
+    return res.json(branding);
+  });
+
 // ---------------- PHASE 2: OPERATIONAL MANAGEMENT API ROUTES ----------------
 
 // Alert Rules Engine V1
@@ -2105,6 +2121,7 @@ app.post(['/api/v1/setup', '/api/setup'], async (req, res, next) => {
 app.get(['/api/v1/bootstrap', '/api/bootstrap'], async (req, res) => {
   const branding = await db.getBranding();
   if (!req.user?.tenant_id) return res.status(403).json({ error: 'TENANT_REQUIRED' });
+  const tenantBrand = await db.getTenantBranding(req.user.tenant_id);
   const companies = await db.getCompanies(req.user.tenant_id);
   const storedUser = await db.getUserById(req.user.id) || req.user;
   // The active tenant/role comes from the verified workspace JWT principal,
@@ -2114,12 +2131,12 @@ app.get(['/api/v1/bootstrap', '/api/bootstrap'], async (req, res) => {
   const { password_hash, ...safeUser } = authUser;
   res.json({
     user: safeUser,
-    company_name: branding.company_name,
+    company_name: tenantBrand.company_name || companies[0]?.name || branding.company_name,
     server_host: process.env.NODE_ENV === 'production'
       ? process.env.SERVER_HOST : (branding.server_host || 'localhost'),
-    branding: branding.branding,
+    branding: { ...branding.branding, logo_text: tenantBrand.logo_text, color: tenantBrand.color },
     agent_token_configured: Boolean(AGENT_API_TOKEN),
-    company: companies[0] || { id: 1, name: branding.company_name },
+    company: companies[0] || { id: 1, name: tenantBrand.company_name || branding.company_name },
     companies: companies
   });
 });
@@ -3129,30 +3146,35 @@ app.post(['/api/v1/remediation/trigger', '/api/remediation/trigger'], requireRol
 });
 
 // ---------------- GAP FULFILLMENT: TICKETING INTEGRATION ----------------
-app.get(['/api/v1/tickets/config', '/api/tickets/config'], requirePlatformSettingsAdmin, async (req, res) => {
-  const cfg = await db.getTicketConfig();
-  res.json(cfg);
+app.get(['/api/v1/tickets/config', '/api/tickets/config'], async (req, res) => {
+  if (!req.user?.tenant_id) return res.status(403).json({ error: 'TENANT_REQUIRED' });
+  return res.json(await db.getTenantTicketConfig(req.user.tenant_id));
 });
 
-app.put(['/api/v1/tickets/config', '/api/tickets/config'], requirePlatformSettingsAdmin, validateBody(ticketConfigSchema), async (req, res) => {
-  const updated = await db.updateTicketConfig(req.body);
-  logAudit(req.user, "TICKET_CONFIG_UPDATED", "TicketConfig", updated, req);
-  res.json({ ok: true, config: updated });
-});
+app.put(['/api/v1/tickets/config', '/api/tickets/config'], requireRole(['SUPER_ADMIN']),
+  validateBody(ticketConfigSchema), async (req, res) => {
+    if (!req.user?.tenant_id) return res.status(403).json({ error: 'TENANT_REQUIRED' });
+    const updated = await db.updateTenantTicketConfig(req.user.tenant_id, req.body);
+    logAudit(req.user, 'TENANT_TICKET_CONFIG_UPDATED', `Tenant:${req.user.tenant_id}`,
+      { changed_fields: Object.keys(req.body) }, req);
+    return res.json({ ok: true, config: updated });
+  });
 
 app.get(['/api/v1/tickets', '/api/v1/tickets/list', '/api/tickets/list'], async (req, res) => {
-  const tickets = await db.getTickets();
+  if (!req.user?.tenant_id) return res.status(403).json({ error: 'TENANT_REQUIRED' });
+  const tickets = await db.getTickets(req.user.tenant_id);
   sendPaginated(req, res, tickets, 50, 500);
 });
 
 app.post(['/api/v1/tickets', '/api/v1/tickets/create', '/api/tickets/create'], requireRole(['SUPER_ADMIN', 'OPERATOR']), validateBody(createTicketSchema), async (req, res) => {
   const { title, agent, severity, description } = req.body;
-  const cfg = await db.getTicketConfig();
+  if (!req.user?.tenant_id) return res.status(403).json({ error: 'TENANT_REQUIRED' });
+  const cfg = await db.getTenantTicketConfig(req.user.tenant_id);
   const newId = `${cfg.project || 'ITSUP'}-${crypto.randomUUID()}`;
   const ticket = {
     id: newId,
-    tenant_id: req.user?.tenant_id || "00000000-0000-0000-0000-000000000001",
-    system: cfg.system || "Jira",
+    tenant_id: req.user.tenant_id,
+    system: cfg.system || "none",
     title: title || `Issue reported on ${agent || 'Host'}`,
     status: "Open",
     severity: severity || "Medium",

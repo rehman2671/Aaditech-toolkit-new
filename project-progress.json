@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-16T17:27:36+00:00",
-  "last_verified_commit": "5fdf4acbe23dece0c4abdb6b3a81faa3e8c11a1b",
-  "last_verified_date": "2026-11-16T22:57:24+05:30",
+  "generated": "2026-11-16T17:27:50+00:00",
+  "last_verified_commit": "b9bb162949173bbcaa598c5bdb5fbfc4c8a7dd37",
+  "last_verified_date": "2026-11-16T22:57:41+05:30",
   "overall_progress_percent": 100.0,
   "progress_scope": "historic audit issue closure only; production acceptance pending",
   "production_ready": false,
@@ -14,23 +14,12 @@
     "percent": 100.0
   },
   "latest_delta": {
-    "added": 1,
+    "added": 0,
     "removed": 0,
     "changed": 1,
-    "unchanged": 256
+    "unchanged": 257
   },
   "delta_history": [
-    {
-      "detected_at": "2026-11-16T14:32:36+00:00",
-      "added": [],
-      "removed": [],
-      "changed": [
-        "Enterprise/deploy/restore.sh",
-        "Enterprise/tests/Test-MySQL-Backup-Restore.sh",
-        "Enterprise/deploy/backup.sh"
-      ],
-      "unchanged_count": 243
-    },
     {
       "detected_at": "2026-11-16T14:32:54+00:00",
       "added": [],
@@ -227,6 +216,15 @@
         "Enterprise/deploy/migrate-legacy-msi-bootstrap.sh"
       ],
       "unchanged_count": 256
+    },
+    {
+      "detected_at": "2026-11-16T17:27:50+00:00",
+      "added": [],
+      "removed": [],
+      "changed": [
+        ".github/workflows/deployment-safety.yml"
+      ],
+      "unchanged_count": 257
     }
   ],
   "next_recommended_tasks": [

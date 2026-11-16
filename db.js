@@ -545,8 +545,10 @@ export async function executeQuery(sql, params = []) {
     }
   }
 
-  if (process.env.NODE_ENV === 'production' && !process.env.ALLOW_FALLBACK_DB) {
-    throw new Error(`Database connection unavailable in production environment: cannot execute query on memory fallback`);
+  // Production must never enter the demo/in-memory datastore, even when a
+  // stale ALLOW_FALLBACK_DB setting is present on a deployed machine.
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('Database connection unavailable in production environment: cannot execute query on memory fallback');
   }
 
   // Resilient fallback SQL emulator for essential query patterns and EXPLAIN plans
@@ -2233,7 +2235,8 @@ export async function markBootstrapTokenUsed(token, tokenHash, hostname, tenantI
   try {
     await executeQuery(
       'INSERT INTO used_bootstrap_tokens (token_hash, token, device_hostname, tenant_id, used_at) VALUES (?, ?, ?, ?, NOW(3))',
-      [hash, token || null, hostname || null, tenantId || null]
+      // Used-token history needs the hash, not the original bearer secret.
+      [hash, null, hostname || null, tenantId || null]
     );
   } catch (err) {
     if (err.code === 'ER_DUP_ENTRY' || String(err.message).includes('Duplicate entry')) {
@@ -2243,19 +2246,19 @@ export async function markBootstrapTokenUsed(token, tokenHash, hostname, tenantI
   }
 
   memBootstrapTokens.add(hash);
-  if (token) memBootstrapTokens.add(token);
 
+  // Clear the original plaintext secret as soon as the one-use credential
+  // is redeemed. Historical used-token checks still work by hash.
+  await executeQuery(
+    'UPDATE msi_packages SET used = 1, used_at = NOW(3), used_by_device = ?, bootstrap_token = NULL WHERE bootstrap_token = ? OR bootstrap_token_hash = ?',
+    [hostname, token, hash]
+  );
   if (memPkg) {
     memPkg.used = 1;
     memPkg.used_at = new Date();
     memPkg.used_by_device = hostname;
+    memPkg.bootstrap_token = null;
   }
-
-  // Also update msi_packages if matching
-  await executeQuery(
-    'UPDATE msi_packages SET used = 1, used_at = NOW(3), used_by_device = ? WHERE bootstrap_token = ? OR bootstrap_token_hash = ?',
-    [hostname, token, hash]
-  );
   return true;
 }
 

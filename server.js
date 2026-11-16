@@ -2393,16 +2393,8 @@ set "LOG_FILE=%TEMP%\\ittk_agent_install.log"
 echo [*] Target ProgramData Directory: %TARGET_DIR%
 if not exist "%TARGET_DIR%" mkdir "%TARGET_DIR%"
 
-:: 2. Import Root CA Certificate (if present)
-if exist "%SCRIPT_DIR%ca.crt" (
-    echo [*] Registering Enterprise Root CA Certificate...
-    certutil -addstore -f "ROOT" "%SCRIPT_DIR%ca.crt" >nul 2>&1
-    if !errorLevel! equ 0 (
-        echo [OK] CA Certificate added to Trusted Root Certification Authorities.
-    ) else (
-        echo [WARNING] Failed to import CA Certificate.
-    )
-)
+:: 2. Production HTTPS uses Windows OS trust. Do NOT auto-import any CA file.
+::  An enterprise root can only be deployed by separately approved device policy.
 
 :: 3. Copy Agent Configuration
 if exist "%SCRIPT_DIR%agent.json" (
@@ -2510,16 +2502,8 @@ $configData = @{
 $configData | ConvertTo-Json | Set-Content -Path $agentJsonPath -Force
 Write-Host "[+] Generated runtime agent.json at $agentJsonPath" -ForegroundColor Green
 
-# 2. Register Root CA Certificate if found
-$caPath = Join-Path $ScriptDir "ca.crt"
-if (Test-Path $caPath) {
-    try {
-        Import-Certificate -FilePath $caPath -CertStoreLocation "Cert:\\LocalMachine\\Root" | Out-Null
-        Write-Host "[+] Enterprise Root CA registered in LocalMachine\\Root" -ForegroundColor Green
-    } catch {
-        Write-Warning "Failed to import Root CA Certificate: $_"
-    }
-}
+# 2. Public HTTPS uses the Windows trust store. Do NOT import custom roots.
+# Trusted enterprise certificates, if needed, must be deployed via approved policy.
 
 # 3. Locate & Execute MSI
 $msiFiles = Get-ChildItem -Path $ScriptDir -Filter "*.msi" -ErrorAction SilentlyContinue
@@ -2721,6 +2705,9 @@ app.get('/api/agent/bundle.zip', handleAgentBundleZip);
 app.get('/api/v1/agent/bundle.zip', handleAgentBundleZip);
 
 app.get(['/api/v1/ca.crt', '/api/ca.crt'], (req, res) => {
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(410).json({ error: 'LEGACY_CA_DISTRIBUTION_DISABLED', detail: 'Production HTTPS uses publicly trusted server TLS. Custom root import is not supported.' });
+  }
   const caCert = getCaCertificate();
   res.setHeader('Content-Type', 'application/x-pem-file');
   res.setHeader('Content-Disposition', 'attachment; filename="itk-ca.crt"');

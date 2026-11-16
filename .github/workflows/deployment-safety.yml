@@ -33,6 +33,10 @@ jobs:
           bash -n Enterprise/deploy/deploy-mysql.sh
           bash -n Enterprise/deploy/backup.sh
           bash -n Enterprise/deploy/restore.sh
+          bash -n Enterprise/deploy/verify-hostinger-acceptance.sh
+      - name: Verify VPS public HTTPS acceptance CLI is safe in offline dry-run
+        shell: bash
+        run: bash Enterprise/deploy/verify-hostinger-acceptance.sh --host toolkit.aaditech.net --dry-run
       - name: Verify MySQL backup and restore safety controls
         shell: bash
         run: bash Enterprise/tests/Test-MySQL-Backup-Restore.sh

@@ -58,3 +58,11 @@ credentials, identity collision details or signing private keys in Git.
 production identity audit/migration approval and customer Windows acceptance.
 
 **Signing implementation:** GitHub workflow now requires CODESIGN_PFX_B64, CODESIGN_PFX_PASSWORD and CODESIGN_APPROVED_THUMBPRINT. It signs EXE before MSI packaging, checks extracted MSI payload hash, verifies the OS-trusted chain/approved publisher fingerprint and RFC3161 timestamp on both EXE and MSI, then adds SHA256SUMS.txt. No credentials means no upload. The signing root is never imported into CI, so an untrusted internal CA cannot masquerade as public trust.
+
+## Read-only Hostinger public HTTPS smoke gate
+
+On the approved Docker-capable VPS or an independent operator host, run:
+
+  bash Enterprise/deploy/verify-hostinger-acceptance.sh --host YOUR_REAL_DNS_HOST
+
+This verifies public OS-trusted HTTPS, 200 /healthz with persistent MySQL HEALTHY and HTTP-to-HTTPS redirect. Its --dry-run validates inputs offline in CI. It never deploys, changes DNS or accepts secrets. A passing smoke test is ONLY a prerequisite for a live, operator-approved Hostinger readiness decision and is not proof of backups/tenant isolation/Windows enrollment.

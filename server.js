@@ -1980,14 +1980,15 @@ app.post(['/api/v1/setup', '/api/setup'], async (req, res, next) => {
 // Bootstrap (Canonical v1 + Legacy alias)
 app.get(['/api/v1/bootstrap', '/api/bootstrap'], async (req, res) => {
   const branding = await db.getBranding();
-  const companies = await db.getCompanies();
-  const users = await db.getUsers();
-  const authUser = req.user ? (await db.getUserById(req.user.id) || await db.getUserByUsername(req.user.username) || req.user) : (users[0] || { id: 1, username: 'admin', role: 'SUPER_ADMIN' });
+  if (!req.user?.tenant_id) return res.status(403).json({ error: 'TENANT_REQUIRED' });
+  const companies = await db.getCompanies(req.user.tenant_id);
+  const authUser = await db.getUserById(req.user.id) || req.user;
   const { password_hash, ...safeUser } = authUser;
   res.json({
     user: safeUser,
     company_name: branding.company_name,
-    server_host: req.headers.host || branding.server_host,
+    server_host: process.env.NODE_ENV === 'production'
+      ? process.env.SERVER_HOST : (branding.server_host || 'localhost'),
     branding: branding.branding,
     agent_token_configured: Boolean(AGENT_API_TOKEN),
     company: companies[0] || { id: 1, name: branding.company_name },
@@ -2017,7 +2018,9 @@ app.get(['/api/status', '/api/v1/database/status'], async (req, res) => {
 // Events (Canonical v1 + Legacy alias)
 app.get(['/api/v1/events', '/api/events'], async (req, res) => {
   const { limit, offset } = parsePagination(req, 100, 500);
-  const list = await db.getEvents(req.query.hostname || null, limit + offset, req.query.kind || null);
+  if (!req.user?.tenant_id) return res.status(403).json({ error: 'TENANT_REQUIRED' });
+  const list = await db.getEvents(req.query.hostname || null, limit + offset,
+    req.query.kind || null, req.user.tenant_id);
   sendPaginated(req, res, list, 100, 500);
 });
 
@@ -2243,10 +2246,12 @@ app.get(['/api/v1/reports/fleet', '/api/report/fleet'], async (req, res) => {
 });
 
 app.get(['/api/v1/reports/device/:id', '/api/report/agent/:id'], async (req, res) => {
-  const agent = await db.getDeviceById(req.params.id) || await db.getDeviceByHostname(req.params.id) || (await db.getDevices())[0];
-  if (!agent) return res.status(404).json({ error: "Device not found" });
+  const agent = await db.getDeviceById(req.params.id) || await db.getDeviceByHostname(req.params.id);
+  if (!belongsToCurrentTenant(req.user, agent)) {
+    return res.status(404).json({ error: "Device not found" });
+  }
   if (req.query.format === 'csv') {
-    const events = await db.getEvents(agent.hostname);
+    const events = await db.getEvents(agent.hostname, 100, null, req.user.tenant_id);
     let csv = 'Hostname,Kind,CapturedAt\n';
     for (const ev of events) {
       csv += `"${agent.hostname}","${ev.kind || 'telemetry'}","${ev.created_at || ev.recorded_at || ''}"\n`;
@@ -2255,7 +2260,7 @@ app.get(['/api/v1/reports/device/:id', '/api/report/agent/:id'], async (req, res
     res.setHeader('Content-Disposition', `attachment; filename="${agent.hostname}_events.csv"`);
     return res.send(csv);
   }
-  const events = await db.getEvents(agent.hostname);
+  const events = await db.getEvents(agent.hostname, 100, null, req.user.tenant_id);
   res.json(events);
 });
 

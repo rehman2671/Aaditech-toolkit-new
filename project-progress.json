@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-16T14:55:42+00:00",
-  "last_verified_commit": "4ce1c8cbd514a36700fc97cd4376437da4bbfe26",
-  "last_verified_date": "2026-11-16T20:25:20+05:30",
+  "generated": "2026-11-16T14:57:19+00:00",
+  "last_verified_commit": "890579ed9195a0335b5244de30dc249c1933ec80",
+  "last_verified_date": "2026-11-16T20:27:04+05:30",
   "overall_progress_percent": 100.0,
   "progress_scope": "historic audit issue closure only; production acceptance pending",
   "production_ready": false,
@@ -14,21 +14,12 @@
     "percent": 100.0
   },
   "latest_delta": {
-    "added": 0,
+    "added": 2,
     "removed": 0,
-    "changed": 2,
-    "unchanged": 247
+    "changed": 0,
+    "unchanged": 249
   },
   "delta_history": [
-    {
-      "detected_at": "2026-11-16T13:42:42+00:00",
-      "added": [
-        "tests/unit/device-identity-production-read.test.js"
-      ],
-      "removed": [],
-      "changed": [],
-      "unchanged_count": 242
-    },
     {
       "detected_at": "2026-11-16T14:19:24+00:00",
       "added": [
@@ -226,6 +217,16 @@
         "tests/unit/msi-latest-route.test.js"
       ],
       "unchanged_count": 247
+    },
+    {
+      "detected_at": "2026-11-16T14:57:19+00:00",
+      "added": [
+        "tests/unit/agent-origin.test.js",
+        "agent-origin.js"
+      ],
+      "removed": [],
+      "changed": [],
+      "unchanged_count": 249
     }
   ],
   "next_recommended_tasks": [

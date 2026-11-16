@@ -52,3 +52,14 @@ These runs are **new evidence**, not included in the historical November 3 check
 - The Stage 16 regression covers tenant-scoped inventory reports and remediation ownership, SMTP fail-closed encryption/config/recipient domain validation, separate tenant email consent, and rejection of false test-email delivery claims.
 
 **CI does not verify:** public code signing, actual Hostinger deployment, genuine SMTP relay/certificate/recipient inbox acceptance, physical customer Windows machines or recovery of real production data. Do not infer those outcomes from green automated checks.
+
+---
+
+## Verified Stage 17 and Stage 18 main CI ledger — 2026-11-17
+
+| Stage | PR verification | Main CI | Main deployment-safety | Accepted scope |
+|---|---|---|---|---|
+| N17 | PR #7, CI #43980985118 and safety #43980984905 SUCCESS | [#43981328283](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43981328283) **SUCCESS 4/4** | [#43981328387](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43981328387) **SUCCESS 2/2** | MySQL tenant remediation migrations/outbox, transactional alert enqueue, retry/dead-letter worker, pinned HTTPS webhook; Node/Vitest, PowerShell, real MySQL/API, diagnostic Windows EXE/MSI |
+| N18 | PR #8, CI #43981861732 and safety #43981861681 SUCCESS | [#43982225279](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43982225279) **SUCCESS 4/4** | [#43982225214](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43982225214) **SUCCESS 2/2** | Tenant-scoped audit, device processes/usage, groups/policies, patch approvals; Node/Vitest, PowerShell, real MySQL/API and Windows diagnostic MSI installation/upgrade |
+
+These tests execute on CI runners and disposable databases. They do **not** prove real Hostinger TLS/recovery, an independent signed public MSI, recipient inbox delivery, actual production secrets, or physical customer Windows install/UAC. **Do not certify production** without those external proofs.

@@ -459,7 +459,7 @@ describe('Database Module (db.js) Unit Test Suite', () => {
       const isUsedBefore = await db.isBootstrapTokenUsed(token);
       expect(typeof isUsedBefore).toBe('boolean');
 
-      await db.markBootstrapTokenUsed(token, 'hash_' + token, 'ENROLLED-HOST', 'tenant-1');
+      await db.markBootstrapTokenUsed(token, null, 'ENROLLED-HOST', 'tenant-1');
       const isUsedAfter = await db.isBootstrapTokenUsed(token);
       expect(isUsedAfter).toBe(true);
     });

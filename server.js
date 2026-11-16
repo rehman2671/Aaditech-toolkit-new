@@ -1740,12 +1740,11 @@ app.put('/api/v1/workspaces/branding', requireRole(['SUPER_ADMIN']),
 // Alert Rules Engine V1
 // Alerts & Alert Rules Engine (Canonical v1 + Legacy aliases)
 app.get(['/api/v1/alerts/open', '/api/alerts/open'], async (req, res) => {
-  const filters = { status: 'open' };
-  const tenantId = (req.user?.role === 'SUPER_ADMIN' && req.user?.tenant_id === '00000000-0000-0000-0000-000000000001')
-    ? req.query.tenant_id
-    : req.user?.tenant_id;
-  if (tenantId) filters.tenant_id = tenantId;
-  const alerts = await db.getAlerts(filters);
+  const tenantId = req.user?.tenant_id;
+  if (!tenantId || (req.query.tenant_id && String(req.query.tenant_id) !== String(tenantId))) {
+    return res.status(403).json({ error: 'TENANT_ACCESS_DENIED' });
+  }
+  const alerts = await db.getAlerts({ status: 'open', tenant_id: tenantId });
   res.json({ open: alerts.length });
 });
 
@@ -1762,7 +1761,9 @@ app.get(['/api/v1/alerts', '/api/alerts'], async (req, res) => {
 });
 
 app.get(['/api/v1/alerts/rules', '/api/alert-rules'], async (req, res) => {
-  const rules = await db.getAlertRules();
+  if (!req.user?.tenant_id) return res.status(403).json({ error: 'TENANT_REQUIRED' });
+  const rules = (await db.getAlertRules()).filter(rule =>
+    String(rule.tenant_id) === String(req.user.tenant_id));
   sendPaginated(req, res, rules, 50, 500);
 });
 
@@ -1778,9 +1779,11 @@ app.post('/api/v1/alerts/rules', requireRole(['SUPER_ADMIN']), validateBody(crea
     threshold: parseFloat(threshold),
     duration_mins: parseInt(duration_mins, 10) || 5,
     severity: severity || "warning",
-    enabled: true
+    enabled: true,
+    tenant_id: req.user.tenant_id
   };
 
+  if (!req.user?.tenant_id) return res.status(403).json({ error: 'TENANT_REQUIRED' });
   const created = await db.createAlertRule(newRule);
   logAudit(req.user, "ALERT_RULE_CREATED", `AlertRule:${name}`, { rule_id: created.id, metric, threshold }, req);
 
@@ -1791,6 +1794,9 @@ app.put(['/api/v1/alerts/rules/:id', '/api/alert-rules/:name'], requireRole(['SU
   const idOrName = req.params.id || req.params.name;
   let rule = await db.getAlertRuleById(idOrName);
   if (!rule) rule = await db.getAlertRuleByName(idOrName);
+  if (rule && String(rule.tenant_id) !== String(req.user?.tenant_id)) {
+    return res.status(404).json({ error: 'ALERT_RULE_NOT_FOUND' });
+  }
   if (rule) {
     await db.updateAlertRule(rule.id, req.body);
     logAudit(req.user, "ALERT_RULE_UPDATED", `AlertRule:${rule.name}`, req.body, req);
@@ -1800,6 +1806,10 @@ app.put(['/api/v1/alerts/rules/:id', '/api/alert-rules/:name'], requireRole(['SU
 
 app.delete('/api/v1/alerts/rules/:id', requireRole(['SUPER_ADMIN']), async (req, res) => {
   const ruleId = req.params.id;
+  const rule = await db.getAlertRuleById(ruleId);
+  if (!rule || String(rule.tenant_id) !== String(req.user?.tenant_id)) {
+    return res.status(404).json({ error: 'ALERT_RULE_NOT_FOUND' });
+  }
   await db.deleteAlertRule(ruleId);
   logAudit(req.user, "ALERT_RULE_DELETED", `AlertRule:${ruleId}`, {}, req);
   res.status(200).json({ success: true, message: "Alert rule removed" });
@@ -1808,7 +1818,9 @@ app.delete('/api/v1/alerts/rules/:id', requireRole(['SUPER_ADMIN']), async (req,
 app.post(['/api/v1/alerts/:id/acknowledge', '/api/alerts/:id/ack', '/api/alerts/:id/acknowledge'], requireRole(['SUPER_ADMIN', 'OPERATOR']), async (req, res) => {
   const alertId = parseInt(req.params.id, 10);
   const alt = await db.getAlertById(alertId);
-  if (!alt) return res.status(404).json({ error: "Alert not found" });
+  if (!alt || String(alt.tenant_id) !== String(req.user?.tenant_id)) {
+    return res.status(404).json({ error: "Alert not found" });
+  }
 
   await db.updateAlert(alertId, { status: "acknowledged" });
   alt.status = "acknowledged";
@@ -1819,7 +1831,9 @@ app.post(['/api/v1/alerts/:id/acknowledge', '/api/alerts/:id/ack', '/api/alerts/
 app.post(['/api/v1/alerts/:id/resolve', '/api/alerts/:id/resolve'], requireRole(['SUPER_ADMIN', 'OPERATOR']), async (req, res) => {
   const alertId = parseInt(req.params.id, 10);
   const alt = await db.getAlertById(alertId);
-  if (!alt) return res.status(404).json({ error: "Alert not found" });
+  if (!alt || String(alt.tenant_id) !== String(req.user?.tenant_id)) {
+    return res.status(404).json({ error: "Alert not found" });
+  }
 
   await db.resolveAlert(alertId);
   alt.status = "resolved";
@@ -3187,8 +3201,9 @@ app.post(['/api/v1/tickets', '/api/v1/tickets/create', '/api/tickets/create'], r
 
 // ---------------- GAP FULFILLMENT: CLOUD & HYBRID AUDIT ----------------
 app.get(['/api/v1/compliance/cloud-audit', '/api/compliance/cloud-audit'], async (req, res) => {
+  if (!req.user?.tenant_id) return res.status(403).json({ error: 'TENANT_REQUIRED' });
   const isCloudConfigured = Boolean(process.env.AZURE_TENANT_ID && process.env.GRAPH_CLIENT_ID);
-  const agents = await db.getDevices();
+  const agents = await db.getDevices({ tenant_id: req.user.tenant_id });
 
   if (!isCloudConfigured) {
     const bitlockerCount = agents.filter(a => a.bitlocker_status === 'ENCRYPTED').length;

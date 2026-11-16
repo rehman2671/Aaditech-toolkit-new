@@ -28,6 +28,7 @@ import { isValidSetupKey, isSeededDemoPasswordHash } from './setup-security.js';
 import { validateEnrollmentIdentity } from './enrollment-security.js';
 import { resolveAgentOrigin } from './agent-origin.js';
 import { resolveVerifiedUserPrincipal } from './auth-principal.js';
+import { belongsToCurrentTenant, publicDeviceRecord } from './device-visibility.js';
 import { signDeviceCommand } from './command-signing.js';
 import {
   getAgentVersion,
@@ -1009,8 +1010,13 @@ app.get(['/api/v1/auth/me', '/api/me'], async (req, res) => {
 
 // Devices (Canonical v1 + Legacy aliases /api/devices and /api/agents)
 app.get(['/api/v1/devices', '/api/devices', '/api/agents'], async (req, res) => {
-  const isSuperAdmin = req.user?.role === 'SUPER_ADMIN';
-  const tenantFilter = isSuperAdmin ? (req.query.tenant_id || req.user?.tenant_id) : req.user?.tenant_id;
+  // A tenant SUPER_ADMIN is not a platform-wide administrator. A query
+  // parameter must not switch workspace without explicit membership.
+  const tenantFilter = req.user?.tenant_id;
+  if (!tenantFilter || (req.query.tenant_id &&
+      String(req.query.tenant_id) !== String(tenantFilter))) {
+    return res.status(403).json({ error: 'TENANT_ACCESS_DENIED' });
+  }
   const agents = await db.getDevices({
     tenant_id: tenantFilter,
     status: req.query.status,
@@ -1044,12 +1050,14 @@ app.get(['/api/v1/devices/:id', '/api/devices/:id', '/api/agents/:id'], async (r
               await db.getDeviceByHostname(req.params.id);
   if (!dev) return res.status(404).json({ error: "Device not found" });
 
-  if (req.user && req.user.role !== 'SUPER_ADMIN' && dev.tenant_id && req.user.tenant_id && dev.tenant_id !== req.user.tenant_id) {
-    return res.status(403).json({ error: "Forbidden: Device belongs to another tenant" });
+  if (!belongsToCurrentTenant(req.user, dev)) {
+    return res.status(404).json({ error: "Device not found" });
   }
 
+  // Full MySQL rows contain hashed device credentials. Never serialize them
+  // into authenticated user responses, even for same-tenant admins.
   res.json({
-    ...dev,
+    ...publicDeviceRecord(dev),
     os_type: (dev.os_version || dev.os || '').includes('Windows') ? 'WINDOWS' : (dev.os_version || dev.os || '').includes('macOS') ? 'MACOS' : 'LINUX',
     status: dev.status === 'online' || dev.status === 'ACTIVE' ? 'ACTIVE' : 'OFFLINE',
     ip: dev.ip_address || dev.ip,
@@ -1063,8 +1071,8 @@ app.delete(['/api/v1/devices/:id', '/api/devices/:id', '/api/agents/:id'], requi
               await db.getDeviceByHostname(req.params.id);
   if (!dev) return res.status(404).json({ error: "Device not found" });
 
-  if (req.user?.tenant_id && dev.tenant_id && req.user.tenant_id !== dev.tenant_id && req.user.tenant_id !== '00000000-0000-0000-0000-000000000001') {
-    return res.status(403).json({ error: "Forbidden: Device belongs to another tenant" });
+  if (!belongsToCurrentTenant(req.user, dev)) {
+    return res.status(404).json({ error: "Device not found" });
   }
 
   await db.deleteDevice(dev.id);

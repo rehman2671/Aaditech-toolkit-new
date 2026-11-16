@@ -41,6 +41,8 @@ services:
       # changed after setup; blank values intentionally deny global writes.
       PLATFORM_ADMIN_USER_ID: ${PLATFORM_ADMIN_USER_ID:-}
       PLATFORM_OWNER_TENANT_ID: ${PLATFORM_OWNER_TENANT_ID:-}
+      # Exact comma-separated public HTTPS webhook hosts; empty denies delivery.
+      WEBHOOK_ALLOWED_HOSTS: ${WEBHOOK_ALLOWED_HOSTS:-}
       SESSION_SECRET: ${SESSION_SECRET:-}
       HMAC_SECRET: ${HMAC_SECRET:?set HMAC_SECRET in Enterprise/.env}
       BOOTSTRAP_SECRET: ${BOOTSTRAP_SECRET:?set BOOTSTRAP_SECRET in Enterprise/.env}

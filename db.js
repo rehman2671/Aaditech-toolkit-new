@@ -2042,6 +2042,9 @@ export async function getAlertById(id) {
 }
 
 export async function createAlert(alt) {
+  if (process.env.NODE_ENV === 'production' && !alt?.tenant_id) {
+    throw new Error('TENANT_REQUIRED');
+  }
   const sql = `
     INSERT INTO alerts (tenant_id, device_id, agent_id, hostname, rule, rule_name, severity, message, status, created_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(3))
@@ -3076,6 +3079,22 @@ export async function updateBranding(updates) {
   const current = await getBranding();
   const merged = { ...current, ...updates };
   await setSetting('branding', merged);
+  return merged;
+}
+
+// Stage N15: webhook destinations are explicitly scoped to a single tenant.
+// Do not copy global webhookConfig or retention endpoints into these settings.
+export async function getTenantWebhookConfig(tenantId) {
+  if (!tenantId || typeof tenantId !== 'string') throw new Error('TENANT_REQUIRED');
+  const defaults = { enabled: false, url: '', type: 'generic' };
+  const saved = await getSetting('tenant:' + tenantId + ':webhookConfig', null);
+  return { ...defaults, ...(saved || {}) };
+}
+
+export async function updateTenantWebhookConfig(tenantId, updates) {
+  const current = await getTenantWebhookConfig(tenantId);
+  const merged = { ...current, ...updates };
+  await setSetting('tenant:' + tenantId + ':webhookConfig', merged);
   return merged;
 }
 

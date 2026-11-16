@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-16T18:38:38+00:00",
-  "last_verified_commit": "5957b285fdafecc274fa8ff885221f23e87afba6",
-  "last_verified_date": "2026-11-17T00:08:29+05:30",
+  "generated": "2026-11-16T18:39:12+00:00",
+  "last_verified_commit": "a07c7b53cecdb1379d06d1a6cde209418492f238",
+  "last_verified_date": "2026-11-17T00:08:59+05:30",
   "overall_progress_percent": 100.0,
   "progress_scope": "historic audit issue closure only; production acceptance pending",
   "production_ready": false,
@@ -14,21 +14,12 @@
     "percent": 100.0
   },
   "latest_delta": {
-    "added": 0,
+    "added": 1,
     "removed": 0,
-    "changed": 1,
-    "unchanged": 267
+    "changed": 0,
+    "unchanged": 268
   },
   "delta_history": [
-    {
-      "detected_at": "2026-11-16T18:08:51+00:00",
-      "added": [],
-      "removed": [],
-      "changed": [
-        "auth-principal.js"
-      ],
-      "unchanged_count": 262
-    },
     {
       "detected_at": "2026-11-16T18:09:30+00:00",
       "added": [],
@@ -205,6 +196,15 @@
         "server.js"
       ],
       "unchanged_count": 267
+    },
+    {
+      "detected_at": "2026-11-16T18:39:12+00:00",
+      "added": [
+        "tests/unit/workspace-invitation-consent.test.js"
+      ],
+      "removed": [],
+      "changed": [],
+      "unchanged_count": 268
     }
   ],
   "next_recommended_tasks": [

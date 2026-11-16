@@ -2688,6 +2688,26 @@ export async function setSetting(key, value) {
   return true;
 }
 
+// Tenant-specific default company lives in its own keyed settings record.
+// Never mutate the cluster-wide branding/default-company setting on behalf
+// of a tenant; a company ID must belong to the current workspace.
+export async function getTenantDefaultCompany(tenantId) {
+  if (typeof tenantId !== 'string' || !tenantId) throw new Error('Tenant required');
+  const companies = await getCompanies(tenantId);
+  const preferred = await getSetting(`tenant:${tenantId}:default_company`, null);
+  const chosen = companies.find(c => String(c.id) === String(preferred)) || companies[0];
+  return chosen || null;
+}
+
+export async function setTenantDefaultCompany(tenantId, companyId) {
+  if (typeof tenantId !== 'string' || !tenantId) throw new Error('Tenant required');
+  const companies = await getCompanies(tenantId);
+  const selected = companies.find(c => String(c.id) === String(companyId));
+  if (!selected) return null;
+  await setSetting(`tenant:${tenantId}:default_company`, selected.id);
+  return selected;
+}
+
 export async function getRetentionSettings() {
   const defaults = {
     raw_telemetry_days: 30,

@@ -91,15 +91,20 @@ cd Enterprise/deploy
 BACKUP_KEEP=7 ./backup.sh
 ```
 
-Backups are written atomically to `Enterprise/deploy/backups/ittoolkit-<date>-<pid>.sql`
-with owner-only permissions. The MySQL client runs inside the `db`
+Backups are staged privately and promoted as
+`Enterprise/deploy/backups/ittoolkit-<date>-<pid>.sql`
+with a companion `.sql.sha256` SHA-256 digest file. Both are owner-only
+(mode 600). The dump must be accompanied by its digest for the default
+restore path. An interruption between promoting the SQL and sidecar leaves
+an unapproved orphan that restore rejects before any shutdown. The MySQL client runs inside the `db`
 container. A successful dump includes schema, table data, triggers,
 routines and events. `--single-transaction` is consistent for **InnoDB**
 tables; pause schema migrations and DDL while a backup is running.
 Backups may contain personal or sensitive device data. Copy them to
 encrypted, access-controlled **off-host** storage. Test restores regularly.
 
-Retention prunes only dated `ittoolkit-*.sql` files from the backup folder.
+Retention prunes only dated `ittoolkit-*.sql` files and their matching SHA-256
+sidecars from the backup folder.
 `BACKUP_KEEP=0` retains all. Older PostgreSQL `.dump` backups remain
 untouched and are **not** compatible with this workflow.
 
@@ -110,10 +115,18 @@ cd Enterprise/deploy
 ./restore.sh --yes /absolute/path/to/ittoolkit-YYYYMMDD-HHMMSS-PID.sql
 # or restore newest backup:
 ./restore.sh --yes
+# If importing an independently reviewed OLD backup that has no sidecar:
+./restore.sh --yes --db-only --allow-legacy-without-sha256 /trusted/old.sql
 ```
 
-The script checks the MySQL backup signature and database identity **before**
-stopping services. In an isolated rehearsal environment you can use
+The script first requires a matching SHA-256 sidecar (strict filename and
+full-byte digest), then checks the MySQL backup signature and database
+identity **before** stopping services. A mismatched PRESENT sidecar is
+unconditionally rejected, including if the legacy override is supplied.
+Old backups with no digest require the explicit override flag and
+independent operator review. SHA-256 detects accidental corruption but
+does not authenticate a backup against an attacker able to rewrite both
+the SQL and its sidecar. Keep encrypted, access-controlled off-host copies. In an isolated rehearsal environment you can use
 `./restore.sh --yes --db-only path/to/backup.sql`; this deliberately leaves
 the API and Caddy stopped and never reopens public traffic. It then:
 

@@ -112,6 +112,10 @@ if bash "$RESTORE" --yes "$TEMP/legacy.sql" > "$TEMP/out" 2>&1; then
   echo "Backup without SHA-256 was accepted without explicit legacy approval" >&2; exit 1
 fi
 [ ! -s "$FAKE_DOCKER_LOG" ] || { echo "Unsigned backup touched Docker" >&2; exit 1; }
+# An intentionally reviewed legacy dump can be recovered with explicit
+# operator override; this exercise uses an isolated fake Docker database.
+bash "$RESTORE" --yes --db-only --allow-legacy-without-sha256 "$TEMP/legacy.sql"
+grep -q 'DROP DATABASE' "$FAKE_DOCKER_LOG"
 
 bash "$RESTORE" --yes "$FILE"
 grep -q 'stop caddy api' "$FAKE_DOCKER_LOG"

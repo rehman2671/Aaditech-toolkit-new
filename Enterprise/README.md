@@ -232,39 +232,32 @@ battery < 20%, critical service stopped, reboot pending > 7 days uptime.
   `GET /api/license/export`, `GET/POST /api/companies`,
   `GET/POST /api/settings/default-company` (admins).
 
-## Verified
+## Current verification and boundaries (November 2026)
 
-The full stack was smoke-tested locally with Docker:
-ingest (with idempotent dedupe), auth (401 on bad token), agents/events
-queries, feature enable/disable, and the portal all pass. `deploy.sh` runs
-end-to-end (exit 0) and regenerates the baked agent config on IP change.
-The SaaS auto-setup flow (setup wizard → GitHub remote build → MSI download +
-serve) was verified live end-to-end, and CI stayed green after both feature
-commits.
-
-## Honest boundaries
-
-- Portal sessions + RBAC (admin / operation / monitoring) are live; **alerts +
-  reports** shipped in P6, plus webhook delivery (F1), software/license
-  compliance (F3) and tenant scoping (F4) on top.
-- **MSI is live** (P0): built by CI on `windows-latest` and uploaded to the
-  `agent_artifacts` volume — `GET /api/agent-msi` returns a valid installer.
-  The `agent-build` job needs the repo secrets `SERVER_ENDPOINT` + `API_TOKEN`
-  to bake the endpoint/token; otherwise it stages placeholders and refuses.
-- MSI/exe build runs on **Windows** (GitHub Actions `windows-latest`).
-- `wake` sends the WOL magic packet from the target's own network via the agent
-  (works when the machine has a peer online); for true remote power-on you still
-  need the BIOS/WoL setting enabled on the target.
-- Agent exe is signed manually (Authenticode) — same boundary as the existing
-  smoke-run doc.
-- Collectors were verified for **syntax + JSON output** locally (pwsh); full
-  Windows-only data (CIM/SMART/BitLocker/WU) needs the Windows smoke run.
-- **SaaS auto-setup (Rev 3)**: the setup wizard + `deploy.sh`/`deploy.ps1` +
-  GitHub remote-build path are **verified live end-to-end** (setup → trigger →
-  poll → auto-download MSI → serve via `/api/agent-msi`). The `deploy.ps1`
-  local-Windows build+sign path is written and PowerShell-parse-verified but
-  still needs a real Windows Server smoke run.
-
-### PKI and Root Certificate Management
-- **Enterprise Root CA**: Provisioned at `certs/ca.crt` as an authentic X.509 PEM certificate (`/api/ca.crt`). This certificate is embedded into deployment scripts (`install-agent.cmd`) and registered into the local Windows Certificate Store (`ROOT` store via `certutil -addstore -f "ROOT" ca.crt`) to establish cryptographic trust for agent communications.
-- **Mutual TLS (mTLS)**: Server identity verification via the Enterprise Root CA is fully operational. Full bidirectional mutual TLS with client-side certificate pinning is designated for a future release; agent authentication is currently enforced via cryptographic HMAC-SHA256 signatures, single-use bootstrap tokens, and bearer credentials.
+- **Validated in disposable CI**, not customer production: the Node/MySQL
+  API, tenant enrollment/replay prevention, multi-replica MySQL fault
+  injection and recovery, isolated MySQL backup/restore, Windows diagnostic
+  MSI installation, uninstall and major upgrade tests. See
+  [Stage 9 acceptance](deploy/PHASE-N-STAGE9-ACCEPTANCE.md) and
+  [Stage 10 acceptance](deploy/PHASE-N-STAGE10-ACCEPTANCE.md).
+- **Authoritative deployment path** is
+  [deploy-mysql.sh](deploy/deploy-mysql.sh) with Docker Compose, MySQL 8,
+  Caddy public HTTPS and the Node API. Historical deploy.sh/deploy.ps1
+  PostgreSQL/FastAPI flows are intentionally blocked. Earlier claims of
+  those paths being successfully deployed are obsolete.
+- **Generic Windows installer:** No final server URL, tenant bootstrap
+  token or admin API key is baked into MSI. The administrator runs the
+  installed [Configure Agent Server wizard](agent/SETUP-WINDOWS.md)
+  after deployment. Production MSI downloads are disabled without
+  APPROVED_MSI_SHA256 matching independently approved signed release bytes.
+- **Release trust:** Push CI builds diagnostics only; trusted Authenticode
+  signing requires a human-triggered main-branch CI run in the protected
+  production-installer environment. No publicly trusted signed release
+  or customer Windows installer acceptance has been verified.
+- **TLS boundary:** Public HTTPS verifies the server certificate and agents
+  use per-device credentials. Full mutual TLS/client certificate issuance is
+  **not implemented** in the authoritative Node API. Legacy instructions
+  that import a private CA into Windows ROOT must NOT be used.
+- **Production status:** Hostinger VPS, real DNS, backup/restore, migration,
+  tenant isolation and Windows UAC/GUI enrollment remain pending real
+  infrastructure and operator acceptance. Green CI is not a deployment.

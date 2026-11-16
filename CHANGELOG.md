@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased — Phase N Stage 10 (release approval and recovery integrity)
+
+- **Signing approval isolation:** ordinary push CI receives no code-signing keys, and the signing script rejects automatic events/non-main refs even when keys are accidentally present. Manual CI uses the production-installer environment, which repository admins must protect with human reviewers and main-only deployment restrictions.
+- **Release provenance:** publication accepts signed artifacts only from a successful, manually triggered, same-repo main-branch CI run, not routine push builds; GitHub Release creation remains manual.
+- **Backup integrity:** new MySQL dumps carry a mode-600 SHA-256 sidecar. Restore validates both filename/digest *before* stopping API or dropping data; malformed/tampered backups are rejected even with a legacy override. Explicit override is available only for trusted older backups without a sidecar.
+- **Recovery acceptance:** offline tamper and old-backup controls and real disposable Docker/MySQL backup/restore run as mandatory deployment safety tests.
+- **Correction:** outdated Enterprise README claims about baked-in MSI API tokens, functional PostgreSQL deploy scripts, private-CA installation and proven live production deployment were replaced with the current verified boundaries.
+- **Production status:** trusted signing keys, protected GitHub environment settings, Hostinger VPS evidence and physical Windows/UAC signoff are still operator-controlled blockers.
+
+
 ## Unreleased — Phase N Stage 9 (production readiness, not released)
 
 - **Real MySQL identity migration rehearsal:** test the manually controlled global hostname/UID unique-index DDL on a disposable schema copy; reject casefold collisions and prove no partial DDL on failure. No production migration is automatic.

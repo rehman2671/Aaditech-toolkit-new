@@ -19,8 +19,9 @@
 > inventory are tenant-scoped, with additional alert/cloud isolation guards.
 > A [read-only production preflight](deploy/preflight-stage14.sh) checks
 > `Enterprise/.env`, DNS, operator identity and approved MSI SHA-256 inputs.
-> [Stage 14 CI #43933248099](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43933248099)
-> includes a live disposable MySQL invitation/expiry/replay rehearsal.
+> [All four Stage 14 CI jobs passed](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43933248099),
+> including live isolated MySQL invitation/expiry/replay tests and Windows
+> EXE/MSI install/uninstall/upgrade rehearsals.
 > [Stage 14 deployment-safety CI](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43931969524)
 > passed its offline and real MySQL backup/recovery tests.
 > See [Stage 13 membership authorization](deploy/PHASE-N-STAGE13-ACCEPTANCE.md)

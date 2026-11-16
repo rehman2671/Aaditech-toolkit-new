@@ -56,6 +56,18 @@ async function call(workerPort, uri, payload, jwtToken) {
   try { body = JSON.parse(text); } catch { body = { error: text.slice(0, 160) }; }
   return { status: response.status, body };
 }
+async function agentCall(workerPort, hostname, deviceToken) {
+  const response = await fetch('http://127.0.0.1:' + workerPort + '/api/v1/ingest/telemetry', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Device-Token': deviceToken },
+    body: JSON.stringify({ hostname, cpu_usage: '6%', memory_usage: '12%' }),
+    signal: AbortSignal.timeout(15000)
+  });
+  const text = await response.text();
+  let body;
+  try { body = JSON.parse(text); } catch { body = { error: text.slice(0, 160) }; }
+  return { status: response.status, body };
+}
 async function ready(workerPort) {
   for (let attempt = 0; attempt < 100; attempt++) {
     try {
@@ -149,6 +161,34 @@ try {
     })));
   assertStatuses(hostResults, 201, [409], 'cross-tenant same-host enrollment');
   assert.equal(await count('SELECT COUNT(*) AS total FROM devices WHERE hostname = ?', [commonHost]), 1);
+  // Both live production workers must honor revocation/rotation committed
+  // directly by another MySQL client, without sharing an in-process cache.
+  const enrolledToken = hostResults.find(r => r.status === 201).body.device_token;
+  assert.ok(enrolledToken?.startsWith('itk_dev_'), 'Enrollment did not issue a per-device token');
+  const beforeRevocation = await Promise.all(workerPorts.map(p => agentCall(p, commonHost, enrolledToken)));
+  assert.ok(beforeRevocation.every(r => [200, 202].includes(r.status)),
+    'Both workers must initially accept the enrolled device token: ' +
+    JSON.stringify(beforeRevocation.map(r => r.status)));
+
+  await pool.execute('UPDATE devices SET agent_token_revoked = 1 WHERE hostname = ?', [commonHost]);
+  const afterRevocation = await Promise.all(workerPorts.map(p => agentCall(p, commonHost, enrolledToken)));
+  assert.ok(afterRevocation.every(r => r.status === 401 && r.body.error === 'DEVICE_TOKEN_REVOKED'),
+    'A replica accepted a device token revoked by another database connection: ' +
+    JSON.stringify(afterRevocation.map(r => ({ status: r.status, error: r.body.error }))));
+
+  const replacementToken = 'itk_dev_' + crypto.randomBytes(24).toString('hex');
+  await pool.execute(
+    'UPDATE devices SET agent_token_revoked = 0, device_token_hash = ? WHERE hostname = ?',
+    [tokenHash(replacementToken), commonHost]
+  );
+  const afterRotation = await Promise.all(workerPorts.map(p => agentCall(p, commonHost, enrolledToken)));
+  assert.ok(afterRotation.every(r => r.status === 401),
+    'A replica accepted a device token rotated by another database connection');
+  const replacementAccepted = await Promise.all(workerPorts.map(p => agentCall(p, commonHost, replacementToken)));
+  assert.ok(replacementAccepted.every(r => [200, 202].includes(r.status)),
+    'Rotated enrolled token was not accepted by both API processes');
+  console.log('[PASS] Cross-instance HTTP device token revocation and rotation without cache delay.');
+
   const loser = hostResults.findIndex(r => r.status === 409);
   assert.equal(await count('SELECT COUNT(*) AS total FROM used_bootstrap_tokens WHERE token_hash = ?',
     [tokenHash(hostTokens[loser])]), 0, 'Rejected identity consumed one-use credential');

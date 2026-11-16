@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-16T23:07:17+00:00",
-  "last_verified_commit": "7904ebb73333bb310c43a1be3ed4be58f9d53e97",
-  "last_verified_date": "2026-11-17T04:36:54+05:30",
+  "generated": "2026-11-16T23:40:57+00:00",
+  "last_verified_commit": "57921c4dd74b93c8031dbc4f97534ccee36eac6a",
+  "last_verified_date": "2026-11-17T05:10:34+05:30",
   "overall_progress_percent": 100.0,
   "progress_scope": "historic audit issue closure only; production acceptance pending",
   "production_ready": false,
@@ -14,21 +14,12 @@
     "percent": 100.0
   },
   "latest_delta": {
-    "added": 4,
+    "added": 6,
     "removed": 0,
-    "changed": 12,
-    "unchanged": 265
+    "changed": 13,
+    "unchanged": 268
   },
   "delta_history": [
-    {
-      "detected_at": "2026-11-16T18:35:33+00:00",
-      "added": [],
-      "removed": [],
-      "changed": [
-        "tests/unit/workspace-membership.test.js"
-      ],
-      "unchanged_count": 267
-    },
     {
       "detected_at": "2026-11-16T18:36:33+00:00",
       "added": [],
@@ -232,6 +223,34 @@
         "Enterprise/deploy/PHASE-N-STAGE15-ACCEPTANCE.md"
       ],
       "unchanged_count": 265
+    },
+    {
+      "detected_at": "2026-11-16T23:40:57+00:00",
+      "added": [
+        "Enterprise/deploy/PHASE-N-STAGE17-ACCEPTANCE.md",
+        "database/migrations/005_remediation_tenant_logs.sql",
+        "notification-outbox.js",
+        "tests/unit/remediation-tenant-stage17.test.js",
+        "database/migrations/006_notification_outbox.sql",
+        "tests/unit/notification-outbox-stage17.test.js"
+      ],
+      "removed": [],
+      "changed": [
+        "CHANGELOG.md",
+        "test-migrations-runner.js",
+        "server.js",
+        "Enterprise/deploy/PHASE-N-STAGE16-ACCEPTANCE.md",
+        "tests/unit/db.unit.test.js",
+        "validation.js",
+        "docs/assessment/RELEASE-READINESS.md",
+        "db.js",
+        "docs/assessment/TEST-RESULTS.md",
+        "docs/assessment/GAP-REGISTER.md",
+        "database/mysql/schema.sql",
+        "tests/unit/tenant-alert-safety-stage15.test.js",
+        "tenant-alert-safety.js"
+      ],
+      "unchanged_count": 268
     }
   ],
   "next_recommended_tasks": [

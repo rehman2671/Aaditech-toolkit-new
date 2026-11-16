@@ -364,6 +364,11 @@ jobs:
     name: Build agent exe + MSI
     needs: [node-tests, api-tests]
     runs-on: windows-latest
+    # Only manually dispatched signing builds use the human-reviewed,
+    # branch-restricted production-installer environment. Normal push CI
+    # uses a separate environment and NEVER receives signing credentials.
+    environment:
+      name: ${{ github.event_name == 'workflow_dispatch' && 'production-installer' || 'ci-diagnostic' }}
     defaults:
       run:
         shell: pwsh
@@ -410,9 +415,9 @@ jobs:
       - name: Sign release EXE before WiX embeds it (or keep diagnostic only)
         shell: pwsh
         env:
-          CODESIGN_PFX_B64: ${{ secrets.CODESIGN_PFX_B64 }}
-          CODESIGN_PFX_PASSWORD: ${{ secrets.CODESIGN_PFX_PASSWORD }}
-          CODESIGN_APPROVED_THUMBPRINT: ${{ secrets.CODESIGN_APPROVED_THUMBPRINT }}
+          CODESIGN_PFX_B64: ${{ github.event_name == 'workflow_dispatch' && secrets.CODESIGN_PFX_B64 || '' }}
+          CODESIGN_PFX_PASSWORD: ${{ github.event_name == 'workflow_dispatch' && secrets.CODESIGN_PFX_PASSWORD || '' }}
+          CODESIGN_APPROVED_THUMBPRINT: ${{ github.event_name == 'workflow_dispatch' && secrets.CODESIGN_APPROVED_THUMBPRINT || '' }}
         run: ./Enterprise/agent/build/Release-Sign.ps1 -Stage PrePackage
 
       - name: Install WiX toolset
@@ -452,9 +457,9 @@ jobs:
       - name: Verify pre-signed MSI payload and sign release MSI
         shell: pwsh
         env:
-          CODESIGN_PFX_B64: ${{ secrets.CODESIGN_PFX_B64 }}
-          CODESIGN_PFX_PASSWORD: ${{ secrets.CODESIGN_PFX_PASSWORD }}
-          CODESIGN_APPROVED_THUMBPRINT: ${{ secrets.CODESIGN_APPROVED_THUMBPRINT }}
+          CODESIGN_PFX_B64: ${{ github.event_name == 'workflow_dispatch' && secrets.CODESIGN_PFX_B64 || '' }}
+          CODESIGN_PFX_PASSWORD: ${{ github.event_name == 'workflow_dispatch' && secrets.CODESIGN_PFX_PASSWORD || '' }}
+          CODESIGN_APPROVED_THUMBPRINT: ${{ github.event_name == 'workflow_dispatch' && secrets.CODESIGN_APPROVED_THUMBPRINT || '' }}
         run: |
           if ($env:RELEASE_SIGNING_ENABLED -eq 'true') {
             $embedded = Get-ChildItem -Path (Join-Path $env:RUNNER_TEMP 'itk-msi-verify') -Recurse -File -Filter 'IT-Toolkit-Agent.exe' | Select-Object -First 1

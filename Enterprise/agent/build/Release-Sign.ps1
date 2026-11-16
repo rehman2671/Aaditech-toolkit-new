@@ -20,6 +20,14 @@ if ($Stage -eq 'Finalize' -and $env:RELEASE_SIGNING_ENABLED -eq 'false') {
   return
 }
 if ($present -ne $names.Count) { throw 'Incomplete release signing credentials.' }
+# Defense in depth: do not sign in an automatic push, PR or scheduled job
+# even if repository-level secrets are accidentally still configured.
+# GitHub environment reviewers remain mandatory for production approval.
+if ($env:GITHUB_ACTIONS -cne 'true' -or
+    $env:GITHUB_EVENT_NAME -cne 'workflow_dispatch' -or
+    $env:GITHUB_REF -cne 'refs/heads/main') {
+  throw 'Release signing is permitted only by manually dispatched main-branch GitHub Actions with protected environment approval.'
+}
 if ($Stage -eq 'Finalize' -and $env:RELEASE_SIGNING_ENABLED -ne 'true') {
   throw 'No verified prepackage signature. Refusing MSI publication.'
 }

@@ -16,8 +16,12 @@ the real `db.withDeviceIdentityLock()` plus
 GitHub Actions, `NODE_ENV=test` and
 `AADITECH_CONCURRENCY_REHEARSAL=isolated-ci`.
 
-This confirms cross-process database advisory locking, **not** a complete
-multi-server HTTP enrollment/registration load test.
+The Stage 6 probe confirms database advisory locking. **Stage 7 has since
+passed a real two-process production-mode HTTP enrollment/registration,
+cross-tenant one-use token replay and immediate device revoke/rotate
+rehearsal**. See
+[Stage 7 HTTP acceptance](PHASE-N-STAGE7-HTTP-ACCEPTANCE.md).
+These isolated CI results do not certify an external Hostinger cluster.
 
 ## Credential/database hardening
 
@@ -53,9 +57,9 @@ Active unused bootstrap credentials are intentionally untouched.
 
 ## Outstanding release gates
 
-Full multi-instance *HTTP* enrollment/registration stress and failure
-injection, production tenant-scoped identity storage migration/collision
-audit, signing-certificate configuration and trusted MSI artifact,
+Hostinger multi-instance network/database failure injection,
+production tenant-scoped identity storage migration/collision audit,
+signing-certificate configuration and trusted MSI artifact,
 customer-machine Windows GUI/UAC acceptance, and real Hostinger Docker VPS
 HTTPS/MySQL backup-and-restore acceptance. Keep these separate from a
 green CI badge; no live production rollout is claimed.

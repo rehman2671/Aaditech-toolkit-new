@@ -43,6 +43,15 @@ services:
       PLATFORM_OWNER_TENANT_ID: ${PLATFORM_OWNER_TENANT_ID:-}
       # Exact comma-separated public HTTPS webhook hosts; empty denies delivery.
       WEBHOOK_ALLOWED_HOSTS: ${WEBHOOK_ALLOWED_HOSTS:-}
+      # SMTP credentials are owned by the deployment operator, not tenants.
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-}
+      SMTP_SECURITY: ${SMTP_SECURITY:-}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      SMTP_ALLOWED_RECIPIENT_DOMAINS: ${SMTP_ALLOWED_RECIPIENT_DOMAINS:-}
+      SMTP_TIMEOUT_MS: ${SMTP_TIMEOUT_MS:-}
       SESSION_SECRET: ${SESSION_SECRET:-}
       HMAC_SECRET: ${HMAC_SECRET:?set HMAC_SECRET in Enterprise/.env}
       BOOTSTRAP_SECRET: ${BOOTSTRAP_SECRET:?set BOOTSTRAP_SECRET in Enterprise/.env}

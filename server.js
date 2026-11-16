@@ -1,4 +1,5 @@
 import { scopedAlertRules, isApprovedWebhookUrl, deliverTenantWebhook } from './tenant-alert-safety.js';
+import { smtpTransportConfig, isApprovedEmailRecipient, deliverTenantEmail } from './smtp-alerts.js';
 /**
  * ARCHITECTURAL HARD PREREQUISITE: STATELESSNESS FOR MULTI-INSTANCE / CLUSTER DEPLOYMENTS
  * 
@@ -53,6 +54,7 @@ import {
   createAlertRuleSchema,
   updateAlertRuleSchema,
   webhookConfigSchema,
+  tenantEmailConfigSchema,
   createGroupSchema,
   updateGroupSchema,
   createPolicySchema,
@@ -279,6 +281,16 @@ async function dispatchWebhookNotification(tenantId, title, message, severity = 
     await deliverTenantWebhook(tenantId, config, { title, message, severity, details });
   } catch {
     // Best-effort notification; never send tenant data through a fallback URL.
+  }
+}
+
+async function dispatchEmailNotification(tenantId, title, message, severity = 'info') {
+  if (!tenantId) return;
+  try {
+    const consent = await db.getTenantEmailConfig(tenantId);
+    await deliverTenantEmail(tenantId, consent, { title, message, severity });
+  } catch {
+    // Best effort only; durable notification outbox and retries are not implemented.
   }
 }
 
@@ -1422,6 +1434,8 @@ app.post(['/api/v1/ingest/telemetry', '/api/ingest'], agentLimiter, validateBody
           metric: rule.metric,
           threshold: rule.threshold
         }).catch(() => {});
+        dispatchEmailNotification(dev.tenant_id, rule.name,
+          dev.hostname + ': ' + msg, rule.severity).catch(() => {});
       }
     }
   }
@@ -1869,10 +1883,61 @@ app.post(['/api/v1/alerts/test-webhook', '/api/alerts/test-webhook'],
     }
   });
 
-app.post(['/api/v1/alerts/test-email', '/api/alerts/test-email'], requirePlatformSettingsAdmin, async (req, res) => {
-  // No SMTP delivery implementation exists. Never fabricate a delivery receipt.
-  return res.status(501).json({ ok: false, error: 'EMAIL_TRANSPORT_NOT_IMPLEMENTED',
-    detail: 'No email was sent. Configure and verify a real mail transport before enabling tests.' });
+// Workspace admins control recipient consent; the platform operator owns SMTP
+// credentials and exact approved recipient domains via server environment.
+app.get(['/api/v1/alerts/email', '/api/alerts/email'], requireRole(['SUPER_ADMIN']), async (req, res) => {
+  if (!req.user?.tenant_id) return res.status(403).json({ error: 'TENANT_REQUIRED' });
+  const config = await db.getTenantEmailConfig(req.user.tenant_id);
+  return res.json({ enabled: config.enabled, recipient: config.recipient,
+    smtp_configured: Boolean(smtpTransportConfig()) });
+});
+
+app.put(['/api/v1/alerts/email', '/api/alerts/email'], requireRole(['SUPER_ADMIN']),
+  validateBody(tenantEmailConfigSchema), async (req, res) => {
+    const tenantId = req.user?.tenant_id;
+    if (!tenantId) return res.status(403).json({ error: 'TENANT_REQUIRED' });
+    const current = await db.getTenantEmailConfig(tenantId);
+    const next = { ...current, ...req.body };
+    if (next.enabled) {
+      const transport = smtpTransportConfig();
+      if (!transport) return res.status(503).json({ error: 'SMTP_NOT_CONFIGURED' });
+      if (!isApprovedEmailRecipient(next.recipient, transport)) {
+        return res.status(400).json({ error: 'RECIPIENT_NOT_APPROVED' });
+      }
+    }
+    const config = await db.updateTenantEmailConfig(tenantId, req.body);
+    logAudit(req.user, 'TENANT_EMAIL_CONFIG_UPDATED', 'Tenant:' + tenantId,
+      { changed_fields: Object.keys(req.body) }, req);
+    return res.json({ enabled: config.enabled, recipient: config.recipient,
+      smtp_configured: Boolean(smtpTransportConfig()) });
+  });
+
+app.post(['/api/v1/alerts/test-email', '/api/alerts/test-email'], requireRole(['SUPER_ADMIN']), async (req, res) => {
+  const tenantId = req.user?.tenant_id;
+  if (!tenantId) return res.status(403).json({ error: 'TENANT_REQUIRED' });
+  const config = await db.getTenantEmailConfig(tenantId);
+  if (!config.enabled || !config.recipient) {
+    return res.status(400).json({ ok: false, error: 'NOT_CONFIGURED' });
+  }
+  const transport = smtpTransportConfig();
+  if (!transport) return res.status(503).json({ ok: false, error: 'SMTP_NOT_CONFIGURED' });
+  if (!isApprovedEmailRecipient(config.recipient, transport)) {
+    return res.status(400).json({ ok: false, error: 'RECIPIENT_NOT_APPROVED' });
+  }
+  try {
+    const result = await deliverTenantEmail(tenantId, config, {
+      title: 'Alert email relay test', message: 'Test requested from the current workspace',
+      severity: 'info'
+    });
+    if (!result.accepted) return res.status(502).json({ ok: false, error: result.reason });
+    logAudit(req.user, 'TENANT_EMAIL_RELAY_ACCEPTED', 'Tenant:' + tenantId,
+      { recipient_domain: config.recipient.split('@')[1] }, req);
+    return res.json({ ok: true, status: 'ACCEPTED_BY_SMTP_RELAY',
+      recipient: config.recipient });
+  } catch {
+    return res.status(502).json({ ok: false, error: 'SMTP_DELIVERY_FAILED',
+      detail: 'The SMTP relay did not accept the message. No delivery was confirmed.' });
+  }
 });
 
 // Device Groups & Policy Management V1
@@ -1935,7 +2000,9 @@ app.post('/api/v1/patches/:id/approve', requireRole(['SUPER_ADMIN', 'OPERATOR'])
 });
 
 app.get('/api/v1/security/posture', async (req, res) => {
-  const agents = await db.getDevices();
+  const tenantId = req.user?.tenant_id;
+  if (!tenantId) return res.status(403).json({ error: 'TENANT_REQUIRED' });
+  const agents = await db.getDevices({ tenant_id: tenantId });
   const posture = agents.map(a => ({
     device_id: a.id,
     hostname: a.hostname,
@@ -2322,7 +2389,9 @@ app.post(['/api/commands/:id/result', '/api/v1/commands/:id/result'], agentLimit
 // Software (Canonical v1 + Legacy alias)
 app.get(['/api/v1/software/search', '/api/software/search'], async (req, res) => {
   const q = (req.query.q || "").toLowerCase();
-  const agents = await db.getDevices();
+  const tenantId = req.user?.tenant_id;
+  if (!tenantId) return res.status(403).json({ error: 'TENANT_REQUIRED' });
+  const agents = await db.getDevices({ tenant_id: tenantId });
   const results = [];
 
   for (const a of agents) {
@@ -2346,7 +2415,9 @@ app.get(['/api/v1/software/search', '/api/software/search'], async (req, res) =>
 });
 
 app.get(['/api/v1/software/export', '/api/software/export'], async (req, res) => {
-  const agents = await db.getDevices();
+  const tenantId = req.user?.tenant_id;
+  if (!tenantId) return res.status(403).json({ error: 'TENANT_REQUIRED' });
+  const agents = await db.getDevices({ tenant_id: tenantId });
   let csv = 'Hostname,Application,Version,Publisher\n';
   for (const a of agents) {
     const procs = await db.getDeviceProcesses(a.id);
@@ -2361,7 +2432,9 @@ app.get(['/api/v1/software/export', '/api/software/export'], async (req, res) =>
 
 // License (Canonical v1 + Legacy alias)
 app.get(['/api/v1/license/compliance', '/api/license/compliance'], async (req, res) => {
-  const agents = await db.getDevices();
+  const tenantId = req.user?.tenant_id;
+  if (!tenantId) return res.status(403).json({ error: 'TENANT_REQUIRED' });
+  const agents = await db.getDevices({ tenant_id: tenantId });
   res.json({
     compliance: agents.map(a => ({
       hostname: a.hostname,
@@ -2376,7 +2449,9 @@ app.get(['/api/v1/license/compliance', '/api/license/compliance'], async (req, r
 });
 
 app.get(['/api/v1/license/export', '/api/license/export'], async (req, res) => {
-  const agents = await db.getDevices();
+  const tenantId = req.user?.tenant_id;
+  if (!tenantId) return res.status(403).json({ error: 'TENANT_REQUIRED' });
+  const agents = await db.getDevices({ tenant_id: tenantId });
   let csv = 'Hostname,WindowsStatus,OfficeStatus,Compliant\n';
   for (const a of agents) {
     csv += `"${a.hostname}","UNKNOWN","NOT_CONFIGURED","UNKNOWN"\n`;
@@ -2389,7 +2464,9 @@ app.get(['/api/v1/license/export', '/api/license/export'], async (req, res) => {
 // Reports (Canonical v1 + Legacy alias)
 app.get(['/api/v1/reports/fleet', '/api/report/fleet'], async (req, res) => {
   const version = getAgentVersion();
-  const agents = await db.getDevices();
+  const tenantId = req.user?.tenant_id;
+  if (!tenantId) return res.status(403).json({ error: 'TENANT_REQUIRED' });
+  const agents = await db.getDevices({ tenant_id: tenantId });
   let csv = 'Hostname,OS,IP,AgentVersion,Status,LastSeen\n';
   for (const a of agents) {
     csv += `"${a.hostname}","${a.os_version || a.os || ''}","${a.ip_address || a.ip || ''}","${a.agent_version || version}","${a.status || 'offline'}","${a.last_seen || ''}"\n`;
@@ -3024,7 +3101,9 @@ app.post(['/api/v1/build/trigger', '/api/build/trigger'], validateBody(buildTrig
 
 // ---------------- GAP FULFILLMENT: PREDICTIVE ANALYTICS ----------------
 app.get(['/api/v1/analytics/predictive', '/api/analytics/predictive'], async (req, res) => {
-  const agents = await db.getDevices();
+  const tenantId = req.user?.tenant_id;
+  if (!tenantId) return res.status(403).json({ error: 'TENANT_REQUIRED' });
+  const agents = await db.getDevices({ tenant_id: tenantId });
   const analysis = await Promise.all(agents.map(async agent => {
     const history = await db.getTelemetryHistory(agent.id, 20);
     const freeGB = parseInt(agent.disk_free, 10) || 120;
@@ -3119,6 +3198,12 @@ app.put(['/api/v1/remediation/policies/:id', '/api/remediation/policies/:id'], r
 
 app.post(['/api/v1/remediation/trigger', '/api/remediation/trigger'], requireRole(['SUPER_ADMIN', 'OPERATOR']), validateBody(remediationTriggerSchema), async (req, res) => {
   const { hostname, action_type } = req.body;
+  // A matching hostname is not authorization to mutate another workspace.
+  if (!req.user?.tenant_id) return res.status(403).json({ error: 'TENANT_REQUIRED' });
+  const targetDevice = await db.getDeviceByHostname(hostname);
+  if (!belongsToCurrentTenant(req.user, targetDevice)) {
+    return res.status(404).json({ error: 'Target agent/device not found' });
+  }
   const pol = (await db.getRemediationPolicyByActionType(action_type)) || { name: "Manual Remediation" };
 
   const actionMsg = `Dispatched remediation script Remediate-${action_type}.ps1 to agent queue`;
@@ -3132,7 +3217,7 @@ app.post(['/api/v1/remediation/trigger', '/api/remediation/trigger'], requireRol
 
   // Record command in MySQL with 'pending' status for agent execution
   let commandId = null;
-  const dev = await db.getDeviceByHostname(hostname || "DESKTOP-DEV018");
+  const dev = targetDevice;
   if (dev) {
     commandId = crypto.randomUUID();
     await db.queueCommandInDb({

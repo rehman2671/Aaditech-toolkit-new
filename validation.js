@@ -256,7 +256,10 @@ export const setupSchema = z.object({
 });
 
 export const workspaceSelectSchema = z.object({
-  tenant_id: z.string().uuid()
+  // MySQL's persisted legacy tenant IDs use canonical 8-4-4-4-12 hex
+  // formatting but may have a zero UUID-version nibble. Validate shape, not
+  // RFC version, then enforce membership from the authoritative database.
+  tenant_id: z.string().regex(/^[a-fA-F0-9]{8}-(?:[a-fA-F0-9]{4}-){3}[a-fA-F0-9]{12}$/)
 }).strict();
 
 export const workspaceGrantSchema = z.object({

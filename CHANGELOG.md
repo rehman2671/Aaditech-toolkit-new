@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased — Phase N Stage 15 (tenant alert and webhook containment)
+
+- **Critical isolation fix:** evaluate telemetry alert rules only for the authenticated device tenant and assign the same tenant ID to generated alerts. Production alert creation with no tenant fails closed rather than adopting a default global owner.
+- **Opt-in notifications:** per-tenant webhook settings default disabled; global retention/webhook destinations are never inherited for tenant telemetry. Exact HTTPS host allowlist (`WEBHOOK_ALLOWED_HOSTS`), redirect refusal and timeout enforce the outbound trust boundary.
+- **Admin and correctness:** tenant SUPER_ADMIN authorization on webhook configuration/testing, strict input validation, portal adjustment, no unsupported bearer-token form; SMTP test email now returns HTTP 501 rather than claiming false delivery.
+- **Verification:** main [CI #43970542356](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43970542356) SUCCESS 4/4 and [deployment-safety #43970542652](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43970542652) SUCCESS 2/2. Diagnostic WiX MSI != human-approved signed/public release; live Hostinger and customer acceptance remain blocked.
+
 ## Unreleased — Phase N Stage 14 (consent-driven tenant workspaces and deploy preflight)
 
 - **Consent before access:** destination tenant SUPER_ADMIN creates an `INVITED` record rather than a live secondary workspace membership. The invited account must explicitly Accept/Decline from its own authenticated session; MySQL enforces seven-day expiry, atomic one-time acceptance and refusal of revoked/expired invitations.

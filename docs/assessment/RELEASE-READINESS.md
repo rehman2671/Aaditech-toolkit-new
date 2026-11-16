@@ -1,5 +1,7 @@
 # Release Readiness Assessment & Verification Gates
 
+> **Current update (2026-11-17):** Phase N Stage 15 code/CI is accepted. [Main CI #43970542356](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43970542356) passed all four jobs, including diagnostic Windows MSI install/upgrade; [deployment-safety #43970542652](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43970542652) passed both jobs. **Production release remains BLOCKED** until approved publisher-signed/public MSI, Hostinger DNS/TLS/VPS, recovery and physical customer Windows acceptance. The score, matrix and dated metrics below are the **historical 2026-11-03 snapshot**, not a current rescore; historical secret exposure also requires independent operator review. See `Enterprise/deploy/PHASE-N-STAGE15-ACCEPTANCE.md`.
+
 **Verdict:** **NOT PRODUCTION READY (RELEASE GATES PENDING)**  
 **Measured Release Score:** **65 / 100**  
 **Date:** 2026-11-03  

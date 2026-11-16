@@ -29,3 +29,15 @@
 - **Lines:** 78.11% (Threshold: 70%)
 - **Functions:** 84.33% (Threshold: 70%)
 - **Branches:** 61.73%
+
+---
+
+## 3. Verified Phase N Stage 15 CI (2026-11-17)
+
+These runs are **new evidence**, not included in the historical November 3 check totals above:
+
+- [PR CI #43970144713](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43970144713): SUCCESS, Node/Vitest, PowerShell, real MySQL/API (MSI build intentionally skipped for PR).
+- [Main CI #43970542356](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43970542356): SUCCESS across 4/4 jobs. Includes real isolated MySQL/API verification, DB fault injection, PowerShell validation and Windows diagnostic MSI install, uninstall and upgrade rehearsals.
+- [Main deployment-safety #43970542652](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43970542652): SUCCESS across 2/2 jobs; offline deployment checks plus disposable MySQL backup/restore integrity.
+
+**These results do not certify production release signing, public MSI publication, Hostinger deployment, real production data restore or a physical customer-machine Windows install.**

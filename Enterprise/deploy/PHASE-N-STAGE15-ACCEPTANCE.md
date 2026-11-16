@@ -1,6 +1,6 @@
 # Phase N Stage 15 — Tenant-Bound Alert Evaluation and Webhook Safety
 
-**Status:** Code changes proposed; GitHub CI acceptance must be independently verified after merge. **Production remains BLOCKED.** The prior Stage 14 four-job CI success (run 43933248099) does not certify these new changes.
+**Status: STAGE 15 CODE/CI ACCEPTED (four-of-four mandatory main CI jobs SUCCESS). Production remains BLOCKED.** The merged code was tested in [main CI #43970542356](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43970542356), including PowerShell validation, Node/Vitest tests, isolated real MySQL/API integration and Windows EXE/MSI diagnostic packaging/install/uninstall/major-upgrade rehearsals. [Deployment-safety #43970542652](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43970542652) passed both offline and disposable MySQL 8 backup/restore jobs. Neither is a human-approved signed public MSI or a live customer deployment.
 
 ## Security corrections
 
@@ -24,3 +24,11 @@
 - Unit regression: `tests/unit/tenant-alert-safety-stage15.test.js` covers per-tenant rule filtering, default-disabled isolation, approved URL behavior, redirect blocking, and missing-tenant alert creation.
 - The repository's existing Node/Vitest, HTTP tenant isolation, MySQL fault-injection, workspace invitation, MSI and deployment-safety workflows must remain green.
 - These automated checks **do not** establish a signed public MSI release, live Hostinger VPS/DNS/TLS acceptance, physical customer Windows UAC/upgrade acceptance, or production backup/restore rehearsal. Do not report these gates as passed without independent evidence.
+
+## Verified Stage 15 acceptance evidence (2026-11-17)
+
+- [PR #5](https://github.com/rehman2671/Aaditech-toolkit-new/pull/5) merged after clean PR CI #43970144713 and deployment-safety #43970144670.
+- Main merge commit: `2b1f5f00fc01858c16b4ae86d2cbf782e3fd5286`.
+- [Main CI #43970542356](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43970542356): **SUCCESS 4/4** — Node/Vitest, PowerShell, real MySQL/API, Windows diagnostic EXE/MSI with install/uninstall and major-upgrade rehearsal.
+- [Main deployment-safety #43970542652](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43970542652): **SUCCESS 2/2** — offline checks and isolated MySQL backup/recovery.
+- **Not proven / release BLOCKED:** production code-signing identity and approved publication, actual Hostinger VPS/DNS/TLS acceptance, authorized production migration and verified offsite recovery, physical customer Windows/UAC/configuration tests, and a real SMTP transport for email notifications.

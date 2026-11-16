@@ -47,6 +47,6 @@ On the configured Docker-capable deployment host:
 
 Deployment-safety regression https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43919034394 completed SUCCESS in both offline and real disposable MySQL 8 backup/migration jobs, including mismatch refusal and SHA256-backed cleanup.
 
-Full Phase N12 CI https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43920480028 verified SUCCESS for Node/Vitest, PowerShell and real MySQL/API tests; its Windows EXE/MSI job was still in progress at the time of this update. Confirm its final conclusion before declaring all four gates green.
+Full Phase N12 CI https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43920480028 completed **SUCCESS across all four jobs**: Node/Vitest with coverage, PowerShell regression, real MySQL 8/API concurrency/auth/MSI integration and Windows EXE/MSI packaging plus install/uninstall/major-upgrade rehearsals. The routine build is diagnostic and does not constitute a signed/public installer release.
 
 **Production remains BLOCKED** even if all CI gates pass: protected GitHub signing/release approval, genuine Hostinger VPS/DNS/TLS, a live recovery rehearsal, authorized workspace selection and physical Windows acceptance are not yet verified.

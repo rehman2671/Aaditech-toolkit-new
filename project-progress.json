@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-16T14:32:54+00:00",
-  "last_verified_commit": "640187e316a11032deefb0ca34400f9347ab0632",
-  "last_verified_date": "2026-11-16T20:02:41+05:30",
+  "generated": "2026-11-16T14:33:18+00:00",
+  "last_verified_commit": "5be4355460a32a7b39a34e2342316fceb983b211",
+  "last_verified_date": "2026-11-16T20:03:11+05:30",
   "overall_progress_percent": 100.0,
   "progress_scope": "historic audit issue closure only; production acceptance pending",
   "production_ready": false,
@@ -20,19 +20,6 @@
     "unchanged": 245
   },
   "delta_history": [
-    {
-      "detected_at": "2026-11-16T13:25:14+00:00",
-      "added": [
-        "scripts/device-identity-preflight.js",
-        "Enterprise/deploy/PHASE-N-STAGE8-ACCEPTANCE.md",
-        "Enterprise/deploy/migrations/2026-11-global-identity-unique.sql"
-      ],
-      "removed": [],
-      "changed": [
-        ".github/workflows/ci.yml"
-      ],
-      "unchanged_count": 233
-    },
     {
       "detected_at": "2026-11-16T13:30:07+00:00",
       "added": [
@@ -224,6 +211,15 @@
       "removed": [],
       "changed": [
         "Enterprise/deploy/backup.sh"
+      ],
+      "unchanged_count": 245
+    },
+    {
+      "detected_at": "2026-11-16T14:33:18+00:00",
+      "added": [],
+      "removed": [],
+      "changed": [
+        ".github/workflows/publish-signed-installer.yml"
       ],
       "unchanged_count": 245
     }

@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-16T13:42:42+00:00",
-  "last_verified_commit": "df387ad5216678f06203ef78d8b4586a8917663a",
-  "last_verified_date": "2026-11-16T19:12:34+05:30",
+  "generated": "2026-11-16T14:19:24+00:00",
+  "last_verified_commit": "d367117660b8511cbfbbff266fe552146bc1da26",
+  "last_verified_date": "2026-11-16T19:48:45+05:30",
   "overall_progress_percent": 100.0,
   "progress_scope": "historic audit issue closure only; production acceptance pending",
   "production_ready": false,
@@ -16,19 +16,10 @@
   "latest_delta": {
     "added": 1,
     "removed": 0,
-    "changed": 0,
+    "changed": 1,
     "unchanged": 242
   },
   "delta_history": [
-    {
-      "detected_at": "2026-11-16T12:29:33+00:00",
-      "added": [],
-      "removed": [],
-      "changed": [
-        "tests/unit/production-db-failclosed.test.js"
-      ],
-      "unchanged_count": 230
-    },
     {
       "detected_at": "2026-11-16T12:30:40+00:00",
       "added": [],
@@ -219,6 +210,17 @@
       ],
       "removed": [],
       "changed": [],
+      "unchanged_count": 242
+    },
+    {
+      "detected_at": "2026-11-16T14:19:24+00:00",
+      "added": [
+        "test-device-identity-index-migration.js"
+      ],
+      "removed": [],
+      "changed": [
+        ".github/workflows/ci.yml"
+      ],
       "unchanged_count": 242
     }
   ],

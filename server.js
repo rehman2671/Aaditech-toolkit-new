@@ -1618,10 +1618,11 @@ app.get(['/api/v1/alerts/open', '/api/alerts/open'], async (req, res) => {
 app.get(['/api/v1/alerts', '/api/alerts'], async (req, res) => {
   const filters = {};
   if (req.query.status) filters.status = req.query.status;
-  const tenantId = (req.user?.role === 'SUPER_ADMIN' && req.user?.tenant_id === '00000000-0000-0000-0000-000000000001')
-    ? req.query.tenant_id
-    : req.user?.tenant_id;
-  if (tenantId) filters.tenant_id = tenantId;
+  const tenantId = req.user?.tenant_id;
+  if (!tenantId || (req.query.tenant_id && String(req.query.tenant_id) !== String(tenantId))) {
+    return res.status(403).json({ error: 'TENANT_ACCESS_DENIED' });
+  }
+  filters.tenant_id = tenantId;
   const list = await db.getAlerts(filters);
   sendPaginated(req, res, list, 50, 500);
 });
@@ -1998,9 +1999,10 @@ app.get(['/api/v1/bootstrap', '/api/bootstrap'], async (req, res) => {
 
 app.get(['/api/status', '/api/v1/database/status'], async (req, res) => {
   const mysqlActive = isMysqlConnected();
-  const devices = await db.getDevices();
-  const openAlerts = await db.getAlerts({ status: 'open' });
-  const pendingCommands = await db.getCommands({ status: 'pending' });
+  if (!req.user?.tenant_id) return res.status(403).json({ error: 'TENANT_REQUIRED' });
+  const devices = await db.getDevices({ tenant_id: req.user.tenant_id });
+  const openAlerts = await db.getAlerts({ status: 'open', tenant_id: req.user.tenant_id });
+  const pendingCommands = await db.getCommands({ status: 'pending', tenant_id: req.user.tenant_id });
 
   res.json({
     status: "ok",
@@ -2026,12 +2028,12 @@ app.get(['/api/v1/events', '/api/events'], async (req, res) => {
 
 // Commands (Canonical v1 + Legacy alias)
 app.get(['/api/v1/commands', '/api/commands'], async (req, res) => {
-  const tenantId = (req.user?.role === 'SUPER_ADMIN' && req.user?.tenant_id === '00000000-0000-0000-0000-000000000001')
-    ? req.query.tenant_id
-    : req.user?.tenant_id;
-  const list = await db.getCommands();
-  const filtered = tenantId ? list.filter(c => !c.tenant_id || c.tenant_id === tenantId) : list;
-  sendPaginated(req, res, filtered, 50, 500);
+  const tenantId = req.user?.tenant_id;
+  if (!tenantId || (req.query.tenant_id && String(req.query.tenant_id) !== String(tenantId))) {
+    return res.status(403).json({ error: 'TENANT_ACCESS_DENIED' });
+  }
+  const list = await db.getCommands({ tenant_id: tenantId });
+  sendPaginated(req, res, list, 50, 500);
 });
 
 app.post(['/api/commands', '/api/v1/commands/dispatch'], requireRole(['SUPER_ADMIN', 'OPERATOR']), validateBody(commandDispatchSchema), async (req, res) => {
@@ -2044,8 +2046,8 @@ app.post(['/api/commands', '/api/v1/commands/dispatch'], requireRole(['SUPER_ADM
                 await db.getDeviceByHostname(String(targetId));
   if (!agent) return res.status(404).json({ error: "Target agent/device not found" });
 
-  if (req.user?.tenant_id && agent.tenant_id && req.user.tenant_id !== agent.tenant_id && req.user.tenant_id !== '00000000-0000-0000-0000-000000000001' && req.user.role !== 'SUPER_ADMIN') {
-    return res.status(403).json({ error: "Forbidden", detail: "Cross-tenant command dispatch rejected." });
+  if (!belongsToCurrentTenant(req.user, agent)) {
+    return res.status(404).json({ error: 'Target agent/device not found' });
   }
 
   const cmdId = crypto.randomUUID();

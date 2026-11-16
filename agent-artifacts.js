@@ -73,6 +73,25 @@ export function getCaCertificate() {
 /**
  * Searches the filesystem for a real built MSI artifact matching the given version.
  */
+
+// Production release distribution must be explicitly approved AFTER an
+// independent Windows publisher/Authenticode verification. A hash pin
+// verifies exact bytes; it does not replace certificate trust validation.
+export function matchesApprovedReleaseHash(filePath) {
+  if (process.env.NODE_ENV !== 'production') return true;
+  const approved = String(process.env.APPROVED_MSI_SHA256 || '').trim().toLowerCase();
+  if (!/^[0-9a-f]{64}$/.test(approved)) return false;
+  try {
+    const stat = fs.statSync(filePath);
+    // Fixture and placeholder "MSIs" must never be distributable.
+    if (!stat.isFile() || stat.size < 16384) return false;
+    const actual = crypto.createHash('sha256').update(fs.readFileSync(filePath)).digest('hex');
+    return actual === approved;
+  } catch (_) {
+    return false;
+  }
+}
+
 export function resolveAgentMsi(version = getAgentVersion()) {
   const v = version || getAgentVersion();
   const candidates = [
@@ -88,7 +107,7 @@ export function resolveAgentMsi(version = getAgentVersion()) {
     if (fs.existsSync(candPath)) {
       try {
         const stat = fs.statSync(candPath);
-        if (stat.size > 0) {
+        if (stat.size > 0 && matchesApprovedReleaseHash(candPath)) {
           return {
             found: true,
             path: candPath,

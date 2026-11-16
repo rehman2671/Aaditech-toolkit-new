@@ -54,6 +54,8 @@ external-network outage/failback, device enrollment and remote-command checks.
 Dry-run CI is not a live Hostinger acceptance. Never store production
 credentials, identity collision details or signing private keys in Git.
 
+**Production server distribution guard:** The Node backend will NOT offer or stream an MSI in production unless `APPROVED_MSI_SHA256` matches that MSI's complete SHA-256 bytes and the file is larger than a synthetic placeholder. Set this only after independently verifying both Authenticode signatures, approved publisher trust and the CI manifest. The Compose API reads this value from operator-owned `Enterprise/.env`; blank disables MSI downloads. A SHA-256 pin ensures byte identity but does not itself prove publisher trust. Rotate the pin for a new approved release; do not bake it into the Windows agent.
+
 **Release decision remains BLOCKED** until the above external evidence,
 production identity audit/migration approval and customer Windows acceptance.
 

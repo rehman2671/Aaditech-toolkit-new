@@ -31,7 +31,8 @@ import {
   getAgentVersion,
   getAgentVersionInfo,
   getCaCertificate,
-  resolveAgentMsi
+  resolveAgentMsi,
+  matchesApprovedReleaseHash
 } from './agent-artifacts.js';
 import {
   validateBody,
@@ -1571,6 +1572,9 @@ app.get('/api/v1/msi/download/:id', async (req, res) => {
     });
   }
 
+  if (!matchesApprovedReleaseHash(realFilePath)) {
+    return res.status(503).json({ error: 'MSI_RELEASE_NOT_APPROVED', detail: 'A verified installer has not been approved for production distribution.' });
+  }
   const stat = fs.statSync(realFilePath);
   const msiFilename = `${pkg.package_name || 'IT-Toolkit-Agent'}-${pkg.version || getAgentVersion()}.msi`;
 

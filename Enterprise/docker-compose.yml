@@ -45,6 +45,7 @@ services:
       COMMAND_SIGNING_KEY: ${COMMAND_SIGNING_KEY:?set COMMAND_SIGNING_KEY in Enterprise/.env}
       DATA_DIR: /data
       ARTIFACTS_DIR: /artifacts
+      APPROVED_MSI_SHA256: ${APPROVED_MSI_SHA256:-}
       ENVIRONMENT: ${ENVIRONMENT:-prod}
     volumes:
       - ./portal:/app/Enterprise/portal:ro

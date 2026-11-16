@@ -267,8 +267,9 @@ export async function runDatabaseMigrations() {
       memAppliedMigrations.add('001');
       memAppliedMigrations.add('002');
       memAppliedMigrations.add('003');
+      memAppliedMigrations.add('004');
     }
-    return { applied: [], skipped: ['001_init_schema.sql', '002_partitioning.sql', '003_rbac_and_audit.sql'], status: 'FALLBACK_MODE' };
+    return { applied: [], skipped: ['001_init_schema.sql', '002_partitioning.sql', '003_rbac_and_audit.sql', '004_workspace_memberships.sql'], status: 'FALLBACK_MODE' };
   }
 
   let lockAcquired = false;

@@ -27,6 +27,36 @@ describe('production database and bootstrap credential fail-closed policies', ()
       .rejects.toThrow('cannot execute query on memory fallback');
   });
 
+  it('never accepts a stale cached device credential after revocation on another worker', async () => {
+    process.env.NODE_ENV = 'production';
+    const tokenHash = crypto.randomBytes(32).toString('hex');
+    const device = {
+      id: crypto.randomUUID(),
+      hostname: 'PROD-CI-TOKEN-TEST',
+      device_uid: 'ci-prod-token-uid',
+      tenant_id: '00000000-0000-0000-0000-000000000091',
+      device_token_hash: tokenHash,
+      agent_token_revoked: 0
+    };
+    let revoked = false;
+    let deleted = false;
+    const query = vi.fn(async () => [
+      deleted ? [] : [{ ...device, agent_token_revoked: revoked ? 1 : 0 }],
+      []
+    ]);
+    db.setConnectionStateForTesting(true, { query });
+    const initial = await db.getDeviceByTokenHash(tokenHash);
+    expect(initial.agent_token_revoked).toBe(false);
+
+    revoked = true; // Another API process has committed revocation.
+    const afterRevocation = await db.getDeviceByTokenHash(tokenHash);
+    expect(afterRevocation.agent_token_revoked).toBe(true);
+
+    deleted = true; // A different API process has removed/rotated the token.
+    expect(await db.getDeviceByTokenHash(tokenHash)).toBeNull();
+    expect(query).toHaveBeenCalledTimes(3);
+  });
+
   it('records only hashes and scrubs redeemed package plaintext after one-use enrollment', async () => {
     const calls = [];
     const query = vi.fn(async (sql, params) => {

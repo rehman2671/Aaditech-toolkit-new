@@ -940,30 +940,90 @@ export async function listUserWorkspaces(userId) {
   return [...workspaces.values()];
 }
 
+// Invitation consent: a target account must explicitly accept before
+// switching into a secondary workspace. Existing updated_at serves as the
+// invitation-issued timestamp; MySQL enforces a seven-day expiry atomically.
 export async function grantWorkspaceMembership(userId, tenantId, role, grantedBy) {
   if (!userId || !tenantId || !['SUPER_ADMIN','OPERATOR','MONITORING'].includes(role)) {
-    throw new Error('Invalid workspace membership grant');
+    throw new Error('Invalid workspace invitation');
   }
-  // An administrator of the DESTINATION tenant approves membership; server
-  // route derives tenantId from the authenticated principal, never the form.
+  // Race-safe: an ACTIVE membership is never replaced by an INVITED grant.
   await executeQuery(
     "INSERT INTO user_workspace_memberships " +
-    "(user_id, tenant_id, role, status, granted_by) VALUES (?, ?, ?, 'ACTIVE', ?) " +
-    "ON DUPLICATE KEY UPDATE role=VALUES(role), status='ACTIVE', " +
-    "granted_by=VALUES(granted_by), updated_at=NOW(3)",
+    "(user_id, tenant_id, role, status, granted_by) VALUES (?, ?, ?, 'INVITED', ?) " +
+    "ON DUPLICATE KEY UPDATE " +
+    "role=IF(status='ACTIVE', role, VALUES(role)), " +
+    "granted_by=IF(status='ACTIVE', granted_by, VALUES(granted_by)), " +
+    "updated_at=IF(status='ACTIVE', updated_at, NOW(3)), " +
+    "status=IF(status='ACTIVE', status, 'INVITED')",
     [userId, tenantId, role, grantedBy || null]
   );
-  return true;
+  const rows = await executeQuery(
+    "SELECT user_id, tenant_id, role, status, " +
+    "DATE_ADD(updated_at, INTERVAL 7 DAY) AS expires_at " +
+    "FROM user_workspace_memberships WHERE user_id = ? AND tenant_id = ? LIMIT 1",
+    [userId, tenantId]
+  );
+  return rows[0] || null;
+}
+
+export async function listWorkspaceInvitations(userId) {
+  if (!userId) return [];
+  const rows = await executeQuery(
+    "SELECT m.tenant_id, m.role, m.status, " +
+    "t.name AS tenant_name, t.slug AS tenant_slug, " +
+    "DATE_ADD(m.updated_at, INTERVAL 7 DAY) AS expires_at " +
+    "FROM user_workspace_memberships m " +
+    "INNER JOIN tenants t ON t.id = m.tenant_id " +
+    "INNER JOIN users u ON u.id = m.user_id " +
+    "WHERE m.user_id = ? AND m.status = 'INVITED' " +
+    "AND m.updated_at > DATE_SUB(NOW(3), INTERVAL 7 DAY) " +
+    "AND UPPER(t.status) = 'ACTIVE' AND u.active = 1 " +
+    "AND UPPER(u.status) = 'ACTIVE' ORDER BY m.updated_at DESC",
+    [userId]
+  );
+  return rows;
+}
+
+export async function respondWorkspaceInvitation(userId, tenantId, decision) {
+  if (!userId || !tenantId || !['accept', 'decline'].includes(decision)) {
+    throw new Error('Invalid workspace invitation response');
+  }
+  const desired = decision === 'accept' ? 'ACTIVE' : 'DECLINED';
+  // One conditional MySQL UPDATE is both the consent record and activation.
+  // A competing revoke/expiry/accept changes affectedRows to 0.
+  const result = await executeQuery(
+    "UPDATE user_workspace_memberships m " +
+    "INNER JOIN tenants t ON t.id = m.tenant_id " +
+    "INNER JOIN users u ON u.id = m.user_id " +
+    "SET m.status = ?, m.updated_at = NOW(3) " +
+    "WHERE m.user_id = ? AND m.tenant_id = ? " +
+    "AND m.status = 'INVITED' " +
+    "AND m.updated_at > DATE_SUB(NOW(3), INTERVAL 7 DAY) " +
+    "AND UPPER(t.status) = 'ACTIVE' AND u.active = 1 " +
+    "AND UPPER(u.status) = 'ACTIVE'",
+    [desired, userId, tenantId]
+  );
+  return Number(result?.affectedRows || 0) === 1;
+}
+
+export async function getWorkspaceMembership(userId, tenantId) {
+  if (!userId || !tenantId) return null;
+  const rows = await executeQuery(
+    "SELECT user_id, tenant_id, role, status FROM user_workspace_memberships " +
+    "WHERE user_id = ? AND tenant_id = ? LIMIT 1", [userId, tenantId]
+  );
+  return rows[0] || null;
 }
 
 export async function revokeWorkspaceMembership(userId, tenantId) {
   if (!userId || !tenantId) throw new Error('Invalid workspace membership revoke');
-  await executeQuery(
+  const result = await executeQuery(
     "UPDATE user_workspace_memberships SET status='REVOKED', updated_at=NOW(3) " +
-    "WHERE user_id = ? AND tenant_id = ?",
+    "WHERE user_id = ? AND tenant_id = ? AND status IN ('ACTIVE', 'INVITED')",
     [userId, tenantId]
   );
-  return true;
+  return Number(result?.affectedRows || 0) === 1;
 }
 
 // ---------------- COMPANIES ----------------

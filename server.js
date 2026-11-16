@@ -437,6 +437,19 @@ function extractToken(req) {
   return null;
 }
 
+// Resolve the current production workspace from persistent account identity
+// and active membership, never only from the signed JWT's tenant/role claims.
+async function resolveCurrentUserPrincipal(decoded) {
+  const production = process.env.NODE_ENV === 'production';
+  const stored = production ? await db.getUserById(decoded.id) : null;
+  let membership = null;
+  if (production && stored &&
+      String(decoded.tenant_id || '') !== String(stored.tenant_id || '')) {
+    membership = await db.getActiveWorkspaceMembership(stored.id, decoded.tenant_id);
+  }
+  return resolveVerifiedUserPrincipal(decoded, stored, normalizeRole, production, membership);
+}
+
 async function authenticateUserToken(req, res, next) {
   const token = extractToken(req);
 
@@ -465,11 +478,7 @@ async function authenticateUserToken(req, res, next) {
       });
     }
 
-    const isProduction = process.env.NODE_ENV === 'production';
-    // In production the JWT cannot self-assert a role or tenant. Always
-    // fetch by immutable user ID, never fall back to an unrelated username.
-    const userInDb = await db.getUserById(decoded.id);
-    const principal = resolveVerifiedUserPrincipal(decoded, userInDb, normalizeRole, isProduction);
+    const principal = await resolveCurrentUserPrincipal(decoded);
     if (!principal) {
       return res.status(401).json({
         error: "Unauthorized",
@@ -783,9 +792,7 @@ async function authenticateAgentOrUser(req, res, next) {
     try {
       const decoded = jwt.verify(userToken, EFFECTIVE_JWT_SECRET, { algorithms: ['HS256'] });
       if (!decoded.jti || (!revokedTokens.has(decoded.jti) && !(await db.isTokenRevokedInDb(decoded.jti)))) {
-        const isProduction = process.env.NODE_ENV === 'production';
-        const stored = isProduction ? await db.getUserById(decoded.id) : null;
-        const principal = resolveVerifiedUserPrincipal(decoded, stored, normalizeRole, isProduction);
+        const principal = await resolveCurrentUserPrincipal(decoded);
         if (principal) {
           req.user = principal;
           req.token = userToken;
@@ -2573,9 +2580,7 @@ async function resolveAuthorizedBootstrapToken(req) {
     const decoded = jwt.verify(userToken, EFFECTIVE_JWT_SECRET, { algorithms: ['HS256'] });
     if (decoded.jti && (revokedTokens.has(decoded.jti) ||
         await db.isTokenRevokedInDb(decoded.jti))) return null;
-    const isProduction = process.env.NODE_ENV === 'production';
-    const stored = isProduction ? await db.getUserById(decoded.id) : null;
-    const principal = resolveVerifiedUserPrincipal(decoded, stored, normalizeRole, isProduction);
+    const principal = await resolveCurrentUserPrincipal(decoded);
     if (principal && ['SUPER_ADMIN', 'OPERATOR'].includes(principal.role)) {
       return generateBootstrapToken(principal.tenant_id, "authorized-bundle", 24);
     }

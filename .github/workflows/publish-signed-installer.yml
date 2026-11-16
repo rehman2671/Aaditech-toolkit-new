@@ -79,9 +79,12 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_TAG: ${{ inputs.release_tag }}
         run: |
-          $existing = & git ls-remote --tags origin "refs/tags/$env:RELEASE_TAG"
-          if ($LASTEXITCODE -ne 0) { throw 'Could not check remote release tags.' }
-          if ($existing) { throw 'Release tag already exists; refusing overwrite.' }
+          # Use authenticated GitHub API instead of git ls-remote: the prior
+          # SHA-pinned checkout intentionally has persist-credentials=false.
+          $refs = & gh api "repos/$env:GITHUB_REPOSITORY/git/matching-refs/tags/$env:RELEASE_TAG" | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot verify existing tag via authenticated API.' }
+          $exact = @($refs | Where-Object { $_.ref -ceq "refs/tags/$env:RELEASE_TAG" })
+          if ($exact.Count -gt 0) { throw 'Release tag already exists; refusing overwrite.' }
           $assets = @(Get-ChildItem -LiteralPath release -File | Where-Object {
             $_.Name -match '\.(msi|exe)$' -or $_.Name -eq 'SHA256SUMS.txt'
           } | ForEach-Object { $_.FullName })

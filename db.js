@@ -893,6 +893,79 @@ export async function getTenantById(id) {
   return rows[0] || null;
 }
 
+// ---------------- EXPLICIT WORKSPACE MEMBERSHIPS ----------------
+// Workspace tenant identifiers are never accepted as authority by themselves.
+// The current account must have a matching active, tenant-approved membership.
+export async function getActiveWorkspaceMembership(userId, tenantId) {
+  if (!userId || !tenantId) return null;
+  const rows = await executeQuery(
+    "SELECT m.user_id, m.tenant_id, m.role, m.status, " +
+    "t.name AS tenant_name, t.slug AS tenant_slug " +
+    "FROM user_workspace_memberships m INNER JOIN tenants t ON t.id = m.tenant_id " +
+    "WHERE m.user_id = ? AND m.tenant_id = ? " +
+    "AND UPPER(m.status) = 'ACTIVE' AND UPPER(t.status) = 'ACTIVE' LIMIT 1",
+    [userId, tenantId]
+  );
+  return rows[0] || null;
+}
+
+export async function listUserWorkspaces(userId) {
+  if (!userId) return [];
+  const owner = await getUserById(userId);
+  if (!owner || owner.active === false || String(owner.status || 'ACTIVE').toUpperCase() !== 'ACTIVE') return [];
+  const rows = await executeQuery(
+    "SELECT m.user_id, m.tenant_id, m.role, m.status, " +
+    "t.name AS tenant_name, t.slug AS tenant_slug " +
+    "FROM user_workspace_memberships m INNER JOIN tenants t ON t.id = m.tenant_id " +
+    "WHERE m.user_id = ? AND UPPER(m.status) = 'ACTIVE' " +
+    "AND UPPER(t.status) = 'ACTIVE' ORDER BY t.name",
+    [userId]
+  );
+  // Primary tenant is an identity property of the current user, even if
+  // its descriptive backfill row was not yet written for newer accounts.
+  const primary = await getTenantById(owner.tenant_id);
+  const activePrimary = primary && String(primary.status || 'active').toUpperCase() === 'ACTIVE';
+  const workspaces = new Map();
+  if (activePrimary) workspaces.set(String(owner.tenant_id), {
+    tenant_id: owner.tenant_id, name: primary.name, slug: primary.slug,
+    role: owner.role, primary: true
+  });
+  for (const row of rows) {
+    if (String(row.tenant_id) === String(owner.tenant_id)) continue;
+    workspaces.set(String(row.tenant_id), {
+      tenant_id: row.tenant_id, name: row.tenant_name,
+      slug: row.tenant_slug, role: row.role, primary: false
+    });
+  }
+  return [...workspaces.values()];
+}
+
+export async function grantWorkspaceMembership(userId, tenantId, role, grantedBy) {
+  if (!userId || !tenantId || !['SUPER_ADMIN','OPERATOR','MONITORING'].includes(role)) {
+    throw new Error('Invalid workspace membership grant');
+  }
+  // An administrator of the DESTINATION tenant approves membership; server
+  // route derives tenantId from the authenticated principal, never the form.
+  await executeQuery(
+    "INSERT INTO user_workspace_memberships " +
+    "(user_id, tenant_id, role, status, granted_by) VALUES (?, ?, ?, 'ACTIVE', ?) " +
+    "ON DUPLICATE KEY UPDATE role=VALUES(role), status='ACTIVE', " +
+    "granted_by=VALUES(granted_by), updated_at=NOW(3)",
+    [userId, tenantId, role, grantedBy || null]
+  );
+  return true;
+}
+
+export async function revokeWorkspaceMembership(userId, tenantId) {
+  if (!userId || !tenantId) throw new Error('Invalid workspace membership revoke');
+  await executeQuery(
+    "UPDATE user_workspace_memberships SET status='REVOKED', updated_at=NOW(3) " +
+    "WHERE user_id = ? AND tenant_id = ?",
+    [userId, tenantId]
+  );
+  return true;
+}
+
 // ---------------- COMPANIES ----------------
 export async function getCompanies(tenantId = null) {
   const rows = tenantId

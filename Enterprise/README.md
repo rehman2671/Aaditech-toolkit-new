@@ -11,19 +11,22 @@
 > The current Node API uses HTTPS + per-device tokens; **mutual TLS is not
 > implemented**, and live Windows/Hostinger production acceptance is pending.
 
-> **Latest hardening:** [Phase N Stage 13 acceptance](deploy/PHASE-N-STAGE13-ACCEPTANCE.md)
-> adds an explicit active user-to-workspace membership table, tenant-scoped JWT
-> selection and revocation, portal workspace selector and tenant-only member
-> management. Shared webhook/retention/feature/ticket/setup settings require
-> an explicitly designated platform operator in production; default company
-> is now tenant-scoped. [All four Stage 13 CI jobs passed](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43927772995),
-> including real MySQL 8 migrations/API checks and Windows MSI rehearsal.
-> Configure PLATFORM_ADMIN_USER_ID and PLATFORM_OWNER_TENANT_ID in the
-> deployment's private Enterprise/.env after initial onboarding to enable
-> authorized global settings changes; missing values fail closed.
-> This is code-level acceptance, **not** a signed installer or live deployment.
-> See [Stage 12 tenant hardening](deploy/PHASE-N-STAGE12-ACCEPTANCE.md) and
-> [Stage 10 signing gates](deploy/PHASE-N-STAGE10-ACCEPTANCE.md).
+> **Latest hardening:** [Phase N Stage 14 acceptance](deploy/PHASE-N-STAGE14-ACCEPTANCE.md)
+> requires explicit user acceptance of invited secondary workspace access.
+> Invitations expire in seven days and are atomic, revocable and single-use.
+> The portal shows Accept/Decline; approved workspace switches still issue a
+> new tenant-role JWT. Branding, ticket integration configuration and ticket
+> inventory are tenant-scoped, with additional alert/cloud isolation guards.
+> A [read-only production preflight](deploy/preflight-stage14.sh) checks
+> `Enterprise/.env`, DNS, operator identity and approved MSI SHA-256 inputs.
+> [Stage 14 CI #43933248099](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43933248099)
+> includes a live disposable MySQL invitation/expiry/replay rehearsal.
+> [Stage 14 deployment-safety CI](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43931969524)
+> passed its offline and real MySQL backup/recovery tests.
+> See [Stage 13 membership authorization](deploy/PHASE-N-STAGE13-ACCEPTANCE.md)
+> and [Stage 10 signing gates](deploy/PHASE-N-STAGE10-ACCEPTANCE.md).
+> Production still requires real Hostinger VPS/TLS, backup/restore acceptance,
+> protected manual signing and physical Windows validation.
 > **No real production migration, signed public release or Hostinger VPS
 > acceptance has been performed.** Historical setup sections below may
 > describe obsolete FastAPI/PostgreSQL, self-signed CA, or MSI token-embedding

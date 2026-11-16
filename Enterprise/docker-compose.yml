@@ -37,6 +37,10 @@ services:
       API_TOKEN: ${API_TOKEN:?set API_TOKEN in Enterprise/.env}
       API_TOKEN_FILE: /data/api_token
       SERVER_HOST: ${SERVER_HOST:?set in .env}
+      # Explicit platform operator is required before global settings can be
+      # changed after setup; blank values intentionally deny global writes.
+      PLATFORM_ADMIN_USER_ID: ${PLATFORM_ADMIN_USER_ID:-}
+      PLATFORM_OWNER_TENANT_ID: ${PLATFORM_OWNER_TENANT_ID:-}
       SESSION_SECRET: ${SESSION_SECRET:-}
       HMAC_SECRET: ${HMAC_SECRET:?set HMAC_SECRET in Enterprise/.env}
       BOOTSTRAP_SECRET: ${BOOTSTRAP_SECRET:?set BOOTSTRAP_SECRET in Enterprise/.env}

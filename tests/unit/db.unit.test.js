@@ -500,14 +500,18 @@ describe('Database Module (db.js) Unit Test Suite', () => {
       expect(typeof updated).toBe('boolean');
 
       const log = await db.logRemediation({
+        tenant_id: '00000000-0000-0000-0000-000000000001',
         policy_id: pol.id,
         device_id: 'dev-1',
+        hostname: 'SRV-UNIT-1',
+        policy_name: pol.name,
+        action: 'Cleared 500MB',
         status: 'SUCCESS',
         output: 'Cleared 500MB'
       });
       expect(log).toBeDefined();
 
-      const logs = await db.getRemediationLogs();
+      const logs = await db.getRemediationLogs(100, '00000000-0000-0000-0000-000000000001');
       expect(logs.length).toBeGreaterThan(0);
     });
   });
@@ -782,13 +786,16 @@ describe('Database Module (db.js) Unit Test Suite', () => {
       }
 
       await db.logRemediation({
+        tenant_id: '00000000-0000-0000-0000-000000000001',
         device_id: 'dev-1',
         hostname: 'HOST-1',
+        policy_name: 'Clean temp',
+        action: 'clean_temp_files',
         action_type: 'clean_temp_files',
         status: 'SUCCESS'
       });
 
-      const logs = await db.getRemediationLogs(10);
+      const logs = await db.getRemediationLogs(10, '00000000-0000-0000-0000-000000000001');
       expect(Array.isArray(logs)).toBe(true);
     });
 

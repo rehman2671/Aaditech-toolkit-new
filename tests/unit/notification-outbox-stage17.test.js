@@ -30,7 +30,7 @@ describe('Stage N17 durable tenant notification worker', () => {
       getEmailConfig: async () => ({ enabled: true, recipient: 'alerts@example.com' }),
       sendEmail: async () => ({ accepted: false, reason: 'SMTP_NOT_CONFIGURED' })
     })).toMatchObject({ outcome: 'RETRY' });
-    expect(await deliverOutboxEntry({ ...emailRow, channel: 'webhook' }, {
+    await expect(deliverOutboxEntry({ ...emailRow, channel: 'webhook' }, {
       getWebhookConfig: async () => ({ enabled: true, url: 'https://hooks.slack.com/x' }),
       sendWebhook: async () => { throw new Error('offline'); }
     })).rejects.toThrow('offline');

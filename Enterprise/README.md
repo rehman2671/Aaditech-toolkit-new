@@ -11,15 +11,19 @@
 > The current Node API uses HTTPS + per-device tokens; **mutual TLS is not
 > implemented**, and live Windows/Hostinger production acceptance is pending.
 
-> **Latest hardening:** [Phase N Stage 12 acceptance](deploy/PHASE-N-STAGE12-ACCEPTANCE.md)
-> adds current-DB role/tenant verification for production JWTs, tenant-owned
-> device/user/company/event/alert/command APIs, secret-free device responses,
-> and an audited, recovery-backed migration of old plaintext MSI enrollment
-> tokens. [All four Stage 12 CI jobs passed](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43920480028)
-> alongside the [real MySQL migration/restore safety rehearsal](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43919034394).
+> **Latest hardening:** [Phase N Stage 13 acceptance](deploy/PHASE-N-STAGE13-ACCEPTANCE.md)
+> adds an explicit active user-to-workspace membership table, tenant-scoped JWT
+> selection and revocation, portal workspace selector and tenant-only member
+> management. Shared webhook/retention/feature/ticket/setup settings require
+> an explicitly designated platform operator in production; default company
+> is now tenant-scoped. [All four Stage 13 CI jobs passed](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43927772995),
+> including real MySQL 8 migrations/API checks and Windows MSI rehearsal.
+> Configure PLATFORM_ADMIN_USER_ID and PLATFORM_OWNER_TENANT_ID in the
+> deployment's private Enterprise/.env after initial onboarding to enable
+> authorized global settings changes; missing values fail closed.
 > This is code-level acceptance, **not** a signed installer or live deployment.
-> [Stage 10 release signing gates](deploy/PHASE-N-STAGE10-ACCEPTANCE.md)
-> remain mandatory before production rollout.
+> See [Stage 12 tenant hardening](deploy/PHASE-N-STAGE12-ACCEPTANCE.md) and
+> [Stage 10 signing gates](deploy/PHASE-N-STAGE10-ACCEPTANCE.md).
 > **No real production migration, signed public release or Hostinger VPS
 > acceptance has been performed.** Historical setup sections below may
 > describe obsolete FastAPI/PostgreSQL, self-signed CA, or MSI token-embedding

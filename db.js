@@ -897,6 +897,32 @@ export async function executeQuery(sql, params = []) {
     return { affectedRows: Math.max(0, initLen - memCommands.length) };
   }
 
+  // Match production's compare-and-swap semantics in offline tests. A
+  // duplicated poll or result must never receive a fabricated success.
+  if (upperSql.startsWith('UPDATE COMMAND_QUEUE SET STATUS')) {
+    if (upperSql.includes("WHERE ID = ? AND DEVICE_ID = ? AND STATUS = 'PENDING'")) {
+      const command = memCommands.find(c => String(c.id) === String(params[0]) &&
+        String(c.device_id) === String(params[1]) &&
+        String(c.status).toUpperCase() === 'PENDING');
+      if (!command) return { affectedRows: 0 };
+      command.status = 'in_progress';
+      command.picked_up_at = new Date();
+      return { affectedRows: 1 };
+    }
+    if (upperSql.includes("WHERE ID = ? AND DEVICE_ID = ? AND STATUS = 'IN_PROGRESS'")) {
+      const command = memCommands.find(c => String(c.id) === String(params[4]) &&
+        String(c.device_id) === String(params[5]) &&
+        String(c.status).toUpperCase() === 'IN_PROGRESS');
+      if (!command) return { affectedRows: 0 };
+      command.status = String(params[0]).toLowerCase();
+      command.stdout = params[1];
+      command.stderr = params[2];
+      command.exit_code = params[3];
+      command.completed_at = new Date();
+      return { affectedRows: 1 };
+    }
+  }
+
   if (upperSql.startsWith('INSERT')) {
     return { insertId: ++monotonicInsertId, affectedRows: 1 };
   }

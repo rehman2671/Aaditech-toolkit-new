@@ -1,5 +1,5 @@
-# N27 behavioral safety test: extract ONLY the target functions, not the
-# worker's real startup/enrollment/network code. Never contact an endpoint.
+# N29 canonical agent replay behavioral test. No real HTTP, SQLite or Windows
+# service: parse the production worker and execute selected functions in mock.
 $ErrorActionPreference = 'Stop'
 $workerPath = Join-Path $PSScriptRoot '..\agent\Agent-Collect.ps1'
 $worker = Get-Content -LiteralPath $workerPath -Raw
@@ -15,28 +15,51 @@ foreach ($name in @('Send-AgentBatch', 'Wait-ForNextAgentCycle')) {
     . ([scriptblock]::Create($fn.Extent.Text))
 }
 function Assert-True([bool]$Condition, [string]$Message) {
-    if (-not $Condition) { throw "N27 assertion failed: $Message" }
+    if (-not $Condition) { throw "N29 assertion failed: $Message" }
 }
+Assert-True ($worker.Contains('CREATE UNIQUE INDEX IF NOT EXISTS uq_telemetry_pending')) 'at-most-one in-flight SQLite snapshot'
 
-# Local deterministic substitutes. No real network, SQLite or sleep.
-$script:QueueDb = 'memory-only.db'
+$script:QueueDb = 'mock-only.db'
 $script:FlushBackoff = 0
 $script:QueryRows = ''
+$script:PendingSnapshot = $null
+$script:Persisted = @()
 $script:Updates = @()
+$script:SnapshotAcks = 0
 $script:Sent = @()
-$script:Ack = [pscustomobject]@{ status = 'OK'; accepted = 0 }
-$script:ThrowNetwork = $false
-$script:Hearts = 0
+$script:Mode = 'valid'
 $script:Sleeps = @()
 $script:Snapshots = 0
+$script:Hearts = 0
+
 function Invoke-SQLite {
     param([string]$Query, [string]$DatabasePath, [switch]$AsJson)
-    if ($Query -match '^\s*SELECT ') { return $script:QueryRows }
+    if ($Query -match '^\s*SELECT batch_id, body_json, event_ids FROM telemetry_outbox') {
+        if ($null -eq $script:PendingSnapshot) { return '' }
+        return (ConvertTo-Json -InputObject @($script:PendingSnapshot) -Compress -Depth 12)
+    }
+    if ($Query -match '^\s*SELECT id, kind, payload') { return $script:QueryRows }
+    if ($Query -match "^\s*INSERT INTO telemetry_outbox .* VALUES \('(?<id>[^']+)', '(?<body>(?:''|[^'])*)', '(?<ids>(?:''|[^'])*)'\);") {
+        if ($null -ne $script:PendingSnapshot) { throw 'Double staged pending request' }
+        $script:PendingSnapshot = [pscustomobject]@{
+            batch_id = $Matches.id
+            body_json = $Matches.body.Replace("''", "'")
+            event_ids = $Matches.ids.Replace("''", "'")
+        }
+        $script:Persisted += $script:PendingSnapshot
+        return
+    }
     if ($Query -match '^\s*UPDATE outbox') {
         $script:Updates += $Query
         return
     }
-    throw "Unexpected mock SQLite query: $Query"
+    if ($Query -match '^\s*UPDATE telemetry_outbox') {
+        if ($null -eq $script:PendingSnapshot) { throw 'No snapshot to acknowledge' }
+        $script:SnapshotAcks++
+        $script:PendingSnapshot = $null
+        return
+    }
+    throw "Unexpected SQLite mock SQL: $Query"
 }
 function Get-FreshAgentSnapshot {
     $script:Snapshots++
@@ -55,69 +78,87 @@ function Write-AgentLog { param([string]$Message) }
 function Get-NextBackoffSleepSeconds { param([int]$FailedConsecutive); return 0 }
 function Invoke-QueueSleep { param($SleepSeconds) }
 function Invoke-RestMethod {
-    param($Uri,$Method,$Headers,$ContentType,$Body,$Certificate)
-    if ($script:ThrowNetwork) { throw 'simulated offline endpoint' }
-    $script:Sent += ($Body | ConvertFrom-Json)
-    return $script:Ack
+    param($Uri, $Method, $Headers, $ContentType, $Body, $Certificate)
+    $script:Sent += [string]$Body
+    if ($script:Mode -eq 'offline') { throw 'Simulated network partition' }
+    $sent = $Body | ConvertFrom-Json
+    switch ($script:Mode) {
+        'partial' { return [pscustomobject]@{ status = 'OK'; accepted = -1; batch_id = $sent.batch_id } }
+        'wrongBatch' { return [pscustomobject]@{ status = 'OK'; accepted = @($sent.events).Count; batch_id = 'different' } }
+        'missingBatch' { return [pscustomobject]@{ status = 'OK'; accepted = @($sent.events).Count } }
+        'missingCount' { return [pscustomobject]@{ status = 'OK'; batch_id = $sent.batch_id } }
+        'badStatus' { return [pscustomobject]@{ status = 'RETRY'; accepted = @($sent.events).Count; batch_id = $sent.batch_id } }
+        default { return [pscustomobject]@{ status = 'OK'; accepted = @($sent.events).Count; batch_id = $sent.batch_id } }
+    }
 }
 function Send-AgentHeartbeat { param($Config); $script:Hearts++; return $true }
 function Start-Sleep { param([int]$Seconds); $script:Sleeps += $Seconds }
 $cfg = [pscustomobject]@{ endpoint = 'https://invalid.example.test/api/v1/ingest/telemetry'; agent_version = '1.1.2' }
 
-# No outbox rows must still upload real measured zero and UNKNOWN posture.
-$ackResult = Send-AgentBatch -Config $cfg
-Assert-True ($ackResult -eq 0) 'empty queue ACK count'
-Assert-True ($script:Sent.Count -eq 1) 'empty queue still sends authenticated telemetry'
-Assert-True ($script:Sent[0].events.Count -eq 0) 'empty queue produces events=[]'
-Assert-True ($script:Sent[0].metrics.disk.free_gb -eq 0) 'genuine measured 0 GB preserved'
-Assert-True ($script:Sent[0].posture.bitlocker_status -eq 'UNKNOWN') 'unknown posture preserved'
-Assert-True ($script:Updates.Count -eq 0) 'empty outbox requires no destructive UPDATE'
+# Even an empty outbox creates a new durable snapshot with measured zero.
+$result = Send-AgentBatch -Config $cfg
+Assert-True ($result -eq 0) 'empty snapshot event count'
+Assert-True ($script:Snapshots -eq 1) 'idle snapshot measured exactly once'
+Assert-True ($script:Persisted.Count -eq 1) 'snapshot persisted before POST'
+Assert-True ($script:SnapshotAcks -eq 1) 'snapshot ACK persisted'
+Assert-True ($null -eq $script:PendingSnapshot) 'successful snapshot retired'
+$first = $script:Sent[-1] | ConvertFrom-Json
+Assert-True ($first.batch_id -match '^[0-9a-f]{32}$') 'unique batch ID'
+Assert-True ($first.events.Count -eq 0) 'empty events list'
+Assert-True ($first.metrics.disk.free_gb -eq 0) 'genuine measured zero preserved'
+Assert-True ($first.posture.bitlocker_status -eq 'UNKNOWN') 'unknown posture preserved'
 
-# An explicit, complete matching ACK delivers only the local integer row ID.
+# Lost ACK: SQLite must retain exact payload and IDs, and retry it BYTE-FOR-BYTE.
 $script:QueryRows = '[{"id":17,"kind":"health","payload":"{}","sanitized":1,"created_at":"2026-11-17 00:00:00"}]'
-$script:Ack = [pscustomobject]@{status='OK';accepted=1}
-$ackResult = Send-AgentBatch -Config $cfg
-Assert-True ($ackResult -eq 1) 'one acknowledged event'
-Assert-True ($script:Updates.Count -eq 1) 'one queued event marked delivered'
-Assert-True ($script:Updates[0] -match 'WHERE status=''pending'' AND id IN \(17\)') 'only local pending ID 17 can be delivered'
-Assert-True ($script:Sent[-1].events.Count -eq 1) 'one serialized outbox event'
-Assert-True ($script:Sent[-1].events[0].client_msg_id -eq '0123456789abcdef0123456789abcdef:17') 'stable event ID for retry'
+$script:Mode = 'offline'
+$priorSamples = $script:Snapshots
+$result = Send-AgentBatch -Config $cfg
+Assert-True ($result -eq 0) 'lost response is failure'
+Assert-True ($null -ne $script:PendingSnapshot) 'lost ACK never drops staged snapshot'
+$lostBody = $script:Sent[-1]
+Assert-True ($script:Snapshots -eq ($priorSamples + 1)) 'measured once before offline POST'
+$script:Mode = 'valid'
+$result = Send-AgentBatch -Config $cfg
+Assert-True ($result -eq 1) 'same response ACK accepts one event'
+Assert-True ($script:Sent[-1] -ceq $lostBody) 'network retry sends identical HTTP bytes'
+Assert-True ($script:Snapshots -eq ($priorSamples + 1)) 'retry MUST NOT recollect snapshot'
+Assert-True ($script:Updates[-1] -match 'WHERE status=''pending'' AND id IN \(17\)') 'only local row 17 delivered'
+$storedEvent = $script:Sent[-1] | ConvertFrom-Json
+Assert-True ($storedEvent.events[0].client_msg_id -eq '0123456789abcdef0123456789abcdef:17') 'N28 stable event ID preserved'
+Assert-True ($null -eq $script:PendingSnapshot) 'matching ACK retires snapshot'
 
-# Valid HTTP status is not a license to silently drop queued events.
-foreach ($bad in @(
-    [pscustomobject]@{status='OK';accepted=0},
-    [pscustomobject]@{status='OK';accepted=2},
-    [pscustomobject]@{status='OK'},
-    [pscustomobject]@{status='RETRY';accepted=1},
-    $null
-)) {
-    $prior = $script:Updates.Count
-    $script:Ack = $bad
-    $ackResult = Send-AgentBatch -Config $cfg
-    Assert-True ($ackResult -eq 0) 'mismatched HTTP ACK returns failure'
-    Assert-True ($script:Updates.Count -eq $prior) 'mismatched HTTP ACK must preserve pending queue'
-}
-$script:ThrowNetwork = $true
-$before = $script:Updates.Count
-$null = Send-AgentBatch -Config $cfg
-Assert-True ($script:Updates.Count -eq $before) 'network failure cannot acknowledge any events'
-$script:ThrowNetwork = $false
-
-# Every 5 min within a long 30-minute inventory interval, refresh heartbeat
-# and telemetry without launching any heavy feature collectors.
+# Bad HTTP 2xx and partial ACKs must keep one durable pending snapshot; the
+# saved payload must survive every error until an exact matching response.
 $script:QueryRows = ''
-$script:Ack = [pscustomobject]@{status='OK';accepted=0}
-$script:Sleeps = @()
+$script:Mode = 'missingBatch'
+$result = Send-AgentBatch -Config $cfg
+Assert-True ($result -eq 0) 'missing batch ID is failure'
+$pendingBody = $script:PendingSnapshot.body_json
+$priorSamples = $script:Snapshots
+foreach ($mode in @('partial', 'wrongBatch', 'missingCount', 'badStatus', 'offline')) {
+    $script:Mode = $mode
+    $result = Send-AgentBatch -Config $cfg
+    Assert-True ($result -eq 0) "bad ACK $mode is failure"
+    Assert-True ($script:PendingSnapshot.body_json -ceq $pendingBody) 'pending request is immutable'
+    Assert-True ($script:Sent[-1] -ceq $pendingBody) 'every retry resends exact bytes'
+    Assert-True ($script:Snapshots -eq $priorSamples) 'no remeasurement on retry'
+}
+$script:Mode = 'valid'
+$null = Send-AgentBatch -Config $cfg
+Assert-True ($null -eq $script:PendingSnapshot) 'eventual complete ACK retires batch'
+
+# Every 5 min of a long inventory interval, create a newly sampled snapshot.
+$script:QueryRows = ''
 $script:Hearts = 0
+$script:Sleeps = @()
 $before = $script:Sent.Count
 Wait-ForNextAgentCycle -Config $cfg -Seconds 970
-Assert-True (($script:Sleeps -join ',') -eq '300,300,300,70') 'bounded five-minute sleep cadence'
-Assert-True ($script:Hearts -eq 3) 'three inter-cycle heartbeats'
-Assert-True (($script:Sent.Count - $before) -eq 3) 'three independent snapshot-only telemetry uploads'
-
+Assert-True (($script:Sleeps -join ',') -eq '300,300,300,70') 'five-minute telemetry cadence'
+Assert-True ($script:Hearts -eq 3) 'inter-cycle heartbeat'
+Assert-True (($script:Sent.Count - $before) -eq 3) 'three new snapshot uploads'
 $before = $script:Sent.Count
 $script:Hearts = 0
 Wait-ForNextAgentCycle -Config $cfg -Seconds 600 -SkipTelemetry $true
-Assert-True ($script:Hearts -eq 1) 'CollectOnly may retain lightweight heartbeat'
-Assert-True ($script:Sent.Count -eq $before) 'CollectOnly must never send telemetry'
-Write-Host 'N27 PASS: empty outbox telemetry, ACK fail-closed, offline retry and five-minute cadence'
+Assert-True ($script:Hearts -eq 1) 'collect-only heartbeat'
+Assert-True ($script:Sent.Count -eq $before) 'collect-only no telemetry'
+Write-Host 'N29 PASS: durable SQLite payload, byte-identical retry, fail-closed ACK and cadence'

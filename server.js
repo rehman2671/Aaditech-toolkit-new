@@ -1,6 +1,7 @@
 import { scopedAlertRules, isApprovedWebhookUrl, deliverTenantWebhook } from './tenant-alert-safety.js';
 import { smtpTransportConfig, isApprovedEmailRecipient, deliverTenantEmail } from './smtp-alerts.js';
 import { startNotificationOutboxWorker } from './notification-outbox.js';
+import { approvedGithubBuildConfig, readApprovedBuildStatus, dispatchApprovedBuild } from './github-build-release.js';
 /**
  * ARCHITECTURAL HARD PREREQUISITE: STATELESSNESS FOR MULTI-INSTANCE / CLUSTER DEPLOYMENTS
  * 
@@ -2170,7 +2171,7 @@ app.post(['/api/v1/setup', '/api/setup'], async (req, res, next) => {
   }
   return next();
 }, validateBody(setupSchema), async (req, res) => {
-  const { company_name, server_host, admin_username, admin_password, branding, build_mode, github_repo, github_token } = req.body;
+  const { company_name, server_host, admin_username, admin_password, branding, build_mode, github_repo } = req.body;
   if (REQUIRE_SECURE_SETUP && req.isInitialSetup &&
       (typeof admin_password !== 'string' || admin_password.length < 12 ||
        ['Admin123!', 'Operator123!', 'Monitor123!'].includes(admin_password))) {
@@ -2182,7 +2183,8 @@ app.post(['/api/v1/setup', '/api/setup'], async (req, res, next) => {
   if (branding) updates.branding = branding;
   if (build_mode) updates.build_mode = build_mode;
   if (github_repo) updates.github_repo = github_repo;
-  if (github_token) updates.github_token = github_token;
+  // Never store browser-supplied GitHub credentials. Operator config lives only
+  // in private GITHUB_ACTIONS_TOKEN; migration 007 scrubs historical PAT fields.
 
   // Never mark onboarding complete without a real persistent super-admin.
   // The old code issued a JWT for a fabricated admin when the DB was empty.
@@ -3007,127 +3009,58 @@ app.get(['/api/v1/ca.crt', '/api/ca.crt'], (req, res) => {
   res.send(caCert);
 });
 
-app.put(['/api/v1/agent/update-target', '/api/agent/update-target'], validateBody(updateTargetVersionSchema), async (req, res) => {
-  await db.updateBranding({ rollout_target: req.body.target_version || "" });
-  res.json({ ok: true });
-});
-
-// Build status (Canonical v1 + Legacy alias)
-app.get(['/api/v1/build/status', '/api/build/status'], async (req, res) => {
-  const branding = await db.getBranding();
-  const repo = branding.github_repo || "rehman2671/Aaditech-toolkit";
-  const token = branding.github_token || process.env.GITHUB_TOKEN || process.env.API_TOKEN;
-  const lastBuildStatus = await db.getSetting('last_build_status', {});
-  const version = getAgentVersion();
-  const msiInfo = resolveAgentMsi(version);
-
-  let githubInfo = {
-    available: !!token,
-    conclusion: lastBuildStatus?.conclusion || "success",
-    state: lastBuildStatus?.state || "completed",
-    run_number: lastBuildStatus?.run_number || 1,
-    html_url: `https://github.com/${repo}/actions`
-  };
-
-  if (token) {
-    try {
-      const ghRes = await fetch(`https://api.github.com/repos/${repo}/actions/runs?per_page=1`, {
-        headers: {
-          'Accept': 'application/vnd.github+json',
-          'Authorization': `Bearer ${token}`,
-          'X-GitHub-Api-Version': '2022-11-28',
-          'User-Agent': 'IT-Toolkit-Server'
-        }
-      });
-      if (ghRes.ok) {
-        const ghData = await ghRes.json();
-        const latestRun = ghData.workflow_runs?.[0];
-        if (latestRun) {
-          githubInfo = {
-            available: true,
-            conclusion: latestRun.conclusion,
-            state: latestRun.status,
-            run_number: latestRun.run_number,
-            html_url: latestRun.html_url
-          };
-          await db.setSetting('last_build_status', githubInfo);
-        }
+// Release control is platform-global. Only the explicitly designated
+// persistent platform operator may update rollout target or trigger CI.
+app.put(['/api/v1/agent/update-target', '/api/agent/update-target'],
+  requirePlatformSettingsAdmin, validateBody(updateTargetVersionSchema), async (req, res) => {
+    const version = req.validatedBody.target_version;
+    if (process.env.NODE_ENV === 'production') {
+      const artifact = resolveAgentMsi(version);
+      if (!artifact.found || !matchesApprovedReleaseHash(artifact.path)) {
+        return res.status(503).json({ error: 'MSI_RELEASE_NOT_APPROVED' });
       }
-    } catch (e) {
-      console.error("Error fetching GitHub run status:", e.message);
     }
-  }
-
-  res.json({
-    mode: branding.build_mode || 'github',
-    github_repo: repo,
-    msi_available: msiInfo.found,
-    msi_size: msiInfo.size,
-    msi_filename: msiInfo.filename,
-    agent_version: version,
-    github: githubInfo
+    await db.updateBranding({ rollout_target: version });
+    logAudit(req.user, 'GLOBAL_AGENT_ROLLOUT_TARGET_CHANGED', 'AgentRelease',
+      { target_version: version }, req);
+    return res.json({ ok: true, rollout_target: version });
   });
-});
 
-app.post(['/api/v1/build/trigger', '/api/build/trigger'], validateBody(buildTriggerSchema), async (req, res) => {
-  const branding = await db.getBranding();
-  const repo = req.body.repo || branding.github_repo || "rehman2671/Aaditech-toolkit";
-  const branch = req.body.branch || "main";
-  const token = req.body.token || branding.github_token || process.env.GITHUB_TOKEN || process.env.API_TOKEN;
-  const lastBuildStatus = await db.getSetting('last_build_status', {});
-
-  if (!token) {
-    return res.status(400).json({
-      detail: "GitHub Personal Access Token (GITHUB_TOKEN) is not configured. Please add GITHUB_TOKEN in Settings / .env"
+// Never reuse API_TOKEN/agent bearer credentials as a GitHub API token.
+// Do not accept arbitrary browser-provided repository URLs or GitHub PATs.
+app.get(['/api/v1/build/status', '/api/build/status'],
+  requirePlatformSettingsAdmin, async (req, res) => {
+    const config = approvedGithubBuildConfig();
+    const branding = await db.getBranding();
+    const version = getAgentVersion();
+    const msi = resolveAgentMsi(version);
+    const github = await readApprovedBuildStatus(config);
+    return res.json({
+      mode: branding.build_mode || 'manual',
+      github_repo: config?.repo || '',
+      msi_available: msi.found,
+      msi_size: msi.size,
+      msi_filename: msi.filename,
+      agent_version: version,
+      github
     });
-  }
+  });
 
-  try {
-    const ghRes = await fetch(`https://api.github.com/repos/${repo}/actions/workflows/ci.yml/dispatches`, {
-      method: 'POST',
-      headers: {
-        'Accept': 'application/vnd.github+json',
-        'Authorization': `Bearer ${token}`,
-        'X-GitHub-Api-Version': '2022-11-28',
-        'User-Agent': 'IT-Toolkit-Server',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ ref: branch })
+app.post(['/api/v1/build/trigger', '/api/build/trigger'],
+  requirePlatformSettingsAdmin, validateBody(buildTriggerSchema), async (req, res) => {
+    const config = approvedGithubBuildConfig();
+    if (!config) return res.status(503).json({ error: 'GITHUB_ACTIONS_NOT_CONFIGURED',
+      detail: 'Configure private GITHUB_ACTIONS_REPO and GITHUB_ACTIONS_TOKEN on the server.' });
+    const result = await dispatchApprovedBuild(config);
+    if (!result.dispatched) return res.status(502).json({ error: result.reason });
+    logAudit(req.user, 'GLOBAL_GITHUB_BUILD_TRIGGERED', 'Repo:' + result.repo,
+      { branch: result.branch }, req);
+    return res.status(202).json({
+      dispatched: true, repo: result.repo, branch: result.branch,
+      status: 'WORKFLOW_DISPATCH_ACCEPTED',
+      detail: 'GitHub accepted a main-branch workflow request; build/signing have not completed.'
     });
-
-    if (ghRes.status === 204 || ghRes.ok) {
-      const newStatus = {
-        available: true,
-        conclusion: null,
-        state: "queued",
-        run_number: (lastBuildStatus?.run_number || 1) + 1,
-        html_url: `https://github.com/${repo}/actions`
-      };
-      await db.setSetting('last_build_status', newStatus);
-
-      return res.json({
-        dispatched: true,
-        repo,
-        branch,
-        detail: `Successfully triggered GitHub Actions workflow for ${repo} on branch '${branch}'!`
-      });
-    } else {
-      const errText = await ghRes.text();
-      let errDetail = errText;
-      try {
-        const errObj = JSON.parse(errText);
-        errDetail = errObj.message || errText;
-      } catch (e) {}
-      return res.status(ghRes.status).json({
-        detail: `GitHub API error (${ghRes.status}): ${errDetail}`
-      });
-    }
-  } catch (err) {
-    return res.status(500).json({
-      detail: `Failed to connect to GitHub API: ${err.message}`
-    });
-  }
-});
+  });
 
 // ---------------- GAP FULFILLMENT: PREDICTIVE ANALYTICS ----------------
 app.get(['/api/v1/analytics/predictive', '/api/analytics/predictive'], async (req, res) => {

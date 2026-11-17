@@ -3222,20 +3222,21 @@ export async function getBranding() {
     branding: { color: '#38bdf8', logo_text: 'IT-Toolkit' },
     build_mode: 'manual',
     github_repo: '',
-    // Never leak or repurpose the agent API secret as a GitHub token.
-    github_token: '',
+    // GitHub credentials are private environment-only; never persisted.
     rollout_target: '',
     default_company_id: 1,
     // A fresh MySQL database must require explicit operator authorization.
     setup_complete: false
   };
   const saved = await getSetting('branding', defaults);
-  return { ...defaults, ...saved };
+  const { github_token: _deprecatedPat, ...safe } = saved || {};
+  return { ...defaults, ...safe };
 }
 
 export async function updateBranding(updates) {
   const current = await getBranding();
-  const merged = { ...current, ...updates };
+  const { github_token: _deprecatedPat, ...safeUpdates } = updates || {};
+  const merged = { ...current, ...safeUpdates };
   await setSetting('branding', merged);
   return merged;
 }

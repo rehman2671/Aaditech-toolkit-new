@@ -258,7 +258,7 @@ export const setupSchema = z.object({
   branding: z.record(z.any()).optional(),
   build_mode: z.string().optional(),
   github_repo: z.string().optional(),
-  github_token: z.string().optional()
+  // GitHub PATs must never enter setup request bodies.
 });
 
 export const tenantBrandingSchema = z.object({
@@ -307,14 +307,13 @@ export const updateFeatureSchema = z.object({
 });
 
 export const updateTargetVersionSchema = z.object({
-  target_version: z.string().min(1, "target_version is required")
-});
+  target_version: z.string().regex(/^\d{1,4}\.\d{1,4}\.\d{1,4}(?:[-+][A-Za-z0-9.-]{1,32})?$/, 'Expected a release version')
+}).strict();
 
+// Destination and credentials are exclusively private server environment.
 export const buildTriggerSchema = z.object({
-  repo: z.string().optional(),
-  branch: z.string().optional(),
-  token: z.string().optional()
-});
+  branch: z.literal('main').optional()
+}).strict();
 
 export const updateRemediationPolicySchema = z.object({
   enabled: z.boolean()

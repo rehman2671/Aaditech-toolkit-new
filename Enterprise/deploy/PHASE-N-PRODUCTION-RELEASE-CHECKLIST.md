@@ -1,5 +1,12 @@
 # Phase N — Production release acceptance and sign-off
 
+## Stage N30 — real MSI pending SQLite queue + safe receipt cleanup (CODE PROPOSED; CI PENDING)
+
+- [ ] On main CI, real Windows diagnostic MSI major upgrade verifies installed sqlite3.exe, ProgramData queue.sqlite3 integrity, persistent queue UUID, two pending rows and exact original pending JSON before/after upgrade.
+- [ ] Isolated MySQL verifies migration 015, 400-day active receipt still dedupes, dry-run default, 180-day minimum, bounded deletion and absent-tenant/zero-device owner guards.
+- [ ] Confirm main Node/Vitest, PowerShell, API/MySQL, Windows MSI and safety results before code/CI acceptance.
+- [ ] Production customer backup/offsite restore, real Windows NETWORK SERVICE and offline ACK-loss, Hostinger VPS/DNS/TLS, public signed MSI, real SMTP/webhook, Graph/ITSM integrations remain separately pending.
+
 ## Stage N29 — atomic keyed telemetry request replay (CODE/CI ACCEPTED; PRODUCTION BLOCKED)
 
 **Evidence (2026-11-18 IST):** [PR #19](https://github.com/rehman2671/Aaditech-toolkit-new/pull/19) merged as `5de1def715f02b7494c7c0dc1c7585cf6d1aee94`. [Main CI #44186527404](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44186527404) **4/4 SUCCESS**, including genuine Windows diagnostic MSI install/uninstall/upgrade; [main safety #44186527011](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44186527011) **2/2 SUCCESS**. Public signed artifact upload skipped.

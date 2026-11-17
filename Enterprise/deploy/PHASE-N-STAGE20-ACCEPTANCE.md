@@ -19,3 +19,9 @@
 - Jira/ServiceNow/Zendesk APIs need a separately authorized, private credential/configuration workflow, webhook validation, live response acceptance and retry/error monitoring before they can be marked connected.
 - Microsoft Graph requires real OAuth registration/consent/permissions and verified API calls, not simply env variable presence. Cloud/MDM data is **NOT_CONNECTED** until implemented and tested.
 - Signed public MSI, live Hostinger VPS/DNS/TLS, real SMTP inbox receipt, approved production MySQL restore and managed Windows UAC/in-place upgrade remain external production gates.
+
+## Manual remediation portal validation
+
+- The Analytics screen fetches the authenticated tenant's enrolled devices and requires selecting a real hostname; manual playbooks are disabled if none are enrolled.
+- Dashboard shortcuts prompt for an actual listed tenant device rather than dispatching to a hardcoded demo hostname.
+- Success UI now reports a **queued** command only; it cannot imply the device has executed it. Signed agent result reporting remains the source of completion truth.

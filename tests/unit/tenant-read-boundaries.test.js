@@ -33,7 +33,9 @@ describe('Phase N12 production tenant-scoped user/company/event SQL', () => {
     });
     await db.getEvents('WINDOWS-1', 30, 'telemetry', 'tenant-security-1');
     expect(queries).toHaveLength(1);
-    expect(queries[0].sql).not.toMatch(/JOIN devices|d.hostname|d.tenant_id/i);
+    expect(queries[0].sql).not.toContain('JOIN devices');
+    expect(queries[0].sql).not.toContain('d.hostname');
+    expect(queries[0].sql).not.toContain('d.tenant_id');
     expect(queries[0].sql).toContain('FROM events WHERE tenant_id = ?');
     expect(queries[0].params).toEqual(['tenant-security-1', 'WINDOWS-1', 'telemetry', 30]);
   });

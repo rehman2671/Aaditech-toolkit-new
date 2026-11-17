@@ -1,5 +1,14 @@
 # Phase N — Production release acceptance and sign-off
 
+## Stage N29 — atomic keyed telemetry request replay (CODE PROPOSED; CI PENDING)
+
+- [ ] PR/main CI verifies migration 014, 16-way direct transactional races, 8-way HTTP replay, atomic DB rollback and 409 key-content conflicts.
+- [ ] Canonical Windows MSI worker preserves exact SQLite JSON payload on lost/partial ACK, and only retires a snapshot with matching batch ID/count.
+- [ ] Real Windows diagnostic MSI installation/uninstall and major-upgrade including queue preservation tested on main.
+- [ ] Operator-authorized encrypted production MySQL backup/offsite restore and migration 014 rehearsal on actual Hostinger target.
+- [ ] Physical Windows enrollment/NETWORK SERVICE/offline retry, public signed Authenticode MSI and real DNS/TLS/SMTP/Graph/ITSM acceptance. **NOT YET VERIFIED.**
+- [ ] Keyed batch DB writes are atomic only inside local InnoDB. Actual delivered SMTP/webhook requests are **at-least-once**, not exactly-once.
+
 ## Stage N28 — authenticated event retry dedup (CODE/CI ACCEPTED; PRODUCTION BLOCKED)
 
 **Verified 2026-11-18 IST:** [PR #18](https://github.com/rehman2671/Aaditech-toolkit-new/pull/18) merged at `061694329e98e789af362545e9afe5806508fb6c`; [main CI #44181875110](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44181875110) **4/4 SUCCESS** including authentic Windows diagnostic MSI build/install/upgrade; [main safety #44181875324](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44181875324) **2/2 SUCCESS**. This is **not** a signed public release.

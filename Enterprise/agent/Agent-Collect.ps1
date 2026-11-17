@@ -418,6 +418,14 @@ CREATE TABLE IF NOT EXISTS queue_identity (
   singleton_id INTEGER PRIMARY KEY CHECK (singleton_id = 1),
   instance_id TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS telemetry_outbox (
+  batch_id TEXT PRIMARY KEY,
+  body_json TEXT NOT NULL,
+  event_ids TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending',
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_telemetry_pending ON telemetry_outbox (status) WHERE status='pending';
 CREATE TABLE IF NOT EXISTS executed_commands (
   command_id   INTEGER PRIMARY KEY,
   status       TEXT NOT NULL,
@@ -431,6 +439,8 @@ CREATE TABLE IF NOT EXISTS executed_commands (
     # A clean SQLite DB after reinstall gets a new identity, not a reused ID.
     $freshId = [guid]::NewGuid().ToString('N')
     Invoke-SQLite -Query "INSERT OR IGNORE INTO queue_identity (singleton_id, instance_id) VALUES (1, '$freshId');" -DatabasePath $QueueDb | Out-Null
+    # Prune old acknowledged requests but NEVER delete pending payloads.
+    Invoke-SQLite -Query "DELETE FROM telemetry_outbox WHERE status='delivered' AND created_at < datetime('now','-7 days');" -DatabasePath $QueueDb | Out-Null
 }
 
 function Get-QueueInstanceId {
@@ -722,37 +732,61 @@ function Get-FreshAgentSnapshot {
 function Send-AgentBatch {
     param($Config)
     try {
-        # Telemetry is independent of the offline outbox. An idle, healthy
-        # enrolled device still reports a fresh snapshot with events=[].
-        $pending = Invoke-SQLite -Query "SELECT id, kind, payload, sanitized, created_at FROM outbox WHERE status='pending' ORDER BY id ASC LIMIT 50;" -DatabasePath $QueueDb -AsJson
-        $pendingRows = @()
-        if (-not [string]::IsNullOrWhiteSpace([string]$pending)) {
-            $pendingRows = @($pending | ConvertFrom-Json)
+        # N29: always replay exactly the same locally saved JSON until ACK.
+        $stored = Invoke-SQLite -Query "SELECT batch_id, body_json, event_ids FROM telemetry_outbox WHERE status='pending' ORDER BY created_at ASC LIMIT 1;" -DatabasePath $QueueDb -AsJson
+        $storedRows = @()
+        if (-not [string]::IsNullOrWhiteSpace([string]$stored)) {
+            $storedRows = @($stored | ConvertFrom-Json)
         }
-        $queueInstanceId = if ($pendingRows.Count -gt 0) { Get-QueueInstanceId } else { $null }
-        $events = @(
-            foreach ($row in $pendingRows) {
-                @{
-                    kind          = $row.kind
-                    payload       = ($row.payload | ConvertFrom-Json)
-                    sanitized     = [bool]$row.sanitized
-                    client_msg_id = "${queueInstanceId}:$([long]$row.id)"
-                    captured_at   = $row.created_at
-                }
+        $batchId = $null
+        $ids = @()
+        $body = $null
+        if ($storedRows.Count -gt 0) {
+            $batchId = [string]$storedRows[0].batch_id
+            $body = [string]$storedRows[0].body_json
+            $ids = @($storedRows[0].event_ids | ConvertFrom-Json)
+            if ($batchId -notmatch '^[0-9a-fA-F]{32}$' -or [string]::IsNullOrWhiteSpace($body)) {
+                throw 'Invalid durable telemetry retry payload; retaining outbox'
             }
-        )
-        # Fresh host probes execute at SEND time; never treat queued old
-        # collector payloads as freshly verified telemetry.
-        $snapshot = Get-FreshAgentSnapshot
-        $body = @{
-            hostname      = (Get-AgentHostname)
-            os_version    = [System.Environment]::OSVersion.VersionString
-            agent_version = (Get-InstalledAgentVersion)
-            ip_address    = (Get-AgentIP)
-            metrics       = $snapshot.metrics
-            posture       = $snapshot.posture
-            events        = @($events)
-        } | ConvertTo-Json -Compress -Depth 12
+        } else {
+            $pending = Invoke-SQLite -Query "SELECT id, kind, payload, sanitized, created_at FROM outbox WHERE status='pending' ORDER BY id ASC LIMIT 50;" -DatabasePath $QueueDb -AsJson
+            $pendingRows = @()
+            if (-not [string]::IsNullOrWhiteSpace([string]$pending)) {
+                $pendingRows = @($pending | ConvertFrom-Json)
+            }
+            $queueInstanceId = if ($pendingRows.Count -gt 0) { Get-QueueInstanceId } else { $null }
+            $events = @(
+                foreach ($row in $pendingRows) {
+                    @{
+                        kind          = $row.kind
+                        payload       = ($row.payload | ConvertFrom-Json)
+                        sanitized     = [bool]$row.sanitized
+                        client_msg_id = "${queueInstanceId}:$([long]$row.id)"
+                        captured_at   = $row.created_at
+                    }
+                }
+            )
+            $ids = @($pendingRows | ForEach-Object { [long]$_.id })
+            $batchId = [guid]::NewGuid().ToString('N')
+            $snapshot = Get-FreshAgentSnapshot
+            $body = @{
+                batch_id      = $batchId
+                hostname      = (Get-AgentHostname)
+                os_version    = [System.Environment]::OSVersion.VersionString
+                agent_version = (Get-InstalledAgentVersion)
+                ip_address    = (Get-AgentIP)
+                metrics       = $snapshot.metrics
+                posture       = $snapshot.posture
+                events        = @($events)
+            } | ConvertTo-Json -Compress -Depth 12
+
+            $escapedBody = $body.Replace("'", "''")
+            $idsJson = ConvertTo-Json -InputObject @($ids) -Compress
+            $escapedIds = $idsJson.Replace("'", "''")
+            # The unique pending index prevents two concurrent service runs
+            # from staging separate request IDs for the same outbox rows.
+            Invoke-SQLite -Query "INSERT INTO telemetry_outbox (batch_id, body_json, event_ids) VALUES ('$batchId', '$escapedBody', '$escapedIds');" -DatabasePath $QueueDb | Out-Null
+        }
 
         $cert = Get-RestCertificate -Config $Config
         $agentTok = Get-AgentToken -Config $Config
@@ -766,31 +800,29 @@ function Send-AgentBatch {
             $resp = Invoke-RestMethod -Uri $Config.endpoint -Method Post -Headers $headers -ContentType 'application/json' -Body $body
         }
 
-        # An HTTP 200 alone is not acknowledgment of every queued event.
-        # Retain all rows when response is malformed, partial or unexpected.
+        # HTTP 2xx alone never acknowledges a local row or saved batch.
         $accepted = 0
         $acceptedProperty = if ($null -ne $resp) { $resp.PSObject.Properties['accepted'] } else { $null }
         if ($null -eq $resp -or [string]$resp.status -cne 'OK' -or
+            [string]$resp.batch_id -cne $batchId -or
             $null -eq $acceptedProperty -or
             -not [int]::TryParse([string]$acceptedProperty.Value, [ref]$accepted) -or
-            $accepted -ne $pendingRows.Count) {
-            throw "Server did not acknowledge all $($pendingRows.Count) queued events; retaining outbox for retry"
+            $accepted -ne $ids.Count) {
+            throw "Server did not acknowledge batch $batchId and all $($ids.Count) events; retaining snapshot"
         }
 
-        if ($pendingRows.Count -gt 0) {
-            # The IDs are read from our local SQLite integer PK, never from
-            # the network response. No queued row is marked on an invalid ACK.
-            $ids = ($pendingRows | ForEach-Object { [long]$_.id }) -join ','
-            Invoke-SQLite -Query "UPDATE outbox SET status='delivered' WHERE status='pending' AND id IN ($ids);" -DatabasePath $QueueDb | Out-Null
+        if ($ids.Count -gt 0) {
+            $localIds = ($ids | ForEach-Object { [long]$_ }) -join ','
+            Invoke-SQLite -Query "UPDATE outbox SET status='delivered' WHERE status='pending' AND id IN ($localIds);" -DatabasePath $QueueDb | Out-Null
         }
+        Invoke-SQLite -Query "UPDATE telemetry_outbox SET status='delivered' WHERE status='pending' AND batch_id='$batchId';" -DatabasePath $QueueDb | Out-Null
         $script:FlushBackoff = 0
-        Write-AgentLog "Uploaded fresh telemetry; acknowledged $accepted queued events"
+        Write-AgentLog "Uploaded durable batch $batchId; acknowledged $accepted queued events"
         return $accepted
-    }
-    catch {
+    } catch {
         $script:FlushBackoff++
         $wait = Get-NextBackoffSleepSeconds -FailedConsecutive $script:FlushBackoff
-        Write-AgentLog "Upload failed ($($_.Exception.Message)) - keeping unacknowledged events; retry in ~$wait s"
+        Write-AgentLog "Upload failed ($($_.Exception.Message)) - retaining durable snapshot/events; retry in ~$wait s"
         Invoke-QueueSleep -SleepSeconds ([Math]::Min($wait, 15))
         return 0
     }

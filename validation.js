@@ -135,6 +135,8 @@ export const deviceRegistrationSchema = z.object({
 
 export const telemetryIngestSchema = z.object({
   hostname: z.string().min(1, "hostname is required"),
+  // Stage N29: only the server-authenticated device scopes this stable ID.
+  batch_id: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9:._-]{0,63}$/).optional(),
   metrics: z.record(z.any()).optional(),
   // Legacy events without IDs still work; keyed ones must be unambiguous.
   events: z.array(z.object({

@@ -956,6 +956,28 @@ describe('Server & API Integration Test Suite', () => {
       token = login.body.token;
     });
 
+    it('does not claim external cloud connectivity based on environment strings', async () => {
+      const oldTenant = process.env.AZURE_TENANT_ID;
+      const oldClient = process.env.GRAPH_CLIENT_ID;
+      try {
+        process.env.AZURE_TENANT_ID = 'example-tenant';
+        process.env.GRAPH_CLIENT_ID = 'example-client';
+        const result = await request(app)
+          .get('/api/v1/compliance/cloud-audit')
+          .set('Authorization', `Bearer ${token}`);
+        expect(result.status).toBe(200);
+        expect(result.body.configured).toBe(false);
+        expect(result.body.status).toBe('NOT_CONNECTED');
+        expect(result.body.summary.azure_ad_sync).toBe('Not connected');
+        expect(result.body.cloud_services).toEqual([]);
+      } finally {
+        if (oldTenant === undefined) delete process.env.AZURE_TENANT_ID;
+        else process.env.AZURE_TENANT_ID = oldTenant;
+        if (oldClient === undefined) delete process.env.GRAPH_CLIENT_ID;
+        else process.env.GRAPH_CLIENT_ID = oldClient;
+      }
+    });
+
     it('Predictive analytics and fleet insights', async () => {
       const res = await request(app)
         .get('/api/v1/analytics/predictive')

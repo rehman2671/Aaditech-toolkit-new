@@ -890,10 +890,10 @@ async function renderDashboard() {
         <span class="muted" style="font-size:12px">One-click fleet corrective routines</span>
       </div>
       <div class="row" style="flex-wrap:wrap;gap:8px">
-        <button class="ghost" onclick="triggerSelfHealing('DESKTOP-DEV018', 'clean_temp_files')">${ic('hard-drive')} Reclaim Temp Disk Space</button>
-        <button class="ghost" onclick="triggerSelfHealing('DESKTOP-DEV018', 'restart_spooler')">${ic('refresh')} Restart Print Spooler</button>
-        <button class="ghost" onclick="triggerSelfHealing('DESKTOP-DEV018', 'reset_network')">${ic('activity')} Flush DNS & Reset Network</button>
-        <button class="ghost" onclick="triggerSelfHealing('DESKTOP-DEV018', 'clear_bits')">${ic('sliders')} Reset Stuck BITS Queue</button>
+        <button class="ghost" onclick="triggerSelfHealing('', 'clean_temp_files')">${ic('hard-drive')} Reclaim Temp Disk Space</button>
+        <button class="ghost" onclick="triggerSelfHealing('', 'restart_spooler')">${ic('refresh')} Restart Print Spooler</button>
+        <button class="ghost" onclick="triggerSelfHealing('', 'reset_network')">${ic('activity')} Flush DNS & Reset Network</button>
+        <button class="ghost" onclick="triggerSelfHealing('', 'clear_bits')">${ic('sliders')} Reset Stuck BITS Queue</button>
       </div>
     </div>` : ''}
 
@@ -1807,10 +1807,12 @@ async function githubBuild() {
 
 // ---------------- GAP FULFILLMENT: ANALYTICS & AUTO-REMEDIATION VIEW ----------------
 async function renderAnalytics() {
-  const [analytics, remediation] = await Promise.all([
+  const [analytics, remediation, enrolled] = await Promise.all([
     api('/api/analytics/predictive'),
-    api('/api/remediation/policies')
+    api('/api/remediation/policies'),
+    api('/api/agents')
   ]);
+  const tenantAgents = Array.isArray(enrolled) ? enrolled : [];
   if (!analytics || !remediation) return;
 
   const s = analytics.summary;
@@ -1871,8 +1873,13 @@ async function renderAnalytics() {
     <div class="card" style="margin-top:20px">
       <div class="row" style="align-items:center;margin-bottom:12px">
         <h3 style="margin:0">${ic('shield')} Auto-Remediation Playbooks (Self-Healing)</h3>
-        <span class="muted" style="margin-left:auto">Automated background corrective actions</span>
+        <span class="muted" style="margin-left:auto">Commands are queued; execution requires a real enrolled agent</span>
       </div>
+      <label for="remediation_host_select">Target enrolled workspace device</label>
+      <select id="remediation_host_select">
+        ${tenantAgents.map(a => `<option value="${esc(a.hostname)}">${esc(a.hostname)}</option>`).join('')}
+      </select>
+      ${tenantAgents.length === 0 ? '<p class="muted">Enroll a device before using remote remediation.</p>' : ''}
       <div style="overflow-x:auto">
         <table>
           <thead>
@@ -1899,7 +1906,7 @@ async function renderAnalytics() {
                 </td>
                 <td><strong>${esc(pol.executions_count)}</strong> times</td>
                 <td>
-                  <button class="action" style="padding:4px 10px;font-size:12px" onclick="triggerSelfHealing('DESKTOP-DEV018', '${esc(pol.action_type)}')">${ic('zap')} Trigger Playbook</button>
+                  <button class="action" style="padding:4px 10px;font-size:12px" onclick="triggerSelfHealing(document.getElementById('remediation_host_select')?.value, '${esc(pol.action_type)}')" ${tenantAgents.length ? '' : 'disabled'}>${ic('zap')} Trigger Playbook</button>
                 </td>
               </tr>
             `).join('')}
@@ -1944,10 +1951,26 @@ async function togglePolicy(id, enabled) {
 }
 
 async function triggerSelfHealing(hostname, action_type) {
-  if (!confirm(`Execute ${action_type} on host ${hostname}?`)) return;
-  const res = await api('/api/remediation/trigger', { method: 'POST', body: JSON.stringify({ hostname, action_type }) });
+  let target = String(hostname || '').trim();
+  if (!target) {
+    const tenantAgents = await api('/api/agents');
+    if (!Array.isArray(tenantAgents) || !tenantAgents.length) {
+      alert('No enrolled device found in this workspace. Enroll a device first.');
+      return;
+    }
+    target = (prompt('Enter an enrolled workspace hostname:\n' +
+      tenantAgents.map(a => a.hostname).join(', '), tenantAgents[0].hostname) || '').trim();
+    if (!target) return;
+    if (!tenantAgents.some(a => a.hostname === target)) {
+      alert('Choose an enrolled device from the displayed workspace list.');
+      return;
+    }
+  }
+  if (!confirm(`Queue approved remediation ${action_type} on ${target}?`)) return;
+  const res = await api('/api/remediation/trigger', { method: 'POST',
+    body: JSON.stringify({ hostname: target, action_type }) });
   if (res && res.ok) {
-    alert(`Self-healing action triggered successfully: ${res.log.action}`);
+    alert(`Remediation queued for agent ${target}. Execution has NOT been confirmed; check the command status.`);
     render();
   }
 }
@@ -1966,16 +1989,17 @@ async function renderIntegrations() {
     { label: "Azure AD Sync", value: cs.azure_ad_sync, sub: "Identity Health", icon: "shield", tone: "ok" },
     { label: "Intune Enrollment", value: cs.intune_enrolled_pct, sub: "MDM Posture", icon: "devices", tone: "ok" },
     { label: "BitLocker Encryption", value: cs.bitlocker_compliant_pct, sub: "Fleet Encryption", icon: "key", tone: "ok" },
-    { label: "Open Helpdesk Tickets", value: tickets.filter(t => t.status !== 'Closed').length, sub: `${config.system.toUpperCase()} Linked`, icon: "briefcase", tone: "accent" }
+    { label: "Open Local Tickets", value: tickets.filter(t => t.status !== 'Closed').length, sub: "No external ticket sync", icon: "briefcase", tone: "accent" }
   ]);
 
   app.innerHTML = `
     <div class="row" style="gap:20px;align-items:flex-start">
       <div class="card" style="flex:1;min-width:300px">
         <h3>${ic('briefcase')} Helpdesk & Ticketing Integration</h3>
-        <p class="muted">Sync alerts and diagnostic reports automatically with Jira, ServiceNow, or Zendesk.</p>
+        <p class="muted">Local helpdesk record storage only. Provider preferences below do not activate a Jira, ServiceNow or Zendesk connector; no ticket is sent to those services.</p>
         <label>Ticketing System Provider</label>
         <select id="ticket_sys" onchange="saveTicketConfig()">
+          <option value="none" ${config.system === 'none' ? 'selected' : ''}>None — local only</option>
           <option value="jira" ${config.system === 'jira' ? 'selected' : ''}>Jira Service Management</option>
           <option value="servicenow" ${config.system === 'servicenow' ? 'selected' : ''}>ServiceNow ITSM</option>
           <option value="zendesk" ${config.system === 'zendesk' ? 'selected' : ''}>Zendesk Support</option>
@@ -1990,19 +2014,19 @@ async function renderIntegrations() {
           <label>Issue Title</label>
           <input id="t_title" placeholder="e.g., Disk Space Warning on WIN-DC01" />
           <label>Target Host</label>
-          <input id="t_agent" value="DESKTOP-DEV018" />
+          <input id="t_agent" placeholder="Enrolled device hostname (optional)" />
           <label>Severity</label>
           <select id="t_sev">
             <option value="High">High</option>
             <option value="Medium" selected>Medium</option>
             <option value="Low">Low</option>
           </select>
-          <button class="action" style="width:100%;margin-top:10px" onclick="createManualTicket()">${ic('plus')} Push Ticket to ${esc(config.system.toUpperCase())}</button>
+          <button class="action" style="width:100%;margin-top:10px" onclick="createManualTicket()">${ic('plus')} Create Local Ticket</button>
         </div>
       </div>
 
       <div class="card" style="flex:2;min-width:320px">
-        <h3>${ic('file-text')} Connected Support Tickets</h3>
+        <h3>${ic('file-text')} Local Support Tickets — not externally synced</h3>
         <div style="overflow-x:auto">
           <table>
             <thead>
@@ -2035,7 +2059,7 @@ async function renderIntegrations() {
     <div class="card" style="margin-top:20px">
       <div class="row" style="align-items:center;margin-bottom:12px">
         <h3 style="margin:0">${ic('shield')} Hybrid & Cloud Identity Audit (Azure AD & Intune)</h3>
-        <span class="muted" style="margin-left:auto">Real-time status of cloud connectors and device compliance</span>
+        <span class="muted" style="margin-left:auto">Local device telemetry only — cloud services not connected</span>
       </div>
       <div style="overflow-x:auto">
         <table>
@@ -2108,7 +2132,7 @@ async function createManualTicket() {
   };
   const res = await api('/api/tickets/create', { method: 'POST', body: JSON.stringify(body) });
   if (res && res.ok) {
-    alert(`Ticket ${res.ticket.id} created successfully in ${res.ticket.system}`);
+    alert(`Local ticket ${res.ticket.id} saved. No external service was contacted.`);
     renderIntegrations();
   }
 }

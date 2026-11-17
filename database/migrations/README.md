@@ -19,6 +19,7 @@ This directory contains ordered, idempotent, versioned schema migrations managed
 11. `011_security_posture_provenance.sql`: add nullable server-owned enrolled-agent posture evidence timestamp and neutral new-device security defaults. Historic optimistic values remain unverified until fresh authenticated telemetry arrives.
 12. `012_measured_device_telemetry.sql`: add nullable server-owned metric evidence timestamp, neutral CPU/RAM/disk/battery/total-capacity defaults and nullable missing history samples. Historic default values remain unverified.
 13. `013_events_idempotency.sql`: add nullable per-event message keys, server-side content digests and insertion-winner nonce, plus unique tenant/device/message index. Historic NULL-owned and unkeyed events remain unmodified.
+14. `014_telemetry_batches.sql`: add a transaction-bound SHA-256 receipt keyed by enrolled tenant, device and client batch ID. No historic rows are modified.
 
 ## Migration Runner & Concurrency
 - Tracked via the `schema_migrations` table (`version`, `name`, `applied_at`, `execution_time_ms`, `checksum`).
@@ -75,3 +76,10 @@ This directory contains ordered, idempotent, versioned schema migrations managed
 - Only authenticated tenant/device ownership scopes the MySQL idempotency index; hostnames are never trusted identities. Event content SHA-256 is server-calculated. Same key with different content raises HTTP 409 and does not acknowledge an altered event.
 - Legacy unkeyed events are append-only. Full HTTP request replay, telemetry history, alerts, external hooks and SMTP delivery are **not** exactly-once.
 - CI disposable MySQL and Windows diagnostic MSI acceptance are not evidence of a real signed public release or customer deployment.
+
+## Stage N29: atomic authenticated telemetry replay
+
+- Requires approved customer encrypted MySQL backup and separate offsite restore rehearsal before migration 014 in production.
+- Canonical Windows agent persists the exact in-flight HTTP JSON body in local SQLite until a matching batch-ID and accepted-count ACK. An unsuccessful send retries identical bytes, not a new measurement with an old ID.
+- A keyed HTTP batch persists the receipt, device evidence, measured history, process inventory, events, alerts and authorized notification outbox inside one InnoDB transaction. On error, everything rolls back. The unique tenant/device/batch index serializes concurrent PM2 workers. Matching replay returns original ACK; reused key with altered body returns HTTP 409.
+- Unkeyed legacy clients remain supported without transaction-level dedup guarantees. Actual SMTP/webhook delivery is still at-least-once. Cache invalidation and public signed MSI/Hostinger deployment/physical device evidence are not inside this DB transaction.

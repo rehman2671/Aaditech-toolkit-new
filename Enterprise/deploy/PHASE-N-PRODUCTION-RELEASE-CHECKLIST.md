@@ -1,10 +1,13 @@
 # Phase N — Production release acceptance and sign-off
 
-## Stage N29 — atomic keyed telemetry request replay (CODE PROPOSED; CI PENDING)
+## Stage N29 — atomic keyed telemetry request replay (CODE/CI ACCEPTED; PRODUCTION BLOCKED)
 
-- [ ] PR/main CI verifies migration 014, 16-way direct transactional races, 8-way HTTP replay, atomic DB rollback and 409 key-content conflicts.
-- [ ] Canonical Windows MSI worker preserves exact SQLite JSON payload on lost/partial ACK, and only retires a snapshot with matching batch ID/count.
-- [ ] Real Windows diagnostic MSI installation/uninstall and major-upgrade including queue preservation tested on main.
+**Evidence (2026-11-18 IST):** [PR #19](https://github.com/rehman2671/Aaditech-toolkit-new/pull/19) merged as `5de1def715f02b7494c7c0dc1c7585cf6d1aee94`. [Main CI #44186527404](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44186527404) **4/4 SUCCESS**, including genuine Windows diagnostic MSI install/uninstall/upgrade; [main safety #44186527011](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44186527011) **2/2 SUCCESS**. Public signed artifact upload skipped.
+
+- [x] PR/main CI verifies migration 014, 16-way direct transactional races, 8-way HTTP replay, atomic DB rollback and 409 key-content conflicts.
+- [x] Mocked PowerShell canonical Windows worker tests verify byte-identical SQLite JSON replay on lost/partial ACK; matching batch ID/count required.
+- [x] Real Windows diagnostic MSI installation/uninstall and major-upgrade preserved server/tenant configuration and enrolled credentials on main.
+- [ ] Separate physical pending `queue.sqlite3` file and in-flight `telemetry_outbox` preservation across MSI major upgrade (NOT covered by the existing CI upgrade fixture).
 - [ ] Operator-authorized encrypted production MySQL backup/offsite restore and migration 014 rehearsal on actual Hostinger target.
 - [ ] Physical Windows enrollment/NETWORK SERVICE/offline retry, public signed Authenticode MSI and real DNS/TLS/SMTP/Graph/ITSM acceptance. **NOT YET VERIFIED.**
 - [ ] Keyed batch DB writes are atomic only inside local InnoDB. Actual delivered SMTP/webhook requests are **at-least-once**, not exactly-once.

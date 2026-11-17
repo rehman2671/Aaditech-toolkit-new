@@ -1,6 +1,16 @@
 # Phase N Stage 29 — Atomic keyed telemetry replay
 
-**Status: CODE PROPOSED; CI PENDING; CUSTOMER PRODUCTION BLOCKED.**
+**Status: CODE/CI ACCEPTED — CUSTOMER PRODUCTION BLOCKED (2026-11-18 IST).**
+
+## Verified automation results
+
+- [PR #19](https://github.com/rehman2671/Aaditech-toolkit-new/pull/19) squash-merged as `5de1def715f02b7494c7c0dc1c7585cf6d1aee94`.
+- [PR CI #44186086779](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44186086779): **SUCCESS** — Node/Vitest, PowerShell mock tests for byte-identical queued HTTP replay and fail-closed batch ACKs, real MySQL/API transaction rehearsal (16 concurrent exact direct inserts, 8 concurrent authenticated HTTP requests, rollback on notification validation failure, tenant ownership, 409 conflict). PR Windows MSI job intentionally **SKIPPED**.
+- [PR deployment safety #44186086815](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44186086815): **SUCCESS 2/2** — isolated MySQL backup/restore and offline shell safety.
+- [Main CI #44186527404](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44186527404): **SUCCESS 4/4** — Node/Vitest, PowerShell behavioral checks, real MySQL/API, Windows real ps2exe agent and WiX diagnostic MSI build/extraction/install/uninstall/major-upgrade preserving server/tenant credentials and configuration.
+- [Main deployment safety #44186527011](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44186527011): **SUCCESS 2/2**.
+- `Upload verified signed artifacts only` remained **SKIPPED**. A successful diagnostic MSI pipeline is NOT signed public-release acceptance.
+
 
 ## Prior correctness defect
 
@@ -38,8 +48,8 @@ A crash during ingestion could also leave partial durable effects.
 
 ## Explicit limitations and external gates
 
-- [ ] Node/Vitest, PowerShell, isolated real MySQL/API CI, deployment-safety.
-- [ ] Main genuine Windows EXE/WiX MSI extraction/install/uninstall/major-upgrade.
+- [x] Node/Vitest, PowerShell, isolated real MySQL/API CI, deployment-safety.
+- [x] Main genuine Windows EXE/WiX MSI extraction/install/uninstall/major-upgrade (server/tenant configuration and enrolled credentials verified; pending SQLite queue preservation is **not** separately exercised).
 - [ ] Live physical tenant-enrolled Windows with deliberate lost ACK and server
       restart, and post-MSI-upgrade persisted queue evidence.
 - [ ] Authorized encrypted offsite production MySQL restore and migration 014.

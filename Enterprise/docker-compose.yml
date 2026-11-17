@@ -43,6 +43,9 @@ services:
       PLATFORM_OWNER_TENANT_ID: ${PLATFORM_OWNER_TENANT_ID:-}
       # Exact comma-separated public HTTPS webhook hosts; empty denies delivery.
       WEBHOOK_ALLOWED_HOSTS: ${WEBHOOK_ALLOWED_HOSTS:-}
+      # Optional, platform-admin-only GitHub CI dispatch (no browser PATs).
+      GITHUB_ACTIONS_REPO: ${GITHUB_ACTIONS_REPO:-}
+      GITHUB_ACTIONS_TOKEN: ${GITHUB_ACTIONS_TOKEN:-}
       # SMTP credentials are owned by the deployment operator, not tenants.
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-}

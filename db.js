@@ -270,8 +270,9 @@ export async function runDatabaseMigrations() {
       memAppliedMigrations.add('004');
       memAppliedMigrations.add('005');
       memAppliedMigrations.add('006');
+      memAppliedMigrations.add('007');
     }
-    return { applied: [], skipped: ['001_init_schema.sql', '002_partitioning.sql', '003_rbac_and_audit.sql', '004_workspace_memberships.sql', '005_remediation_tenant_logs.sql', '006_notification_outbox.sql'], status: 'FALLBACK_MODE' };
+    return { applied: [], skipped: ['001_init_schema.sql', '002_partitioning.sql', '003_rbac_and_audit.sql', '004_workspace_memberships.sql', '005_remediation_tenant_logs.sql', '006_notification_outbox.sql', '007_scrub_legacy_github_pat.sql'], status: 'FALLBACK_MODE' };
   }
 
   let lockAcquired = false;
@@ -3222,20 +3223,21 @@ export async function getBranding() {
     branding: { color: '#38bdf8', logo_text: 'IT-Toolkit' },
     build_mode: 'manual',
     github_repo: '',
-    // Never leak or repurpose the agent API secret as a GitHub token.
-    github_token: '',
+    // GitHub credentials are private environment-only; never persisted.
     rollout_target: '',
     default_company_id: 1,
     // A fresh MySQL database must require explicit operator authorization.
     setup_complete: false
   };
   const saved = await getSetting('branding', defaults);
-  return { ...defaults, ...saved };
+  const { github_token: _deprecatedPat, ...safe } = saved || {};
+  return { ...defaults, ...safe };
 }
 
 export async function updateBranding(updates) {
   const current = await getBranding();
-  const merged = { ...current, ...updates };
+  const { github_token: _deprecatedPat, ...safeUpdates } = updates || {};
+  const merged = { ...current, ...safeUpdates };
   await setSetting('branding', merged);
   return merged;
 }

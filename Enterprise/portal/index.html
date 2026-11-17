@@ -600,16 +600,14 @@ function renderSetup() {
 
       <div style="margin-top:22px;border-top:1px solid var(--line);padding-top:8px">
         <label style="font-size:14px;color:var(--text);font-weight:600">Agent MSI build</label>
-        <p class="muted">How the Windows agent installer gets built. Windows Server builds locally (fully automatic). A Linux server can trigger this repo's GitHub Actions and pull the signed MSI back automatically.</p>
+        <p class="muted">Choose an installer build workflow. A diagnostic CI build does not make a signed/public release: the publisher-approved release workflow and physical Windows acceptance are separate mandatory steps.</p>
         <select id="build_mode" onchange="buildModeChange()">
           <option value="local_windows">Windows Server — build locally here (automatic)</option>
           <option value="github">GitHub Actions — remote build (Linux server)</option>
           <option value="manual">Manual — I'll build/upload the MSI myself</option>
         </select>
         <div id="github_fields" style="display:none">
-          <label>GitHub repo (owner/repo)</label><input id="github_repo" placeholder="j9619655391-max/Aaditech-ToolKit" />
-          <label>Personal access token (PAT — needs actions:write + actions:read)</label><input id="github_token" type="password" placeholder="ghp_..." />
-          <p class="muted">After setup, the Agent Setup page can trigger the build and download the MSI. Create a PAT at github.com → Settings → Developer settings → Personal access tokens → fine-grained (repo + actions) with Actions: Read/Write.</p>
+          <p class="muted">Security: GitHub credentials are never entered in the browser. An authorized server operator configures private GITHUB_ACTIONS_REPO and GITHUB_ACTIONS_TOKEN in Enterprise/.env. Only the designated platform administrator can dispatch a main-branch workflow. Signing and public release require separate approval.</p>
         </div>
       </div>
 
@@ -646,8 +644,6 @@ async function doSetup() {
     admin_password: p1,
     branding: { color: document.getElementById('branding_color')?.value || '#38bdf8', logo_text: (document.getElementById('company_name')?.value || '').trim() },
     build_mode: document.getElementById('build_mode')?.value || 'manual',
-    github_repo: (document.getElementById('github_repo')?.value || '').trim(),
-    github_token: (document.getElementById('github_token')?.value || '').trim(),
   };
   const setupKey = document.getElementById('initial_setup_token')?.value || '';
   const setupHeaders = { 'Content-Type': 'application/json' };
@@ -1783,7 +1779,7 @@ function renderBuildPanel(build) {
         <button class="action" onclick="githubBuild()">Trigger GitHub build</button>
         <button class="ghost" onclick="renderAgentSetup()">Refresh</button>
       </div>
-      <p class="muted" style="margin-top:10px">Requires the repo + PAT entered at setup (repo + actions: write/read). The server fires <code>workflow_dispatch</code>, waits for success and downloads the signed MSI into the volume automatically.</p>`;
+      <p class="muted" style="margin-top:10px">Only a designated platform operator with private GITHUB_ACTIONS_REPO/TOKEN server environment can dispatch a main-branch CI job. Dispatch is not signing, publication, or verified automatic download; use the protected publisher-approved release workflow separately.</p>`;
   } else {
     body = `<p class="muted">Build the MSI yourself (Windows machine): <code>build-agent.ps1</code> then <code>build-msi.ps1</code>, or run the CI <code>agent-build</code> workflow, then upload the MSI into the server's <code>agent_artifacts</code> volume.</p>`;
   }
@@ -1797,7 +1793,7 @@ async function githubBuild() {
     const r = await api('/api/build/status');
     const repo = r.github_repo;
     if (!repo) { alert('No GitHub repo configured. Edit settings or re-run setup.'); return; }
-    const res = await fetch('/api/build/trigger', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ repo, branch: 'main' }) });
+    const res = await fetch('/api/build/trigger', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ branch: 'main' }) });
     const data = await res.json();
     if (!res.ok) {
       alert(data.detail || 'Trigger failed');

@@ -1,6 +1,15 @@
 # Phase N Stage 31 — Deployment and Signed Publication Preflight
 
-**Status: CODE PROPOSED; PR/main CI PENDING; CUSTOMER PRODUCTION BLOCKED.**
+**Status: CODE/CI ACCEPTED — CUSTOMER PRODUCTION BLOCKED (2026-11-18 IST).**
+
+## Verified automation evidence
+
+- [PR #21](https://github.com/rehman2671/Aaditech-toolkit-new/pull/21) squash-merged on main at `6874e72f2faf9499b4d584b8852781a111b092da`.
+- [PR CI #44193458002](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44193458002): **SUCCESS** — Node/Vitest, PowerShell (N31 unconfigured physical Windows fail-closed/redaction and fake MSI publisher pin negative tests) and real MySQL/API. Windows MSI build is intentionally **SKIPPED** on PRs.
+- [PR deployment safety #44193457963](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44193457963): **SUCCESS 2/2** — N31 offline Hostinger/config preflight including deliberate live-probe denial and existing isolated MySQL restoration.
+- [Main CI #44193878515](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44193878515): **SUCCESS 4/4** — Node/Vitest, PowerShell, real MySQL/API, genuine Windows diagnostic ps2exe/WiX MSI build, extraction, install/uninstall and major-upgrade with SQLite queue preservation.
+- [Main deployment safety #44193879125](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44193879125): **SUCCESS 2/2**.
+- Signature-related CI scripts may report **SUCCESS** while deliberately taking a diagnostic/no-certificate path. **`Upload verified signed artifacts only` was SKIPPED**. No public publisher-approved or real Hostinger/customer signed release was created.
 
 ## Failure mode and security boundary
 
@@ -43,8 +52,8 @@ source commit and MSI checksum, not only a self-reported downloaded manifest.
 
 ## Release acceptance gates
 
-- [ ] Pull request Node/Vitest, PowerShell and deployment safety all green.
-- [ ] Main branch Node/Vitest, PowerShell, real MySQL/API, genuine Windows
+- [x] Pull request Node/Vitest, PowerShell and deployment safety all green.
+- [x] Main branch Node/Vitest, PowerShell, real MySQL/API, genuine Windows
       diagnostic MSI and deployment safety all green.
 - [ ] Authorized Hostinger VPS/DNS/TLS public check against real operator-provided
       FQDN, and encrypted MySQL offsite restore/migration acceptance.

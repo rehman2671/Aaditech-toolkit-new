@@ -1,12 +1,16 @@
 # Phase N — Production release acceptance and sign-off
 
-## Stage N31 — read-only deployment and physical-Windows preflight; independently pinned public release (CODE PROPOSED; CI PENDING)
+## Stage N31 — read-only deployment/Windows preflight and independent public release pins (CODE/CI ACCEPTED; CUSTOMER PRODUCTION BLOCKED)
 
-- [ ] Use `preflight-stage31.sh --env-file PRIVATE_ENV --report-file NEW_JSON` to validate local permissions/config offline; no secret content may enter logs or report.
+**Verified 2026-11-18 IST:** [PR #21](https://github.com/rehman2671/Aaditech-toolkit-new/pull/21) merged at `6874e72f2faf9499b4d584b8852781a111b092da`. [Main CI #44193878515](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44193878515) **4/4 SUCCESS**; [main safety #44193879125](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44193879125) **2/2 SUCCESS**. Public signing and signed-artifact upload **SKIPPED**.
+
+- [x] N31 synthetic/offline CI verifies `preflight-stage31.sh --env-file PRIVATE_ENV --report-file NEW_JSON`, safe permissions and redacted report. **Actual production env not yet supplied or tested.**
 - [ ] Real Hostinger public TLS/redirect/MySQL check only after operator explicitly passes `--live --confirm-live PROBE_PUBLIC_HEALTH`. No host/domain is assumed before deployment.
-- [ ] On customer Windows, run `Enterprise/tests/Test-CustomerWindowsAcceptance.ps1 -ReportPath NEW_JSON`; confirm correct HTTPS setup, real enrolled credentials, NETWORK SERVICE task, installed SQLite queue integrity and redacted report. Live GET /healthz requires `-NetworkProbe`.
-- [ ] Approved public installer workflow must require manually supplied `approved_source_sha` plus independent `approved_msi_sha256`; source GitHub CI run, signer, timestamp, checksum, embedded signed EXE and new tag must all validate.
-- [ ] CI regression proves offline tests, unsigned/mismatched publisher checksum rejection and unconfigured Windows reports BLOCKED without network activity.
+- [x] Windows CI negative fixture verifies `Test-CustomerWindowsAcceptance.ps1` blocks unconfigured machine, redacts secrets and avoids live GET by default.
+- [ ] Run that same collector on a real customer Windows device and separately verify actual HTTPS, enrollment, NETWORK SERVICE and SQLite queue.
+- [x] Publication workflow requires manual `approved_source_sha`, independent `approved_msi_sha256`, approved publisher pin, trusted timestamp, signed embedded EXE and new tag. Negative CI fixtures reject malformed/mismatched inputs.
+- [ ] Actual approved public Authenticode EXE/MSI signing, publisher/CA verification and GitHub Release publication require separate human approval.
+- [x] CI regression proves offline tests, unsigned/mismatched publisher checksum rejection and unconfigured Windows reports BLOCKED without network activity.
 - [ ] On actual Hostinger VPS: approve private env, DNS/TLS ownership, encryption, production migration and offsite MySQL restore. **NOT YET VERIFIED.**
 - [ ] On real customer Windows: verify offline ACK-loss/retry under NETWORK SERVICE and trusted publisher MSI installation. **NOT YET VERIFIED.**
 - [ ] Protected manual release approval, public Authenticode-signed MSI publication and live SMTP/webhook/Graph/ITSM integrations. **NOT YET VERIFIED.**

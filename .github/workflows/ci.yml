@@ -258,6 +258,18 @@ jobs:
           NODE_ENV: test
         run: node test-migrations-runner.js
 
+      - name: Rehearse durable event idempotency on real MySQL (N28)
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_USER: itk_user
+          DB_PASSWORD: itk_password_ci
+          DB_NAME: it_toolkit
+          NODE_ENV: test
+          AADITECH_EVENT_DEDUP_REHEARSAL: isolated-ci
+        timeout-minutes: 3
+        run: timeout 120s node test-event-idempotency-mysql.js
+
       - name: Rehearse multi-process tenant/device identity concurrency against real MySQL
         env:
           DB_HOST: 127.0.0.1

@@ -136,7 +136,10 @@ export const deviceRegistrationSchema = z.object({
 export const telemetryIngestSchema = z.object({
   hostname: z.string().min(1, "hostname is required"),
   metrics: z.record(z.any()).optional(),
-  events: z.array(z.record(z.any())).optional(),
+  // Legacy events without IDs still work; keyed ones must be unambiguous.
+  events: z.array(z.object({
+    client_msg_id: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$/).optional()
+  }).passthrough()).max(50).optional(),
   processes: z.array(z.record(z.any())).optional(),
   posture: z.object({
     bitlocker_status: z.string().max(32).optional(),

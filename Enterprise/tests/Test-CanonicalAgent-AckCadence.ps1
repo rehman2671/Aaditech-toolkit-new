@@ -46,6 +46,7 @@ function Get-FreshAgentSnapshot {
     }
 }
 function Get-AgentHostname { return 'TEST-PC' }
+function Get-QueueInstanceId { return '0123456789abcdef0123456789abcdef' }
 function Get-AgentIP { return '127.0.0.1' }
 function Get-InstalledAgentVersion { return '1.1.2' }
 function Get-AgentToken { param($Config); return 'itk_dev_mock_only' }
@@ -80,7 +81,7 @@ Assert-True ($ackResult -eq 1) 'one acknowledged event'
 Assert-True ($script:Updates.Count -eq 1) 'one queued event marked delivered'
 Assert-True ($script:Updates[0] -match 'WHERE status=''pending'' AND id IN \(17\)') 'only local pending ID 17 can be delivered'
 Assert-True ($script:Sent[-1].events.Count -eq 1) 'one serialized outbox event'
-Assert-True ($script:Sent[-1].events[0].client_msg_id -eq 'TEST-PC:17') 'stable event ID for retry'
+Assert-True ($script:Sent[-1].events[0].client_msg_id -eq '0123456789abcdef0123456789abcdef:17') 'stable event ID for retry'
 
 # Valid HTTP status is not a license to silently drop queued events.
 foreach ($bad in @(

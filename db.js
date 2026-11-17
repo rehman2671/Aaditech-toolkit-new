@@ -277,8 +277,9 @@ export async function runDatabaseMigrations() {
       memAppliedMigrations.add('010');
       memAppliedMigrations.add('011');
       memAppliedMigrations.add('012');
+      memAppliedMigrations.add('013');
     }
-    return { applied: [], skipped: ['001_init_schema.sql', '002_partitioning.sql', '003_rbac_and_audit.sql', '004_workspace_memberships.sql', '005_remediation_tenant_logs.sql', '006_notification_outbox.sql', '007_scrub_legacy_github_pat.sql', '008_scrub_legacy_ticket_keys.sql', '009_notification_destination_binding.sql', '010_events_tenant_device_identity.sql', '011_security_posture_provenance.sql', '012_measured_device_telemetry.sql'], status: 'FALLBACK_MODE' };
+    return { applied: [], skipped: ['001_init_schema.sql', '002_partitioning.sql', '003_rbac_and_audit.sql', '004_workspace_memberships.sql', '005_remediation_tenant_logs.sql', '006_notification_outbox.sql', '007_scrub_legacy_github_pat.sql', '008_scrub_legacy_ticket_keys.sql', '009_notification_destination_binding.sql', '010_events_tenant_device_identity.sql', '011_security_posture_provenance.sql', '012_measured_device_telemetry.sql', '013_events_idempotency.sql'], status: 'FALLBACK_MODE' };
   }
 
   let lockAcquired = false;
@@ -2852,17 +2853,55 @@ export async function addEvent(event) {
       (!event?.tenant_id || !event?.device_id)) {
     throw new Error('EVENT_DEVICE_TENANT_REQUIRED');
   }
+  const payload = event.payload || {};
+  const sanitized = event.sanitized !== false ? 1 : 0;
+  const key = event.client_msg_id;
+  if (key !== undefined && key !== null) {
+    // Only authenticated tenant and device scope an event. A hostname is
+    // never an authority or safe uniqueness key.
+    if (!event.tenant_id || !event.device_id) {
+      throw new Error('EVENT_DEVICE_TENANT_REQUIRED');
+    }
+    if (typeof key !== 'string' ||
+        !/^[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$/.test(key)) {
+      throw new Error('EVENT_CLIENT_MSG_ID_INVALID');
+    }
+    const digest = crypto.createHash('sha256')
+      .update(JSON.stringify([event.kind, sanitized, payload])).digest('hex');
+    // FOUND_ROWS makes affectedRows=1 even on a duplicate no-op in mysql2.
+    // Generate a per-attempt nonce and store it only for the actual winner.
+    // A unique index serializes retries across all API worker processes.
+    const insertNonce = crypto.randomBytes(16).toString('hex');
+    await executeQuery(
+      `INSERT INTO events
+       (tenant_id, device_id, client_msg_id, event_hash, event_insert_nonce, hostname, kind, sanitized, payload, captured_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(3))
+       ON DUPLICATE KEY UPDATE id = LAST_INSERT_ID(id)`,
+      [event.tenant_id, event.device_id, key, digest, insertNonce,
+       event.hostname, event.kind, sanitized, JSON.stringify(payload)]
+    );
+    // A separate SELECT verifies the committed row and unambiguously
+    // identifies the insert winner, regardless of CLIENT_FOUND_ROWS flags.
+    const rows = await executeQuery(
+      'SELECT id, event_hash, event_insert_nonce FROM events WHERE tenant_id = ? AND device_id = ? AND client_msg_id = ? LIMIT 1',
+      [event.tenant_id, event.device_id, key]
+    );
+    if (rows.length !== 1 || rows[0].event_hash !== digest) {
+      throw new Error('EVENT_IDEMPOTENCY_CONFLICT');
+    }
+    const duplicate = rows[0].event_insert_nonce !== insertNonce;
+    const recorded = { id: rows[0].id, ...event, event_hash: digest, duplicate };
+    if (!duplicate) memEvents.push(recorded);
+    return recorded;
+  }
+  // Historical agents send no key. SQL UNIQUE allows multiple NULL entries.
   const sql = `
     INSERT INTO events (tenant_id, device_id, hostname, kind, sanitized, payload, captured_at)
     VALUES (?, ?, ?, ?, ?, ?, NOW(3))
   `;
   const res = await executeQuery(sql, [
-    event.tenant_id || null,
-    event.device_id || null,
-    event.hostname,
-    event.kind,
-    event.sanitized !== false ? 1 : 0,
-    JSON.stringify(event.payload || {})
+    event.tenant_id || null, event.device_id || null, event.hostname,
+    event.kind, sanitized, JSON.stringify(payload)
   ]);
   const newEvt = { id: res.insertId, ...event, captured_at: new Date() };
   memEvents.push(newEvt);

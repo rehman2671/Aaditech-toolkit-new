@@ -414,6 +414,10 @@ CREATE TABLE IF NOT EXISTS outbox (
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   status TEXT NOT NULL DEFAULT 'pending'
 );
+CREATE TABLE IF NOT EXISTS queue_identity (
+  singleton_id INTEGER PRIMARY KEY CHECK (singleton_id = 1),
+  instance_id TEXT NOT NULL
+);
 CREATE TABLE IF NOT EXISTS executed_commands (
   command_id   INTEGER PRIMARY KEY,
   status       TEXT NOT NULL,
@@ -423,6 +427,22 @@ CREATE TABLE IF NOT EXISTS executed_commands (
 );
 "@
     Invoke-SQLite -Query $schema -DatabasePath $QueueDb | Out-Null
+    # One random queue lifetime identifier; old queues preserve it on upgrade.
+    # A clean SQLite DB after reinstall gets a new identity, not a reused ID.
+    $freshId = [guid]::NewGuid().ToString('N')
+    Invoke-SQLite -Query "INSERT OR IGNORE INTO queue_identity (singleton_id, instance_id) VALUES (1, '$freshId');" -DatabasePath $QueueDb | Out-Null
+}
+
+function Get-QueueInstanceId {
+    if ($script:QueueInstanceId) { return $script:QueueInstanceId }
+    $raw = Invoke-SQLite -Query "SELECT instance_id FROM queue_identity WHERE singleton_id = 1;" -DatabasePath $QueueDb -AsJson
+    if ([string]::IsNullOrWhiteSpace($raw)) { throw 'Queue identity missing: refusing unstable event IDs' }
+    $rows = @($raw | ConvertFrom-Json)
+    if ($rows.Count -ne 1) { throw 'Queue identity invalid: expected exactly one row' }
+    $id = [string]$rows[0].instance_id
+    if ($id -notmatch '^[0-9a-fA-F]{32}$') { throw 'Invalid persistent queue identity' }
+    $script:QueueInstanceId = $id.ToLowerInvariant()
+    return $script:QueueInstanceId
 }
 
 # C5: at-most-once command execution. Once a command's result is computed it is
@@ -709,13 +729,14 @@ function Send-AgentBatch {
         if (-not [string]::IsNullOrWhiteSpace([string]$pending)) {
             $pendingRows = @($pending | ConvertFrom-Json)
         }
+        $queueInstanceId = if ($pendingRows.Count -gt 0) { Get-QueueInstanceId } else { $null }
         $events = @(
             foreach ($row in $pendingRows) {
                 @{
                     kind          = $row.kind
                     payload       = ($row.payload | ConvertFrom-Json)
                     sanitized     = [bool]$row.sanitized
-                    client_msg_id = "$(Get-AgentHostname):$($row.id)"
+                    client_msg_id = "${queueInstanceId}:$([long]$row.id)"
                     captured_at   = $row.created_at
                 }
             }

@@ -1,5 +1,12 @@
 # Phase N — Production release acceptance and sign-off
 
+## Stage N28 — authenticated event retry dedup (CODE PROPOSED; CI PENDING)
+
+- [ ] Verify PR Node/Vitest, PowerShell ACK+queue identity tests, real MySQL 24-way dedup concurrency, Windows diagnostic MSI on main and deployment safety.
+- [ ] Supervised migration 013 after authorized encrypted offsite MySQL backup and restore.
+- [ ] Customer-enrolled physical Windows ACK-loss replay, reinstall fresh queue and upgrade preserving original identity.
+- [ ] Public signing, Hostinger/DNS/TLS, live SMTP/webhooks and third-party connections separately blocked. No full HTTP/alert exactly-once claim.
+
 ## Stage N27 — idle-device metrics cadence and outbox ACK safety (CODE/CI ACCEPTED; PRODUCTION BLOCKED)
 
 **Automated accepted (2026-11-18 IST):** [PR #17](https://github.com/rehman2671/Aaditech-toolkit-new/pull/17), [main CI #44173643947](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44173643947) **4/4 SUCCESS** including genuine Windows diagnostic MSI install/uninstall/upgrade, [main safety #44173643755](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44173643755) **2/2 SUCCESS**. Signed artifact upload was **SKIPPED**.

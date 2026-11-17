@@ -75,3 +75,14 @@ These tests execute on CI runners and disposable databases. They do **not** prov
 - Verified code regressions: platform-only release-control gating, fixed trusted CI destination, server-only GitHub PAT, credentials scrub SQL 007, synthetic command dispatch rejection, agent-tenant audit, SQL 008 ticket key scrub and redaction, local-only ticket truthfulness, cloud no-false-connect and selected-tenant device remediation.
 
 **Not covered by these automated proofs:** signed public installer, physical managed Windows UAC/upgrade, live Hostinger VPS/domain/TLS, authorized real production DB restore, actual SMTP inbox receipt or live Jira/Graph provider response. These remain **BLOCKED / NOT_CONNECTED** as appropriate.
+
+---
+
+## 7. Verified Phase N Stage 21 and Stage 22 (2026-11-17)
+
+- Stage21 [PR CI #44042019746](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44042019746) SUCCESS; [PR safety #44042019707](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44042019707) SUCCESS; merged `908ff54ee7fbef94d523e51b44ebcca27736e2d2`.
+- Stage21 [main CI #44042340512](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44042340512) **4/4 SUCCESS** including Node/Vitest, PowerShell, real MySQL/API, Windows EXE/MSI install/uninstall/upgrade. [Main safety #44042340598](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44042340598) **2/2 SUCCESS**.
+- Stage22 [PR CI #44043152228](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44043152228) SUCCESS; [PR safety #44043152314](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44043152314) SUCCESS; merged `af72dabe41818b8403f8a97f714b41606e1a9880`.
+- Stage22 [main CI #44043497516](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44043497516) **4/4 SUCCESS** including Node/Vitest, PowerShell, isolated MySQL/API fault injection, Windows EXE/MSI install/uninstall/major-upgrade. [Main safety #44043497509](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44043497509) **2/2 SUCCESS**.
+- Regression focus: HMAC-SHA256 destination pinning, changed recipient/URL quarantine, NULL-owned old jobs fail closed, lease expiry/ack consistency, migration 009; direct event tenant/device SQL ownership, quarantine legacy NULL events, no hostname JOIN or shared Redis hostname usage, migration 010.
+- **External not yet accepted:** real signed MSI publisher identity, physical customer Windows, actual Hostinger domain/TLS/VPS, customer DB migration/offsite restore, live SMTP inbox + webhook receiver and third-party Jira/Graph APIs. Do not label production certified.

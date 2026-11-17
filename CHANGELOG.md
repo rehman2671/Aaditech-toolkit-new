@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased — Phase N Stage 22 (event-log tenant/device containment)
+- Eliminated cross-workspace event payload exposure caused by joining legacy events to devices on **non-unique hostname**. New event rows carry verified tenant_id and globally unique device_id, and tenant/device endpoints apply direct ownership SQL predicates.
+- Migration `010_events_tenant_device_identity.sql` conditionally adds nullable ownership columns plus index; legacy NULL rows are quarantined rather than assigned by guessed hostname.
+- Device app-usage Redis writes now use globally unique enrolled device ID only; no cross-workspace hostname-only cache key.
+- Verified [main CI #44043497516](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44043497516) **4/4** and [safety #44043497509](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44043497509) **2/2**.
+
+## Unreleased — Phase N Stage 21 (destination-bound durable notifications)
+- A new keyed HMAC-SHA256 `destination_hash` snapshots exact approved email/webhook destination at alert creation; changed addresses/URLs or missing legacy bindings SKIP old jobs, never release their payload to newly opted-in endpoint.
+- Migration `009_notification_destination_binding.sql` adds nullable fingerprint; old unbound jobs stay NULL; no address/credentials stored with outbox destination binding.
+- MySQL-atomic claims now lease 300 seconds for bounded 20-item batches. Delivery, skip and retry counters increase only after successful lease-token-fenced database acknowledgments; lost leases are counted separately.
+- Verified [main CI #44042340512](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44042340512) **4/4** and [safety #44042340598](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44042340598) **2/2**.
+
+
 ## Unreleased — Phase N Stage 20 (truthful external integrations and secret hygiene)
 - Ticket records are explicitly local-only: no fake Jira/ServiceNow/Zendesk dispatch or misleading Linked UI. Foreign/unknown device hostnames cannot be attached to tickets.
 - Cloud audit cannot claim Azure AD/Intune/Microsoft 365 connection solely from environment identifiers; only real local agent telemetry is presented, with external cloud status `NOT_CONNECTED`.

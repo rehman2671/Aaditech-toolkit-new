@@ -1,42 +1,41 @@
 {
   "state_version": "1.0",
   "path": "project-state.json",
-  "generated": "2026-11-17T22:05:33+00:00",
+  "generated": "2026-11-17T22:27:50+00:00",
   "phase": "PHASE N STAGE 4 / PRODUCTION ACCEPTANCE IN PROGRESS",
-  "last_verified_commit": "5de1def715f02b7494c7c0dc1c7585cf6d1aee94",
-  "last_verified_date": "2026-11-18T03:35:24+05:30",
+  "last_verified_commit": "3aa28aee3061f5b70ee81dca9b6460f67837e6ac",
+  "last_verified_date": "2026-11-18T03:57:38+05:30",
   "git": {
     "branch": "main",
     "commit_count": 1,
     "clean_working_tree": true,
-    "head": "5de1def715f02b7494c7c0dc1c7585cf6d1aee94"
+    "head": "3aa28aee3061f5b70ee81dca9b6460f67837e6ac"
   },
   "latest_delta": {
-    "detected_at": "2026-11-17T22:05:33+00:00",
+    "detected_at": "2026-11-17T22:27:50+00:00",
     "added": [
-      "test-atomic-telemetry-batch-mysql.js",
-      "Enterprise/deploy/PHASE-N-STAGE29-ACCEPTANCE.md",
-      "tests/unit/atomic-telemetry-stage29.test.js",
-      "database/migrations/014_telemetry_batches.sql"
+      "tests/unit/telemetry-receipt-retention-stage30.test.js",
+      "test-batch-receipt-retention-mysql.js",
+      "database/migrations/015_batch_receipt_retention_index.sql",
+      "Enterprise/deploy/PHASE-N-STAGE30-ACCEPTANCE.md"
     ],
     "removed": [],
     "changed": [
-      "docs/assessment/TEST-RESULTS.md",
-      "server.js",
-      "docs/assessment/GAP-REGISTER.md",
-      "Enterprise/tests/Test-CanonicalAgent-AckCadence.ps1",
-      "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md",
-      "Enterprise/deploy/PHASE-N-STAGE28-ACCEPTANCE.md",
-      "Enterprise/agent/Agent-Collect.ps1",
-      "validation.js",
-      "database/migrations/README.md",
-      ".github/workflows/ci.yml",
-      "docs/assessment/RELEASE-READINESS.md",
-      "test-migrations-runner.js",
       "database/mysql/schema.sql",
-      "db.js"
+      ".github/workflows/ci.yml",
+      "docs/assessment/GAP-REGISTER.md",
+      "Enterprise/deploy/PHASE-N-STAGE29-ACCEPTANCE.md",
+      "database/migrations/README.md",
+      "server.js",
+      "validation.js",
+      "docs/assessment/RELEASE-READINESS.md",
+      "docs/assessment/TEST-RESULTS.md",
+      "test-migrations-runner.js",
+      "db.js",
+      "Enterprise/tests/Test-Windows-MsiUpgrade.ps1",
+      "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md"
     ],
-    "unchanged_count": 308
+    "unchanged_count": 313
   },
   "production_ready": false,
   "acceptance_gates": [

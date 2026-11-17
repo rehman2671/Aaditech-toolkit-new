@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-17T22:05:33+00:00",
-  "last_verified_commit": "5de1def715f02b7494c7c0dc1c7585cf6d1aee94",
-  "last_verified_date": "2026-11-18T03:35:24+05:30",
+  "generated": "2026-11-17T22:27:50+00:00",
+  "last_verified_commit": "3aa28aee3061f5b70ee81dca9b6460f67837e6ac",
+  "last_verified_date": "2026-11-18T03:57:38+05:30",
   "overall_progress_percent": 100.0,
   "progress_scope": "historic audit issue closure only; production acceptance pending",
   "production_ready": false,
@@ -16,19 +16,10 @@
   "latest_delta": {
     "added": 4,
     "removed": 0,
-    "changed": 14,
-    "unchanged": 308
+    "changed": 13,
+    "unchanged": 313
   },
   "delta_history": [
-    {
-      "detected_at": "2026-11-16T18:45:49+00:00",
-      "added": [],
-      "removed": [],
-      "changed": [
-        "db.js"
-      ],
-      "unchanged_count": 271
-    },
     {
       "detected_at": "2026-11-16T18:47:07+00:00",
       "added": [
@@ -416,6 +407,32 @@
         "db.js"
       ],
       "unchanged_count": 308
+    },
+    {
+      "detected_at": "2026-11-17T22:27:50+00:00",
+      "added": [
+        "tests/unit/telemetry-receipt-retention-stage30.test.js",
+        "test-batch-receipt-retention-mysql.js",
+        "database/migrations/015_batch_receipt_retention_index.sql",
+        "Enterprise/deploy/PHASE-N-STAGE30-ACCEPTANCE.md"
+      ],
+      "removed": [],
+      "changed": [
+        "database/mysql/schema.sql",
+        ".github/workflows/ci.yml",
+        "docs/assessment/GAP-REGISTER.md",
+        "Enterprise/deploy/PHASE-N-STAGE29-ACCEPTANCE.md",
+        "database/migrations/README.md",
+        "server.js",
+        "validation.js",
+        "docs/assessment/RELEASE-READINESS.md",
+        "docs/assessment/TEST-RESULTS.md",
+        "test-migrations-runner.js",
+        "db.js",
+        "Enterprise/tests/Test-Windows-MsiUpgrade.ps1",
+        "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md"
+      ],
+      "unchanged_count": 313
     }
   ],
   "next_recommended_tasks": [

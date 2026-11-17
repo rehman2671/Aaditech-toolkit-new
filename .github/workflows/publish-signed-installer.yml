@@ -7,6 +7,14 @@ on:
         description: Human-approved manual main CI run ID containing verified signed it-toolkit-agent artifact
         type: string
         required: true
+      approved_source_sha:
+        description: Independently human-reviewed full 40-hex CI source commit SHA (must match source run)
+        type: string
+        required: true
+      approved_msi_sha256:
+        description: Independently reviewed MSI SHA256 checksum (64 hex), NOT copied automatically from downloaded artifact
+        type: string
+        required: true
       release_tag:
         description: Version + MSI revision (example agent-v1.1.2-r1)
         type: string
@@ -34,10 +42,14 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CI_RUN_ID: ${{ inputs.source_run_id }}
+          APPROVED_SOURCE_SHA: ${{ inputs.approved_source_sha }}
+          APPROVED_MSI_SHA256: ${{ inputs.approved_msi_sha256 }}
           APPROVAL_CONFIRMATION: ${{ inputs.confirmation }}
         run: |
           if ($env:APPROVAL_CONFIRMATION -cne 'PUBLISH_SIGNED_AGENT') { throw 'Manual approval phrase missing.' }
           if ($env:CI_RUN_ID -notmatch '^[0-9]{6,20}$') { throw 'Invalid CI run ID.' }
+          if ($env:APPROVED_SOURCE_SHA -cnotmatch '^[0-9a-fA-F]{40}$') { throw 'Human-approved source commit SHA is required.' }
+          if ($env:APPROVED_MSI_SHA256 -cnotmatch '^[0-9a-fA-F]{64}$') { throw 'Human-approved MSI SHA256 is required.' }
           $source = & gh api "repos/$env:GITHUB_REPOSITORY/actions/runs/$env:CI_RUN_ID" | ConvertFrom-Json
           if ($LASTEXITCODE -ne 0 -or -not $source) { throw 'Could not confirm CI provenance.' }
           # Signed artifacts now originate ONLY from a human-approved,
@@ -45,7 +57,8 @@ jobs:
           if ($source.name -ne 'CI' -or $source.event -ne 'workflow_dispatch' -or
               $source.conclusion -ne 'success' -or $source.head_branch -ne 'main' -or
               $source.head_repository.full_name -ne $env:GITHUB_REPOSITORY -or
-              $source.head_sha -notmatch '^[0-9a-f]{40}$') {
+              $source.head_sha -notmatch '^[0-9a-f]{40}$' -or
+              $source.head_sha -cne $env:APPROVED_SOURCE_SHA.ToLowerInvariant()) {
             throw 'Source must be a successful manually dispatched same-repository main branch CI run.'
           }
           "SOURCE_SHA=$($source.head_sha)" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
@@ -67,6 +80,7 @@ jobs:
         env:
           RELEASE_TAG: ${{ inputs.release_tag }}
           CODESIGN_APPROVED_THUMBPRINT: ${{ secrets.CODESIGN_APPROVED_THUMBPRINT }}
+          APPROVED_MSI_SHA256: ${{ inputs.approved_msi_sha256 }}
         run: |
           $metadata = Get-Content -LiteralPath Enterprise/agent/agent-version.json -Raw | ConvertFrom-Json
           $expected = "agent-v$($metadata.agent_version)-r$($metadata.msi_revision)"
@@ -74,7 +88,7 @@ jobs:
           if ([string]::IsNullOrWhiteSpace($env:CODESIGN_APPROVED_THUMBPRINT)) {
             throw 'Approved publisher certificate thumbprint secret missing.'
           }
-          ./Enterprise/agent/build/Verify-ReleaseArtifact.ps1 -ArtifactDir release -ApprovedThumbprint $env:CODESIGN_APPROVED_THUMBPRINT
+          ./Enterprise/agent/build/Verify-ReleaseArtifact.ps1 -ArtifactDir release -ApprovedThumbprint $env:CODESIGN_APPROVED_THUMBPRINT -ApprovedMsiSha256 $env:APPROVED_MSI_SHA256
 
       - name: Create GitHub release only for a new tag
         shell: pwsh

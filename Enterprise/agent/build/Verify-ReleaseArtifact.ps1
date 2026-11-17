@@ -1,11 +1,16 @@
 # Windows-only verification before publishing GitHub Release installer files.
 [CmdletBinding()]
 param([Parameter(Mandatory=$true)][string]$ArtifactDir,
-      [Parameter(Mandatory=$true)][string]$ApprovedThumbprint)
+      [Parameter(Mandatory=$true)][string]$ApprovedThumbprint,
+      [Parameter(Mandatory=$true)][string]$ApprovedMsiSha256)
 $ErrorActionPreference = 'Stop'
 $root = (Resolve-Path -LiteralPath $ArtifactDir).Path
 $pin = ($ApprovedThumbprint -replace '\s','').ToUpperInvariant()
 if ($pin -cnotmatch '^[A-F0-9]{40}$') { throw 'Approved publisher thumbprint missing.' }
+$approvedMsiHash = $ApprovedMsiSha256.Trim().ToLowerInvariant()
+if ($approvedMsiHash -cnotmatch '^[a-f0-9]{64}$') {
+  throw 'Independent approved MSI SHA256 must contain exactly 64 hex characters.'
+}
 $exe = Join-Path $root 'IT-Toolkit-Agent.exe'
 $msis = @(Get-ChildItem -LiteralPath $root -File -Filter 'IT-Toolkit-Agent-*.msi')
 $manifest = Join-Path $root 'SHA256SUMS.txt'
@@ -24,6 +29,12 @@ foreach ($line in @(Get-Content $manifest)) {
   $entries[$Matches[2]] = $Matches[1]
 }
 if ($entries.Count -ne 2) { throw 'Exactly two signed binaries are expected in SHA-256 manifest.' }
+$msiName = [IO.Path]::GetFileName($msis[0].FullName)
+$directMsiHash = (Get-FileHash -LiteralPath $msis[0].FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+if ($directMsiHash -cne $approvedMsiHash -or
+    -not $entries.ContainsKey($msiName) -or $entries[$msiName] -cne $approvedMsiHash) {
+  throw 'MSI differs from independently approved SHA256; refusing publication.'
+}
 $sdk = Join-Path ([Environment]::GetFolderPath('ProgramFilesX86')) 'Windows Kits\10\bin'
 $signtool = Get-ChildItem $sdk -Recurse -Filter signtool.exe -ErrorAction SilentlyContinue |
   Where-Object { $_.FullName -match '\d+\.\d+\.\d+\.\d+\\x64' } |

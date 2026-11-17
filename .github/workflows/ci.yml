@@ -78,6 +78,12 @@ jobs:
       - name: Verify unsigned MSI publication fails closed and invalid certificates are rejected
         run: pwsh -NoProfile -File ./Enterprise/tests/Test-ReleaseSigningGates.ps1
 
+      - name: N31 customer Windows preflight fails closed without configuration or consent
+        run: pwsh -NoProfile -File ./Enterprise/tests/Test-Stage31WindowsPreflight.ps1
+
+      - name: N31 release publication requires independently approved source and MSI pins
+        run: pwsh -NoProfile -File ./Enterprise/tests/Test-Stage31PublicationPins.ps1
+
       - name: Run Pester suites (RemoteToolkit, BatchLauncher, Phase2 modules)
         run: |
           if (-not (Get-Module -ListAvailable -Name Pester | Where-Object { $_.Version.Major -ge 6 })) {

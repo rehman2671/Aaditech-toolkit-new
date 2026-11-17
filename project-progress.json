@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-17T10:29:26+00:00",
-  "last_verified_commit": "eaa2a7b8e6665542e2ad6b6bb3e6e3cc2c0a817a",
-  "last_verified_date": "2026-11-17T15:59:10+05:30",
+  "generated": "2026-11-17T10:51:05+00:00",
+  "last_verified_commit": "89ac38e9e77ee99dcd6d74cddd4d4fe0e547d32a",
+  "last_verified_date": "2026-11-17T16:20:56+05:30",
   "overall_progress_percent": 100.0,
   "progress_scope": "historic audit issue closure only; production acceptance pending",
   "production_ready": false,
@@ -17,18 +17,9 @@
     "added": 4,
     "removed": 0,
     "changed": 13,
-    "unchanged": 293
+    "unchanged": 297
   },
   "delta_history": [
-    {
-      "detected_at": "2026-11-16T18:41:14+00:00",
-      "added": [],
-      "removed": [],
-      "changed": [
-        "tests/integration/workspace-selection.integration.test.js"
-      ],
-      "unchanged_count": 269
-    },
     {
       "detected_at": "2026-11-16T18:42:00+00:00",
       "added": [],
@@ -342,6 +333,32 @@
         "docs/assessment/RELEASE-READINESS.md"
       ],
       "unchanged_count": 293
+    },
+    {
+      "detected_at": "2026-11-17T10:51:05+00:00",
+      "added": [
+        "device-metrics.js",
+        "Enterprise/deploy/PHASE-N-STAGE25-ACCEPTANCE.md",
+        "tests/unit/measured-device-telemetry-stage25.test.js",
+        "database/migrations/012_measured_device_telemetry.sql"
+      ],
+      "removed": [],
+      "changed": [
+        "test-migrations-runner.js",
+        "database/mysql/schema.sql",
+        "server.js",
+        "Enterprise/portal/index.html",
+        "Enterprise/agent/Aaditech-Agent.ps1",
+        "docs/assessment/RELEASE-READINESS.md",
+        "db.js",
+        "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md",
+        "Enterprise/deploy/PHASE-N-STAGE24-ACCEPTANCE.md",
+        "database/migrations/README.md",
+        "CHANGELOG.md",
+        "docs/assessment/TEST-RESULTS.md",
+        "docs/assessment/GAP-REGISTER.md"
+      ],
+      "unchanged_count": 297
     }
   ],
   "next_recommended_tasks": [

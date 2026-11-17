@@ -1,41 +1,41 @@
 {
   "state_version": "1.0",
   "path": "project-state.json",
-  "generated": "2026-11-17T10:29:26+00:00",
+  "generated": "2026-11-17T10:51:05+00:00",
   "phase": "PHASE N STAGE 4 / PRODUCTION ACCEPTANCE IN PROGRESS",
-  "last_verified_commit": "eaa2a7b8e6665542e2ad6b6bb3e6e3cc2c0a817a",
-  "last_verified_date": "2026-11-17T15:59:10+05:30",
+  "last_verified_commit": "89ac38e9e77ee99dcd6d74cddd4d4fe0e547d32a",
+  "last_verified_date": "2026-11-17T16:20:56+05:30",
   "git": {
     "branch": "main",
     "commit_count": 1,
     "clean_working_tree": true,
-    "head": "eaa2a7b8e6665542e2ad6b6bb3e6e3cc2c0a817a"
+    "head": "89ac38e9e77ee99dcd6d74cddd4d4fe0e547d32a"
   },
   "latest_delta": {
-    "detected_at": "2026-11-17T10:29:26+00:00",
+    "detected_at": "2026-11-17T10:51:05+00:00",
     "added": [
-      "database/migrations/011_security_posture_provenance.sql",
-      "security-posture.js",
-      "tests/unit/security-posture-stage24.test.js",
-      "Enterprise/deploy/PHASE-N-STAGE24-ACCEPTANCE.md"
+      "device-metrics.js",
+      "Enterprise/deploy/PHASE-N-STAGE25-ACCEPTANCE.md",
+      "tests/unit/measured-device-telemetry-stage25.test.js",
+      "database/migrations/012_measured_device_telemetry.sql"
     ],
     "removed": [],
     "changed": [
-      "docs/assessment/TEST-RESULTS.md",
+      "test-migrations-runner.js",
+      "database/mysql/schema.sql",
       "server.js",
-      "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md",
+      "Enterprise/portal/index.html",
+      "Enterprise/agent/Aaditech-Agent.ps1",
+      "docs/assessment/RELEASE-READINESS.md",
       "db.js",
+      "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md",
+      "Enterprise/deploy/PHASE-N-STAGE24-ACCEPTANCE.md",
       "database/migrations/README.md",
       "CHANGELOG.md",
-      "validation.js",
-      "Enterprise/agent/Aaditech-Agent.ps1",
-      "docs/assessment/GAP-REGISTER.md",
-      "database/mysql/schema.sql",
-      "Enterprise/deploy/PHASE-N-STAGE23-ACCEPTANCE.md",
-      "test-migrations-runner.js",
-      "docs/assessment/RELEASE-READINESS.md"
+      "docs/assessment/TEST-RESULTS.md",
+      "docs/assessment/GAP-REGISTER.md"
     ],
-    "unchanged_count": 293
+    "unchanged_count": 297
   },
   "production_ready": false,
   "acceptance_gates": [

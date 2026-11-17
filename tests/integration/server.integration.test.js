@@ -458,6 +458,30 @@ describe('Server & API Integration Test Suite', () => {
       expect([200, 202]).toContain(res.status);
     });
 
+    it('N28: authenticated event replay ACKs once and refuses conflicting ID or invalid key', async () => {
+      const key = 'n28-' + Date.now() + '-' + Math.random().toString(36).slice(2, 14);
+      const url = '/api/v1/ingest/telemetry';
+      const body = { hostname: agentHostname,
+        events: [{ client_msg_id: key, kind: 'n28_health', payload: { disk_gb: 0 } }] };
+      const first = await request(app).post(url).set('X-Device-Token', agentToken).send(body);
+      expect(first.status).toBe(200);
+      expect(first.body).toMatchObject({ status: 'OK', accepted: 1 });
+      const retry = await request(app).post(url).set('X-Device-Token', agentToken).send(body);
+      expect(retry.status).toBe(200);
+      expect(retry.body).toMatchObject({ status: 'OK', accepted: 1 });
+      const changed = await request(app).post(url).set('X-Device-Token', agentToken)
+        .send({ hostname: agentHostname,
+          events: [{ client_msg_id: key, kind: 'n28_health', payload: { disk_gb: 999 } }] });
+      expect(changed.status).toBe(409);
+      expect(changed.body.error).toBe('EVENT_IDEMPOTENCY_CONFLICT');
+      const invalid = await request(app).post(url).set('X-Device-Token', agentToken)
+        .send({ hostname: agentHostname,
+          events: [{ client_msg_id: 'invalid id', kind: 'n28_health' }] });
+      expect(invalid.status).toBe(400);
+      const events = await db.getEvents(agentHostname, 250, 'n28_health', agentTenantId, agentDeviceId);
+      expect(events.filter(event => event.client_msg_id === key)).toHaveLength(1);
+    });
+
     it('GET /api/v1/commands/poll checks command queue for agent', async () => {
       const res = await request(app)
         .get('/api/v1/commands/poll')

@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-17T09:17:42+00:00",
-  "last_verified_commit": "c53fc58fa276895bb391e21d648470954ee2e03f",
-  "last_verified_date": "2026-11-17T14:47:30+05:30",
+  "generated": "2026-11-17T10:29:26+00:00",
+  "last_verified_commit": "eaa2a7b8e6665542e2ad6b6bb3e6e3cc2c0a817a",
+  "last_verified_date": "2026-11-17T15:59:10+05:30",
   "overall_progress_percent": 100.0,
   "progress_scope": "historic audit issue closure only; production acceptance pending",
   "production_ready": false,
@@ -14,21 +14,12 @@
     "percent": 100.0
   },
   "latest_delta": {
-    "added": 2,
+    "added": 4,
     "removed": 0,
-    "changed": 11,
+    "changed": 13,
     "unchanged": 293
   },
   "delta_history": [
-    {
-      "detected_at": "2026-11-16T18:40:47+00:00",
-      "added": [
-        "tests/unit/tenant-config-stage14.test.js"
-      ],
-      "removed": [],
-      "changed": [],
-      "unchanged_count": 269
-    },
     {
       "detected_at": "2026-11-16T18:41:14+00:00",
       "added": [],
@@ -323,6 +314,32 @@
         "docs/assessment/RELEASE-READINESS.md",
         "Enterprise/deploy/PHASE-N-STAGE21-ACCEPTANCE.md",
         "docs/assessment/TEST-RESULTS.md"
+      ],
+      "unchanged_count": 293
+    },
+    {
+      "detected_at": "2026-11-17T10:29:26+00:00",
+      "added": [
+        "database/migrations/011_security_posture_provenance.sql",
+        "security-posture.js",
+        "tests/unit/security-posture-stage24.test.js",
+        "Enterprise/deploy/PHASE-N-STAGE24-ACCEPTANCE.md"
+      ],
+      "removed": [],
+      "changed": [
+        "docs/assessment/TEST-RESULTS.md",
+        "server.js",
+        "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md",
+        "db.js",
+        "database/migrations/README.md",
+        "CHANGELOG.md",
+        "validation.js",
+        "Enterprise/agent/Aaditech-Agent.ps1",
+        "docs/assessment/GAP-REGISTER.md",
+        "database/mysql/schema.sql",
+        "Enterprise/deploy/PHASE-N-STAGE23-ACCEPTANCE.md",
+        "test-migrations-runner.js",
+        "docs/assessment/RELEASE-READINESS.md"
       ],
       "unchanged_count": 293
     }

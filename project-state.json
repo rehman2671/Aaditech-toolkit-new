@@ -1,35 +1,39 @@
 {
   "state_version": "1.0",
   "path": "project-state.json",
-  "generated": "2026-11-17T09:17:42+00:00",
+  "generated": "2026-11-17T10:29:26+00:00",
   "phase": "PHASE N STAGE 4 / PRODUCTION ACCEPTANCE IN PROGRESS",
-  "last_verified_commit": "c53fc58fa276895bb391e21d648470954ee2e03f",
-  "last_verified_date": "2026-11-17T14:47:30+05:30",
+  "last_verified_commit": "eaa2a7b8e6665542e2ad6b6bb3e6e3cc2c0a817a",
+  "last_verified_date": "2026-11-17T15:59:10+05:30",
   "git": {
     "branch": "main",
     "commit_count": 1,
     "clean_working_tree": true,
-    "head": "c53fc58fa276895bb391e21d648470954ee2e03f"
+    "head": "eaa2a7b8e6665542e2ad6b6bb3e6e3cc2c0a817a"
   },
   "latest_delta": {
-    "detected_at": "2026-11-17T09:17:42+00:00",
+    "detected_at": "2026-11-17T10:29:26+00:00",
     "added": [
-      "Enterprise/deploy/PHASE-N-STAGE23-ACCEPTANCE.md",
-      "tests/unit/command-lifecycle-stage23.test.js"
+      "database/migrations/011_security_posture_provenance.sql",
+      "security-posture.js",
+      "tests/unit/security-posture-stage24.test.js",
+      "Enterprise/deploy/PHASE-N-STAGE24-ACCEPTANCE.md"
     ],
     "removed": [],
     "changed": [
-      "tests/integration/server.integration.test.js",
+      "docs/assessment/TEST-RESULTS.md",
       "server.js",
-      "validation.js",
-      "db.js",
-      "docs/assessment/GAP-REGISTER.md",
-      "Enterprise/deploy/PHASE-N-STAGE22-ACCEPTANCE.md",
       "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md",
+      "db.js",
+      "database/migrations/README.md",
       "CHANGELOG.md",
-      "docs/assessment/RELEASE-READINESS.md",
-      "Enterprise/deploy/PHASE-N-STAGE21-ACCEPTANCE.md",
-      "docs/assessment/TEST-RESULTS.md"
+      "validation.js",
+      "Enterprise/agent/Aaditech-Agent.ps1",
+      "docs/assessment/GAP-REGISTER.md",
+      "database/mysql/schema.sql",
+      "Enterprise/deploy/PHASE-N-STAGE23-ACCEPTANCE.md",
+      "test-migrations-runner.js",
+      "docs/assessment/RELEASE-READINESS.md"
     ],
     "unchanged_count": 293
   },

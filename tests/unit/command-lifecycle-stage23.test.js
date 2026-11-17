@@ -73,12 +73,12 @@ describe('Phase N23 command queue: database is authoritative', () => {
     const queries = [];
     db.setConnectionStateForTesting(true, { query: async (sql, params = []) => {
       queries.push({ sql, params });
-      if (sql.includes("status = 'IN_PROGRESS'")) {
+      if (sql.includes("AND status = 'IN_PROGRESS'")) {
         if (state !== 'IN_PROGRESS' || params[5] !== 'device-A') return [{ affectedRows: 0 }, []];
         state = 'COMPLETED';
         return [{ affectedRows: 1 }, []];
       }
-      if (sql.includes("status = 'PENDING'")) {
+      if (sql.includes("AND status = 'PENDING'")) {
         if (state !== 'PENDING' || params[1] !== 'device-A') return [{ affectedRows: 0 }, []];
         state = 'IN_PROGRESS';
         return [{ affectedRows: 1 }, []];

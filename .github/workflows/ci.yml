@@ -270,6 +270,18 @@ jobs:
         timeout-minutes: 3
         run: timeout 120s node test-event-idempotency-mysql.js
 
+      - name: Rehearse N29 atomic telemetry ACK replay and rollback on real MySQL
+        timeout-minutes: 3
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_USER: itk_user
+          DB_PASSWORD: itk_password_ci
+          DB_NAME: it_toolkit
+          NODE_ENV: test
+          AADITECH_ATOMIC_BATCH_REHEARSAL: isolated-ci
+        run: timeout 120s node test-atomic-telemetry-batch-mysql.js
+
       - name: Rehearse multi-process tenant/device identity concurrency against real MySQL
         env:
           DB_HOST: 127.0.0.1

@@ -66,67 +66,89 @@ function Get-HardwareDetails {
     $os = Get-CimInstance Win32_OperatingSystem -ErrorAction SilentlyContinue
     $cpu = Get-CimInstance Win32_Processor -ErrorAction SilentlyContinue | Select-Object -First 1
 
-    $totalRam = if ($cs.TotalPhysicalMemory) { [math]::Round($cs.TotalPhysicalMemory / 1GB, 1) } else { 16.0 }
+    $totalRam = if ($cs -and $null -ne $cs.TotalPhysicalMemory -and [double]$cs.TotalPhysicalMemory -gt 0) { [math]::Round($cs.TotalPhysicalMemory / 1GB, 1) } else { $null }
     
     return @{
         hostname    = $env:COMPUTERNAME
-        os_version  = if ($os.Caption) { $os.Caption } else { "Windows 11" }
-        os_build    = if ($os.BuildNumber) { $os.BuildNumber } else { "22631" }
-        arch        = if ($os.OSArchitecture) { $os.OSArchitecture } else { "64-bit" }
-        cpu_model   = if ($cpu.Name) { $cpu.Name.Trim() } else { "Intel/AMD Processor" }
-        cpu_cores   = if ($cpu.NumberOfCores) { $cpu.NumberOfCores } else { 4 }
+        os_version  = if ($os -and $os.Caption) { $os.Caption } else { $null }
+        os_build    = if ($os -and $os.BuildNumber) { $os.BuildNumber } else { $null }
+        arch        = if ($os -and $os.OSArchitecture) { $os.OSArchitecture } else { $null }
+        cpu_model   = if ($cpu -and $cpu.Name) { $cpu.Name.Trim() } else { $null }
+        cpu_cores   = if ($cpu -and $null -ne $cpu.NumberOfCores) { $cpu.NumberOfCores } else { $null }
         total_ram_gb = $totalRam
     }
 }
 
 function Get-LiveTelemetry {
-    # CPU Metric
-    $cpuMetric = 5.0
+    # Collector failures are unknown, NEVER a fabricated 5% CPU or 250GB disk.
+    $cpuMetric = $null
     try {
-        $cpuSamples = Get-Counter '\Processor(_Total)\% Processor Time' -SampleInterval 1 -MaxSamples 1 -ErrorAction SilentlyContinue
-        if ($cpuSamples) {
-            $cpuMetric = [math]::Round($cpuSamples.CounterSamples[0].CookedValue, 1)
+        $cpuSamples = Get-Counter '\Processor(_Total)\% Processor Time' -SampleInterval 1 -MaxSamples 1 -ErrorAction Stop
+        if ($cpuSamples -and $cpuSamples.CounterSamples.Count -gt 0) {
+            $value = [double]$cpuSamples.CounterSamples[0].CookedValue
+            if ($value -ge 0 -and $value -le 100) {
+                $cpuMetric = [math]::Round($value, 1)
+            }
         }
     } catch {
-        $cpuMetric = 0.0
-        $cimCpu = Get-CimInstance Win32_Processor -ErrorAction SilentlyContinue | Measure-Object -Property LoadPercentage -Average
-        if ($cimCpu -and $cimCpu.Average -ne $null) {
-            $cpuMetric = [math]::Round([double]$cimCpu.Average, 1)
-        }
+        try {
+            $cimCpu = Get-CimInstance Win32_Processor -ErrorAction Stop |
+                Measure-Object -Property LoadPercentage -Average
+            if ($null -ne $cimCpu.Average) {
+                $value = [double]$cimCpu.Average
+                if ($value -ge 0 -and $value -le 100) {
+                    $cpuMetric = [math]::Round($value, 1)
+                }
+            }
+        } catch { $cpuMetric = $null }
     }
 
-    # RAM Metric
-    $os = Get-CimInstance Win32_OperatingSystem -ErrorAction SilentlyContinue
-    $freeRamMB = if ($os.FreePhysicalMemory) { $os.FreePhysicalMemory / 1024 } else { 8192 }
-    $totalRamMB = if ($os.TotalVisibleMemorySize) { $os.TotalVisibleMemorySize / 1024 } else { 16384 }
-    $usedRamMB = $totalRamMB - $freeRamMB
-    $ramPct = [math]::Round(($usedRamMB / $totalRamMB) * 100, 1)
-
-    # Disk Metric (C: drive)
-    $disk = Get-CimInstance Win32_LogicalDisk -Filter "DeviceID='C:'" -ErrorAction SilentlyContinue
-    $diskTotalGB = if ($disk.Size) { [math]::Round($disk.Size / 1GB, 1) } else { 500.0 }
-    $diskFreeGB  = if ($disk.FreeSpace) { [math]::Round($disk.FreeSpace / 1GB, 1) } else { 250.0 }
-
-    # IP Address
-    $ip = (Get-NetIPAddress -AddressFamily IPv4 -InterfaceAlias "Ethernet*", "Wi-Fi*" -ErrorAction SilentlyContinue | 
-           Where-Object { $_.IPAddress -notlike "169.254*" -and $_.IPAddress -ne "127.0.0.1" } | 
-           Select-Object -ExpandProperty IPAddress -First 1)
-    if (-not $ip) { $ip = "127.0.0.1" }
-
-    # Real network latency
-    $netLatency = 0
+    $ramPct = $null
+    $freeRamMB = $null
     try {
-        $pingTarget = if ($Endpoint) { ([System.Uri]$Endpoint).Host } else { "1.1.1.1" }
-        $ping = Test-Connection -ComputerName $pingTarget -Count 1 -ErrorAction SilentlyContinue
-        if ($ping -and $ping.ResponseTime -ne $null) {
-            $netLatency = [int]$ping.ResponseTime
+        $os = Get-CimInstance Win32_OperatingSystem -ErrorAction Stop
+        if ($os -and $null -ne $os.TotalVisibleMemorySize -and
+            $null -ne $os.FreePhysicalMemory -and [double]$os.TotalVisibleMemorySize -gt 0) {
+            $freeRamMB = [math]::Round(([double]$os.FreePhysicalMemory / 1024), 0)
+            $totalRamMB = [double]$os.TotalVisibleMemorySize / 1024
+            $usage = (1 - ([double]$os.FreePhysicalMemory / [double]$os.TotalVisibleMemorySize)) * 100
+            if ($usage -ge 0 -and $usage -le 100) { $ramPct = [math]::Round($usage, 1) }
         }
-    } catch {}
+    } catch { $ramPct = $null; $freeRamMB = $null }
+
+    $diskTotalGB = $null
+    $diskFreeGB = $null
+    try {
+        $disk = Get-CimInstance Win32_LogicalDisk -Filter "DeviceID='C:'" -ErrorAction Stop
+        if ($disk -and $null -ne $disk.Size -and [double]$disk.Size -ge 0) {
+            $diskTotalGB = [math]::Round(([double]$disk.Size / 1GB), 1)
+        }
+        if ($disk -and $null -ne $disk.FreeSpace -and [double]$disk.FreeSpace -ge 0) {
+            $diskFreeGB = [math]::Round(([double]$disk.FreeSpace / 1GB), 1)
+        }
+    } catch { $diskTotalGB = $null; $diskFreeGB = $null }
+
+    $ip = $null
+    try {
+        $ip = (Get-NetIPAddress -AddressFamily IPv4 -InterfaceAlias "Ethernet*", "Wi-Fi*" -ErrorAction Stop |
+            Where-Object { $_.IPAddress -notlike "169.254*" -and $_.IPAddress -ne "127.0.0.1" } |
+            Select-Object -ExpandProperty IPAddress -First 1)
+    } catch { $ip = $null }
+
+    $netLatency = $null
+    try {
+        if ($Endpoint) {
+            $ping = Test-Connection -ComputerName ([System.Uri]$Endpoint).Host -Count 1 -ErrorAction Stop
+            if ($ping -and $null -ne $ping.ResponseTime) {
+                $netLatency = [int]$ping.ResponseTime
+            }
+        }
+    } catch { $netLatency = $null }
 
     return @{
         ip_address = $ip
         cpu = @{ utilization_pct = $cpuMetric }
-        ram = @{ utilization_pct = $ramPct; free_mb = [math]::Round($freeRamMB, 0) }
+        ram = @{ utilization_pct = $ramPct; free_mb = $freeRamMB }
         disk = @{ free_gb = $diskFreeGB; total_gb = $diskTotalGB }
         network = @{ latency_ms = $netLatency }
     }

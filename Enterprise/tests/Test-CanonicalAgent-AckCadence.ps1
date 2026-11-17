@@ -56,7 +56,6 @@ function Invoke-QueueSleep { param($SleepSeconds) }
 function Invoke-RestMethod {
     param($Uri,$Method,$Headers,$ContentType,$Body,$Certificate)
     if ($script:ThrowNetwork) { throw 'simulated offline endpoint' }
-    Write-Host ('N27 diagnostic raw body: ' + [string]$Body)
     $script:Sent += ($Body | ConvertFrom-Json)
     return $script:Ack
 }
@@ -65,11 +64,10 @@ function Start-Sleep { param([int]$Seconds); $script:Sleeps += $Seconds }
 $cfg = [pscustomobject]@{ endpoint = 'https://invalid.example.test/api/v1/ingest/telemetry'; agent_version = '1.1.2' }
 
 # No outbox rows must still upload real measured zero and UNKNOWN posture.
-$sent = Send-AgentBatch -Config $cfg
-Assert-True ($sent -eq 0) 'empty queue ACK count'
+$ackResult = Send-AgentBatch -Config $cfg
+Assert-True ($ackResult -eq 0) 'empty queue ACK count'
 Assert-True ($script:Sent.Count -eq 1) 'empty queue still sends authenticated telemetry'
 Assert-True ($script:Sent[0].events.Count -eq 0) 'empty queue produces events=[]'
-Write-Host ('N27 diagnostic snapshot: ' + ($script:Sent[0] | ConvertTo-Json -Compress -Depth 8))
 Assert-True ($script:Sent[0].metrics.disk.free_gb -eq 0) 'genuine measured 0 GB preserved'
 Assert-True ($script:Sent[0].posture.bitlocker_status -eq 'UNKNOWN') 'unknown posture preserved'
 Assert-True ($script:Updates.Count -eq 0) 'empty outbox requires no destructive UPDATE'
@@ -77,8 +75,8 @@ Assert-True ($script:Updates.Count -eq 0) 'empty outbox requires no destructive 
 # An explicit, complete matching ACK delivers only the local integer row ID.
 $script:QueryRows = '[{"id":17,"kind":"health","payload":"{}","sanitized":1,"created_at":"2026-11-17 00:00:00"}]'
 $script:Ack = [pscustomobject]@{status='OK';accepted=1}
-$sent = Send-AgentBatch -Config $cfg
-Assert-True ($sent -eq 1) 'one acknowledged event'
+$ackResult = Send-AgentBatch -Config $cfg
+Assert-True ($ackResult -eq 1) 'one acknowledged event'
 Assert-True ($script:Updates.Count -eq 1) 'one queued event marked delivered'
 Assert-True ($script:Updates[0] -match 'WHERE status=''pending'' AND id IN \(17\)') 'only local pending ID 17 can be delivered'
 Assert-True ($script:Sent[-1].events.Count -eq 1) 'one serialized outbox event'
@@ -94,8 +92,8 @@ foreach ($bad in @(
 )) {
     $prior = $script:Updates.Count
     $script:Ack = $bad
-    $sent = Send-AgentBatch -Config $cfg
-    Assert-True ($sent -eq 0) 'mismatched HTTP ACK returns failure'
+    $ackResult = Send-AgentBatch -Config $cfg
+    Assert-True ($ackResult -eq 0) 'mismatched HTTP ACK returns failure'
     Assert-True ($script:Updates.Count -eq $prior) 'mismatched HTTP ACK must preserve pending queue'
 }
 $script:ThrowNetwork = $true

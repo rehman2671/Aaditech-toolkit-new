@@ -701,53 +701,75 @@ function Get-FreshAgentSnapshot {
 
 function Send-AgentBatch {
     param($Config)
-    $pending = Invoke-SQLite -Query "SELECT id, kind, payload, sanitized, created_at FROM outbox WHERE status='pending' ORDER BY id ASC LIMIT 50;" -DatabasePath $QueueDb -AsJson
-    if ([string]::IsNullOrWhiteSpace($pending)) { return 0 }
-
-    $events = foreach ($row in ($pending | ConvertFrom-Json)) {
-        @{
-            kind         = $row.kind
-            payload      = ($row.payload | ConvertFrom-Json)
-            sanitized    = [bool]$row.sanitized
-            client_msg_id = "$($env:COMPUTERNAME):$($row.id)"
-            captured_at  = $row.created_at
-        }
-    }
-    # Fresh snapshot is independent of captured_at on the durable outbox.
-    $snapshot = Get-FreshAgentSnapshot
-    $body = @{
-        hostname      = (Get-AgentHostname)
-        os_version    = [System.Environment]::OSVersion.VersionString
-        agent_version = (Get-InstalledAgentVersion)
-        ip_address    = (Get-AgentIP)
-        metrics       = $snapshot.metrics
-        posture       = $snapshot.posture
-        events        = @($events)
-    } | ConvertTo-Json -Compress -Depth 12
-
     try {
+        # Telemetry is independent of the offline outbox. An idle, healthy
+        # enrolled device still reports a fresh snapshot with events=[].
+        $pending = Invoke-SQLite -Query "SELECT id, kind, payload, sanitized, created_at FROM outbox WHERE status='pending' ORDER BY id ASC LIMIT 50;" -DatabasePath $QueueDb -AsJson
+        $pendingRows = @()
+        if (-not [string]::IsNullOrWhiteSpace([string]$pending)) {
+            $pendingRows = @($pending | ConvertFrom-Json)
+        }
+        $events = @(
+            foreach ($row in $pendingRows) {
+                @{
+                    kind          = $row.kind
+                    payload       = ($row.payload | ConvertFrom-Json)
+                    sanitized     = [bool]$row.sanitized
+                    client_msg_id = "$(Get-AgentHostname):$($row.id)"
+                    captured_at   = $row.created_at
+                }
+            }
+        )
+        # Fresh host probes execute at SEND time; never treat queued old
+        # collector payloads as freshly verified telemetry.
+        $snapshot = Get-FreshAgentSnapshot
+        $body = @{
+            hostname      = (Get-AgentHostname)
+            os_version    = [System.Environment]::OSVersion.VersionString
+            agent_version = (Get-InstalledAgentVersion)
+            ip_address    = (Get-AgentIP)
+            metrics       = $snapshot.metrics
+            posture       = $snapshot.posture
+            events        = @($events)
+        } | ConvertTo-Json -Compress -Depth 12
+
         $cert = Get-RestCertificate -Config $Config
         $agentTok = Get-AgentToken -Config $Config
-        $headers = @{ 
+        $headers = @{
             "Authorization"  = "Bearer $agentTok"
-            "X-Device-Token" = $agentTok 
+            "X-Device-Token" = $agentTok
         }
         if ($cert) {
             $resp = Invoke-RestMethod -Uri $Config.endpoint -Method Post -Headers $headers -ContentType 'application/json' -Body $body -Certificate $cert
-        }
-        else {
+        } else {
             $resp = Invoke-RestMethod -Uri $Config.endpoint -Method Post -Headers $headers -ContentType 'application/json' -Body $body
         }
-        $ids = (@($pending | ConvertFrom-Json) | ForEach-Object { $_.id }) -join ','
-        Invoke-SQLite -Query "UPDATE outbox SET status='delivered' WHERE id IN ($ids);" -DatabasePath $QueueDb | Out-Null
+
+        # An HTTP 200 alone is not acknowledgment of every queued event.
+        # Retain all rows when response is malformed, partial or unexpected.
+        $accepted = 0
+        $acceptedProperty = if ($null -ne $resp) { $resp.PSObject.Properties['accepted'] } else { $null }
+        if ($null -eq $resp -or [string]$resp.status -cne 'OK' -or
+            $null -eq $acceptedProperty -or
+            -not [int]::TryParse([string]$acceptedProperty.Value, [ref]$accepted) -or
+            $accepted -ne $pendingRows.Count) {
+            throw "Server did not acknowledge all $($pendingRows.Count) queued events; retaining outbox for retry"
+        }
+
+        if ($pendingRows.Count -gt 0) {
+            # The IDs are read from our local SQLite integer PK, never from
+            # the network response. No queued row is marked on an invalid ACK.
+            $ids = ($pendingRows | ForEach-Object { [long]$_.id }) -join ','
+            Invoke-SQLite -Query "UPDATE outbox SET status='delivered' WHERE status='pending' AND id IN ($ids);" -DatabasePath $QueueDb | Out-Null
+        }
         $script:FlushBackoff = 0
-        Write-AgentLog "Flushed batch: $($resp.accepted) events accepted"
-        return $resp.accepted
+        Write-AgentLog "Uploaded fresh telemetry; acknowledged $accepted queued events"
+        return $accepted
     }
     catch {
         $script:FlushBackoff++
         $wait = Get-NextBackoffSleepSeconds -FailedConsecutive $script:FlushBackoff
-        Write-AgentLog "Flush failed ($($_.Exception.Message)) — backoff run $($script:FlushBackoff); next retry in ~$wait s"
+        Write-AgentLog "Upload failed ($($_.Exception.Message)) - keeping unacknowledged events; retry in ~$wait s"
         Invoke-QueueSleep -SleepSeconds ([Math]::Min($wait, 15))
         return 0
     }
@@ -1165,6 +1187,28 @@ if ($ElevatedOnce) {
     exit 0
 }
 
+# N27: full inventory/upgrade work can stay on the installed 30-minute
+# schedule while lightweight measured telemetry stays fresher than the server's
+# 15-minute freshness window. No extra scripts or elevated operations run here.
+function Wait-ForNextAgentCycle {
+    param($Config, [int]$Seconds, [bool]$SkipTelemetry = $false)
+    $remaining = [Math]::Max(0, $Seconds)
+    while ($remaining -gt 0) {
+        $step = [Math]::Min(300, $remaining)  # 5-minute evidence/heartbeat cadence
+        Start-Sleep -Seconds $step
+        $remaining -= $step
+        if ($remaining -gt 0) {
+            try { $null = Send-AgentHeartbeat -Config $Config }
+            catch { Write-AgentLog "Inter-cycle heartbeat failed: $($_.Exception.Message)" }
+            if (-not $SkipTelemetry) {
+                # Send-AgentBatch also handles events=[], keeping empty queues
+                # from suppressing authenticated CPU/RAM/disk snapshots.
+                $null = Send-AgentBatch -Config $Config
+            }
+        }
+    }
+}
+
 do {
     # E2: keep the outbox bounded (retention + size cap) once per cycle.
     Prune-Queue
@@ -1223,6 +1267,6 @@ do {
         $base = $LoopMinutes * 60
         $jitterPct = (Get-Random -Minimum -15 -Maximum 15) / 100.0
         $cycle = [Math]::Max(1, [Math]::Round($base * (1 + $jitterPct)))
-        Start-Sleep -Seconds $cycle
+        Wait-ForNextAgentCycle -Config $Config -Seconds $cycle -SkipTelemetry ([bool]$CollectOnly)
     }
 } while ($LoopMinutes -gt 0)

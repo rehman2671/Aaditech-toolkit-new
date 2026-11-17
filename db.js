@@ -899,7 +899,7 @@ export async function executeQuery(sql, params = []) {
 
   // Match production's compare-and-swap semantics in offline tests. A
   // duplicated poll or result must never receive a fabricated success.
-  if (upperSql.startsWith('UPDATE COMMAND_QUEUE SET STATUS')) {
+  if (/^UPDATE COMMAND_QUEUE\s+SET STATUS\b/.test(upperSql)) {
     if (upperSql.includes("WHERE ID = ? AND DEVICE_ID = ? AND STATUS = 'PENDING'")) {
       const command = memCommands.find(c => String(c.id) === String(params[0]) &&
         String(c.device_id) === String(params[1]) &&

@@ -114,6 +114,83 @@ try {
     [IO.File]::WriteAllText($deviceTokenFile, $deviceToken)
     [IO.File]::WriteAllText($identityFile, '{"device_id":"ci-device","tenant_id":"ci-tenant","device_uid":"ci-uid"}')
 
+    # N30: use sqlite3.exe from the installed MSI, not just a file sentinel.
+    # Prove queue instance identity, exact HTTP JSON, pending local events
+    # survive the genuine Windows Installer major upgrade.
+    $sqliteCli = Join-Path ([Environment]::GetFolderPath('ProgramFiles')) 'IT-Toolkit\sqlite3.exe'
+    if (-not (Test-Path -LiteralPath $sqliteCli -PathType Leaf)) {
+        throw 'Base MSI did not install bundled sqlite3.exe'
+    }
+    $queueDb = Join-Path $runtimeDir 'queue.sqlite3'
+    $queueId = [guid]::NewGuid().ToString('N')
+    $batchId = [guid]::NewGuid().ToString('N')
+    $eventId = [int](Get-Random -Minimum 1000000 -Maximum 2000000000)
+    $anotherEventId = $eventId + 1
+    $body = @{
+        batch_id = $batchId
+        hostname = 'N30-TEST'
+        metrics = @{ cpu = @{ utilization_pct = 0 }; ram = @{ utilization_pct = 35 }; disk = @{ free_gb = 0 } }
+        posture = @{ firewall_status = 'UNKNOWN' }
+        events = @(@{ kind = 'n30_test'; client_msg_id = "${queueId}:$eventId"; payload = @{ disk = 0 } })
+    } | ConvertTo-Json -Depth 10 -Compress
+    $safeBody = $body.Replace("'", "''")
+    $eventIds = "[$eventId]"
+    # All tables and indexes mirror actual Initialize-Queue in Agent-Collect.
+    $createQueue = @"
+BEGIN IMMEDIATE;
+CREATE TABLE IF NOT EXISTS outbox (
+  id INTEGER PRIMARY KEY AUTOINCREMENT, kind TEXT NOT NULL, payload TEXT NOT NULL,
+  sanitized INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  status TEXT NOT NULL DEFAULT 'pending'
+);
+CREATE TABLE IF NOT EXISTS queue_identity (
+  singleton_id INTEGER PRIMARY KEY CHECK (singleton_id = 1),
+  instance_id TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS telemetry_outbox (
+  batch_id TEXT PRIMARY KEY, body_json TEXT NOT NULL, event_ids TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending',
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_telemetry_pending
+  ON telemetry_outbox (status) WHERE status='pending';
+INSERT OR IGNORE INTO queue_identity(singleton_id,instance_id) VALUES(1,'$queueId');
+INSERT INTO outbox(id,kind,payload,sanitized,status)
+  VALUES($eventId,'n30_test','{"disk":0}',1,'pending');
+INSERT INTO outbox(id,kind,payload,sanitized,status)
+  VALUES($anotherEventId,'n30_newer','{"disk":15}',1,'pending');
+INSERT INTO telemetry_outbox(batch_id,body_json,event_ids,status)
+  VALUES('$batchId','$safeBody','$eventIds','pending');
+COMMIT;
+"@
+    $seedOutput = & $sqliteCli -batch $queueDb $createQueue 2>&1
+    if ($LASTEXITCODE -ne 0) { throw "Could not stage real SQLite in-flight queue: $seedOutput" }
+
+    function Assert-QueueBeforeAndAfterUpgrade([string]$Phase) {
+        $sql = @"
+SELECT json_object(
+  'integrity',(SELECT integrity_check FROM pragma_integrity_check LIMIT 1),
+  'instance',(SELECT instance_id FROM queue_identity WHERE singleton_id=1),
+  'body',(SELECT body_json FROM telemetry_outbox WHERE batch_id='$batchId' AND status='pending'),
+  'ids',(SELECT event_ids FROM telemetry_outbox WHERE batch_id='$batchId' AND status='pending'),
+  'pending',(SELECT COUNT(*) FROM outbox WHERE id IN ($eventId,$anotherEventId) AND status='pending'),
+  'staged',(SELECT COUNT(*) FROM telemetry_outbox WHERE status='pending')
+);
+"@
+        $rows = & $sqliteCli -batch $queueDb $sql 2>&1
+        if ($LASTEXITCODE -ne 0) { throw "${Phase}: SQLite read failed: $rows" }
+        $state = ([string]($rows -join '') | ConvertFrom-Json)
+        if ($state.integrity -cne 'ok' -or
+            $state.instance -cne $queueId -or
+            $state.body -cne $body -or
+            $state.ids -cne $eventIds -or
+            [int]$state.pending -ne 2 -or [int]$state.staged -ne 1) {
+            throw "${Phase}: queue UUID, exact pending HTTP JSON or unacknowledged events differ"
+        }
+    }
+    Assert-QueueBeforeAndAfterUpgrade 'before major upgrade'
+
     Invoke-Msi '/i' $upgradeMsi (Join-Path $logs 'upgrade.log')
     $cleanupMsi = $upgradeMsi
 
@@ -129,6 +206,14 @@ try {
     if ((Get-Content -LiteralPath $deviceTokenFile -Raw) -cne $deviceToken) {
         throw 'Major MSI upgrade unexpectedly rotated the enrolled device credential.'
     }
+    if (-not (Test-Path -LiteralPath $queueDb -PathType Leaf)) {
+        throw 'Major MSI upgrade erased the in-flight SQLite queue file'
+    }
+    if (-not (Test-Path -LiteralPath $sqliteCli -PathType Leaf)) {
+        throw 'Major MSI upgrade removed sqlite3.exe required for retry'
+    }
+    Assert-QueueBeforeAndAfterUpgrade 'after major upgrade'
+    Write-Host 'N30 PASS: real SQLite integrity, persistent queue UUID, pending outbox and exact JSON survived major upgrade.'
     if (-not (Get-ScheduledTask -TaskName 'ITToolkitAgent' -ErrorAction SilentlyContinue)) {
         throw 'Major MSI upgrade removed the scheduled agent task.'
     }

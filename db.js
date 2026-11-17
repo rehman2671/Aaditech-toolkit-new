@@ -279,8 +279,9 @@ export async function runDatabaseMigrations() {
       memAppliedMigrations.add('012');
       memAppliedMigrations.add('013');
       memAppliedMigrations.add('014');
+      memAppliedMigrations.add('015');
     }
-    return { applied: [], skipped: ['001_init_schema.sql', '002_partitioning.sql', '003_rbac_and_audit.sql', '004_workspace_memberships.sql', '005_remediation_tenant_logs.sql', '006_notification_outbox.sql', '007_scrub_legacy_github_pat.sql', '008_scrub_legacy_ticket_keys.sql', '009_notification_destination_binding.sql', '010_events_tenant_device_identity.sql', '011_security_posture_provenance.sql', '012_measured_device_telemetry.sql', '013_events_idempotency.sql', '014_telemetry_batches.sql'], status: 'FALLBACK_MODE' };
+    return { applied: [], skipped: ['001_init_schema.sql', '002_partitioning.sql', '003_rbac_and_audit.sql', '004_workspace_memberships.sql', '005_remediation_tenant_logs.sql', '006_notification_outbox.sql', '007_scrub_legacy_github_pat.sql', '008_scrub_legacy_ticket_keys.sql', '009_notification_destination_binding.sql', '010_events_tenant_device_identity.sql', '011_security_posture_provenance.sql', '012_measured_device_telemetry.sql', '013_events_idempotency.sql', '014_telemetry_batches.sql', '015_batch_receipt_retention_index.sql'], status: 'FALLBACK_MODE' };
   }
 
   let lockAcquired = false;
@@ -1781,6 +1782,53 @@ export async function ingestTelemetryBatchOnce(batch) {
   } finally { conn.release(); }
 }
 
+// N30: sealed request receipts are tiny, security-relevant tombstones.
+// Never TTL-prune a tenant which still exists (even if its device is offline
+// for years). Automatic telemetry history retention does not touch this table.
+// Only a deleted tenant with ZERO remaining enrolled devices can be eligible
+// for explicit, bounded operator cleanup after >=180 days. Dry-run by default.
+export async function maintainTelemetryBatchReceipts({
+  dryRun = true, minAgeDays = 180, limit = 100, confirm = null
+} = {}) {
+  if (!isMysqlConnected() || !pool?.query) throw new Error('TELEMETRY_BATCH_MYSQL_REQUIRED');
+  if (!Number.isSafeInteger(minAgeDays) || minAgeDays < 180 || minAgeDays > 3650 ||
+      !Number.isSafeInteger(limit) || limit < 1 || limit > 500) {
+    throw new Error('TELEMETRY_BATCH_MAINTENANCE_BOUNDS');
+  }
+  if (dryRun !== true && dryRun !== false) throw new Error('TELEMETRY_BATCH_MAINTENANCE_BOUNDS');
+  if (!dryRun && confirm !== 'PURGE_DECOMMISSIONED_BATCH_RECEIPTS') {
+    throw new Error('TELEMETRY_BATCH_MAINTENANCE_CONFIRMATION_REQUIRED');
+  }
+  const eligibility =
+    'recorded_at < DATE_SUB(UTC_TIMESTAMP(3), INTERVAL ? DAY) ' +
+    'AND NOT EXISTS (SELECT 1 FROM tenants t WHERE t.id = telemetry_batches.tenant_id) ' +
+    // Even if tenant metadata is gone, do not delete when ANY device is still
+    // registered under that tenant: a live agent could still be retrying.
+    'AND NOT EXISTS (SELECT 1 FROM devices d WHERE d.tenant_id = telemetry_batches.tenant_id)';
+  const [countRows] = await pool.query(
+    'SELECT COUNT(*) AS n FROM telemetry_batches WHERE ' + eligibility,
+    [minAgeDays]
+  );
+  const eligible = Number(countRows?.[0]?.n || 0);
+  let deleted = 0;
+  if (!dryRun) {
+    // One atomic single-table DELETE rechecks BOTH ownership predicates.
+    // Never select IDs and later delete without verifying tenant state again.
+    const [res] = await pool.query(
+      'DELETE FROM telemetry_batches WHERE ' + eligibility +
+      ' ORDER BY recorded_at ASC LIMIT ?',
+      [minAgeDays, limit]
+    );
+    deleted = Number(res?.affectedRows || 0);
+  }
+  return {
+    status: dryRun ? 'DRY_RUN' : 'PURGED_DECOMMISSIONED_ONLY',
+    min_age_days: minAgeDays, max_rows: limit,
+    eligible, deleted, active_receipts_preserved: true,
+    auto_pruning_enabled: false
+  };
+}
+
 // ---------------- TELEMETRY (BATCHED & RESILIENT) ----------------
 const telemetryQueue = [];
 let telemetryFlushTimer = null;
@@ -3235,6 +3283,10 @@ export async function runDataRetentionPurge() {
 
   const purged = {
     telemetry_history: 0,
+    // Batch receipts are permanent replay keys for ALL existing tenants.
+    // Neither this hourly scheduler nor history-retention settings prune them.
+    telemetry_batch_receipts: 0,
+    batch_receipts_auto_pruning_disabled: true,
     audit_logs: 0,
     alerts: 0,
     command_queue: 0,

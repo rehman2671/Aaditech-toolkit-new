@@ -133,6 +133,18 @@ export const deviceRegistrationSchema = z.object({
   device_uid: z.string().optional()
 });
 
+// N30: read-only preview by default; only platform owner may explicitly purge
+// fully deleted tenants' old receipts. Both validation and DB enforce bounds.
+export const batchReceiptMaintenanceSchema = z.object({
+  dry_run: z.boolean().default(true),
+  min_age_days: z.number().int().min(180).max(3650).default(180),
+  max_rows: z.number().int().min(1).max(500).default(100),
+  confirm: z.literal('PURGE_DECOMMISSIONED_BATCH_RECEIPTS').optional()
+}).strict().refine(
+  data => data.dry_run || data.confirm === 'PURGE_DECOMMISSIONED_BATCH_RECEIPTS',
+  { message: 'An explicit deletion confirmation is required', path: ['confirm'] }
+);
+
 export const telemetryIngestSchema = z.object({
   hostname: z.string().min(1, "hostname is required"),
   // Stage N29: only the server-authenticated device scopes this stable ID.

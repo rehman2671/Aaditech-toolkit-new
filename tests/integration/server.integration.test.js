@@ -900,6 +900,13 @@ describe('Server & API Integration Test Suite', () => {
 
       if (devices.body.length > 0) {
         const targetDev = devices.body[0];
+        // Never permit the admin UI/API to fabricate an agent result.
+        const fake = await request(app)
+          .post('/api/v1/commands/dispatch')
+          .set('Authorization', `Bearer ${token}`)
+          .send({ device_id: targetDev.id, command_type: 'DIAGNOSTIC',
+            simulate: true, payload: { action: 'ping' } });
+        expect(fake.status).toBe(400);
         const dispatchRes = await request(app)
           .post('/api/v1/commands/dispatch')
           .set('Authorization', `Bearer ${token}`)

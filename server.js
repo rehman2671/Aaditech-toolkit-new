@@ -2288,8 +2288,8 @@ app.get(['/api/v1/commands', '/api/commands'], async (req, res) => {
 });
 
 app.post(['/api/commands', '/api/v1/commands/dispatch'], requireRole(['SUPER_ADMIN', 'OPERATOR']), validateBody(commandDispatchSchema), async (req, res) => {
-  const { agent_id, device_id, kind, command_type, payload, simulate } = req.body;
-  const targetId = device_id || agent_id;
+  const { agent_id, device_id, kind, command_type, payload, hostname } = req.body;
+  const targetId = device_id || agent_id || hostname;
   const commandKind = command_type || kind || "DIAGNOSTIC";
 
   const agent = await db.getDeviceById(targetId) || 
@@ -2322,12 +2322,6 @@ app.post(['/api/commands', '/api/v1/commands/dispatch'], requireRole(['SUPER_ADM
     command_id: cmdId, 
     kind: commandKind 
   }, req);
-
-  if (simulate === true) {
-    setTimeout(async () => {
-      await db.completeCommandInDb(cmdId, "completed", `[Simulated] Executed '${commandKind}' on ${agent.hostname}`, "", 0);
-    }, 2000);
-  }
 
   res.status(201).json(cmd);
 });
@@ -2408,7 +2402,10 @@ app.post(['/api/commands/:id/result', '/api/v1/commands/:id/result'], agentLimit
 
   await db.completeCommandInDb(cmd.id, status, output, stderr, exitCode);
 
-  logAudit("AGENT", "COMMAND_COMPLETED", `Command:${cmd.id}`, { 
+  // Device-reported completions are audited under the verified device tenant,
+  // not a platform-global synthetic default tenant.
+  logAudit({ tenant_id: resultDevice.tenant_id,
+    username: 'agent:' + resultDevice.hostname }, "COMMAND_COMPLETED", `Command:${cmd.id}`, { 
     device: cmd.hostname, 
     status, 
     exit_code: exitCode 

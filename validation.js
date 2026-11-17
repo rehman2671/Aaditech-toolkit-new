@@ -152,9 +152,8 @@ export const commandDispatchSchema = z.object({
   agent_id: z.union([z.string(), z.number()]).optional(),
   kind: z.string().min(1).optional(),
   command_type: z.string().min(1).optional(),
-  payload: z.record(z.any()).optional(),
-  simulate: z.boolean().optional()
-}).refine(data => data.hostname || data.device_id || data.agent_id, {
+  payload: z.record(z.any()).optional()
+}).strict().refine(data => data.hostname || data.device_id || data.agent_id, {
   message: "Device target (hostname, device_id, or agent_id) is required",
   path: ["hostname"]
 }).refine(data => data.kind || data.command_type, {

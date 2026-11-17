@@ -14,3 +14,9 @@
 - Confirm `PLATFORM_ADMIN_USER_ID`, `PLATFORM_OWNER_TENANT_ID` are actual persisted production operator IDs. Test workspace SUPER_ADMIN cannot mutate global settings or start builds.
 - The already-present publisher-approved `.github/workflows/publish-signed-installer.yml` remains manual and gated; no signing keys should be entered in app settings.
 - Before real customer rollout, require signed public MSI approval, physical Windows install/UAC/upgrade, approved production MySQL offsite restore, actual Hostinger VPS/TLS and verified SMTP inbox receipt.
+
+## Additional command audit hardening
+
+- Removed the `simulate: true` dispatch path that previously marked remote commands completed without a signed real agent result. Command dispatch Zod schema is now strict and rejects this field with HTTP 400.
+- When dispatchers specify an approved hostname, the route resolves it (previously schema allowed a hostname but handler only looked at device_id/agent_id). Tenant ownership remains verified before enqueue.
+- Real device-result audit entries now use the enrolled device's verified tenant identity rather than a fabricated/default platform tenant. Admin JWTs still cannot report agent command results.

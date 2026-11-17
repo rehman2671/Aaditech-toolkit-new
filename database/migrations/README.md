@@ -18,6 +18,7 @@ This directory contains ordered, idempotent, versioned schema migrations managed
 10. `010_events_tenant_device_identity.sql`: add nullable tenant/device ownership and index to event logs. Legacy rows remain NULL (never inferred from potentially duplicate hostnames); new verified agent events are tenant-bound at insert.
 11. `011_security_posture_provenance.sql`: add nullable server-owned enrolled-agent posture evidence timestamp and neutral new-device security defaults. Historic optimistic values remain unverified until fresh authenticated telemetry arrives.
 12. `012_measured_device_telemetry.sql`: add nullable server-owned metric evidence timestamp, neutral CPU/RAM/disk/battery/total-capacity defaults and nullable missing history samples. Historic default values remain unverified.
+13. `013_events_idempotency.sql`: add nullable per-event message keys and server-side content digests, plus unique tenant/device/message index. Historic NULL-owned and unkeyed events remain unmodified.
 
 ## Migration Runner & Concurrency
 - Tracked via the `schema_migrations` table (`version`, `name`, `applied_at`, `execution_time_ms`, `checksum`).
@@ -67,3 +68,10 @@ This directory contains ordered, idempotent, versioned schema migrations managed
 - Fixture/CI Windows MSI and disposable MySQL testing do not certify public signing, live customer Hostinger or physical Windows operation.
 
 - Stage25 also fixes the process-table MySQL INSERT column/value mismatch (explicit `updated_at`), prevents production reads of shadow process fixtures, and limits live process/app-usage disclosure to a 15-minute authenticated telemetry window. Predictive analytics inspects at most 256 recent samples to cover a one-hour trend at typical 30-second device poll intervals.
+
+## Stage N28 event retry hardening
+- Upgrade with a verified offsite backup/restore before migration 013 on a real server. Existing NULL client IDs deliberately bypass the new unique index.
+- MSI worker persists a unique per-SQLite-queue random identifier; upgraded existing queues keep the identifier, fresh queues use a new one. Message key = `<instance-id>:<row-id>` and is stable on every retry.
+- Only authenticated tenant/device ownership scopes the MySQL idempotency index; hostnames are never trusted identities. Event content SHA-256 is server-calculated. Same key with different content raises HTTP 409 and does not acknowledge an altered event.
+- Legacy unkeyed events are append-only. Full HTTP request replay, telemetry history, alerts, external hooks and SMTP delivery are **not** exactly-once.
+- CI disposable MySQL and Windows diagnostic MSI acceptance are not evidence of a real signed public release or customer deployment.

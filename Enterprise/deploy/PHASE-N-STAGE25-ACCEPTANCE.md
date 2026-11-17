@@ -22,3 +22,9 @@
 
 - Must pass PR CI Node/Vitest/PowerShell, real MySQL/API and deployment-safety backup/restore, then merged main Windows MSI diagnostic rehearsal before closing **CODE/CI ACCEPTED**.
 - Authenticode public signing, authorized live Hostinger DNS/TLS/VPS, production data offsite restore, real webhook/SMTP mailbox and physical managed Windows remain **BLOCKED**. Jira/Graph provider APIs are still **NOT_CONNECTED**.
+
+## Process/usage reliability addendum
+
+- Real MySQL process snapshot INSERT formerly declared eight columns but passed seven values. Stage25 now writes a server-owned `updated_at` as the eighth value within the atomic transaction. Production process list refuses in-memory fallback if the persistent database returns no rows.
+- Process snapshots are only labeled `live_agent_telemetry` if their `updated_at` timestamps and device metric provenance are both within 15 minutes. Stale rows return `NOT_REPORTED`. Cached app-usage snapshots have a 900-second TTL and require fresh agent provenance before being reported.
+- Predictive history fetch is bounded to 256 recent samples so an enrolled agent polling every 30 seconds has enough room for the required one-hour trend window. No sampled data means no forecast or cleanup action.

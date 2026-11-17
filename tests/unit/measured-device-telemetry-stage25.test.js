@@ -169,4 +169,47 @@ describe('Stage N25 device metric provenance and non-synthetic predictions', () 
     expect(server).toContain("source: 'NOT_REPORTED', app_usage: []");
     expect(server).not.toContain('Baseline process inventory until first agent check-in');
   });
+  it('persists eight MySQL process columns including observed_at and never leaks shadow fallback in production', async () => {
+    process.env.NODE_ENV = 'production';
+    const calls = [];
+    const conn = {
+      beginTransaction: async () => {},
+      query: async (sql, params = []) => {
+        calls.push({ sql, params });
+        return [{ affectedRows: 1 }, []];
+      },
+      commit: async () => {},
+      rollback: async () => {},
+      release: () => {}
+    };
+    const pool = {
+      getConnection: async () => conn,
+      query: async (sql, params = []) => {
+        calls.push({ sql, params });
+        if (sql.includes('SELECT * FROM device_processes')) return [[], []];
+        return [{ affectedRows: 1 }, []];
+      }
+    };
+    db.setConnectionStateForTesting(true, pool);
+    expect(await db.syncDeviceProcesses('device-prod-stage25', [{
+      pid: 1091, name: 'agent.exe', cpu_pct: 0, ram_mb: 0, path: null
+    }])).toBe(true);
+    const stmt = calls.find(q => q.sql.includes('INSERT INTO device_processes'));
+    expect(stmt).toBeDefined();
+    expect(stmt.params[0]).toHaveLength(1);
+    expect(stmt.params[0][0]).toHaveLength(8);
+    expect(stmt.params[0][0][7]).toBeInstanceOf(Date);
+    // Production cannot read an in-memory shadow when the authoritative DB
+    // no longer contains the process records.
+    expect(await db.getDeviceProcesses('device-prod-stage25')).toEqual([]);
+  });
+
+  it('fresh data window permits an actual hourly trend despite 30-second polling', () => {
+    const server = fs.readFileSync(new URL('../../server.js', import.meta.url), 'utf8');
+    expect(server).toContain('getTelemetryHistory(agent.id, 256)');
+    expect(server).toContain("dev.telemetry_status === 'AGENT_REPORTED'");
+    expect(server).toContain("await db.cacheSet(\`app_usage:\${dev.id}\`, app_usage, 900)");
+    expect(server).toContain('now - observed <= 15 * 60_000');
+  });
+
 });

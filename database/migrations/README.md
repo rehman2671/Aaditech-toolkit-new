@@ -65,3 +65,5 @@ This directory contains ordered, idempotent, versioned schema migrations managed
 - New device registration is `registered`, not automatically online; 15-minute metric freshness is independently checked from heartbeat/check-in. Battery stays unreported until an actual battery collector exists.
 - MySQL history now stores NULL for omitted samples, not artificial zeros. Predictive disk analytics demands at least five measured samples across an hour, a recent last sample and current fresh metric evidence; zero consumption is not replaced with a positive fake baseline.
 - Fixture/CI Windows MSI and disposable MySQL testing do not certify public signing, live customer Hostinger or physical Windows operation.
+
+- Stage25 also fixes the process-table MySQL INSERT column/value mismatch (explicit `updated_at`), prevents production reads of shadow process fixtures, and limits live process/app-usage disclosure to a 15-minute authenticated telemetry window. Predictive analytics inspects at most 256 recent samples to cover a one-hour trend at typical 30-second device poll intervals.

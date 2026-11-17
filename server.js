@@ -36,6 +36,7 @@ import { resolveVerifiedUserPrincipal } from './auth-principal.js';
 import { isPlatformSettingsAdmin } from './platform-settings-admin.js';
 import { belongsToCurrentTenant, publicDeviceRecord } from './device-visibility.js';
 import { normalizeAgentPosture, agentReportedCoverage } from './security-posture.js';
+import { extractMeasurements, analyzeMeasuredTelemetry } from './device-metrics.js';
 import { signDeviceCommand } from './command-signing.js';
 import {
   getAgentVersion,
@@ -1029,8 +1030,13 @@ app.get(['/api/v1/devices', '/api/devices', '/api/agents'], async (req, res) => 
     cpu_usage: a.cpu_usage,
     memory_usage: a.memory_usage,
     disk_free: a.disk_free,
-    last_seen: a.last_seen_at || a.last_seen || new Date().toISOString(),
-    last_seen_at: a.last_seen_at || a.last_seen || new Date().toISOString()
+    battery: a.battery,
+    telemetry_status: a.telemetry_status,
+    telemetry_reported_at: a.telemetry_reported_at,
+    last_seen: String(a.status).toLowerCase() === 'registered' ? null :
+      (a.last_seen_at || a.last_seen || null),
+    last_seen_at: String(a.status).toLowerCase() === 'registered' ? null :
+      (a.last_seen_at || a.last_seen || null)
   }));
 
   sendPaginated(req, res, list, 50, 500);
@@ -1053,7 +1059,8 @@ app.get(['/api/v1/devices/:id', '/api/devices/:id', '/api/agents/:id'], async (r
     os_type: (dev.os_version || dev.os || '').includes('Windows') ? 'WINDOWS' : (dev.os_version || dev.os || '').includes('macOS') ? 'MACOS' : 'LINUX',
     status: dev.status === 'online' || dev.status === 'ACTIVE' ? 'ACTIVE' : 'OFFLINE',
     ip: dev.ip_address || dev.ip,
-    last_seen: dev.last_seen_at || dev.last_seen || new Date().toISOString()
+    last_seen: String(dev.status).toLowerCase() === 'registered' ? null :
+      (dev.last_seen_at || dev.last_seen || null)
   });
 });
 
@@ -1113,10 +1120,8 @@ app.post('/api/v1/devices', requireRole(['SUPER_ADMIN', 'OPERATOR']), validateBo
     os_version: os_version || (os_type === 'WINDOWS' ? 'Windows 11 Enterprise' : 'Linux Ubuntu 22.04'),
     agent_version: agent_version || getAgentVersion(),
     ip_address: req.ip || "10.0.3.15",
-    status: "online",
-    cpu_usage: "12%",
-    memory_usage: "38%",
-    disk_free: "240 GB",
+    status: "registered",
+    // Registration provides identity, never simulated usage or check-in.
     company_id: company.id,
     tenant_id: tenantId,
     device_token_hash: tokenHash,
@@ -1340,10 +1345,20 @@ app.post(['/api/v1/ingest/telemetry', '/api/ingest'], agentLimiter, validateBody
   };
   if (os_version) devUpdates.os_version = os_version;
   if (ip_address) devUpdates.ip_address = ip_address;
-  if (metrics?.cpu?.utilization_pct !== undefined) devUpdates.cpu_usage = `${metrics.cpu.utilization_pct.toFixed(1)}%`;
-  if (metrics?.ram?.utilization_pct !== undefined) devUpdates.memory_usage = `${metrics.ram.utilization_pct.toFixed(1)}%`;
-  if (metrics?.disk?.free_gb !== undefined) devUpdates.disk_free = `${metrics.disk.free_gb} GB`;
-  else if (disk_free_gb !== undefined) devUpdates.disk_free = `${disk_free_gb} GB`;
+  // A single authenticated metric snapshot must never refresh old fictional
+  // default values or reuse another device's legacy history. Each missing
+  // field is NULL rather than a guessed zero or previous measurement.
+  const measured = extractMeasurements(metrics, disk_free_gb);
+  const hasMeasurement = [measured.cpu, measured.ram, measured.disk, measured.latency]
+    .some(value => value !== null);
+  if (hasMeasurement) {
+    devUpdates.cpu_usage = measured.cpu === null ? null : measured.cpu.toFixed(1) + '%';
+    devUpdates.memory_usage = measured.ram === null ? null : measured.ram.toFixed(1) + '%';
+    devUpdates.disk_free = measured.disk === null ? null : measured.disk + ' GB';
+    devUpdates.disk_free_gb = measured.disk;
+    // Server-created evidence clock, independent of agent-supplied timestamp.
+    devUpdates.telemetry_reported_at = new Date();
+  }
 
   if (posture && typeof posture === 'object' && !Array.isArray(posture)) {
     // Every posture report is a new, single snapshot from the device
@@ -1379,13 +1394,16 @@ app.post(['/api/v1/ingest/telemetry', '/api/ingest'], agentLimiter, validateBody
 
   // Cache real live application usage into Redis
   if (app_usage && Array.isArray(app_usage) && app_usage.length > 0) {
-    await db.cacheSet(`app_usage:${dev.id}`, app_usage, 86400);
+    await db.cacheSet(`app_usage:${dev.id}`, app_usage, 900);
     // Never write a hostname-only cache key: hostnames can repeat across tenants.
   }
 
   // Insert Telemetry record into MySQL
-  if (metrics) {
-    await db.insertTelemetryRecord(dev.id, metrics);
+  if (hasMeasurement) {
+    await db.insertTelemetryRecord(dev.id, {
+      cpu_pct: measured.cpu, ram_pct: measured.ram,
+      disk_free_gb: measured.disk, net_latency_ms: measured.latency
+    });
   }
 
   // Handle legacy batched events array if present
@@ -2069,26 +2087,28 @@ app.get('/api/v1/devices/:id/processes', async (req, res) => {
     return res.status(404).json({ error: 'Device not found' });
   }
   const liveProcs = await db.getDeviceProcesses(dev.id);
-  if (liveProcs && Array.isArray(liveProcs) && liveProcs.length > 0) {
-    return res.json({ 
-      device_id: dev.id, 
-      hostname: dev.hostname, 
-      source: "live_agent_telemetry",
-      total_processes: liveProcs.length, 
-      processes: liveProcs 
+  const now = Date.now();
+  const freshProcs = dev.telemetry_status === 'AGENT_REPORTED' && Array.isArray(liveProcs)
+    ? liveProcs.filter(proc => {
+        const observed = proc.updated_at ? new Date(proc.updated_at).getTime() : NaN;
+        return Number.isFinite(observed) && observed <= now &&
+          now - observed <= 15 * 60_000;
+      })
+    : [];
+  if (freshProcs.length > 0) {
+    return res.json({
+      device_id: dev.id, hostname: dev.hostname,
+      source: 'live_agent_telemetry',
+      total_processes: freshProcs.length,
+      processes: freshProcs
     });
   }
 
-  // Baseline process inventory until first agent check-in
-  const baseline = [
-    { pid: 1042, name: "Aaditech-Agent.exe", cpu_pct: 0.3, ram_mb: 28.5, user: "SYSTEM", path: "C:\\ProgramData\\AaditechAgent\\Aaditech-Agent.ps1" },
-    { pid: 4892, name: "chrome.exe", cpu_pct: 2.4, ram_mb: 290.1, user: dev.hostname, path: "C:\\Program Files\\Google\\Chrome\\chrome.exe" },
-    { pid: 2104, name: "svchost.exe", cpu_pct: 0.1, ram_mb: 18.4, user: "SYSTEM", path: "C:\\Windows\\System32\\svchost.exe" },
-    { pid: 8912, name: "node.exe", cpu_pct: 0.8, ram_mb: 85.0, user: dev.hostname, path: "C:\\Program Files\\nodejs\\node.exe" },
-    { pid: 5612, name: "explorer.exe", cpu_pct: 0.1, ram_mb: 68.2, user: dev.hostname, path: "C:\\Windows\\explorer.exe" }
-  ];
-
-  res.json({ device_id: dev.id, hostname: dev.hostname, source: "baseline", total_processes: baseline.length, processes: baseline });
+  // No synthetic process rows: absence of an agent snapshot is not a baseline.
+  return res.json({
+    device_id: dev.id, hostname: dev.hostname,
+    source: 'NOT_REPORTED', total_processes: 0, processes: []
+  });
 });
 
 app.get('/api/v1/devices/:id/app-usage', async (req, res) => {
@@ -2101,18 +2121,15 @@ app.get('/api/v1/devices/:id/app-usage', async (req, res) => {
   }
   // Hostname-only cache keys are not tenant-unique across old enrollments.
   const liveUsage = await db.cacheGet(`app_usage:${dev.id}`);
-  if (liveUsage && Array.isArray(liveUsage) && liveUsage.length > 0) {
+  if (dev.telemetry_status === 'AGENT_REPORTED' &&
+      liveUsage && Array.isArray(liveUsage) && liveUsage.length > 0) {
     return res.json({ device_id: dev.id, hostname: dev.hostname, source: "live_agent_telemetry", app_usage: liveUsage });
   }
 
-  const apps = [
-    { name: "Visual Studio Code", active_foreground_mins: 180, launch_count: 8, last_used: new Date(Date.now() - 300000).toISOString() },
-    { name: "Google Chrome", active_foreground_mins: 340, launch_count: 24, last_used: new Date(Date.now() - 60000).toISOString() },
-    { name: "Microsoft Teams", active_foreground_mins: 120, launch_count: 5, last_used: new Date(Date.now() - 1200000).toISOString() },
-    { name: "Windows Terminal", active_foreground_mins: 75, launch_count: 12, last_used: new Date(Date.now() - 150000).toISOString() }
-  ];
-
-  res.json({ device_id: dev.id, hostname: dev.hostname, source: "baseline", app_usage: apps });
+  return res.json({
+    device_id: dev.id, hostname: dev.hostname,
+    source: 'NOT_REPORTED', app_usage: []
+  });
 });
 
 // Data Retention & Webhooks Settings V1
@@ -3095,69 +3112,15 @@ app.get(['/api/v1/analytics/predictive', '/api/analytics/predictive'], async (re
   if (!tenantId) return res.status(403).json({ error: 'TENANT_REQUIRED' });
   const agents = await db.getDevices({ tenant_id: tenantId });
   const analysis = await Promise.all(agents.map(async agent => {
-    const history = await db.getTelemetryHistory(agent.id, 20);
-    const freeGB = parseInt(agent.disk_free, 10) || 120;
-    const memoryPct = parseInt(agent.memory_usage, 10) || 50;
-    const cpuPct = parseInt(agent.cpu_usage, 10) || 20;
-
-    if (!history || history.length < 5) {
-      return {
-        hostname: agent.hostname,
-        status: "INSUFFICIENT_DATA",
-        sample_count: history ? history.length : 0,
-        minimum_required_samples: 5,
-        disk_free_gb: freeGB,
-        daily_growth_gb: null,
-        projected_days_until_full: null,
-        memory_usage_pct: memoryPct,
-        cpu_usage_pct: cpuPct,
-        anomaly_score: 0,
-        health_rating: "Unrated",
-        recommended_action: "Insufficient historical telemetry samples to compute statistical trend"
-      };
-    }
-
-    const validSamples = history
-      .map(h => ({
-        timestamp: new Date(h.recorded_at || Date.now()).getTime(),
-        disk_free: parseFloat(h.disk_free || h.disk_free_gb || freeGB),
-        memory_usage: parseFloat(h.memory_usage || memoryPct),
-        cpu_usage: parseFloat(h.cpu_usage || cpuPct)
-      }))
-      .sort((a, b) => a.timestamp - b.timestamp);
-
-    const first = validSamples[0];
-    const last = validSamples[validSamples.length - 1];
-    const timeDeltaDays = Math.max(0.001, (last.timestamp - first.timestamp) / (1000 * 60 * 60 * 24));
-    const diskDeltaGB = first.disk_free - last.disk_free;
-    const dailyConsumptionGB = Math.max(0.01, parseFloat((diskDeltaGB / timeDeltaDays).toFixed(2)));
-    const daysRemaining = Math.max(1, Math.round(freeGB / dailyConsumptionGB));
-
-    const anomalyScore = (memoryPct > 85 ? 40 : 0) + (cpuPct > 80 ? 30 : 0) + (daysRemaining < 14 ? 30 : 0);
-    const healthRating = anomalyScore > 60 ? "Critical" : anomalyScore > 30 ? "Warning" : "Optimal";
-
-    return {
-      hostname: agent.hostname,
-      status: "ANALYZED",
-      sample_count: validSamples.length,
-      disk_free_gb: freeGB,
-      daily_growth_gb: dailyConsumptionGB,
-      projected_days_until_full: daysRemaining,
-      memory_usage_pct: memoryPct,
-      cpu_usage_pct: cpuPct,
-      anomaly_score: anomalyScore,
-      health_rating: healthRating,
-      recommended_action: daysRemaining < 14
-        ? "Trigger Auto-Disk Cleanup or expand storage allocation"
-        : memoryPct > 85
-        ? "Investigate memory leak or restart memory-heavy processes"
-        : "No action required - operating within nominal baselines"
-    };
+    const history = await db.getTelemetryHistory(agent.id, 256);
+    return analyzeMeasuredTelemetry(history, agent);
   }));
 
   res.json({
     summary: {
-      total_hosts_analyzed: agents.length,
+      total_hosts_registered: agents.length,
+      total_hosts_analyzed: analysis.filter(a =>
+        a.status === 'ANALYZED' || a.status === 'NO_DEPLETION_TREND').length,
       hosts_at_disk_risk: analysis.filter(a => a.projected_days_until_full && a.projected_days_until_full < 14).length,
       anomalous_hosts: analysis.filter(a => a.anomaly_score > 30).length
     },

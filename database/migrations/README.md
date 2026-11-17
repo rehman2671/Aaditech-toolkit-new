@@ -17,6 +17,7 @@ This directory contains ordered, idempotent, versioned schema migrations managed
 9. `009_notification_destination_binding.sql`: add nullable, keyed destination fingerprint to the MySQL outbox. Historic unbound queued jobs stay NULL and are **SKIPPED** by dispatchers, rather than sent to a new address/URL on subsequent opt-in or configuration changes.
 10. `010_events_tenant_device_identity.sql`: add nullable tenant/device ownership and index to event logs. Legacy rows remain NULL (never inferred from potentially duplicate hostnames); new verified agent events are tenant-bound at insert.
 11. `011_security_posture_provenance.sql`: add nullable server-owned enrolled-agent posture evidence timestamp and neutral new-device security defaults. Historic optimistic values remain unverified until fresh authenticated telemetry arrives.
+12. `012_measured_device_telemetry.sql`: add nullable server-owned metric evidence timestamp, neutral CPU/RAM/disk/battery/total-capacity defaults and nullable missing history samples. Historic default values remain unverified.
 
 ## Migration Runner & Concurrency
 - Tracked via the `schema_migrations` table (`version`, `name`, `applied_at`, `execution_time_ms`, `checksum`).
@@ -57,3 +58,12 @@ This directory contains ordered, idempotent, versioned schema migrations managed
 - Backup/restore into a separate authorized environment before running `011` on customer MySQL. The migration is idempotent and does not guess whether historical healthy values were ever measured; existing `posture_reported_at` is NULL.
 - Security/compliance endpoints require device-bound server-stamped telemetry not older than 24 hours; registration, heartbeat or a SQL default never grants a compliant verdict. Unknown and stale fields return null; `N/A` is reported for metrics without a trustworthy denominator.
 - The agent must be upgraded to stop optimistic PowerShell collector fallback. Microsoft Graph/MDM attestation is still NOT_CONNECTED; even an enrolled agent report is device-reported, not independent security attestation.
+
+## Stage N25 device metric provenance
+
+- Execute migration 012 **only after an authorized offsite MySQL backup and recovery rehearsal**. SQL preserves historic values; tenant APIs hide usage metrics lacking trusted `telemetry_reported_at` until the enrolled agent submits fresh numbers.
+- New device registration is `registered`, not automatically online; 15-minute metric freshness is independently checked from heartbeat/check-in. Battery stays unreported until an actual battery collector exists.
+- MySQL history now stores NULL for omitted samples, not artificial zeros. Predictive disk analytics demands at least five measured samples across an hour, a recent last sample and current fresh metric evidence; zero consumption is not replaced with a positive fake baseline.
+- Fixture/CI Windows MSI and disposable MySQL testing do not certify public signing, live customer Hostinger or physical Windows operation.
+
+- Stage25 also fixes the process-table MySQL INSERT column/value mismatch (explicit `updated_at`), prevents production reads of shadow process fixtures, and limits live process/app-usage disclosure to a 15-minute authenticated telemetry window. Predictive analytics inspects at most 256 recent samples to cover a one-hour trend at typical 30-second device poll intervals.

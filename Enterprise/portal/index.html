@@ -792,6 +792,15 @@ function toggleLivePulse() {
   }
 }
 
+function hasRecentAgentCheckin(agent, now = Date.now()) {
+  if (!agent?.last_seen || !['ACTIVE', 'ONLINE'].includes(String(agent.status || '').toUpperCase())) return false;
+  const seen = new Date(agent.last_seen).getTime();
+  return Number.isFinite(seen) && seen <= now && now - seen <= 10 * 60 * 1000;
+}
+function lastCheckinLabel(agent) {
+  return agent?.last_seen ? new Date(agent.last_seen).toLocaleString() : 'Never checked in';
+}
+
 async function exportDailyBrief() {
   const [agents, alerts, events, analytics] = await Promise.all([
     api('/api/agents'),
@@ -801,9 +810,9 @@ async function exportDailyBrief() {
   ]);
   const list = agents || [];
   const now = new Date();
-  const online = list.filter(x => Date.now() - new Date(x.last_seen).getTime() <= 10 * 60 * 1000).length;
+  const online = list.filter(x => hasRecentAgentCheckin(x)).length;
   const offline = list.length - online;
-  const healthScore = Math.max(0, 100 - (offline * 15) - ((alerts || []).length * 8));
+  const healthScore = list.length ? Math.max(0, 100 - (offline * 15) - ((alerts || []).length * 8)) : null;
 
   const text = [
     `================================================================`,
@@ -844,12 +853,14 @@ async function renderDashboard() {
   ]);
   const list = agents || [];
   const now = Date.now();
-  const online = list.filter(x => now - new Date(x.last_seen).getTime() <= 10 * 60 * 1000).length;
+  const online = list.filter(x => hasRecentAgentCheckin(x, now)).length;
   const offline = list.length - online;
-  const healthScore = Math.max(0, 100 - (offline * 15) - ((alerts || []).length * 8));
+  const healthScore = list.length ? Math.max(0, 100 - (offline * 15) - ((alerts || []).length * 8)) : null;
 
   statCardsEl([
-    { icon: 'shield', label: 'Fleet health score', value: `${healthScore}/100`, tone: healthScore >= 85 ? 'good' : healthScore >= 70 ? 'warn' : 'bad', sub: healthScore >= 85 ? 'Fleet Operational' : 'Action Required' },
+    { icon: 'shield', label: 'Fleet operational estimate', value: healthScore === null ? 'N/A' : `${healthScore}/100`,
+      tone: healthScore === null ? 'info' : healthScore >= 85 ? 'good' : healthScore >= 70 ? 'warn' : 'bad',
+      sub: 'Heuristic only: offline agents and open alerts, not a security compliance measurement' },
     { icon: 'devices', label: 'Total agents', value: list.length, tone: 'accent', sub: offline ? offline + ' offline' : 'all checked in' },
     { icon: 'activity', label: 'Online now', value: online, tone: 'good' },
     { icon: 'bell', label: 'Open alerts', value: (alerts || []).length, tone: (alerts || []).length ? 'bad' : 'good', sub: 'open · to resolve' },
@@ -946,13 +957,13 @@ async function renderFleet() {
 
   const isAdmin = window.user && window.user.role === 'admin';
   const now = Date.now();
-  const offline = (agents || []).filter(a => now - new Date(a.last_seen).getTime() > 10 * 60 * 1000);
+  const offline = (agents || []).filter(a => !hasRecentAgentCheckin(a, now));
 
   const offlineBlock = `
     <div class="card"><h3>Offline agents (last seen &gt; 10 min) <span class="badge ${offline.length ? 'off' : 'on'}">${offline.length}</span></h3>
       ${offline.length
         ? `<table><thead><tr><th>Hostname</th><th>IP</th><th>Last seen</th></tr></thead><tbody>
-             ${offline.map(a => `<tr><td>${esc(a.hostname)}</td><td>${esc(a.ip)}</td><td>${esc(new Date(a.last_seen).toLocaleString())}</td></tr>`).join('')}
+             ${offline.map(a => `<tr><td>${esc(a.hostname)}</td><td>${esc(a.ip)}</td><td>${esc(lastCheckinLabel(a))}</td></tr>`).join('')}
            </tbody></table>`
         : '<p class="muted">All agents have checked in recently.</p>'}
     </div>`;
@@ -1038,7 +1049,7 @@ async function renderAgents() {
       <td>${esc(a.os)}</td>
       <td>${esc(a.ip)}</td>
       <td>v${esc(a.agent_version)}</td>
-      <td>${esc(new Date(a.last_seen).toLocaleString())}</td>
+      <td>${esc(lastCheckinLabel(a))}</td>
     </tr>`).join('');
   app.innerHTML = `
     <div class="card"><h3>Registered Agents (${data.length})</h3>
@@ -1046,7 +1057,7 @@ async function renderAgents() {
       <tbody>${rows || '<tr><td colspan="5" class="muted">No agents yet — see the Agent Setup tab.</td></tr>'}</tbody></table>
     </div>`;
   const now = Date.now();
-  const online = data.filter(a => now - new Date(a.last_seen).getTime() <= 10 * 60 * 1000).length;
+  const online = data.filter(a => hasRecentAgentCheckin(a, now)).length;
   const offline = data.length - online;
   statCardsEl([
     { icon: 'devices', label: 'Registered agents', value: data.length, tone: 'accent', sub: offline ? offline + ' offline' : 'all online' },
@@ -1817,7 +1828,7 @@ async function renderAnalytics() {
 
   const s = analytics.summary;
   statCardsEl([
-    { label: "Hosts Analyzed", value: s.total_hosts_analyzed, sub: "Fleet Baselines Tracked", icon: "cpu", tone: "accent" },
+    { label: "Hosts Analyzed", value: s.total_hosts_analyzed, sub: "Fresh measured samples only", icon: "cpu", tone: "accent" },
     { label: "Disk Space Risk", value: s.hosts_at_disk_risk, sub: "< 14 Days Remaining", icon: "hard-drive", tone: s.hosts_at_disk_risk > 0 ? "warn" : "ok" },
     { label: "Anomalous Hosts", value: s.anomalous_hosts, sub: "High Load / Growth Spike", icon: "alert-triangle", tone: s.anomalous_hosts > 0 ? "warn" : "ok" },
     { label: "Self-Healing Rules", value: remediation.policies.filter(p => p.enabled).length, sub: "Active Auto-Playbooks", icon: "zap", tone: "ok" }
@@ -1827,7 +1838,7 @@ async function renderAnalytics() {
     <div class="card">
       <div class="row" style="align-items:center;margin-bottom:12px">
         <h3 style="margin:0">${ic('zap')} Predictive Disk Exhaustion & Anomaly Engine</h3>
-        <span class="muted" style="margin-left:auto">Calculated from continuous telemetry baselines</span>
+        <span class="muted" style="margin-left:auto">Requires 5 measured samples over at least 1 hour</span>
       </div>
       <div style="overflow-x:auto">
         <table>
@@ -1847,20 +1858,19 @@ async function renderAnalytics() {
             ${analytics.predictions.map(p => `
               <tr>
                 <td><strong>${esc(p.hostname)}</strong></td>
-                <td>${esc(p.disk_free_gb)} GB</td>
-                <td>~${esc(p.daily_growth_gb)} GB/day</td>
-                <td>
-                  <span class="badge ${p.projected_days_until_full < 14 ? 'off' : 'ok'}">
-                    ${esc(p.projected_days_until_full)} days
-                  </span>
-                </td>
-                <td>${esc(p.memory_usage_pct)}%</td>
-                <td><span class="badge ${p.anomaly_score > 30 ? 'warn' : 'info'}">${esc(p.anomaly_score)} / 100</span></td>
-                <td><span class="badge ${p.health_rating === 'Critical' ? 'off' : p.health_rating === 'Warning' ? 'warn' : 'ok'}">${esc(p.health_rating)}</span></td>
+                <td>${p.disk_free_gb === null ? 'Not reported' : esc(p.disk_free_gb) + ' GB'}</td>
+                <td>${p.daily_growth_gb === null ? 'Unavailable' : esc(p.daily_growth_gb) + ' GB/day'}</td>
+                <td>${p.projected_days_until_full === null ? 'No valid forecast' :
+                  '<span class="badge ' + (p.projected_days_until_full < 14 ? 'off' : 'ok') + '">' +
+                  esc(p.projected_days_until_full) + ' days</span>'}</td>
+                <td>${p.memory_usage_pct === null ? 'Not reported' : esc(p.memory_usage_pct) + '%'}</td>
+                <td>${p.anomaly_score === null ? 'Unrated' :
+                  '<span class="badge ' + (p.anomaly_score > 30 ? 'warn' : 'info') + '">' + esc(p.anomaly_score) + ' / 100</span>'}</td>
+                <td><span class="badge ${p.health_rating === 'Critical' ? 'off' : p.health_rating === 'Warning' ? 'warn' : 'info'}">${esc(p.health_rating)}</span></td>
                 <td>
                   <div class="row" style="gap:6px">
                     <span style="font-size:12px;color:var(--text-2);flex:1">${esc(p.recommended_action)}</span>
-                    ${p.projected_days_until_full < 14 ? `<button class="action" style="padding:2px 8px;font-size:11px" onclick="triggerSelfHealing('${esc(p.hostname)}', 'clean_temp_files')">Clean Disk</button>` : ''}
+                    ${typeof p.projected_days_until_full === 'number' && p.projected_days_until_full < 14 ? `<button class="action" style="padding:2px 8px;font-size:11px" onclick="triggerSelfHealing('${esc(p.hostname)}', 'clean_temp_files')">Clean Disk</button>` : ''}
                   </div>
                 </td>
               </tr>

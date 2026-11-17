@@ -277,8 +277,9 @@ export async function runDatabaseMigrations() {
       memAppliedMigrations.add('010');
       memAppliedMigrations.add('011');
       memAppliedMigrations.add('012');
+      memAppliedMigrations.add('013');
     }
-    return { applied: [], skipped: ['001_init_schema.sql', '002_partitioning.sql', '003_rbac_and_audit.sql', '004_workspace_memberships.sql', '005_remediation_tenant_logs.sql', '006_notification_outbox.sql', '007_scrub_legacy_github_pat.sql', '008_scrub_legacy_ticket_keys.sql', '009_notification_destination_binding.sql', '010_events_tenant_device_identity.sql', '011_security_posture_provenance.sql', '012_measured_device_telemetry.sql'], status: 'FALLBACK_MODE' };
+    return { applied: [], skipped: ['001_init_schema.sql', '002_partitioning.sql', '003_rbac_and_audit.sql', '004_workspace_memberships.sql', '005_remediation_tenant_logs.sql', '006_notification_outbox.sql', '007_scrub_legacy_github_pat.sql', '008_scrub_legacy_ticket_keys.sql', '009_notification_destination_binding.sql', '010_events_tenant_device_identity.sql', '011_security_posture_provenance.sql', '012_measured_device_telemetry.sql', '013_events_idempotency.sql'], status: 'FALLBACK_MODE' };
   }
 
   let lockAcquired = false;
@@ -2852,17 +2853,54 @@ export async function addEvent(event) {
       (!event?.tenant_id || !event?.device_id)) {
     throw new Error('EVENT_DEVICE_TENANT_REQUIRED');
   }
+  const payload = event.payload || {};
+  const sanitized = event.sanitized !== false ? 1 : 0;
+  const key = event.client_msg_id;
+  if (key !== undefined && key !== null) {
+    // Only authenticated tenant and device scope an event. A hostname is
+    // never an authority or safe uniqueness key.
+    if (!event.tenant_id || !event.device_id) {
+      throw new Error('EVENT_DEVICE_TENANT_REQUIRED');
+    }
+    if (typeof key !== 'string' ||
+        !/^[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$/.test(key)) {
+      throw new Error('EVENT_CLIENT_MSG_ID_INVALID');
+    }
+    const digest = crypto.createHash('sha256')
+      .update(JSON.stringify([event.kind, sanitized, payload])).digest('hex');
+    // MySQL's unique index serializes concurrent retry workers across hosts.
+    const result = await executeQuery(
+      `INSERT INTO events
+       (tenant_id, device_id, client_msg_id, event_hash, hostname, kind, sanitized, payload, captured_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(3))
+       ON DUPLICATE KEY UPDATE id = LAST_INSERT_ID(id)`,
+      [event.tenant_id, event.device_id, key, digest, event.hostname,
+       event.kind, sanitized, JSON.stringify(payload)]
+    );
+    if (Number(result?.affectedRows) === 1) {
+      const inserted = { id: result.insertId, ...event, event_hash: digest, captured_at: new Date() };
+      memEvents.push(inserted);
+      return { ...inserted, duplicate: false };
+    }
+    // Reusing a key with changed content is an integrity conflict. Do not
+    // acknowledge somebody else's event or silently overwrite existing data.
+    const rows = await executeQuery(
+      'SELECT id, event_hash FROM events WHERE tenant_id = ? AND device_id = ? AND client_msg_id = ? LIMIT 1',
+      [event.tenant_id, event.device_id, key]
+    );
+    if (rows.length !== 1 || rows[0].event_hash !== digest) {
+      throw new Error('EVENT_IDEMPOTENCY_CONFLICT');
+    }
+    return { id: rows[0].id, ...event, event_hash: digest, duplicate: true };
+  }
+  // Historical agents send no key. SQL UNIQUE allows multiple NULL entries.
   const sql = `
     INSERT INTO events (tenant_id, device_id, hostname, kind, sanitized, payload, captured_at)
     VALUES (?, ?, ?, ?, ?, ?, NOW(3))
   `;
   const res = await executeQuery(sql, [
-    event.tenant_id || null,
-    event.device_id || null,
-    event.hostname,
-    event.kind,
-    event.sanitized !== false ? 1 : 0,
-    JSON.stringify(event.payload || {})
+    event.tenant_id || null, event.device_id || null, event.hostname,
+    event.kind, sanitized, JSON.stringify(payload)
   ]);
   const newEvt = { id: res.insertId, ...event, captured_at: new Date() };
   memEvents.push(newEvt);

@@ -388,12 +388,15 @@ CREATE TABLE IF NOT EXISTS `events` (
   `id` BIGINT AUTO_INCREMENT NOT NULL,
   `tenant_id` VARCHAR(36) NULL,
   `device_id` VARCHAR(64) NULL,
+  `client_msg_id` VARCHAR(160) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NULL,
+  `event_hash` CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NULL,
   `hostname` VARCHAR(128) NOT NULL,
   `kind` VARCHAR(64) NOT NULL,
   `sanitized` BOOLEAN DEFAULT TRUE,
   `payload` JSON NULL,
   `captured_at` DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3),
   PRIMARY KEY (`id`),
+  UNIQUE INDEX `uq_events_owner_msg` (`tenant_id`, `device_id`, `client_msg_id`),
   INDEX `idx_events_host_kind` (`hostname`, `kind`),
   INDEX `idx_events_owner_time` (`tenant_id`, `device_id`, `captured_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

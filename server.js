@@ -1406,17 +1406,29 @@ app.post(['/api/v1/ingest/telemetry', '/api/ingest'], agentLimiter, validateBody
     });
   }
 
-  // Handle legacy batched events array if present
+  // Deduplication applies to authenticated tenant/device *event rows*.
+  // Exact replay counts as accepted; changed content with same ID is 409.
   if (Array.isArray(req.body.events)) {
     for (const ev of req.body.events) {
-      await db.addEvent({
-        tenant_id: dev.tenant_id,
-        device_id: dev.id,
-        hostname: dev.hostname,
-        kind: ev.kind || "telemetry",
-        sanitized: true,
-        payload: ev.payload || {}
-      });
+      try {
+        await db.addEvent({
+          tenant_id: dev.tenant_id,
+          device_id: dev.id,
+          hostname: dev.hostname,
+          kind: ev.kind || "telemetry",
+          sanitized: true,
+          payload: ev.payload || {},
+          client_msg_id: ev.client_msg_id
+        });
+      } catch (err) {
+        if (err.message === 'EVENT_IDEMPOTENCY_CONFLICT') {
+          return res.status(409).json({
+            error: 'EVENT_IDEMPOTENCY_CONFLICT',
+            detail: 'This authenticated device already submitted different event content with the same client_msg_id.'
+          });
+        }
+        throw err;
+      }
     }
   }
 

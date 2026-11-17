@@ -1,6 +1,16 @@
 # Phase N Stage 28 — Durable event ID safety under retries
 
-**Status: CODE PROPOSED — CI PENDING; PRODUCTION BLOCKED.**
+**Status: CODE/CI ACCEPTED — CUSTOMER PRODUCTION BLOCKED (2026-11-18 IST).**
+
+## Verified automation evidence
+
+- [PR #18](https://github.com/rehman2671/Aaditech-toolkit-new/pull/18) squash-merged on main as `061694329e98e789af362545e9afe5806508fb6c`.
+- [PR CI #44181385387](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44181385387): **SUCCESS** on Node/Vitest, PowerShell and real MySQL/API (including migration 013, 24 simultaneous retry insertions, original-event/content conflict validation, authenticated HTTP exact-retry and 409 checks). Diagnostic Windows MSI job is intentionally **SKIPPED** for PRs.
+- [PR deployment safety #44181385547](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44181385547): **SUCCESS 2/2** isolated MySQL backup/restore and shell safety.
+- [Main CI #44181875110](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44181875110): **SUCCESS 4/4** — Node/Vitest, PowerShell, real MySQL/API, and genuine Windows ps2exe/WiX diagnostic MSI build, extraction, install/uninstall and major-upgrade preserving tenant configuration.
+- [Main deployment safety #44181875324](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44181875324): **SUCCESS 2/2**.
+- The workflow did **not** publish public signed artifacts: `Upload verified signed artifacts only` was **SKIPPED**. Diagnostic MSI validation is not public Authenticode release approval.
+
 
 Stage N27 deliberately retries local SQLite events on lost acknowledgment.
 Old server ingestion appended every retry, and `hostname:<row-id>` could
@@ -22,8 +32,8 @@ validation.
 
 ## Acceptance gates
 
-- [ ] PR Node/Vitest, PowerShell behavioral tests and real MySQL/API 24-way concurrency plus deployment-safety all pass.
-- [ ] Main genuine diagnostic Windows ps2exe/WiX MSI build, extraction, install/uninstall and major upgrade passes.
+- [x] PR Node/Vitest, PowerShell behavioral tests and real MySQL/API 24-way concurrency plus deployment-safety all pass.
+- [x] Main genuine diagnostic Windows ps2exe/WiX MSI build, extraction, install/uninstall and major upgrade passes.
 - [ ] Physical customer-enrolled Windows ACK-loss retry, fresh queue on reinstall, upgrade preserving identity.
 - [ ] Authorized production encrypted backup/offsite restore before migration 013, Hostinger DNS/TLS and ownership.
 - [ ] Public Authenticode signature, real SMTP/webhook recipient and external Graph/ITSM integrations.

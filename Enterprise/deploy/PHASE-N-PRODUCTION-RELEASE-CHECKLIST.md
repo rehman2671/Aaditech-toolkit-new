@@ -1,8 +1,11 @@
 # Phase N — Production release acceptance and sign-off
 
-## Stage N26 — canonical MSI-agent telemetry (acceptance PENDING)
+## Stage N26 — canonical MSI-agent telemetry (CODE/CI ACCEPTED; PRODUCTION BLOCKED)
 
-- [ ] Verify CI (Node/Vitest, PowerShell, real MySQL and diagnostic Windows MSI) on PR and merged main.
+**Automated accepted (2026-11-17):** [PR #16](https://github.com/rehman2671/Aaditech-toolkit-new/pull/16);
+[main CI #44148317301](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44148317301) **SUCCESS 4/4** including diagnostic Windows MSI and [main deployment-safety #44148317186](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44148317186) **SUCCESS 2/2**. Public artifact signing/upload deliberately skipped.
+
+- [x] Verify CI (Node/Vitest, PowerShell, real MySQL and diagnostic Windows MSI) on PR and merged main.
 - [ ] On an authorized physical Windows MSI install, confirm canonical Agent-Collect.exe reports fresh CPU, RAM, system-drive free disk, BitLocker, Defender and firewall state to the enrolled workspace.
 - [ ] Under a collector-denied account, prove unavailable values remain NULL or UNKNOWN, and replayed outbox events are not promoted to current measurements.
 - [ ] Verify genuine 0 GB free disk can alert but missing/null measurements never trigger low-disk notifications.

@@ -1,5 +1,7 @@
 # Empirical Test Results & Verification Ledger
 
+> **Current verification addendum (2026-11-17, Phase N26):** [PR #16](https://github.com/rehman2671/Aaditech-toolkit-new/pull/16) merged. [main CI #44148317301](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44148317301) **SUCCESS 4/4** (Node/Vitest, PowerShell, real MySQL/API, genuine Windows diagnostic EXE/WiX MSI install/uninstall/major upgrade); [main deployment-safety #44148317186](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44148317186) **SUCCESS 2/2**. Tests include `tests/unit/canonical-agent-snapshot-stage26.test.js` for fresh canonical measurements and noncoercing alerts. The dated 2026-11-03 counts below are **historical**, not refreshed totals or production certification. Signed publication and physical customer acceptance remain blocked.
+
 **Execution Timestamp:** 2026-11-03  
 **Runner:** Node.js v20+ Test Environment  
 

@@ -20,6 +20,7 @@ This directory contains ordered, idempotent, versioned schema migrations managed
 12. `012_measured_device_telemetry.sql`: add nullable server-owned metric evidence timestamp, neutral CPU/RAM/disk/battery/total-capacity defaults and nullable missing history samples. Historic default values remain unverified.
 13. `013_events_idempotency.sql`: add nullable per-event message keys, server-side content digests and insertion-winner nonce, plus unique tenant/device/message index. Historic NULL-owned and unkeyed events remain unmodified.
 14. `014_telemetry_batches.sql`: add a transaction-bound SHA-256 receipt keyed by enrolled tenant, device and client batch ID. No historic rows are modified.
+15. `015_batch_receipt_retention_index.sql`: indexed age metadata for read-only retention reports and explicitly confirmed bounded cleanup of receipts belonging only to fully decommissioned tenants with zero registered devices.
 
 ## Migration Runner & Concurrency
 - Tracked via the `schema_migrations` table (`version`, `name`, `applied_at`, `execution_time_ms`, `checksum`).
@@ -83,3 +84,9 @@ This directory contains ordered, idempotent, versioned schema migrations managed
 - Canonical Windows agent persists the exact in-flight HTTP JSON body in local SQLite until a matching batch-ID and accepted-count ACK. An unsuccessful send retries identical bytes, not a new measurement with an old ID.
 - A keyed HTTP batch persists the receipt, device evidence, measured history, process inventory, events, alerts and authorized notification outbox inside one InnoDB transaction. On error, everything rolls back. The unique tenant/device/batch index serializes concurrent PM2 workers. Matching replay returns original ACK; reused key with altered body returns HTTP 409.
 - Unkeyed legacy clients remain supported without transaction-level dedup guarantees. Actual SMTP/webhook delivery is still at-least-once. Cache invalidation and public signed MSI/Hostinger deployment/physical device evidence are not inside this DB transaction.
+
+## N30 safe receipt retention policy
+
+- SHA-256 keyed batch receipts are compact deduplication tombstones: do **not** prune them based only on ordinary telemetry-history retention or device inactivity. Pruning an active tenant's receipt may allow an old HTTP replay to create history and alerts again.
+- `maintainTelemetryBatchReceipts()` defaults to **DRY_RUN**. An actual purge needs operator confirmation `PURGE_DECOMMISSIONED_BATCH_RECEIPTS`, minimum age 180 days, max 500 rows per call, and **both** tenant record and ALL of its registered device records must be absent at deletion time. The conditional SQL rechecks both predicates atomically. No scheduled automatic delete exists.
+- Review operator output and an independent tenant deprovision/backup process before authorizing cleanup. Safe storage sizing/retention policies for active tenants must not silently revoke retry guarantees. Public signing/Hostinger/physical-device checks remain separate gates.

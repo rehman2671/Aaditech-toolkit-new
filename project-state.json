@@ -1,41 +1,39 @@
 {
   "state_version": "1.0",
   "path": "project-state.json",
-  "generated": "2026-11-17T22:27:50+00:00",
+  "generated": "2026-11-17T22:50:30+00:00",
   "phase": "PHASE N STAGE 4 / PRODUCTION ACCEPTANCE IN PROGRESS",
-  "last_verified_commit": "3aa28aee3061f5b70ee81dca9b6460f67837e6ac",
-  "last_verified_date": "2026-11-18T03:57:38+05:30",
+  "last_verified_commit": "6874e72f2faf9499b4d584b8852781a111b092da",
+  "last_verified_date": "2026-11-18T04:20:15+05:30",
   "git": {
     "branch": "main",
     "commit_count": 1,
     "clean_working_tree": true,
-    "head": "3aa28aee3061f5b70ee81dca9b6460f67837e6ac"
+    "head": "6874e72f2faf9499b4d584b8852781a111b092da"
   },
   "latest_delta": {
-    "detected_at": "2026-11-17T22:27:50+00:00",
+    "detected_at": "2026-11-17T22:50:30+00:00",
     "added": [
-      "tests/unit/telemetry-receipt-retention-stage30.test.js",
-      "test-batch-receipt-retention-mysql.js",
-      "database/migrations/015_batch_receipt_retention_index.sql",
-      "Enterprise/deploy/PHASE-N-STAGE30-ACCEPTANCE.md"
+      "Enterprise/deploy/PHASE-N-STAGE31-ACCEPTANCE.md",
+      "Enterprise/deploy/preflight-stage31.sh",
+      "Enterprise/tests/Test-Stage31Preflight.sh",
+      "Enterprise/tests/Test-Stage31PublicationPins.ps1",
+      "Enterprise/tests/Test-CustomerWindowsAcceptance.ps1",
+      "Enterprise/tests/Test-Stage31WindowsPreflight.ps1"
     ],
     "removed": [],
     "changed": [
-      "database/mysql/schema.sql",
-      ".github/workflows/ci.yml",
-      "docs/assessment/GAP-REGISTER.md",
-      "Enterprise/deploy/PHASE-N-STAGE29-ACCEPTANCE.md",
-      "database/migrations/README.md",
-      "server.js",
-      "validation.js",
-      "docs/assessment/RELEASE-READINESS.md",
       "docs/assessment/TEST-RESULTS.md",
-      "test-migrations-runner.js",
-      "db.js",
-      "Enterprise/tests/Test-Windows-MsiUpgrade.ps1",
-      "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md"
+      "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md",
+      ".github/workflows/ci.yml",
+      ".github/workflows/publish-signed-installer.yml",
+      "Enterprise/deploy/PHASE-N-STAGE30-ACCEPTANCE.md",
+      ".github/workflows/deployment-safety.yml",
+      "Enterprise/agent/build/Verify-ReleaseArtifact.ps1",
+      "docs/assessment/RELEASE-READINESS.md",
+      "docs/assessment/GAP-REGISTER.md"
     ],
-    "unchanged_count": 313
+    "unchanged_count": 321
   },
   "production_ready": false,
   "acceptance_gates": [

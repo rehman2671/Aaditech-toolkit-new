@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-17T22:27:50+00:00",
-  "last_verified_commit": "3aa28aee3061f5b70ee81dca9b6460f67837e6ac",
-  "last_verified_date": "2026-11-18T03:57:38+05:30",
+  "generated": "2026-11-17T22:50:30+00:00",
+  "last_verified_commit": "6874e72f2faf9499b4d584b8852781a111b092da",
+  "last_verified_date": "2026-11-18T04:20:15+05:30",
   "overall_progress_percent": 100.0,
   "progress_scope": "historic audit issue closure only; production acceptance pending",
   "production_ready": false,
@@ -14,21 +14,12 @@
     "percent": 100.0
   },
   "latest_delta": {
-    "added": 4,
+    "added": 6,
     "removed": 0,
-    "changed": 13,
-    "unchanged": 313
+    "changed": 9,
+    "unchanged": 321
   },
   "delta_history": [
-    {
-      "detected_at": "2026-11-16T18:47:07+00:00",
-      "added": [
-        "test-workspace-invitations-mysql.js"
-      ],
-      "removed": [],
-      "changed": [],
-      "unchanged_count": 272
-    },
     {
       "detected_at": "2026-11-16T18:47:28+00:00",
       "added": [],
@@ -433,6 +424,30 @@
         "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md"
       ],
       "unchanged_count": 313
+    },
+    {
+      "detected_at": "2026-11-17T22:50:30+00:00",
+      "added": [
+        "Enterprise/deploy/PHASE-N-STAGE31-ACCEPTANCE.md",
+        "Enterprise/deploy/preflight-stage31.sh",
+        "Enterprise/tests/Test-Stage31Preflight.sh",
+        "Enterprise/tests/Test-Stage31PublicationPins.ps1",
+        "Enterprise/tests/Test-CustomerWindowsAcceptance.ps1",
+        "Enterprise/tests/Test-Stage31WindowsPreflight.ps1"
+      ],
+      "removed": [],
+      "changed": [
+        "docs/assessment/TEST-RESULTS.md",
+        "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md",
+        ".github/workflows/ci.yml",
+        ".github/workflows/publish-signed-installer.yml",
+        "Enterprise/deploy/PHASE-N-STAGE30-ACCEPTANCE.md",
+        ".github/workflows/deployment-safety.yml",
+        "Enterprise/agent/build/Verify-ReleaseArtifact.ps1",
+        "docs/assessment/RELEASE-READINESS.md",
+        "docs/assessment/GAP-REGISTER.md"
+      ],
+      "unchanged_count": 321
     }
   ],
   "next_recommended_tasks": [

@@ -90,7 +90,7 @@ describe('Phase N23 command queue: database is authoritative', () => {
     expect(await db.completeCommandInDb('cmd-X', 'completed', 'done', '', 0, 'device-B')).toBe(false);
     expect(await db.completeCommandInDb('cmd-X', 'completed', 'done', '', 0, 'device-A')).toBe(true);
     expect(await db.completeCommandInDb('cmd-X', 'failed', 'late overwrite', '', 1, 'device-A')).toBe(false);
-    expect(queries.filter(q => q.sql.includes("status = 'IN_PROGRESS'"))).toHaveLength(4);
+    expect(queries.filter(q => q.sql.includes("AND status = 'IN_PROGRESS'"))).toHaveLength(4);
     expect(queries.every(q => q.sql.includes('device_id = ?'))).toBe(true);
     expect(state).toBe('COMPLETED');
   });

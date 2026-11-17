@@ -267,7 +267,8 @@ jobs:
           DB_NAME: it_toolkit
           NODE_ENV: test
           AADITECH_EVENT_DEDUP_REHEARSAL: isolated-ci
-        run: node test-event-idempotency-mysql.js
+        timeout-minutes: 3
+        run: timeout 120s node test-event-idempotency-mysql.js
 
       - name: Rehearse multi-process tenant/device identity concurrency against real MySQL
         env:

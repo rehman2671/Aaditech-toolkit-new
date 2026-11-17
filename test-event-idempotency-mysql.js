@@ -31,10 +31,13 @@ async function count(t,d){
   return Number(r[0].n);
 }
 try{
+  console.log('N28: start isolated real MySQL and migrations');
   await db.attemptConnection();
+  console.log('N28: schema ready');
   const [columns]=await pool.query("SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'events' AND COLUMN_NAME IN ('client_msg_id','event_hash')");
   assert.equal(columns.length,2,'real migration 013 columns');
   const results=await Promise.all(Array.from({length:24},()=>db.addEvent({...ev})));
+  console.log('N28: 24 simultaneous event inserts finished');
   assert.equal(await count(tenantA,deviceA),1,'24 simultaneous retries create 1 row');
   assert.equal(results.filter(x=>!x.duplicate).length,1,'one insert winner');
   assert.equal(results.filter(x=>x.duplicate).length,23,'23 exact replay ACKs');
@@ -63,7 +66,9 @@ try{
   const body = { hostname: host,
     events: [{ kind: 'n28_replay', client_msg_id: httpKey, payload: { free_gb: 0 } }] };
   const post = payload => request(app).post('/api/v1/ingest/telemetry')
-    .set('X-Device-Token', agentToken).send(payload);
+    .set('X-Device-Token', agentToken).send(payload)
+    .timeout({ response: 10000, deadline: 15000 });
+  console.log('N28: authenticated HTTP replay begins');
   const first = await post(body);
   assert.equal(first.status, 200, 'authenticated first event HTTP ACK');
   assert.equal(first.body.accepted, 1);
@@ -91,3 +96,7 @@ try{
   db.stopDbHealthCheck();
   db.stopTelemetryFlushWorker?.();
 }
+
+// Isolated CI script may import modules holding idle handles; only after
+// all SQL, HTTP and cleanup assertions pass, terminate deliberately.
+process.exit(0);

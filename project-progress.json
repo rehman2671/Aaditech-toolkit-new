@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-17T07:54:49+00:00",
-  "last_verified_commit": "908ff54ee7fbef94d523e51b44ebcca27736e2d2",
-  "last_verified_date": "2026-11-17T13:24:37+05:30",
+  "generated": "2026-11-17T08:03:41+00:00",
+  "last_verified_commit": "af72dabe41818b8403f8a97f714b41606e1a9880",
+  "last_verified_date": "2026-11-17T13:33:25+05:30",
   "overall_progress_percent": 100.0,
   "progress_scope": "historic audit issue closure only; production acceptance pending",
   "production_ready": false,
@@ -14,21 +14,12 @@
     "percent": 100.0
   },
   "latest_delta": {
-    "added": 4,
+    "added": 3,
     "removed": 0,
-    "changed": 14,
-    "unchanged": 283
+    "changed": 6,
+    "unchanged": 295
   },
   "delta_history": [
-    {
-      "detected_at": "2026-11-16T18:39:12+00:00",
-      "added": [
-        "tests/unit/workspace-invitation-consent.test.js"
-      ],
-      "removed": [],
-      "changed": [],
-      "unchanged_count": 268
-    },
     {
       "detected_at": "2026-11-16T18:39:52+00:00",
       "added": [],
@@ -303,6 +294,24 @@
         "docs/assessment/RELEASE-READINESS.md"
       ],
       "unchanged_count": 283
+    },
+    {
+      "detected_at": "2026-11-17T08:03:41+00:00",
+      "added": [
+        "database/migrations/010_events_tenant_device_identity.sql",
+        "tests/unit/tenant-events-stage22.test.js",
+        "Enterprise/deploy/PHASE-N-STAGE22-ACCEPTANCE.md"
+      ],
+      "removed": [],
+      "changed": [
+        "tests/unit/tenant-read-boundaries.test.js",
+        "db.js",
+        "test-migrations-runner.js",
+        "database/migrations/README.md",
+        "database/mysql/schema.sql",
+        "server.js"
+      ],
+      "unchanged_count": 295
     }
   ],
   "next_recommended_tasks": [

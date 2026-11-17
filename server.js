@@ -1300,6 +1300,43 @@ app.post(['/api/v1/agent/heartbeat', '/api/agent/heartbeat'], agentLimiter, asyn
   });
 });
 
+// Calculate one set of alert/outbox writes BEFORE acquiring the transactional
+// batch key. The resulting plans are inserted only if the entire batch wins
+// the InnoDB unique (tenant, device, batch_id) claim; retries write nothing.
+async function getAtomicTelemetryAlertPlans(dev, measured) {
+  const plans = [];
+  const rules = scopedAlertRules(dev.tenant_id, await db.getAlertRules());
+  let authorizedChannels = null;
+  for (const rule of rules) {
+    if (!rule.enabled) continue;
+    const msg = evaluateMeasuredAlert(rule, measured);
+    if (!msg) continue;
+    const notification = {
+      title: rule.name,
+      message: dev.hostname + ': ' + msg,
+      severity: rule.severity || 'warning',
+      details: { hostname: dev.hostname, metric: rule.metric, threshold: rule.threshold }
+    };
+    if (authorizedChannels === null) {
+      const [webhook, email] = await Promise.all([
+        db.getTenantWebhookConfig(dev.tenant_id),
+        db.getTenantEmailConfig(dev.tenant_id)
+      ]);
+      authorizedChannels = [];
+      const webhookHash = destinationFingerprint(dev.tenant_id, 'webhook', webhook);
+      const emailHash = destinationFingerprint(dev.tenant_id, 'email', email);
+      if (webhookHash) authorizedChannels.push({ channel: 'webhook', destination_hash: webhookHash });
+      if (emailHash) authorizedChannels.push({ channel: 'email', destination_hash: emailHash });
+    }
+    plans.push({
+      tenant_id: dev.tenant_id, device_id: dev.id, hostname: dev.hostname,
+      rule: rule.name, severity: rule.severity || 'warning', message: msg,
+      notifications: authorizedChannels.map(job => ({ ...job, event: notification }))
+    });
+  }
+  return plans;
+}
+
 // Telemetry Ingestion (Canonical v1 + Legacy alias /api/ingest)
 app.post(['/api/v1/ingest/telemetry', '/api/ingest'], agentLimiter, validateBody(telemetryIngestSchema), async (req, res) => {
   const agentVer = req.headers['x-agent-version'] || req.body.agent_version || getAgentVersion();
@@ -1383,6 +1420,50 @@ app.post(['/api/v1/ingest/telemetry', '/api/ingest'], agentLimiter, validateBody
     // This timestamp is server-owned, never taken from a spoofable device
     // payload or from an enrollment registration/heartbeat timestamp.
     devUpdates.posture_reported_at = new Date();
+  }
+
+  // N29 canonical requests: the receipt, device update, measured history,
+  // event rows, alerts and notification jobs MUST share a single SQL commit.
+  // A lost HTTPS ACK results in a read-only duplicate response, not fresh
+  // measured evidence or repeated alert fan-out. Legacy agents without a
+  // batch_id continue down the original compatibility route below.
+  if (req.body.batch_id) {
+    try {
+      const plans = hasMeasurement ? await getAtomicTelemetryAlertPlans(dev, measured) : [];
+      const receipt = await db.ingestTelemetryBatchOnce({
+        tenant_id: dev.tenant_id,
+        device_id: dev.id,
+        hostname: dev.hostname,
+        batch_id: req.body.batch_id,
+        request_hash: crypto.createHash('sha256')
+          .update(JSON.stringify(req.body)).digest('hex'),
+        device_updates: devUpdates,
+        metrics: hasMeasurement ? measured : null,
+        processes: Array.isArray(processes) ? processes : [],
+        events: Array.isArray(req.body.events) ? req.body.events : [],
+        alerts: plans
+      });
+      if (!receipt.duplicate && Array.isArray(app_usage) && app_usage.length) {
+        // Redis is an optional cache, never the durable receipt authority.
+        await db.cacheSet('app_usage:' + dev.id, app_usage, 900);
+      }
+      return res.status(200).json({
+        status: 'OK', batch_id: receipt.batch_id, accepted: receipt.accepted,
+        recorded_at: new Date(receipt.recorded_at).toISOString(),
+        sequence_number: sequence_number || 1, hostname: dev.hostname,
+        duplicate: receipt.duplicate
+      });
+    } catch (err) {
+      if (['TELEMETRY_BATCH_ID_CONFLICT', 'EVENT_IDEMPOTENCY_CONFLICT'].includes(err.message)) {
+        return res.status(409).json({ error: err.message,
+          detail: 'An authenticated device already submitted a different payload under the same message/batch ID.' });
+      }
+      if (err.message === 'TELEMETRY_BATCH_MYSQL_REQUIRED') {
+        return res.status(503).json({ error: 'DATABASE_UNAVAILABLE',
+          detail: 'Durable telemetry receipt requires a healthy persistent MySQL database.' });
+      }
+      throw err;
+    }
   }
 
   await db.updateDevice(dev.id, devUpdates);

@@ -278,8 +278,9 @@ export async function runDatabaseMigrations() {
       memAppliedMigrations.add('011');
       memAppliedMigrations.add('012');
       memAppliedMigrations.add('013');
+      memAppliedMigrations.add('014');
     }
-    return { applied: [], skipped: ['001_init_schema.sql', '002_partitioning.sql', '003_rbac_and_audit.sql', '004_workspace_memberships.sql', '005_remediation_tenant_logs.sql', '006_notification_outbox.sql', '007_scrub_legacy_github_pat.sql', '008_scrub_legacy_ticket_keys.sql', '009_notification_destination_binding.sql', '010_events_tenant_device_identity.sql', '011_security_posture_provenance.sql', '012_measured_device_telemetry.sql', '013_events_idempotency.sql'], status: 'FALLBACK_MODE' };
+    return { applied: [], skipped: ['001_init_schema.sql', '002_partitioning.sql', '003_rbac_and_audit.sql', '004_workspace_memberships.sql', '005_remediation_tenant_logs.sql', '006_notification_outbox.sql', '007_scrub_legacy_github_pat.sql', '008_scrub_legacy_ticket_keys.sql', '009_notification_destination_binding.sql', '010_events_tenant_device_identity.sql', '011_security_posture_provenance.sql', '012_measured_device_telemetry.sql', '013_events_idempotency.sql', '014_telemetry_batches.sql'], status: 'FALLBACK_MODE' };
   }
 
   let lockAcquired = false;
@@ -1634,6 +1635,150 @@ export async function deleteDevice(id) {
   invalidateDeviceCache(id);
   await cacheDel('cache:devices:list');
   return true;
+}
+
+// N29: keyed telemetry requests are ONE atomic MySQL transaction.
+// MySQL's tenant/device/batch unique key serializes parallel workers and
+// an immutable receipt makes ACK-loss replay a read-only operation.
+export async function ingestTelemetryBatchOnce(batch) {
+  const { tenant_id: tenantId, device_id: deviceId, batch_id: batchId,
+    request_hash: hash, device_updates: updates = {},
+    metrics: measured, processes = [], events = [], alerts = [] } = batch || {};
+  if (!tenantId || !deviceId ||
+      !/^[A-Za-z0-9][A-Za-z0-9:._-]{0,63}$/.test(String(batchId || '')) ||
+      !/^[0-9a-f]{64}$/.test(String(hash || ''))) throw new Error('TELEMETRY_BATCH_INVALID');
+  if (!isMysqlConnected() || !pool?.getConnection) throw new Error('TELEMETRY_BATCH_MYSQL_REQUIRED');
+  const conn = await pool.getConnection();
+  let committed = false;
+  try {
+    await conn.beginTransaction();
+    const nonce = crypto.randomBytes(16).toString('hex');
+    await conn.query(
+      'INSERT INTO telemetry_batches (tenant_id, device_id, batch_id, request_hash, insert_nonce, accepted_count) ' +
+      'VALUES (?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE batch_id = batch_id',
+      [tenantId, deviceId, batchId, hash, nonce, events.length]
+    );
+    // No affectedRows inference: mysql2 CLIENT_FOUND_ROWS reports 1 for no-op.
+    const [claims] = await conn.query(
+      'SELECT request_hash, insert_nonce, accepted_count, recorded_at FROM telemetry_batches ' +
+      'WHERE tenant_id = ? AND device_id = ? AND batch_id = ? FOR UPDATE',
+      [tenantId, deviceId, batchId]
+    );
+    const claim = claims[0];
+    if (claims.length !== 1 || claim.request_hash !== hash ||
+        Number(claim.accepted_count) !== events.length) throw new Error('TELEMETRY_BATCH_ID_CONFLICT');
+    if (claim.insert_nonce !== nonce) {
+      await conn.commit();
+      committed = true;
+      return { duplicate: true, accepted: Number(claim.accepted_count),
+        recorded_at: claim.recorded_at, batch_id: batchId };
+    }
+
+    const [owners] = await conn.query(
+      'SELECT id FROM devices WHERE id = ? AND tenant_id = ? FOR UPDATE',
+      [deviceId, tenantId]
+    );
+    if (owners.length !== 1) throw new Error('TELEMETRY_DEVICE_OWNER_MISMATCH');
+    const safeColumns = new Set(['status','os_version','ip_address','cpu_usage',
+      'memory_usage','disk_free','disk_free_gb','telemetry_reported_at',
+      'bitlocker_status','antivirus_status','firewall_status','antivirus_name',
+      'security_score','posture_reported_at']);
+    const fields = [], values = [];
+    for (const [name, value] of Object.entries(updates)) {
+      if (!safeColumns.has(name)) throw new Error('TELEMETRY_DEVICE_FIELD_INVALID');
+      fields.push(name + ' = ?');
+      values.push(value);
+    }
+    fields.push('last_seen_at = NOW(3)');
+    await conn.query('UPDATE devices SET ' + fields.join(', ') + ' WHERE id = ? AND tenant_id = ?',
+      [...values, deviceId, tenantId]);
+
+    if (measured && [measured.cpu,measured.ram,measured.disk,measured.latency]
+      .some(v => v !== null && v !== undefined)) {
+      await conn.query(
+        'INSERT INTO telemetry_history (device_id,cpu_pct,ram_pct,disk_free_gb,net_latency_ms,recorded_at) ' +
+        'VALUES (?,?,?,?,?,NOW(3))',
+        [deviceId,measured.cpu,measured.ram,measured.disk,
+          measured.latency == null ? null : Math.round(measured.latency)]
+      );
+    }
+    if (Array.isArray(processes) && processes.length) {
+      await conn.query('DELETE FROM device_processes WHERE device_id = ?', [deviceId]);
+      const rows = processes.slice(0,100).map(pr => [
+        deviceId,pr.pid || 0,pr.name || 'Unknown',parseFloat(pr.cpu_pct || 0),
+        parseFloat(pr.ram_mb || 0),pr.path || null,pr.user_account || null,new Date()
+      ]);
+      await conn.query(
+        'INSERT INTO device_processes (device_id,pid,name,cpu_pct,ram_mb,path,user_account,updated_at) VALUES ?',
+        [rows]
+      );
+    }
+
+    for (const ev of events) {
+      const kind = ev.kind || 'telemetry', payload = ev.payload || {};
+      const key = ev.client_msg_id;
+      if (key !== undefined && key !== null) {
+        if (typeof key !== 'string' ||
+            !/^[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$/.test(key)) {
+          throw new Error('EVENT_CLIENT_MSG_ID_INVALID');
+        }
+        const digest = crypto.createHash('sha256')
+          .update(JSON.stringify([kind,1,payload])).digest('hex');
+        await conn.query(
+          'INSERT INTO events (tenant_id,device_id,client_msg_id,event_hash,event_insert_nonce,' +
+          'hostname,kind,sanitized,payload,captured_at) VALUES (?,?,?,?,?,?,?,1,?,NOW(3)) ' +
+          'ON DUPLICATE KEY UPDATE id=LAST_INSERT_ID(id)',
+          [tenantId,deviceId,key,digest,crypto.randomBytes(16).toString('hex'),
+            batch.hostname,kind,JSON.stringify(payload)]
+        );
+        const [prior] = await conn.query(
+          'SELECT event_hash FROM events WHERE tenant_id=? AND device_id=? AND client_msg_id=? LIMIT 1',
+          [tenantId,deviceId,key]
+        );
+        if (prior.length !== 1 || prior[0].event_hash !== digest) {
+          throw new Error('EVENT_IDEMPOTENCY_CONFLICT');
+        }
+      } else {
+        await conn.query(
+          'INSERT INTO events (tenant_id,device_id,hostname,kind,sanitized,payload,captured_at) ' +
+          'VALUES (?,?,?,?,1,?,NOW(3))',
+          [tenantId,deviceId,batch.hostname,kind,JSON.stringify(payload)]
+        );
+      }
+    }
+    for (const alt of alerts) {
+      if (alt?.tenant_id !== tenantId || String(alt?.device_id) !== String(deviceId)) {
+        throw new Error('TELEMETRY_ALERT_OWNER_MISMATCH');
+      }
+      const [created] = await conn.query(
+        'INSERT INTO alerts (tenant_id,device_id,agent_id,hostname,rule,rule_name,severity,message,status,created_at) ' +
+        'VALUES (?,?,NULL,?,?,?,?,?, ?,NOW(3))',
+        [tenantId,deviceId,alt.hostname,alt.rule,alt.rule,
+          alt.severity || 'warning',alt.message,'open']
+      );
+      for (const job of alt.notifications || []) {
+        if (!['email','webhook'].includes(job?.channel) ||
+            !/^[0-9a-f]{64}$/.test(String(job.destination_hash || '')) ||
+            !job.event || typeof job.event !== 'object' || Array.isArray(job.event)) {
+          throw new Error('INVALID_NOTIFICATION_CHANNEL');
+        }
+        await conn.query(
+          'INSERT IGNORE INTO notification_outbox (tenant_id,alert_id,channel,destination_hash,payload_json) ' +
+          'VALUES (?,?,?,?,?)',
+          [tenantId,created.insertId,job.channel,job.destination_hash,JSON.stringify(job.event)]
+        );
+      }
+    }
+    await conn.commit();
+    committed = true;
+    invalidateDeviceCache(deviceId);
+    await cacheDel('cache:devices:list');
+    return { duplicate: false, accepted: events.length,
+      recorded_at: claim.recorded_at, batch_id: batchId };
+  } catch (err) {
+    if (!committed) { try { await conn.rollback(); } catch (_) {} }
+    throw err;
+  } finally { conn.release(); }
 }
 
 // ---------------- TELEMETRY (BATCHED & RESILIENT) ----------------

@@ -1,6 +1,6 @@
 # Phase N Stage 23 — Atomic agent command claims and truthful execution results
 
-**Status: implementation awaiting independent PR CI and main-branch acceptance. Production rollout remains BLOCKED.**
+**Status: STAGE 23 CODE/CI ACCEPTED; PRODUCTION BLOCKED.** [PR #13](https://github.com/rehman2671/Aaditech-toolkit-new/pull/13) merged. [Main CI #44054232799](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44054232799) **SUCCESS 4/4**, including real Windows diagnostic MSI install/uninstall/major-upgrade; [main deployment safety #44054232802](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44054232802) **SUCCESS 2/2**. Actual publisher-signed release, live Hostinger and physical customer Windows acceptance remain blocked.
 
 ## What Stage 23 corrects
 
@@ -25,3 +25,11 @@
 - Real HTTP regression covers duplicated completion after success and a premature completion before polling.
 - Acceptance requires successful PR Node/Vitest, PowerShell, MySQL/API fault injection and deployment safety; post-merge main Windows diagnostic MSI install/uninstall/upgrade and safety green.
 - Live Hostinger, authorized customer offsite MySQL restore, public Authenticode-signed MSI, customer SMTP receiver and physical Windows UAC/upgrade remain unverified external gates. Microsoft Graph and Jira/ServiceNow/Zendesk are not connected.
+
+## Verified Stage 23 evidence — 2026-11-17
+
+- [PR CI #44053797392](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44053797392) **SUCCESS** after fixing test SQL predicate assertions; [PR safety #44053797380](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44053797380) **SUCCESS**.
+- Merged PR #13 at `c53fc58fa276895bb391e21d648470954ee2e03f`.
+- [Main CI #44054232799](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44054232799) **4/4 SUCCESS**: Node/Vitest including new command-state tests, PowerShell, real MySQL/API fault-injection, Windows diagnostic WiX MSI installation, uninstall and major-upgrade preservation.
+- [Main deployment safety #44054232802](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44054232802) **2/2 SUCCESS**: MySQL 8 disposable recovery and offline deployment safety.
+- Production signed installer publication, real customer Windows result attestation, authorized Hostinger VPS/DNS/TLS, offsite production MySQL restore, live webhook/SMTP mailbox, real Graph/Jira integrations remain **NOT ACCEPTED / NOT CONNECTED**.

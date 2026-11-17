@@ -86,3 +86,13 @@ These tests execute on CI runners and disposable databases. They do **not** prov
 - Stage22 [main CI #44043497516](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44043497516) **4/4 SUCCESS** including Node/Vitest, PowerShell, isolated MySQL/API fault injection, Windows EXE/MSI install/uninstall/major-upgrade. [Main safety #44043497509](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44043497509) **2/2 SUCCESS**.
 - Regression focus: HMAC-SHA256 destination pinning, changed recipient/URL quarantine, NULL-owned old jobs fail closed, lease expiry/ack consistency, migration 009; direct event tenant/device SQL ownership, quarantine legacy NULL events, no hostname JOIN or shared Redis hostname usage, migration 010.
 - **External not yet accepted:** real signed MSI publisher identity, physical customer Windows, actual Hostinger domain/TLS/VPS, customer DB migration/offsite restore, live SMTP inbox + webhook receiver and third-party Jira/Graph APIs. Do not label production certified.
+
+---
+
+## 8. Verified Stage 23 — SQL-authoritative remote command lifecycle (2026-11-17)
+
+- [PR CI #44053797392](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44053797392) **SUCCESS**; [PR deployment safety #44053797380](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44053797380) **SUCCESS**. PR #13 squash-merged as `c53fc58fa276895bb391e21d648470954ee2e03f`.
+- [Main CI #44054232799](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44054232799) **4/4 SUCCESS**, including Node/Vitest and HTTP tests, PowerShell validation, real MySQL 8/API network fault injection, diagnostic Windows MSI install/uninstall/major-upgrade.
+- [Main safety #44054232802](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44054232802) **2/2 SUCCESS**, isolated MySQL backup/restore and offline safety controls.
+- Regression coverage: MySQL write errors never report queued, command ID reads/pending reads fail closed on production DB, concurrent pollers claim with device-bound CAS, result database update requires `IN_PROGRESS` and exact device ID, duplicate/pre-poll results HTTP 409, invalid output/status bodies rejected, remediation queue failure returns 503.
+- **Production external gates remain blocked:** physical customer Windows agent UAC/upgrade, public Authenticode signed installer, Hostinger DNS/TLS/VPS, approved offsite customer DB restore, real SMTP receiver/webhook, Microsoft Graph and Jira provider verification.

@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased — Phase N Stage 23 (SQL-authoritative command dispatch and result integrity)
+- Fixed a real remote command lifecycle gap: MySQL insertion failure can no longer generate a success-looking command or remediation dispatch; production command lookup/pending lists refuse in-memory shadow fallback.
+- Atomic device-bound compare-and-swap `PENDING → IN_PROGRESS` prevents concurrent polls from delivering the same command twice; only one database-acknowledged claim receives a signed executable payload.
+- Result reporting now accepts terminal changes only from the verified enrolled device with persisted `IN_PROGRESS` state; duplicate, stale and pre-poll results return HTTP 409, while database failures cannot be mistaken for execution confirmation.
+- Restricted result body status/output, added offline SQL emulator lifecycle handling and HTTP + unit regression tests. Unknown execution outcomes intentionally require operator investigation, not automatic replay.
+- [Main CI #44054232799](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44054232799) **4/4 SUCCESS** and [safety #44054232802](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44054232802) **2/2 SUCCESS**. Actual signed public MSI, Hostinger live release, offsite restore and physical Windows gates remain open.
+
+
 ## Unreleased — Phase N Stage 22 (event-log tenant/device containment)
 - Eliminated cross-workspace event payload exposure caused by joining legacy events to devices on **non-unique hostname**. New event rows carry verified tenant_id and globally unique device_id, and tenant/device endpoints apply direct ownership SQL predicates.
 - Migration `010_events_tenant_device_identity.sql` conditionally adds nullable ownership columns plus index; legacy NULL rows are quarantined rather than assigned by guessed hostname.

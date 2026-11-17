@@ -2,6 +2,8 @@
 
 ## Stage N23 command control and external acceptance
 
+**Automated code/CI acceptance confirmed (2026-11-17):** [PR #13](https://github.com/rehman2671/Aaditech-toolkit-new/pull/13), [main CI #44054232799](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44054232799) **4/4 PASS** including diagnostic Windows MSI rehearsal; [main safety #44054232802](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44054232802) **2/2 PASS**. Operator/production checkboxes below remain deliberately unchecked pending customer evidence.
+
 - [ ] Confirm only credential-verified enrolled devices can claim commands via atomic conditional MySQL updates; no parallel API process can distribute the same PENDING command twice.
 - [ ] Confirm write outages return HTTP 503 (not fabricated queued success); command completion and duplicate result status are SQL-acknowledged and recorded once.
 - [ ] Treat lost agent result for an IN_PROGRESS reboot/script as **unknown execution outcome** requiring human investigation. Never auto-requeue destructive commands without verified device-side exactly-once controls.

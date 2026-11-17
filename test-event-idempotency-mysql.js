@@ -4,6 +4,8 @@ import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
 import mysql from 'mysql2/promise';
 import * as db from './db.js';
+import request from 'supertest';
+import { app } from './server.js';
 if(process.env.GITHUB_ACTIONS!=='true' ||
    process.env.AADITECH_EVENT_DEDUP_REHEARSAL!=='isolated-ci' ||
    process.env.NODE_ENV!=='test' || process.env.DB_NAME!=='it_toolkit'){
@@ -44,9 +46,43 @@ try{
   const [unkeyed]=await pool.query('SELECT COUNT(*) AS n FROM events WHERE tenant_id = ? AND device_id = ? AND client_msg_id IS NULL',[tenantA,deviceA]);
   assert.equal(Number(unkeyed[0].n),2,'legacy unkeyed events still append');
   await assert.rejects(()=>db.addEvent({...ev,client_msg_id:'invalid key'}),/EVENT_CLIENT_MSG_ID_INVALID/);
+  // Real HTTP, real authenticated device token and real MySQL index:
+  // CI Vitest's in-memory agent fixture cannot assert durable SQL semantics.
+  const agentToken = 'itk_dev_' + crypto.randomBytes(24).toString('hex');
+  const tokenHash = crypto.createHash('sha256').update(agentToken).digest('hex');
+  const host = 'N28-HTTP-' + crypto.randomBytes(5).toString('hex');
+  await pool.query(
+    "INSERT INTO devices (id, tenant_id, hostname, device_uid, device_token_hash, agent_token_revoked, status) VALUES (?, ?, ?, ?, ?, 0, 'registered')",
+    [deviceA, tenantA, host, 'n28-device-'+deviceA, tokenHash]
+  );
+  const httpKey = 'http-'+crypto.randomBytes(12).toString('hex');
+  const body = { hostname: host,
+    events: [{ kind: 'n28_replay', client_msg_id: httpKey, payload: { free_gb: 0 } }] };
+  const post = payload => request(app).post('/api/v1/ingest/telemetry')
+    .set('X-Device-Token', agentToken).send(payload);
+  const first = await post(body);
+  assert.equal(first.status, 200, 'authenticated first event HTTP ACK');
+  assert.equal(first.body.accepted, 1);
+  const retry = await post(body);
+  assert.equal(retry.status, 200, 'authenticated replay returns 200');
+  assert.equal(retry.body.accepted, 1);
+  const conflict = await post({ hostname: host, events: [
+    { kind: 'n28_replay', client_msg_id: httpKey, payload: { free_gb: 50 } }
+  ] });
+  assert.equal(conflict.status, 409, 'reused key with different payload must return HTTP 409');
+  assert.equal(conflict.body.error, 'EVENT_IDEMPOTENCY_CONFLICT');
+  const badId = await post({ hostname: host, events: [{ kind: 'n28_replay', client_msg_id: 'invalid id' }] });
+  assert.equal(badId.status, 400, 'invalid message key must fail schema validation');
+  const [httpRows] = await pool.query(
+    'SELECT COUNT(*) AS n FROM events WHERE tenant_id = ? AND device_id = ? AND client_msg_id = ?',
+    [tenantA, deviceA, httpKey]
+  );
+  assert.equal(Number(httpRows[0].n), 1, 'HTTP replay creates only one durable event row');
+
   console.log('N28 PASS: 24-way MySQL concurrency, conflict safety, tenant/device scoping, legacy');
 }finally{
   await pool.query('DELETE FROM events WHERE tenant_id IN (?, ?)',[tenantA,tenantB]);
+  await pool.query('DELETE FROM devices WHERE id = ? AND tenant_id = ?', [deviceA, tenantA]);
   await pool.end();
   db.stopDbHealthCheck();
   db.stopTelemetryFlushWorker?.();

@@ -414,6 +414,26 @@ describe('Server & API Integration Test Suite', () => {
       const realResult = await request(app).post(resultUrl)
         .set('X-Device-Token', agentToken).send(body);
       expect(realResult.status).toBe(200);
+
+      // Once the real device acknowledged a command, replay must not overwrite
+      // the immutable terminal result, even with the original valid token.
+      const replay = await request(app).post(resultUrl)
+        .set('X-Device-Token', agentToken)
+        .send({ status: 'failed', output: 'attempted overwrite', exit_code: 1 });
+      expect(replay.status).toBe(409);
+      expect(replay.body.error).toBe('COMMAND_NOT_IN_PROGRESS_OR_ALREADY_RECORDED');
+
+      // A result posted before the agent has polled cannot fabricate execution.
+      const notPolled = await request(app)
+        .post('/api/v1/commands/dispatch')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ device_id: agentDeviceId, kind: 'DIAGNOSTIC', payload: {} });
+      expect(notPolled.status).toBe(201);
+      const premature = await request(app)
+        .post(`/api/v1/commands/${notPolled.body.id}/result`)
+        .set('X-Device-Token', agentToken)
+        .send({ status: 'completed', output: 'not executed', exit_code: 0 });
+      expect(premature.status).toBe(409);
     });
 
     it('GET /api/v1/features returns enabled feature flags', async () => {

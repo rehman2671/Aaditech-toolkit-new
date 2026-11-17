@@ -897,6 +897,32 @@ export async function executeQuery(sql, params = []) {
     return { affectedRows: Math.max(0, initLen - memCommands.length) };
   }
 
+  // Match production's compare-and-swap semantics in offline tests. A
+  // duplicated poll or result must never receive a fabricated success.
+  if (/^UPDATE COMMAND_QUEUE\s+SET STATUS\b/.test(upperSql)) {
+    if (upperSql.includes("WHERE ID = ? AND DEVICE_ID = ? AND STATUS = 'PENDING'")) {
+      const command = memCommands.find(c => String(c.id) === String(params[0]) &&
+        String(c.device_id) === String(params[1]) &&
+        String(c.status).toUpperCase() === 'PENDING');
+      if (!command) return { affectedRows: 0 };
+      command.status = 'in_progress';
+      command.picked_up_at = new Date();
+      return { affectedRows: 1 };
+    }
+    if (upperSql.includes("WHERE ID = ? AND DEVICE_ID = ? AND STATUS = 'IN_PROGRESS'")) {
+      const command = memCommands.find(c => String(c.id) === String(params[4]) &&
+        String(c.device_id) === String(params[5]) &&
+        String(c.status).toUpperCase() === 'IN_PROGRESS');
+      if (!command) return { affectedRows: 0 };
+      command.status = String(params[0]).toLowerCase();
+      command.stdout = params[1];
+      command.stderr = params[2];
+      command.exit_code = params[3];
+      command.completed_at = new Date();
+      return { affectedRows: 1 };
+    }
+  }
+
   if (upperSql.startsWith('INSERT')) {
     return { insertId: ++monotonicInsertId, affectedRows: 1 };
   }
@@ -1836,10 +1862,14 @@ export async function getDeviceProcesses(deviceId) {
 }
 
 // ---------------- COMMANDS ----------------
+// The database is the authority for remote command dispatch. Never mark an
+// uncommitted command accepted or retain a shadow queue in production.
 export async function queueCommandInDb(cmd) {
   try {
     const cmdId = cmd.id ? String(cmd.id) : crypto.randomUUID();
     cmd.id = cmdId;
+    const payload = typeof cmd.payload === 'string'
+      ? JSON.parse(cmd.payload || '{}') : (cmd.payload || {});
     const memCmd = {
       id: cmdId,
       device_id: String(cmd.device_id || cmd.agent_id),
@@ -1847,34 +1877,31 @@ export async function queueCommandInDb(cmd) {
       hostname: cmd.hostname || null,
       command_type: cmd.kind || cmd.command_type,
       kind: cmd.kind || cmd.command_type,
-      payload: typeof cmd.payload === 'string' ? JSON.parse(cmd.payload || '{}') : (cmd.payload || {}),
+      payload,
       hmac_signature: cmd.hmac_signature || null,
       signed_content: cmd.signed_content || null,
       status: (cmd.status || 'pending').toLowerCase(),
       dispatched_by: cmd.dispatched_by || 'ADMIN',
       dispatched_at: new Date()
     };
-    memCommands.push(memCmd);
-
     const sql = `
       INSERT INTO command_queue (
         id, device_id, hostname, command_type, payload, hmac_signature, signed_content, status, dispatched_by, dispatched_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(3))
     `;
-    await executeQuery(sql, [
-      cmdId,
-      String(cmd.device_id || cmd.agent_id),
-      cmd.hostname || null,
-      cmd.kind || cmd.command_type,
-      JSON.stringify(cmd.payload || {}),
-      cmd.hmac_signature || null,
-      cmd.signed_content || null,
-      (cmd.status || 'PENDING').toUpperCase(),
-      cmd.dispatched_by || 'ADMIN'
+    const result = await executeQuery(sql, [
+      cmdId, memCmd.device_id, memCmd.hostname,
+      memCmd.command_type, JSON.stringify(payload),
+      memCmd.hmac_signature, memCmd.signed_content,
+      memCmd.status.toUpperCase(), memCmd.dispatched_by
     ]);
+    if (result?.affectedRows !== 1) throw new Error('COMMAND_QUEUE_INSERT_NOT_COMMITTED');
+    if (process.env.NODE_ENV !== 'production') memCommands.push(memCmd);
     return true;
   } catch (err) {
-    console.error('queueCommandInDb error:', err.message);
+    // No client-supplied command payload, script name, or SQL credentials in logs.
+    console.error('queueCommandInDb failed:', err.code || 'COMMAND_QUEUE_INSERT_FAILED');
+    if (process.env.NODE_ENV === 'production') throw err;
     return false;
   }
 }
@@ -1941,7 +1968,8 @@ export async function getCommands(filters = {}) {
 }
 
 export async function getCommandById(id) {
-  const c = memCommands.find(x => String(x.id) === String(id));
+  const c = process.env.NODE_ENV === 'production' ? null :
+    memCommands.find(x => String(x.id) === String(id));
   if (c) {
     return {
       ...c,
@@ -1977,6 +2005,7 @@ export async function getPendingCommandsForDevice(deviceId, limit = 50) {
       payload: typeof r.payload === 'string' ? JSON.parse(r.payload || '{}') : (r.payload || {})
     }));
   }
+  if (process.env.NODE_ENV === 'production') return [];
   const memResults = memCommands.filter(c => 
     (String(c.device_id).toLowerCase() === String(deviceId).toLowerCase() || 
      (c.hostname && String(c.hostname).toLowerCase() === String(deviceId).toLowerCase())) &&
@@ -1990,39 +2019,58 @@ export async function getPendingCommandsForDevice(deviceId, limit = 50) {
   }));
 }
 
-export async function markCommandPickedUp(id) {
-  const c = memCommands.find(x => String(x.id) === String(id));
+// Atomic compare-and-swap: concurrent agent polls may observe the same
+// pending command, but only ONE can claim it for an enrolled device.
+// No automatic expiry/replay: destructive operations need human review when
+// the result is lost; the endpoint agent's local dedup is defense in depth.
+export async function markCommandPickedUp(id, deviceId = null) {
+  const c = process.env.NODE_ENV === 'production' ? null :
+    memCommands.find(x => String(x.id) === String(id));
+  const owner = deviceId || c?.device_id;
+  if (!owner) return false;
+  const updated = await executeQuery(
+    "UPDATE command_queue SET status = 'IN_PROGRESS', picked_up_at = NOW(3) " +
+    "WHERE id = ? AND device_id = ? AND status = 'PENDING'",
+    [String(id), String(owner)]
+  );
+  if (updated?.affectedRows !== 1) return false;
   if (c) {
     c.status = 'in_progress';
     c.picked_up_at = new Date();
   }
-  await executeQuery(
-    "UPDATE command_queue SET status = 'in_progress', picked_up_at = NOW(3) WHERE id = ?",
-    [String(id)]
-  );
   return true;
 }
 
-export async function completeCommandInDb(cmdId, status, stdout, stderr, exitCode) {
-  const c = memCommands.find(x => String(x.id) === String(cmdId));
-  if (c) {
-    c.status = status || 'completed';
-    c.stdout = stdout || '';
-    c.stderr = stderr || '';
-    c.exit_code = exitCode !== undefined ? exitCode : 0;
-    c.completed_at = new Date();
-    c.result = { output: stdout || '', stderr: stderr || '', exit_code: exitCode !== undefined ? exitCode : 0 };
-  }
+// Only the enrolled owning agent can commit a result, once, after a successful
+// claim. Duplicate, pre-poll, or stale reports MUST NOT overwrite final history.
+export async function completeCommandInDb(cmdId, status, stdout, stderr, exitCode, deviceId = null) {
+  if (!['completed', 'failed'].includes(status)) return false;
+  const c = process.env.NODE_ENV === 'production' ? null :
+    memCommands.find(x => String(x.id) === String(cmdId));
+  const owner = deviceId || c?.device_id;
+  if (!owner) return false;
   try {
     const sql = `
-      UPDATE command_queue 
+      UPDATE command_queue
       SET status = ?, stdout = ?, stderr = ?, exit_code = ?, executed_at = NOW(3), completed_at = NOW(3)
-      WHERE id = ?
+      WHERE id = ? AND device_id = ? AND status = 'IN_PROGRESS'
     `;
-    await executeQuery(sql, [status, stdout, stderr, exitCode, String(cmdId)]);
+    const updated = await executeQuery(sql, [
+      status.toUpperCase(), stdout, stderr, exitCode, String(cmdId), String(owner)
+    ]);
+    if (updated?.affectedRows !== 1) return false;
+    if (c) {
+      c.status = status;
+      c.stdout = stdout || '';
+      c.stderr = stderr || '';
+      c.exit_code = exitCode !== undefined ? exitCode : 0;
+      c.completed_at = new Date();
+      c.result = { output: c.stdout, stderr: c.stderr, exit_code: c.exit_code };
+    }
     return true;
   } catch (err) {
-    console.error('completeCommandInDb error:', err.message);
+    console.error('completeCommandInDb failed:', err.code || 'COMMAND_RESULT_WRITE_FAILED');
+    if (process.env.NODE_ENV === 'production') throw err;
     return false;
   }
 }

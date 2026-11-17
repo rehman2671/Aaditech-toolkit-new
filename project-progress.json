@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-17T00:36:35+00:00",
-  "last_verified_commit": "106ec2a2e36a4f3a4858a17f1349c7c1f4298749",
-  "last_verified_date": "2026-11-17T06:06:24+05:30",
+  "generated": "2026-11-17T00:42:16+00:00",
+  "last_verified_commit": "8e890fac6d1e70517f9ea4699c1526c568116e41",
+  "last_verified_date": "2026-11-17T06:12:03+05:30",
   "overall_progress_percent": 100.0,
   "progress_scope": "historic audit issue closure only; production acceptance pending",
   "production_ready": false,
@@ -14,21 +14,12 @@
     "percent": 100.0
   },
   "latest_delta": {
-    "added": 5,
+    "added": 3,
     "removed": 0,
-    "changed": 15,
-    "unchanged": 274
+    "changed": 6,
+    "unchanged": 288
   },
   "delta_history": [
-    {
-      "detected_at": "2026-11-16T18:37:49+00:00",
-      "added": [],
-      "removed": [],
-      "changed": [
-        "server.js"
-      ],
-      "unchanged_count": 267
-    },
     {
       "detected_at": "2026-11-16T18:38:38+00:00",
       "added": [],
@@ -276,6 +267,24 @@
         "CHANGELOG.md"
       ],
       "unchanged_count": 274
+    },
+    {
+      "detected_at": "2026-11-17T00:42:16+00:00",
+      "added": [
+        "Enterprise/deploy/PHASE-N-STAGE20-ACCEPTANCE.md",
+        "tests/unit/integrations-stage20.test.js",
+        "database/migrations/008_scrub_legacy_ticket_keys.sql"
+      ],
+      "removed": [],
+      "changed": [
+        "tests/integration/server.integration.test.js",
+        "test-migrations-runner.js",
+        "db.js",
+        "server.js",
+        "validation.js",
+        "Enterprise/portal/index.html"
+      ],
+      "unchanged_count": 288
     }
   ],
   "next_recommended_tasks": [

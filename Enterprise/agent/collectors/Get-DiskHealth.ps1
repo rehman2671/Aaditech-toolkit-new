@@ -46,7 +46,7 @@ $logical = @(Get-CimInstance Win32_LogicalDisk | Where-Object { $_.DriveType -eq
     [pscustomobject]@{
         Drive       = $_.DeviceID
         SizeGB      = if ($_.Size) { [math]::Round($_.Size / 1GB, 1) } else { $null }
-        FreeGB      = if ($_.FreeSpace) { [math]::Round($_.FreeSpace / 1GB, 1) } else { $null }
+        FreeGB      = if ($null -ne $_.FreeSpace) { [math]::Round($_.FreeSpace / 1GB, 1) } else { $null }
         FreePercent = if ($_.Size -gt 0) { [math]::Round(($_.FreeSpace / $_.Size) * 100, 1) } else { $null }
     }
 })

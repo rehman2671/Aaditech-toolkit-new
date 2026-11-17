@@ -1,5 +1,14 @@
 # Phase N — Production release acceptance and sign-off
 
+## Stage N26 — canonical MSI-agent telemetry (acceptance PENDING)
+
+- [ ] Verify CI (Node/Vitest, PowerShell, real MySQL and diagnostic Windows MSI) on PR and merged main.
+- [ ] On an authorized physical Windows MSI install, confirm canonical Agent-Collect.exe reports fresh CPU, RAM, system-drive free disk, BitLocker, Defender and firewall state to the enrolled workspace.
+- [ ] Under a collector-denied account, prove unavailable values remain NULL or UNKNOWN, and replayed outbox events are not promoted to current measurements.
+- [ ] Verify genuine 0 GB free disk can alert but missing/null measurements never trigger low-disk notifications.
+- [ ] Secure Boot, local-admin membership and cloud compliance remain unverified. Production Hostinger, public MSI signing, offsite restore, actual inbox/webhook and customer UAC gates remain BLOCKED.
+
+
 ## Stage N25 measured device telemetry and real-inventory acceptance
 
 **Automated CODE/CI accepted (2026-11-17):** [PR #15](https://github.com/rehman2671/Aaditech-toolkit-new/pull/15), [main CI #44068596639](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44068596639) **4/4 SUCCESS** including diagnostic Windows MSI, [main safety #44068596502](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44068596502) **2/2 SUCCESS**. Customer/production evidence checkboxes remain unchecked.

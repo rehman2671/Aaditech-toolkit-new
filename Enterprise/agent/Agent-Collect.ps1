@@ -611,6 +611,94 @@ function Send-AgentHeartbeat {
     }
 }
 
+
+# N26: these host probes run at SEND time, not on stale queued event data.
+# NETWORK SERVICE may lack permissions: unknown is NULL, never invented 0.
+function Get-FreshAgentSnapshot {
+    $metrics = @{
+        cpu = @{ utilization_pct = $null }
+        ram = @{ utilization_pct = $null }
+        disk = @{ free_gb = $null; total_gb = $null }
+    }
+    try {
+        $cpus = @(Get-CimInstance -ClassName Win32_Processor -ErrorAction Stop)
+        $loads = @($cpus | ForEach-Object {
+            if ($null -ne $_.LoadPercentage -and [double]$_.LoadPercentage -ge 0 -and [double]$_.LoadPercentage -le 100) {
+                [double]$_.LoadPercentage
+            }
+        })
+        if ($cpus.Count -gt 0 -and $cpus.Count -eq $loads.Count) {
+            $metrics.cpu.utilization_pct = [math]::Round(($loads | Measure-Object -Average).Average, 1)
+        }
+    } catch { }
+    try {
+        $os = Get-CimInstance -ClassName Win32_OperatingSystem -ErrorAction Stop
+        if ($null -ne $os.TotalVisibleMemorySize -and $null -ne $os.FreePhysicalMemory -and
+            [double]$os.TotalVisibleMemorySize -gt 0 -and [double]$os.FreePhysicalMemory -ge 0 -and
+            [double]$os.FreePhysicalMemory -le [double]$os.TotalVisibleMemorySize) {
+            $metrics.ram.utilization_pct = [math]::Round(
+                (1 - [double]$os.FreePhysicalMemory / [double]$os.TotalVisibleMemorySize) * 100, 1)
+        }
+    } catch { }
+    try {
+        $disk = Get-CimInstance -ClassName Win32_LogicalDisk -Filter "DriveType = 3" -ErrorAction Stop |
+            Where-Object { $_.DeviceID -eq $env:SystemDrive } | Select-Object -First 1
+        if ($disk -and $null -ne $disk.Size -and $null -ne $disk.FreeSpace -and
+            [double]$disk.Size -gt 0 -and [double]$disk.FreeSpace -ge 0 -and
+            [double]$disk.FreeSpace -le [double]$disk.Size) {
+            $metrics.disk.total_gb = [math]::Round([double]$disk.Size / 1GB, 2)
+            $metrics.disk.free_gb = [math]::Round([double]$disk.FreeSpace / 1GB, 2)
+        }
+    } catch { }
+
+    $bitlocker = 'UNKNOWN'
+    try {
+        $bl = Get-BitLockerVolume -MountPoint $env:SystemDrive -ErrorAction Stop
+        if ($bl -and $null -ne $bl.ProtectionStatus) {
+            if ([int]$bl.ProtectionStatus -eq 1) { $bitlocker = 'PROTECTED' }
+            elseif ([int]$bl.ProtectionStatus -eq 0) { $bitlocker = 'UNPROTECTED' }
+        }
+    } catch { }
+    $antivirus = 'UNKNOWN'
+    $antivirusName = $null
+    try {
+        $mp = Get-MpComputerStatus -ErrorAction Stop
+        if ($null -ne $mp.AntivirusEnabled -and $null -ne $mp.RealTimeProtectionEnabled) {
+            $antivirus = if ($mp.AntivirusEnabled -and $mp.RealTimeProtectionEnabled) { 'ACTIVE' } else { 'INACTIVE' }
+            $antivirusName = 'Microsoft Defender Antivirus'
+        }
+    } catch { }
+    $firewall = 'UNKNOWN'
+    try {
+        $profiles = @(Get-NetFirewallProfile -ErrorAction Stop)
+        if ($profiles.Count -gt 0) {
+            if (@($profiles | Where-Object { $_.Enabled -eq $false }).Count -gt 0) {
+                $firewall = 'DISABLED'
+            } elseif (@($profiles | Where-Object { $_.Enabled -eq $true }).Count -eq $profiles.Count) {
+                $firewall = 'ENABLED'
+            }
+        }
+    } catch { }
+    # Device-reported heuristic only: never an attested compliance verdict.
+    $score = $null
+    if ($bitlocker -ne 'UNKNOWN' -and $antivirus -ne 'UNKNOWN' -and $firewall -ne 'UNKNOWN') {
+        $score = 100
+        if ($bitlocker -ne 'PROTECTED') { $score -= 30 }
+        if ($antivirus -ne 'ACTIVE') { $score -= 30 }
+        if ($firewall -ne 'ENABLED') { $score -= 20 }
+    }
+    return @{
+        metrics = $metrics
+        posture = @{
+            bitlocker_status = $bitlocker
+            antivirus_status = $antivirus
+            antivirus_name = $antivirusName
+            firewall_status = $firewall
+            security_score = $score
+        }
+    }
+}
+
 function Send-AgentBatch {
     param($Config)
     $pending = Invoke-SQLite -Query "SELECT id, kind, payload, sanitized, created_at FROM outbox WHERE status='pending' ORDER BY id ASC LIMIT 50;" -DatabasePath $QueueDb -AsJson
@@ -625,11 +713,15 @@ function Send-AgentBatch {
             captured_at  = $row.created_at
         }
     }
+    # Fresh snapshot is independent of captured_at on the durable outbox.
+    $snapshot = Get-FreshAgentSnapshot
     $body = @{
         hostname      = (Get-AgentHostname)
-        os            = [System.Environment]::OSVersion.VersionString
+        os_version    = [System.Environment]::OSVersion.VersionString
         agent_version = (Get-InstalledAgentVersion)
-        ip            = (Get-AgentIP)
+        ip_address    = (Get-AgentIP)
+        metrics       = $snapshot.metrics
+        posture       = $snapshot.posture
         events        = @($events)
     } | ConvertTo-Json -Compress -Depth 12
 

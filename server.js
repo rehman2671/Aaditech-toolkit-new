@@ -1362,7 +1362,7 @@ app.post(['/api/v1/ingest/telemetry', '/api/ingest'], agentLimiter, validateBody
   // Cache real live application usage into Redis
   if (app_usage && Array.isArray(app_usage) && app_usage.length > 0) {
     await db.cacheSet(`app_usage:${dev.id}`, app_usage, 86400);
-    await db.cacheSet(`app_usage:${dev.hostname}`, app_usage, 86400);
+    // Never write a hostname-only cache key: hostnames can repeat across tenants.
   }
 
   // Insert Telemetry record into MySQL
@@ -1374,6 +1374,8 @@ app.post(['/api/v1/ingest/telemetry', '/api/ingest'], agentLimiter, validateBody
   if (Array.isArray(req.body.events)) {
     for (const ev of req.body.events) {
       await db.addEvent({
+        tenant_id: dev.tenant_id,
+        device_id: dev.id,
         hostname: dev.hostname,
         kind: ev.kind || "telemetry",
         sanitized: true,
@@ -2514,7 +2516,7 @@ app.get(['/api/v1/reports/device/:id', '/api/report/agent/:id'], async (req, res
     return res.status(404).json({ error: "Device not found" });
   }
   if (req.query.format === 'csv') {
-    const events = await db.getEvents(agent.hostname, 100, null, req.user.tenant_id);
+    const events = await db.getEvents(agent.hostname, 100, null, req.user.tenant_id, agent.id);
     let csv = 'Hostname,Kind,CapturedAt\n';
     for (const ev of events) {
       csv += `"${agent.hostname}","${ev.kind || 'telemetry'}","${ev.created_at || ev.recorded_at || ''}"\n`;
@@ -2523,7 +2525,7 @@ app.get(['/api/v1/reports/device/:id', '/api/report/agent/:id'], async (req, res
     res.setHeader('Content-Disposition', `attachment; filename="${agent.hostname}_events.csv"`);
     return res.send(csv);
   }
-  const events = await db.getEvents(agent.hostname, 100, null, req.user.tenant_id);
+  const events = await db.getEvents(agent.hostname, 100, null, req.user.tenant_id, agent.id);
   res.json(events);
 });
 

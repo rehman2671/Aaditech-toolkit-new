@@ -77,3 +77,24 @@ export function analyzeMeasuredTelemetry(history, device, now = Date.now()) {
       'No measured disk depletion trend requiring a forecast'
   };
 }
+
+/** Only validated finite measurements may trigger a notification. */
+export function evaluateMeasuredAlert(rule, measured) {
+  const metric = rule?.metric;
+  if (!['cpu', 'ram', 'disk'].includes(metric)) return null;
+  const max = metric === 'disk' ? 1000000 : 100;
+  const value = metric === 'cpu' ? measured?.cpu :
+    metric === 'ram' ? measured?.ram : measured?.disk;
+  const threshold = typeof rule?.threshold === 'number' ? rule.threshold :
+    typeof rule?.threshold === 'string' && rule.threshold.trim() !== '' ?
+      Number(rule.threshold) : NaN;
+  if (typeof value !== 'number' || !Number.isFinite(value) || value < 0 || value > max ||
+      !Number.isFinite(threshold) || threshold < 0 || threshold > max) return null;
+  if (metric === 'cpu' && value >= threshold)
+    return `CPU utilization ${value.toFixed(1)}% exceeds threshold ${threshold}%`;
+  if (metric === 'ram' && value >= threshold)
+    return `RAM load ${value.toFixed(1)}% exceeds threshold ${threshold}%`;
+  if (metric === 'disk' && value <= threshold)
+    return `Free disk space ${value} GB below threshold ${threshold} GB`;
+  return null;
+}

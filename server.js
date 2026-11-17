@@ -36,7 +36,7 @@ import { resolveVerifiedUserPrincipal } from './auth-principal.js';
 import { isPlatformSettingsAdmin } from './platform-settings-admin.js';
 import { belongsToCurrentTenant, publicDeviceRecord } from './device-visibility.js';
 import { normalizeAgentPosture, agentReportedCoverage } from './security-posture.js';
-import { extractMeasurements, analyzeMeasuredTelemetry } from './device-metrics.js';
+import { extractMeasurements, analyzeMeasuredTelemetry, evaluateMeasuredAlert } from './device-metrics.js';
 import { signDeviceCommand } from './command-signing.js';
 import {
   getAgentVersion,
@@ -1423,29 +1423,14 @@ app.post(['/api/v1/ingest/telemetry', '/api/ingest'], agentLimiter, validateBody
   const recordedAt = timestamp || new Date().toISOString();
   const seqNum = sequence_number || 1;
 
-  // Evaluate alert rules against live telemetry
-  if (metrics) {
+  // Only fresh finite device measurements may trigger alerts; null <= 15 is true in JS.
+  if (hasMeasurement) {
     const alertRules = scopedAlertRules(dev.tenant_id, await db.getAlertRules());
-    // Consent is checked when the alert is created as well as at dispatch.
-    // Newly enabling a channel must never retroactively export old telemetry.
     let authorizedChannels = null;
     for (const rule of alertRules) {
       if (!rule.enabled) continue;
-      let triggered = false;
-      let msg = "";
-
-      if (rule.metric === "cpu" && metrics.cpu?.utilization_pct >= rule.threshold) {
-        triggered = true;
-        msg = `CPU utilization ${metrics.cpu.utilization_pct.toFixed(1)}% exceeds threshold ${rule.threshold}%`;
-      } else if (rule.metric === "ram" && metrics.ram?.utilization_pct >= rule.threshold) {
-        triggered = true;
-        msg = `RAM load ${metrics.ram.utilization_pct.toFixed(1)}% exceeds threshold ${rule.threshold}%`;
-      } else if (rule.metric === "disk" && metrics.disk?.free_gb !== undefined && metrics.disk.free_gb <= rule.threshold) {
-        triggered = true;
-        msg = `Free disk space ${metrics.disk.free_gb} GB below threshold ${rule.threshold} GB`;
-      }
-
-      if (triggered) {
+      const msg = evaluateMeasuredAlert(rule, measured);
+      if (msg) {
         const alt = {
           tenant_id: dev.tenant_id,
           device_id: dev.id,

@@ -10,7 +10,7 @@ $cpu   = Get-CimInstance Win32_Processor | Measure-Object LoadPercentage -Averag
     Select-Object -ExpandProperty Average
 $memPct = if ($os.TotalVisibleMemorySize -gt 0) {
     [math]::Round((($os.TotalVisibleMemorySize - $os.FreePhysicalMemory) / $os.TotalVisibleMemorySize) * 100, 1)
-} else { 0 }
+} else { $null }
 
 $pending = $false
 if (Test-Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired') { $pending = $true }

@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-16T23:47:11+00:00",
-  "last_verified_commit": "74158915e153d1d95675ea20abe39a5dda907659",
-  "last_verified_date": "2026-11-17T05:16:57+05:30",
+  "generated": "2026-11-17T00:36:35+00:00",
+  "last_verified_commit": "106ec2a2e36a4f3a4858a17f1349c7c1f4298749",
+  "last_verified_date": "2026-11-17T06:06:24+05:30",
   "overall_progress_percent": 100.0,
   "progress_scope": "historic audit issue closure only; production acceptance pending",
   "production_ready": false,
@@ -14,21 +14,12 @@
     "percent": 100.0
   },
   "latest_delta": {
-    "added": 2,
+    "added": 5,
     "removed": 0,
-    "changed": 3,
-    "unchanged": 284
+    "changed": 15,
+    "unchanged": 274
   },
   "delta_history": [
-    {
-      "detected_at": "2026-11-16T18:36:53+00:00",
-      "added": [],
-      "removed": [],
-      "changed": [
-        "validation.js"
-      ],
-      "unchanged_count": 267
-    },
     {
       "detected_at": "2026-11-16T18:37:49+00:00",
       "added": [],
@@ -256,6 +247,35 @@
         "tests/integration/server.integration.test.js"
       ],
       "unchanged_count": 284
+    },
+    {
+      "detected_at": "2026-11-17T00:36:35+00:00",
+      "added": [
+        "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md",
+        "Enterprise/deploy/PHASE-N-STAGE19-ACCEPTANCE.md",
+        "database/migrations/007_scrub_legacy_github_pat.sql",
+        "github-build-release.js",
+        "tests/unit/github-build-release-stage19.test.js"
+      ],
+      "removed": [],
+      "changed": [
+        "Enterprise/deploy/PHASE-N-STAGE17-ACCEPTANCE.md",
+        "Enterprise/deploy/PHASE-N-STAGE18-ACCEPTANCE.md",
+        "Enterprise/portal/index.html",
+        "database/migrations/README.md",
+        "server.js",
+        "Enterprise/docker-compose.yml",
+        "test-migrations-runner.js",
+        "db.js",
+        "tests/integration/server.integration.test.js",
+        "docs/assessment/RELEASE-READINESS.md",
+        "docs/assessment/GAP-REGISTER.md",
+        "validation.js",
+        "docs/assessment/TEST-RESULTS.md",
+        "Enterprise/.env.example",
+        "CHANGELOG.md"
+      ],
+      "unchanged_count": 274
     }
   ],
   "next_recommended_tasks": [

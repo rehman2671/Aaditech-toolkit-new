@@ -273,8 +273,9 @@ export async function runDatabaseMigrations() {
       memAppliedMigrations.add('007');
       memAppliedMigrations.add('008');
       memAppliedMigrations.add('009');
+      memAppliedMigrations.add('010');
     }
-    return { applied: [], skipped: ['001_init_schema.sql', '002_partitioning.sql', '003_rbac_and_audit.sql', '004_workspace_memberships.sql', '005_remediation_tenant_logs.sql', '006_notification_outbox.sql', '007_scrub_legacy_github_pat.sql', '008_scrub_legacy_ticket_keys.sql', '009_notification_destination_binding.sql'], status: 'FALLBACK_MODE' };
+    return { applied: [], skipped: ['001_init_schema.sql', '002_partitioning.sql', '003_rbac_and_audit.sql', '004_workspace_memberships.sql', '005_remediation_tenant_logs.sql', '006_notification_outbox.sql', '007_scrub_legacy_github_pat.sql', '008_scrub_legacy_ticket_keys.sql', '009_notification_destination_binding.sql', '010_events_tenant_device_identity.sql'], status: 'FALLBACK_MODE' };
   }
 
   let lockAcquired = false;
@@ -2799,12 +2800,20 @@ export async function getRemediationLogs(limit = 100, tenantId) {
 }
 
 // ---------------- EVENTS ----------------
+// Event ownership is persisted at ingest using authenticated device ID.
+// Hostname joins are forbidden for tenant-facing reads; hostnames repeat.
 export async function addEvent(event) {
+  if (process.env.NODE_ENV === 'production' &&
+      (!event?.tenant_id || !event?.device_id)) {
+    throw new Error('EVENT_DEVICE_TENANT_REQUIRED');
+  }
   const sql = `
-    INSERT INTO events (hostname, kind, sanitized, payload, captured_at)
-    VALUES (?, ?, ?, ?, NOW(3))
+    INSERT INTO events (tenant_id, device_id, hostname, kind, sanitized, payload, captured_at)
+    VALUES (?, ?, ?, ?, ?, ?, NOW(3))
   `;
   const res = await executeQuery(sql, [
+    event.tenant_id || null,
+    event.device_id || null,
     event.hostname,
     event.kind,
     event.sanitized !== false ? 1 : 0,
@@ -2815,33 +2824,30 @@ export async function addEvent(event) {
   return newEvt;
 }
 
-export async function getEvents(hostname = null, limit = 100, kind = null, tenantId = null) {
-  // Historical events have only a hostname, no tenant column. Tenant-facing
-  // API reads MUST join the globally unique device identity rather than
-  // exposing events from every organization's hosts.
-  let sql = tenantId
-    ? 'SELECT e.* FROM events e INNER JOIN devices d ON d.hostname = e.hostname'
-    : 'SELECT * FROM events';
+export async function getEvents(hostname = null, limit = 100, kind = null, tenantId = null, deviceId = null) {
+  // Legacy NULL-owned rows are quarantined from tenant-facing queries.
+  let sql = 'SELECT * FROM events';
   const conditions = [];
   const params = [];
   if (tenantId) {
-    conditions.push('d.tenant_id = ?');
+    conditions.push('tenant_id = ?');
     params.push(tenantId);
+    if (deviceId) {
+      conditions.push('device_id = ?');
+      params.push(String(deviceId));
+    }
   }
   if (hostname) {
-    conditions.push(tenantId ? 'e.hostname = ?' : 'hostname = ?');
+    conditions.push('hostname = ?');
     params.push(String(hostname).trim());
   }
   if (kind) {
-    conditions.push(tenantId ? 'e.kind = ?' : 'kind = ?');
+    conditions.push('kind = ?');
     params.push(String(kind).trim());
   }
-  if (conditions.length > 0) {
-    sql += ` WHERE ${conditions.join(' AND ')}`;
-  }
-  sql += tenantId ? ' ORDER BY e.captured_at DESC LIMIT ?' : ' ORDER BY captured_at DESC LIMIT ?';
+  if (conditions.length) sql += ' WHERE ' + conditions.join(' AND ');
+  sql += ' ORDER BY captured_at DESC LIMIT ?';
   params.push(limit);
-
   const rows = await executeQuery(sql, params);
   return rows.map(r => ({
     ...r,

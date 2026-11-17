@@ -162,12 +162,12 @@ export const commandDispatchSchema = z.object({
 });
 
 export const commandResultSchema = z.object({
-  status: z.string().optional(),
-  exit_code: z.number().int().optional(),
-  output: z.string().optional(),
-  stdout: z.string().optional(),
-  stderr: z.string().optional()
-});
+  status: z.enum(['completed', 'failed']).optional(),
+  exit_code: z.number().int().min(-2147483648).max(2147483647).optional(),
+  output: z.string().max(32768).optional(),
+  stdout: z.string().max(32768).optional(),
+  stderr: z.string().max(32768).optional()
+}).strict();
 
 export const msiGenerateSchema = z.object({
   // These values are embedded in a path and filename: never accept slashes,

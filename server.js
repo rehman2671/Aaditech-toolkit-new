@@ -2321,7 +2321,9 @@ app.post(['/api/commands', '/api/v1/commands/dispatch'], requireRole(['SUPER_ADM
     dispatched_by: req.user?.username || "admin"
   };
 
-  await db.queueCommandInDb(cmd);
+  let queued = false;
+  try { queued = await db.queueCommandInDb(cmd); } catch (_) {}
+  if (!queued) return res.status(503).json({ error: 'COMMAND_QUEUE_UNAVAILABLE' });
 
   logAudit(req.user, "COMMAND_DISPATCHED", `Device:${agent.hostname}`, { 
     command_id: cmdId, 
@@ -2363,7 +2365,8 @@ app.get(['/api/commands/poll', '/api/v1/commands/poll'], async (req, res) => {
   const signedPending = [];
   for (const c of pending) {
     const sig = signDeviceCommand({ device, command: c, deviceToken: pollToken });
-    await db.markCommandPickedUp(c.id);
+    // Atomic claim fences concurrent polls across separate API instances.
+    if (!await db.markCommandPickedUp(c.id, device.id)) continue;
     signedPending.push({
       ...c,
       status: "running",
@@ -2405,7 +2408,17 @@ app.post(['/api/commands/:id/result', '/api/v1/commands/:id/result'], agentLimit
   const stderr = req.body.stderr || "";
   const exitCode = req.body.exit_code ?? 0;
 
-  await db.completeCommandInDb(cmd.id, status, output, stderr, exitCode);
+  let committed = false;
+  try {
+    committed = await db.completeCommandInDb(
+      cmd.id, status, output, stderr, exitCode, resultDevice.id
+    );
+  } catch (_) {
+    return res.status(503).json({ error: 'COMMAND_RESULT_DATABASE_UNAVAILABLE' });
+  }
+  if (!committed) {
+    return res.status(409).json({ error: 'COMMAND_NOT_IN_PROGRESS_OR_ALREADY_RECORDED' });
+  }
 
   // Device-reported completions are audited under the verified device tenant,
   // not a platform-global synthetic default tenant.
@@ -3174,17 +3187,21 @@ app.post(['/api/v1/remediation/trigger', '/api/remediation/trigger'], requireRol
   if (!policy.enabled) return res.status(403).json({ error: 'REMEDIATION_POLICY_DISABLED' });
 
   const commandId = crypto.randomUUID();
-  await db.queueCommandInDb({
-    id: commandId,
-    device_id: device.id,
-    agent_id: device.id,
-    hostname: device.hostname,
-    kind: 'run-script',
-    command_type: 'run-script',
-    payload: { script_name: 'Remediate-' + policy.action_type + '.ps1' },
-    status: 'pending',
-    dispatched_by: req.user?.username || 'admin'
-  });
+  let queued = false;
+  try {
+    queued = await db.queueCommandInDb({
+      id: commandId,
+      device_id: device.id,
+      agent_id: device.id,
+      hostname: device.hostname,
+      kind: 'run-script',
+      command_type: 'run-script',
+      payload: { script_name: 'Remediate-' + policy.action_type + '.ps1' },
+      status: 'pending',
+      dispatched_by: req.user?.username || 'admin'
+    });
+  } catch (_) {}
+  if (!queued) return res.status(503).json({ error: 'COMMAND_QUEUE_UNAVAILABLE' });
   const action = 'Queued approved remediation: ' + policy.action_type;
   const log = await db.logRemediation({
     tenant_id: tenantId, hostname: device.hostname, policy_name: policy.name,

@@ -274,8 +274,9 @@ export async function runDatabaseMigrations() {
       memAppliedMigrations.add('008');
       memAppliedMigrations.add('009');
       memAppliedMigrations.add('010');
+      memAppliedMigrations.add('011');
     }
-    return { applied: [], skipped: ['001_init_schema.sql', '002_partitioning.sql', '003_rbac_and_audit.sql', '004_workspace_memberships.sql', '005_remediation_tenant_logs.sql', '006_notification_outbox.sql', '007_scrub_legacy_github_pat.sql', '008_scrub_legacy_ticket_keys.sql', '009_notification_destination_binding.sql', '010_events_tenant_device_identity.sql'], status: 'FALLBACK_MODE' };
+    return { applied: [], skipped: ['001_init_schema.sql', '002_partitioning.sql', '003_rbac_and_audit.sql', '004_workspace_memberships.sql', '005_remediation_tenant_logs.sql', '006_notification_outbox.sql', '007_scrub_legacy_github_pat.sql', '008_scrub_legacy_ticket_keys.sql', '009_notification_destination_binding.sql', '010_events_tenant_device_identity.sql', '011_security_posture_provenance.sql'], status: 'FALLBACK_MODE' };
   }
 
   let lockAcquired = false;
@@ -1542,11 +1543,11 @@ export async function syncDeviceToDb(dev) {
         memory_usage = COALESCE(VALUES(memory_usage), memory_usage),
         disk_free = COALESCE(VALUES(disk_free), disk_free),
         battery = COALESCE(VALUES(battery), battery),
-        bitlocker_status = VALUES(bitlocker_status),
-        antivirus_name = VALUES(antivirus_name),
-        antivirus_status = VALUES(antivirus_status),
-        firewall_status = VALUES(firewall_status),
-        security_score = VALUES(security_score),
+        bitlocker_status = COALESCE(VALUES(bitlocker_status), bitlocker_status),
+        antivirus_name = COALESCE(VALUES(antivirus_name), antivirus_name),
+        antivirus_status = COALESCE(VALUES(antivirus_status), antivirus_status),
+        firewall_status = COALESCE(VALUES(firewall_status), firewall_status),
+        security_score = COALESCE(VALUES(security_score), security_score),
         agent_version = VALUES(agent_version),
         device_token_hash = COALESCE(VALUES(device_token_hash), device_token_hash),
         device_token_prefix = COALESCE(VALUES(device_token_prefix), device_token_prefix),
@@ -1571,11 +1572,11 @@ export async function syncDeviceToDb(dev) {
       dev.memory_usage || '45%',
       dev.disk_free || '250 GB',
       dev.battery || '100% (AC)',
-      dev.bitlocker_status || 'PROTECTED',
-      dev.antivirus_name || 'Windows Defender',
-      dev.antivirus_status || 'ACTIVE',
-      dev.firewall_status || 'ENABLED',
-      dev.security_score || 95,
+      dev.bitlocker_status ?? null,
+      dev.antivirus_name ?? null,
+      dev.antivirus_status ?? null,
+      dev.firewall_status ?? null,
+      dev.security_score ?? null,
       dev.agent_version || getAgentVersion(),
       dev.device_token_hash || null,
       dev.device_token_prefix || null,

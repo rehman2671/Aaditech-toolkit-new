@@ -56,6 +56,7 @@ function Invoke-QueueSleep { param($SleepSeconds) }
 function Invoke-RestMethod {
     param($Uri,$Method,$Headers,$ContentType,$Body,$Certificate)
     if ($script:ThrowNetwork) { throw 'simulated offline endpoint' }
+    Write-Host ('N27 diagnostic raw body: ' + [string]$Body)
     $script:Sent += ($Body | ConvertFrom-Json)
     return $script:Ack
 }

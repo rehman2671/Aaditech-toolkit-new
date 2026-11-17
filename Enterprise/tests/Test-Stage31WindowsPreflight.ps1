@@ -9,10 +9,10 @@ try {
   $secret = 'N31-SYNTHETIC-SECRET-MUST-NOT-LEAK'
   @{endpoint='https://test.invalid/api/v1/ingest/telemetry';token=$secret;needs_setup=$true} |
     ConvertTo-Json | Set-Content -LiteralPath $config
-  $args = @('-NoProfile','-File',$scriptPath,'-ReportPath',$report,
+  $probeArguments = @('-NoProfile','-File',$scriptPath,'-ReportPath',$report,
     '-InstallRoot',$root,'-ConfigPath',$config,
     '-QueueDb',(Join-Path $root 'queue.sqlite3'))
-  & pwsh @args | Out-Null
+  & pwsh @probeArguments | Out-Null
   if ($LASTEXITCODE -ne 1) { throw 'Unprovisioned device was accepted.' }
   $raw = Get-Content -LiteralPath $report -Raw
   $result = $raw | ConvertFrom-Json

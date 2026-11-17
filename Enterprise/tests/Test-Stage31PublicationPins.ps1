@@ -18,7 +18,7 @@ try {
     @{needs_setup=$true;endpoint='';token='';bootstrap_token='';enroll_url=''} |
         ConvertTo-Json | Set-Content (Join-Path $tmp 'agent-config.json')
     $sumFile = Join-Path $tmp 'SHA256SUMS.txt'
-    $entries = @($exe,$msi | ForEach-Object {
+    $entries = @(@($exe,$msi) | ForEach-Object {
         $h = (Get-FileHash -LiteralPath $_ -Algorithm SHA256).Hash.ToLowerInvariant()
         "$h  $([IO.Path]::GetFileName($_))"
     })

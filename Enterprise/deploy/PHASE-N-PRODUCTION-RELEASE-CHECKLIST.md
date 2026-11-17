@@ -23,6 +23,8 @@ This runbook applies to the repository's Node.js/Express + MySQL 8 service and W
 - [ ] Take an approved, encrypted backup using repository procedure `Enterprise/deploy/backup.sh` plus a separate authorized offsite copy; document backup integrity, timestamp, retention and recovery point.
 - [ ] Restore using `Enterprise/deploy/restore.sh` into a **separate disposable production-like environment**, never destructively into the live DB merely to test. Verify tenant/member/device identity uniqueness and no accidental reassignment of historical NULL-owned remediation logs.
 - [ ] Confirm migrations `005_remediation_tenant_logs.sql` and `006_notification_outbox.sql` applied once, have expected indexes, and do not expose data across workspaces. Confirm application upgrade and rollback/recovery with the exact backed-up state.
+- [ ] Confirm `007_scrub_legacy_github_pat.sql` and `008_scrub_legacy_ticket_keys.sql` applied exactly once; verify no old `branding.github_token` or `ticketConfig.api_key` remains. Capture only **redacted** evidence; never dump secrets into CI logs.
+- [ ] Verify tenant-level ticket metadata and cloud-audit views never imply a real Jira/Graph connector without real provider responses and separate authorization.
 - [ ] Perform negative tests: MySQL failure returns fail-closed API, tenant cannot request another tenant's audit logs, processes, patch approvals, remediation or notification status.
 - [ ] Record measured restore and recovery times (RTO/RPO); CI disposable MySQL proofs are not substitutes.
 
@@ -62,6 +64,7 @@ This runbook applies to the repository's Node.js/Express + MySQL 8 service and W
 | Real Hostinger VPS/DNS/TLS | **BLOCKED** | __________ |
 | Authorized production migration / offsite restore | **BLOCKED** | __________ |
 | Real SMTP inbox + webhook receiver | **BLOCKED** | __________ |
+| Real Jira/ServiceNow/Zendesk API + Microsoft Graph OAuth acceptance | **NOT CONNECTED — CODE/PROVIDER GATE OPEN** | __________ |
 | Human-approved signed MSI publication | **BLOCKED** | __________ |
 | Physical Windows managed UAC/install/upgrade | **BLOCKED** | __________ |
 

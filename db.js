@@ -3,6 +3,7 @@ import Redis from 'ioredis';
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
+import { extractMeasurements, deviceMetricView } from './device-metrics.js';
 import bcrypt from 'bcrypt';
 import { fileURLToPath } from 'url';
 import { getAgentVersion } from './agent-artifacts.js';
@@ -275,8 +276,9 @@ export async function runDatabaseMigrations() {
       memAppliedMigrations.add('009');
       memAppliedMigrations.add('010');
       memAppliedMigrations.add('011');
+      memAppliedMigrations.add('012');
     }
-    return { applied: [], skipped: ['001_init_schema.sql', '002_partitioning.sql', '003_rbac_and_audit.sql', '004_workspace_memberships.sql', '005_remediation_tenant_logs.sql', '006_notification_outbox.sql', '007_scrub_legacy_github_pat.sql', '008_scrub_legacy_ticket_keys.sql', '009_notification_destination_binding.sql', '010_events_tenant_device_identity.sql', '011_security_posture_provenance.sql'], status: 'FALLBACK_MODE' };
+    return { applied: [], skipped: ['001_init_schema.sql', '002_partitioning.sql', '003_rbac_and_audit.sql', '004_workspace_memberships.sql', '005_remediation_tenant_logs.sql', '006_notification_outbox.sql', '007_scrub_legacy_github_pat.sql', '008_scrub_legacy_ticket_keys.sql', '009_notification_destination_binding.sql', '010_events_tenant_device_identity.sql', '011_security_posture_provenance.sql', '012_measured_device_telemetry.sql'], status: 'FALLBACK_MODE' };
   }
 
   let lockAcquired = false;
@@ -1300,12 +1302,9 @@ function formatDeviceRecord(row) {
     ...row,
     os: row.os_version,
     ip: row.ip_address,
-    last_seen: row.last_seen_at ? new Date(row.last_seen_at).toISOString() : new Date().toISOString(),
+    last_seen: row.last_seen_at ? new Date(row.last_seen_at).toISOString() : null,
     agent_token_revoked: Boolean(row.agent_token_revoked),
-    cpu_usage: row.cpu_usage || '15%',
-    memory_usage: row.memory_usage || '45%',
-    disk_free: row.disk_free || `${row.disk_free_gb || 250} GB`,
-    battery: row.battery || '100% (AC)'
+    ...deviceMetricView(row)
   };
 }
 
@@ -1538,7 +1537,7 @@ export async function syncDeviceToDb(dev) {
         cpu_model = COALESCE(VALUES(cpu_model), cpu_model),
         total_ram_gb = COALESCE(VALUES(total_ram_gb), total_ram_gb),
         disk_total_gb = COALESCE(VALUES(disk_total_gb), disk_total_gb),
-        disk_free_gb = VALUES(disk_free_gb),
+        disk_free_gb = COALESCE(VALUES(disk_free_gb), disk_free_gb),
         cpu_usage = COALESCE(VALUES(cpu_usage), cpu_usage),
         memory_usage = COALESCE(VALUES(memory_usage), memory_usage),
         disk_free = COALESCE(VALUES(disk_free), disk_free),
@@ -1565,13 +1564,13 @@ export async function syncDeviceToDb(dev) {
       dev.ip_address || dev.ip || '127.0.0.1',
       dev.status || 'online',
       dev.cpu_model || null,
-      dev.total_ram_gb || 16.0,
-      dev.disk_total_gb || 512.0,
-      dev.disk_free_gb || 256.0,
-      dev.cpu_usage || '15%',
-      dev.memory_usage || '45%',
-      dev.disk_free || '250 GB',
-      dev.battery || '100% (AC)',
+      dev.total_ram_gb ?? null,
+      dev.disk_total_gb ?? null,
+      dev.disk_free_gb ?? null,
+      dev.cpu_usage ?? null,
+      dev.memory_usage ?? null,
+      dev.disk_free ?? null,
+      dev.battery ?? null,
       dev.bitlocker_status ?? null,
       dev.antivirus_name ?? null,
       dev.antivirus_status ?? null,
@@ -1643,20 +1642,13 @@ const TELEMETRY_FLUSH_INTERVAL_MS = 1500;
 const TELEMETRY_MAX_QUEUE_SIZE = 100;
 
 function normalizeMetricPoint(deviceId, m = {}) {
-  const devId = String(deviceId || m.device_id || 'unknown');
-  const cpuPct = m.cpu_pct !== undefined ? parseFloat(m.cpu_pct) : parseFloat(m.cpu?.utilization_pct || 0);
-  const ramPct = m.ram_pct !== undefined ? parseFloat(m.ram_pct) : parseFloat(m.ram?.utilization_pct || 0);
-  const diskFree = m.disk_free_gb !== undefined ? parseFloat(m.disk_free_gb) : parseFloat(m.disk?.free_gb || 0);
-  const netLatency = m.net_latency_ms !== undefined ? parseFloat(m.net_latency_ms) : parseFloat(m.network?.latency_ms || 24);
-  const recAt = m.recorded_at ? new Date(m.recorded_at) : new Date();
-
+  const p = extractMeasurements(m);
   return {
-    device_id: devId,
-    cpu_pct: isNaN(cpuPct) ? 0 : cpuPct,
-    ram_pct: isNaN(ramPct) ? 0 : ramPct,
-    disk_free_gb: isNaN(diskFree) ? 0 : diskFree,
-    net_latency_ms: isNaN(netLatency) ? 24 : netLatency,
-    recorded_at: recAt
+    device_id: String(deviceId || m?.device_id || 'unknown'),
+    cpu_pct: p.cpu, ram_pct: p.ram, disk_free_gb: p.disk,
+    net_latency_ms: p.latency === null ? null : Math.round(p.latency),
+    // Server-owned ingestion time, never client-supplied timestamp.
+    recorded_at: new Date()
   };
 }
 

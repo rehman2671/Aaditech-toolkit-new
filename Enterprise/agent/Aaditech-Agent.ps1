@@ -152,38 +152,60 @@ function Get-TopProcesses {
 }
 
 function Get-SecurityPosture {
-    $bitlocker = "PROTECTED"
+    # An inaccessible or missing collector must report UNKNOWN. Enrollment,
+    # Windows version and command failure do NOT imply a compliant device.
+    $bitlocker = "UNKNOWN"
     try {
-        $bl = Get-BitLockerVolume -MountPoint "C:" -ErrorAction SilentlyContinue
-        if ($bl -and $bl.ProtectionStatus -eq 0) { $bitlocker = "UNPROTECTED" }
-    } catch {
-        $bitlocker = "PROTECTED"
-    }
-
-    $antivirus = "ACTIVE"
-    try {
-        $av = Get-CimInstance -Namespace root\SecurityCenter2 -ClassName AntiVirusProduct -ErrorAction SilentlyContinue | Select-Object -First 1
-        if ($av) { $avName = $av.displayName } else { $avName = "Windows Defender" }
-    } catch {
-        $avName = "Windows Defender"
-    }
-
-    $fwStatus = "DISABLED"
-    try {
-        $fwProfiles = Get-NetFirewallProfile -ErrorAction SilentlyContinue
-        if ($fwProfiles -and ($fwProfiles | Where-Object { $_.Enabled -eq $true })) {
-            $fwStatus = "ENABLED"
+        $bl = Get-BitLockerVolume -MountPoint "C:" -ErrorAction Stop
+        if ($bl -and $null -ne $bl.ProtectionStatus) {
+            if ([int]$bl.ProtectionStatus -eq 1) { $bitlocker = "PROTECTED" }
+            elseif ([int]$bl.ProtectionStatus -eq 0) { $bitlocker = "UNPROTECTED" }
         }
-    } catch {
-        $fwStatus = "UNKNOWN"
-    }
+    } catch { $bitlocker = "UNKNOWN" }
 
-    # Deterministic posture scoring based on real telemetry
-    $score = 100
-    if ($bitlocker -ne "PROTECTED") { $score -= 30 }
-    if ($antivirus -ne "ACTIVE") { $score -= 30 }
-    if ($fwStatus -ne "ENABLED") { $score -= 20 }
-    if ($score -lt 0) { $score = 0 }
+    $avName = $null
+    try {
+        $av = Get-CimInstance -Namespace root\SecurityCenter2 -ClassName AntiVirusProduct -ErrorAction Stop |
+            Select-Object -First 1
+        if ($av -and $av.displayName) { $avName = [string]$av.displayName }
+    } catch { $avName = $null }
+
+    # A detected antivirus product is NOT proof its real-time protection is on.
+    # Only a successful Defender status query can establish that state.
+    $antivirus = "UNKNOWN"
+    try {
+        $mp = Get-MpComputerStatus -ErrorAction Stop
+        if ($null -ne $mp.AntivirusEnabled -and $null -ne $mp.RealTimeProtectionEnabled) {
+            if ($mp.AntivirusEnabled -and $mp.RealTimeProtectionEnabled) {
+                $antivirus = "ACTIVE"
+                if (-not $avName) { $avName = "Microsoft Defender Antivirus" }
+            } else {
+                $antivirus = "INACTIVE"
+            }
+        }
+    } catch { $antivirus = "UNKNOWN" }
+
+    $fwStatus = "UNKNOWN"
+    try {
+        $fwProfiles = @(Get-NetFirewallProfile -ErrorAction Stop)
+        if ($fwProfiles.Count -gt 0) {
+            if (@($fwProfiles | Where-Object { $_.Enabled -eq $false }).Count -gt 0) {
+                $fwStatus = "DISABLED"
+            } elseif (@($fwProfiles | Where-Object { $_.Enabled -eq $true }).Count -eq $fwProfiles.Count) {
+                $fwStatus = "ENABLED"
+            }
+        }
+    } catch { $fwStatus = "UNKNOWN" }
+
+    # Missing evidence cannot generate a perfect score or compliance verdict.
+    $score = $null
+    if ($bitlocker -ne "UNKNOWN" -and $antivirus -ne "UNKNOWN" -and $fwStatus -ne "UNKNOWN") {
+        $score = 100
+        if ($bitlocker -ne "PROTECTED") { $score -= 30 }
+        if ($antivirus -ne "ACTIVE") { $score -= 30 }
+        if ($fwStatus -ne "ENABLED") { $score -= 20 }
+        if ($score -lt 0) { $score = 0 }
+    }
 
     return @{
         firewall_status   = $fwStatus

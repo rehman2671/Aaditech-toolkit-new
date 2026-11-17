@@ -35,6 +35,7 @@ import { resolveAgentOrigin } from './agent-origin.js';
 import { resolveVerifiedUserPrincipal } from './auth-principal.js';
 import { isPlatformSettingsAdmin } from './platform-settings-admin.js';
 import { belongsToCurrentTenant, publicDeviceRecord } from './device-visibility.js';
+import { normalizeAgentPosture, agentReportedCoverage } from './security-posture.js';
 import { signDeviceCommand } from './command-signing.js';
 import {
   getAgentVersion,
@@ -1344,12 +1345,29 @@ app.post(['/api/v1/ingest/telemetry', '/api/ingest'], agentLimiter, validateBody
   if (metrics?.disk?.free_gb !== undefined) devUpdates.disk_free = `${metrics.disk.free_gb} GB`;
   else if (disk_free_gb !== undefined) devUpdates.disk_free = `${disk_free_gb} GB`;
 
-  if (posture) {
-    if (posture.bitlocker_status) devUpdates.bitlocker_status = posture.bitlocker_status;
-    if (posture.antivirus_name) devUpdates.antivirus_name = posture.antivirus_name;
-    if (posture.antivirus_status) devUpdates.antivirus_status = posture.antivirus_status;
-    if (posture.firewall_status) devUpdates.firewall_status = posture.firewall_status;
-    if (posture.security_score) devUpdates.security_score = posture.security_score;
+  if (posture && typeof posture === 'object' && !Array.isArray(posture)) {
+    // Every posture report is a new, single snapshot from the device
+    // authenticated above. Omitted fields clear historical synthetic defaults:
+    // a partial report cannot accidentally "refresh" previously seeded health.
+    const measured = req.validatedBody.posture;
+    const approved = (value, values) =>
+      typeof value === 'string' && values.includes(value.trim().toUpperCase())
+        ? value.trim().toUpperCase() : null;
+    devUpdates.bitlocker_status = approved(measured.bitlocker_status,
+      ['PROTECTED', 'ENCRYPTED', 'UNPROTECTED', 'SUSPENDED']);
+    devUpdates.antivirus_status = approved(measured.antivirus_status,
+      ['ACTIVE', 'INACTIVE', 'DISABLED']);
+    devUpdates.firewall_status = approved(measured.firewall_status,
+      ['ENABLED', 'DISABLED']);
+    devUpdates.antivirus_name = typeof measured.antivirus_name === 'string' &&
+      measured.antivirus_name.trim() ? measured.antivirus_name.trim() : null;
+    const allMeasured = devUpdates.bitlocker_status !== null &&
+      devUpdates.antivirus_status !== null && devUpdates.firewall_status !== null;
+    devUpdates.security_score = allMeasured && Number.isInteger(measured.security_score)
+      ? measured.security_score : null;
+    // This timestamp is server-owned, never taken from a spoofable device
+    // payload or from an enrollment registration/heartbeat timestamp.
+    devUpdates.posture_reported_at = new Date();
   }
 
   await db.updateDevice(dev.id, devUpdates);
@@ -2035,14 +2053,8 @@ app.get('/api/v1/security/posture', async (req, res) => {
   const posture = agents.map(a => ({
     device_id: a.id,
     hostname: a.hostname,
-    os: a.os_version || a.os || "Windows 11 Pro",
-    firewall_active: a.firewall_status ? (a.firewall_status === "ENABLED") : true,
-    antivirus_name: a.antivirus_name || "Windows Defender",
-    antivirus_status: a.antivirus_status || "ACTIVE",
-    disk_encryption: a.bitlocker_status || ((a.os_version || a.os || '').includes('Windows') ? "BitLocker Protected" : "FileVault Active"),
-    secure_boot: true,
-    local_admins_count: 2,
-    security_score: a.security_score || 95
+    os: a.os_version || a.os || null,
+    ...normalizeAgentPosture(a)
   }));
   res.json(posture);
 });
@@ -3268,9 +3280,7 @@ app.get(['/api/v1/compliance/cloud-audit', '/api/compliance/cloud-audit'], async
   if (!req.user?.tenant_id) return res.status(403).json({ error: 'TENANT_REQUIRED' });
   const agents = await db.getDevices({ tenant_id: req.user.tenant_id });
   const credentialsPresent = Boolean(process.env.AZURE_TENANT_ID && process.env.GRAPH_CLIENT_ID);
-  const pct = (prop, value) => agents.length
-    ? Math.round(agents.filter(a => a[prop] === value).length / agents.length * 100) + '%'
-    : 'N/A';
+  const postures = agents.map(a => normalizeAgentPosture(a));
   return res.json({
     configured: false,
     status: 'NOT_CONNECTED',
@@ -3279,20 +3289,24 @@ app.get(['/api/v1/compliance/cloud-audit', '/api/compliance/cloud-audit'], async
       azure_ad_sync: 'Not connected',
       intune_enrolled_pct: 'N/A',
       m365_services_status: 'Not connected',
-      bitlocker_compliant_pct: pct('bitlocker_status', 'ENCRYPTED'),
-      defender_active_pct: pct('antivirus_status', 'ACTIVE')
+      bitlocker_compliant_pct: agentReportedCoverage(postures, 'bitlocker_encrypted'),
+      defender_active_pct: agentReportedCoverage(postures, 'defender_realtime_on'),
+      agent_reported_devices: postures.filter(p => p.evidence_status === 'AGENT_REPORTED').length,
+      total_devices: agents.length
     },
     cloud_services: [],
-    agent_compliance: agents.map(a => ({
+    agent_compliance: agents.map((a, i) => ({
       hostname: a.hostname,
       azure_ad_joined: null,
       intune_managed: null,
-      bitlocker_encrypted: a.bitlocker_status === 'ENCRYPTED',
-      defender_realtime_on: a.antivirus_status === 'ACTIVE',
-      compliance_status: (a.bitlocker_status === 'ENCRYPTED' &&
-        a.antivirus_status === 'ACTIVE') ? 'Compliant' : 'Not verified'
+      bitlocker_encrypted: postures[i].bitlocker_encrypted,
+      defender_realtime_on: postures[i].defender_realtime_on,
+      firewall_active: postures[i].firewall_active,
+      evidence_status: postures[i].evidence_status,
+      posture_reported_at: postures[i].posture_reported_at,
+      compliance_status: postures[i].compliance_status
     })),
-    note: 'Local device telemetry only. Microsoft Graph sync and cloud/MDM status are not connected or verified.'
+    note: 'Only fresh (<24h) enrolled-agent observations are counted where the underlying field was reported. N/A means no current measured denominator. Microsoft Graph sync and cloud/MDM status are NOT_CONNECTED; no independent attestation.'
   });
 });
 

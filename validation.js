@@ -138,6 +138,13 @@ export const telemetryIngestSchema = z.object({
   metrics: z.record(z.any()).optional(),
   events: z.array(z.record(z.any())).optional(),
   processes: z.array(z.record(z.any())).optional(),
+  posture: z.object({
+    bitlocker_status: z.string().max(32).optional(),
+    antivirus_name: z.string().max(128).nullable().optional(),
+    antivirus_status: z.string().max(32).optional(),
+    firewall_status: z.string().max(32).optional(),
+    security_score: z.number().int().min(0).max(100).nullable().optional()
+  }).strict().optional(),
   os_version: z.string().optional(),
   agent_version: z.string().optional(),
   ip_address: z.string().optional(),

@@ -1,5 +1,15 @@
 # Phase N — Production release acceptance and sign-off
 
+## Stage N24 genuine posture collection and customer evidence
+
+**Automated code/CI accepted (2026-11-17):** [PR #14](https://github.com/rehman2671/Aaditech-toolkit-new/pull/14), [main CI #44065258102](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44065258102) **4/4 SUCCESS** including diagnostic Windows MSI, [main safety #44065258073](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44065258073) **2/2 SUCCESS**. Live production acceptance remains BLOCKED pending operator evidence.
+
+- [ ] Obtain authorized production DB backup and independently verified offsite restore before applying `011_security_posture_provenance.sql`; confirm historical `posture_reported_at` remains NULL rather than inferring health from old defaults.
+- [ ] Upgrade actual managed Windows agents with the corrected collector; verify BitLocker/Defender/firewall explicitly report UNKNOWN on collector failure and healthy only when observed, without physical test data in Git logs.
+- [ ] Recheck security posture and cloud audit with fresh measured/unknown/stale states for multiple enrolled customer devices; ensure `secure_boot` and `local_admins_count` remain unverified until genuine collectors/attestation are implemented.
+- [ ] Obtain independent customer/MDM approval for any external compliance claim. Device-reported status does not prove Microsoft Graph/Intune connection or third-party attestation.
+
+
 ## Stage N23 command control and external acceptance
 
 **Automated code/CI acceptance confirmed (2026-11-17):** [PR #13](https://github.com/rehman2671/Aaditech-toolkit-new/pull/13), [main CI #44054232799](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44054232799) **4/4 PASS** including diagnostic Windows MSI rehearsal; [main safety #44054232802](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44054232802) **2/2 PASS**. Operator/production checkboxes below remain deliberately unchecked pending customer evidence.

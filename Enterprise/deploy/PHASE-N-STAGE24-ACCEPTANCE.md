@@ -1,6 +1,6 @@
 # Phase N Stage 24 — Evidence-backed, fail-closed endpoint security posture
 
-**Status: CODE IMPLEMENTED / PR CI PENDING; PRODUCTION RELEASE BLOCKED.**
+**Status: STAGE 24 CODE/CI ACCEPTED; PRODUCTION RELEASE BLOCKED.** [PR #14](https://github.com/rehman2671/Aaditech-toolkit-new/pull/14) merged. [Main CI #44065258102](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44065258102) **SUCCESS 4/4**, including diagnostic real Windows MSI install/uninstall/major-upgrade; [main safety #44065258073](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44065258073) **SUCCESS 2/2**. No public signed MSI, customer Hostinger deployment or independent cloud attestation claimed.
 
 ## Audited defect
 
@@ -22,3 +22,11 @@ The Windows PowerShell agent's `Get-SecurityPosture` routine started with BitLoc
 
 - PR/main Node/Vitest and PowerShell parsers, real MySQL/API network fault injection, isolated migration/recovery, Windows MSI diagnostic install/uninstall/major-upgrade and documentation sync are required before declaring Stage24 code/CI accepted.
 - Local enrolled-agent reporting is not independent MDM/Graph attestation. Public Authenticode signed MSI, live Hostinger VPS/DNS/TLS, authorized production DB offsite restore, customer SMTP inbox/webhook receiver and physical managed Windows remain separately **BLOCKED**.
+
+## Verified Stage24 CI evidence (2026-11-17)
+
+- [PR CI #44064858994](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44064858994) SUCCESS and [PR deployment-safety #44064859054](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44064859054) SUCCESS before squash merge.
+- PR #14 merged at `eaa2a7b8e6665542e2ad6b6bb3e6e3cc2c0a817a`.
+- [Main CI #44065258102](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44065258102) SUCCESS **4/4**: Node/Vitest, PowerShell agent parser/validation, isolated MySQL/API fault injection, diagnostic Windows WiX MSI install/uninstall/major-upgrade with tenant configuration preserved.
+- [Main safety #44065258073](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44065258073) SUCCESS **2/2**: Bash offline recovery controls, real isolated MySQL backup-and-restore rehearsal.
+- These disposable CI checks do NOT certify public Authenticode signing, physical customer Windows, actual Hostinger DNS/TLS/VPS, customer DB offsite restore, SMTP inbox receipt or third-party Microsoft Graph integration.

@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased — Phase N Stage 24 (truthful endpoint posture and agent measurement provenance)
+- Removed fake `secure_boot: true`, `local_admins_count: 2`, antivirus ACTIVE, BitLocker protected, firewall enabled and score 95 from device security APIs when no authenticated agent evidence exists.
+- Server records `posture_reported_at` at authenticated telemetry ingest, clears missing status fields per snapshot and reports unknown/stale data as `null`; evidence older than 24h cannot support health or compliance claims.
+- Migration `011_security_posture_provenance.sql` makes device health SQL defaults neutral and leaves old purported health records unverified. New enrollment/upsert no longer seeds fake healthy posture or perfect scores.
+- Windows PowerShell agent now defaults collector errors to UNKNOWN, verifies Defender real-time state and complete firewall-profile state, and computes security score only from full evidence. Cloud audit remains `NOT_CONNECTED` and uses known fresh device-reported denominators.
+- [Main CI #44065258102](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44065258102) **4/4 SUCCESS**, [main safety #44065258073](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44065258073) **2/2 SUCCESS**. Public signing and customer production gates remain open.
+
+
 ## Unreleased — Phase N Stage 23 (SQL-authoritative command dispatch and result integrity)
 - Fixed a real remote command lifecycle gap: MySQL insertion failure can no longer generate a success-looking command or remediation dispatch; production command lookup/pending lists refuse in-memory shadow fallback.
 - Atomic device-bound compare-and-swap `PENDING → IN_PROGRESS` prevents concurrent polls from delivering the same command twice; only one database-acknowledged claim receives a signed executable payload.

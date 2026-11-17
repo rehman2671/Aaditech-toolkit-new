@@ -96,3 +96,13 @@ These tests execute on CI runners and disposable databases. They do **not** prov
 - [Main safety #44054232802](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44054232802) **2/2 SUCCESS**, isolated MySQL backup/restore and offline safety controls.
 - Regression coverage: MySQL write errors never report queued, command ID reads/pending reads fail closed on production DB, concurrent pollers claim with device-bound CAS, result database update requires `IN_PROGRESS` and exact device ID, duplicate/pre-poll results HTTP 409, invalid output/status bodies rejected, remediation queue failure returns 503.
 - **Production external gates remain blocked:** physical customer Windows agent UAC/upgrade, public Authenticode signed installer, Hostinger DNS/TLS/VPS, approved offsite customer DB restore, real SMTP receiver/webhook, Microsoft Graph and Jira provider verification.
+
+---
+
+## 9. Phase N Stage 24 verified posture provenance (2026-11-17)
+
+- [PR CI #44064858994](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44064858994) **SUCCESS**; [PR safety #44064859054](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44064859054) **SUCCESS**; squash merge commit `eaa2a7b8e6665542e2ad6b6bb3e6e3cc2c0a817a`.
+- [Main CI #44065258102](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44065258102) **SUCCESS 4/4**: Node/Vitest, PowerShell, real isolated MySQL/API and network fault injection, Windows diagnostic WiX MSI installation, uninstall and major-upgrade preservation.
+- [Main deployment safety #44065258073](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44065258073) **SUCCESS 2/2**, including disposable MySQL8 backup/restore and Bash recovery checks.
+- New tests verify that absent/legacy/stale posture does not produce compliance, known real reported fields remain distinguishable, zero scores preserve numeric 0, partial reports are non-attested and validation rejects invalid status shapes and score ranges. Enrollment SQL defaults are neutral, migration 011 is checked, and agent code no longer presumes protected/active on failed collectors.
+- **Not independently validated:** real physical customer Windows estate, signed public installer, live Hostinger, customer DB offsite restore, delivered mailbox/webhook receipt, OAuth Graph/Jira service calls. Test results above are diagnostic CI only.

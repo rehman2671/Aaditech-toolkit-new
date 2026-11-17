@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-17T10:51:05+00:00",
-  "last_verified_commit": "89ac38e9e77ee99dcd6d74cddd4d4fe0e547d32a",
-  "last_verified_date": "2026-11-17T16:20:56+05:30",
+  "generated": "2026-11-17T18:29:11+00:00",
+  "last_verified_commit": "703e8ecbad6f41677f230a6c592eacd694d96d68",
+  "last_verified_date": "2026-11-17T23:59:00+05:30",
   "overall_progress_percent": 100.0,
   "progress_scope": "historic audit issue closure only; production acceptance pending",
   "production_ready": false,
@@ -14,21 +14,12 @@
     "percent": 100.0
   },
   "latest_delta": {
-    "added": 4,
+    "added": 2,
     "removed": 0,
-    "changed": 13,
-    "unchanged": 297
+    "changed": 11,
+    "unchanged": 303
   },
   "delta_history": [
-    {
-      "detected_at": "2026-11-16T18:42:00+00:00",
-      "added": [],
-      "removed": [],
-      "changed": [
-        "Enterprise/portal/index.html"
-      ],
-      "unchanged_count": 269
-    },
     {
       "detected_at": "2026-11-16T18:43:34+00:00",
       "added": [
@@ -359,6 +350,28 @@
         "docs/assessment/GAP-REGISTER.md"
       ],
       "unchanged_count": 297
+    },
+    {
+      "detected_at": "2026-11-17T18:29:11+00:00",
+      "added": [
+        "tests/unit/canonical-agent-snapshot-stage26.test.js",
+        "Enterprise/deploy/PHASE-N-STAGE26-ACCEPTANCE.md"
+      ],
+      "removed": [],
+      "changed": [
+        "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md",
+        "docs/assessment/GAP-REGISTER.md",
+        "Enterprise/deploy/PHASE-N-STAGE25-ACCEPTANCE.md",
+        "CHANGELOG.md",
+        "Enterprise/agent/collectors/Get-DiskHealth.ps1",
+        "server.js",
+        "Enterprise/agent/collectors/Get-SystemHealth.ps1",
+        "device-metrics.js",
+        "docs/assessment/TEST-RESULTS.md",
+        "docs/assessment/RELEASE-READINESS.md",
+        "Enterprise/agent/Agent-Collect.ps1"
+      ],
+      "unchanged_count": 303
     }
   ],
   "next_recommended_tasks": [

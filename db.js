@@ -270,8 +270,9 @@ export async function runDatabaseMigrations() {
       memAppliedMigrations.add('004');
       memAppliedMigrations.add('005');
       memAppliedMigrations.add('006');
+      memAppliedMigrations.add('007');
     }
-    return { applied: [], skipped: ['001_init_schema.sql', '002_partitioning.sql', '003_rbac_and_audit.sql', '004_workspace_memberships.sql', '005_remediation_tenant_logs.sql', '006_notification_outbox.sql'], status: 'FALLBACK_MODE' };
+    return { applied: [], skipped: ['001_init_schema.sql', '002_partitioning.sql', '003_rbac_and_audit.sql', '004_workspace_memberships.sql', '005_remediation_tenant_logs.sql', '006_notification_outbox.sql', '007_scrub_legacy_github_pat.sql'], status: 'FALLBACK_MODE' };
   }
 
   let lockAcquired = false;

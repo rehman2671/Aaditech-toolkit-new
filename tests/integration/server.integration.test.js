@@ -1053,7 +1053,22 @@ describe('Server & API Integration Test Suite', () => {
         .post('/api/v1/build/trigger')
         .set('Authorization', `Bearer ${token}`)
         .send({ branch: 'main' });
-      expect([200, 201, 400, 401]).toContain(bTrig.status);
+      // Without private GITHUB_ACTIONS_* server credentials, dispatch fails
+      // closed; a successful dispatch only acknowledges GitHub's queue.
+      expect([202, 503, 502]).toContain(bTrig.status);
+
+      const untrustedRepo = await request(app)
+        .post('/api/v1/build/trigger')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ branch: 'main', repo: 'unapproved/other-repository',
+          token: 'untrusted_browser_pat' });
+      expect(untrustedRepo.status).toBe(400);
+      expect(untrustedRepo.body.errors).toBeDefined();
+      const untrustedBranch = await request(app)
+        .post('/api/v1/build/trigger')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ branch: 'unsafe-feature' });
+      expect(untrustedBranch.status).toBe(400);
     });
 
     it('MSI packages listing and download by id', async () => {

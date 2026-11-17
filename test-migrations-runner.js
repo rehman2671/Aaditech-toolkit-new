@@ -22,7 +22,7 @@ async function runTests() {
   assert.deepStrictEqual(
     migrationFiles,
     ['001_init_schema.sql', '002_partitioning.sql', '003_rbac_and_audit.sql', '004_workspace_memberships.sql', '005_remediation_tenant_logs.sql', '006_notification_outbox.sql', '007_scrub_legacy_github_pat.sql'],
-    'Expected 001–004 migrations including workspace memberships'
+    'Expected ordered 001–007 migrations including secure GitHub PAT scrub'
   );
 
   const forbiddenPostgresKeywords = [

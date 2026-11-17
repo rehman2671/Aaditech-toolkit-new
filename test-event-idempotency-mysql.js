@@ -5,12 +5,16 @@ import crypto from 'node:crypto';
 import mysql from 'mysql2/promise';
 import * as db from './db.js';
 import request from 'supertest';
-import { app } from './server.js';
 if(process.env.GITHUB_ACTIONS!=='true' ||
    process.env.AADITECH_EVENT_DEDUP_REHEARSAL!=='isolated-ci' ||
    process.env.NODE_ENV!=='test' || process.env.DB_NAME!=='it_toolkit'){
   throw Error('Refusing event retry rehearsal outside isolated GitHub Actions MySQL');
 }
+// Import the Express app *without* launching a real listener or retention
+// scheduler. The default server module auto-listens whenever VITEST is unset;
+// supertest owns each ephemeral test listener instead.
+process.env.VITEST='true';
+const { app } = await import('./server.js');
 const pool=mysql.createPool({
   host:process.env.DB_HOST||'127.0.0.1',port:Number(process.env.DB_PORT||3306),
   user:process.env.DB_USER,password:process.env.DB_PASSWORD,database:process.env.DB_NAME,

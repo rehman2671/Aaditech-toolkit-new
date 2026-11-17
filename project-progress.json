@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-17T20:51:17+00:00",
-  "last_verified_commit": "007c23a10e5cd46a6d71be0eacc90d56215a022e",
-  "last_verified_date": "2026-11-18T02:21:09+05:30",
+  "generated": "2026-11-17T21:38:19+00:00",
+  "last_verified_commit": "061694329e98e789af362545e9afe5806508fb6c",
+  "last_verified_date": "2026-11-18T03:08:09+05:30",
   "overall_progress_percent": 100.0,
   "progress_scope": "historic audit issue closure only; production acceptance pending",
   "production_ready": false,
@@ -14,21 +14,12 @@
     "percent": 100.0
   },
   "latest_delta": {
-    "added": 2,
+    "added": 4,
     "removed": 0,
-    "changed": 7,
-    "unchanged": 309
+    "changed": 14,
+    "unchanged": 304
   },
   "delta_history": [
-    {
-      "detected_at": "2026-11-16T18:43:59+00:00",
-      "added": [
-        "Enterprise/tests/Test-Stage14Preflight.sh"
-      ],
-      "removed": [],
-      "changed": [],
-      "unchanged_count": 271
-    },
     {
       "detected_at": "2026-11-16T18:44:52+00:00",
       "added": [],
@@ -381,6 +372,33 @@
         "Enterprise/agent/Agent-Collect.ps1"
       ],
       "unchanged_count": 309
+    },
+    {
+      "detected_at": "2026-11-17T21:38:19+00:00",
+      "added": [
+        "test-event-idempotency-mysql.js",
+        "tests/unit/event-idempotency-stage28.test.js",
+        "Enterprise/deploy/PHASE-N-STAGE28-ACCEPTANCE.md",
+        "database/migrations/013_events_idempotency.sql"
+      ],
+      "removed": [],
+      "changed": [
+        "database/mysql/schema.sql",
+        "docs/assessment/GAP-REGISTER.md",
+        "Enterprise/deploy/PHASE-N-STAGE27-ACCEPTANCE.md",
+        ".github/workflows/ci.yml",
+        "database/migrations/README.md",
+        "Enterprise/agent/Agent-Collect.ps1",
+        "server.js",
+        "db.js",
+        "validation.js",
+        "Enterprise/tests/Test-CanonicalAgent-AckCadence.ps1",
+        "docs/assessment/TEST-RESULTS.md",
+        "test-migrations-runner.js",
+        "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md",
+        "docs/assessment/RELEASE-READINESS.md"
+      ],
+      "unchanged_count": 304
     }
   ],
   "next_recommended_tasks": [

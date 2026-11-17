@@ -66,6 +66,7 @@ import {
   updatePolicySchema,
   assignPolicySchema,
   updateRetentionSchema,
+  batchReceiptMaintenanceSchema,
   setupSchema,
   createUserSchema,
   updateUserSchema,
@@ -2248,6 +2249,39 @@ app.post('/api/v1/settings/retention/run', requirePlatformSettingsAdmin, async (
   logAudit(req.user, "RETENTION_PURGE_MANUALLY_TRIGGERED", "SystemSettings", result, req);
   res.json({ status: "success", result });
 });
+
+// N30: separate from ordinary telemetry-history retention. Active tenant
+// receipt tombstones must survive indefinitely for safe delayed HTTP retries.
+// A POST is dry-run-only unless an authorized platform admin explicitly
+// confirms a bounded deletion of long-decommissioned, device-free tenants.
+app.post('/api/v1/settings/retention/batch-receipts',
+  requirePlatformSettingsAdmin,
+  validateBody(batchReceiptMaintenanceSchema),
+  async (req, res) => {
+    const { dry_run, min_age_days, max_rows, confirm } = req.validatedBody;
+    try {
+      const result = await db.maintainTelemetryBatchReceipts({
+        dryRun: dry_run, minAgeDays: min_age_days,
+        limit: max_rows, confirm
+      });
+      logAudit(req.user,
+        dry_run ? 'BATCH_RECEIPT_CLEANUP_PREVIEW' : 'BATCH_RECEIPT_DECOMMISSIONED_CLEANUP',
+        'TelemetryBatchReceipts',
+        { status: result.status, eligible: result.eligible, deleted: result.deleted,
+          min_age_days: min_age_days, max_rows: max_rows },
+        req);
+      return res.json({ status: 'OK', result });
+    } catch (err) {
+      if (err.message === 'TELEMETRY_BATCH_MYSQL_REQUIRED') {
+        return res.status(503).json({ error: 'DATABASE_UNAVAILABLE' });
+      }
+      if (err.message?.startsWith('TELEMETRY_BATCH_MAINTENANCE_')) {
+        return res.status(400).json({ error: err.message });
+      }
+      throw err;
+    }
+  });
+
 
 // ---------------- API ROUTES ----------------
 

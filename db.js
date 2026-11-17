@@ -3283,6 +3283,10 @@ export async function runDataRetentionPurge() {
 
   const purged = {
     telemetry_history: 0,
+    // Batch receipts are permanent replay keys for ALL existing tenants.
+    // Neither this hourly scheduler nor history-retention settings prune them.
+    telemetry_batch_receipts: 0,
+    batch_receipts_auto_pruning_disabled: true,
     audit_logs: 0,
     alerts: 0,
     command_queue: 0,

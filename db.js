@@ -1807,7 +1807,8 @@ export async function syncDeviceProcesses(deviceId, processes) {
         parseFloat(p.cpu_pct || 0),
         parseFloat(p.ram_mb || 0),
         p.path || null,
-        p.user_account || null
+        p.user_account || null,
+        new Date() // Eighth value matches updated_at column; real MySQL INSERT must succeed.
       ]);
 
       if (values.length > 0) {
@@ -1848,9 +1849,12 @@ export async function getDeviceProcesses(deviceId) {
     'SELECT * FROM device_processes WHERE device_id = ? ORDER BY cpu_pct DESC LIMIT 100',
     [String(deviceId)]
   );
-  if (rows && rows.length > 0) {
-    return rows;
+  if (process.env.NODE_ENV === 'production') {
+    // Persistent DB is the only production authority; never export a stale
+    // in-process snapshot after MySQL has no corresponding rows.
+    return Array.isArray(rows) ? rows : [];
   }
+  if (rows && rows.length > 0) return rows;
   return memProcesses.filter(p => p.device_id === String(deviceId));
 }
 

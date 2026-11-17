@@ -1394,7 +1394,7 @@ app.post(['/api/v1/ingest/telemetry', '/api/ingest'], agentLimiter, validateBody
 
   // Cache real live application usage into Redis
   if (app_usage && Array.isArray(app_usage) && app_usage.length > 0) {
-    await db.cacheSet(`app_usage:${dev.id}`, app_usage, 86400);
+    await db.cacheSet(`app_usage:${dev.id}`, app_usage, 900);
     // Never write a hostname-only cache key: hostnames can repeat across tenants.
   }
 
@@ -2087,13 +2087,20 @@ app.get('/api/v1/devices/:id/processes', async (req, res) => {
     return res.status(404).json({ error: 'Device not found' });
   }
   const liveProcs = await db.getDeviceProcesses(dev.id);
-  if (liveProcs && Array.isArray(liveProcs) && liveProcs.length > 0) {
-    return res.json({ 
-      device_id: dev.id, 
-      hostname: dev.hostname, 
-      source: "live_agent_telemetry",
-      total_processes: liveProcs.length, 
-      processes: liveProcs 
+  const now = Date.now();
+  const freshProcs = dev.telemetry_status === 'AGENT_REPORTED' && Array.isArray(liveProcs)
+    ? liveProcs.filter(proc => {
+        const observed = proc.updated_at ? new Date(proc.updated_at).getTime() : NaN;
+        return Number.isFinite(observed) && observed <= now &&
+          now - observed <= 15 * 60_000;
+      })
+    : [];
+  if (freshProcs.length > 0) {
+    return res.json({
+      device_id: dev.id, hostname: dev.hostname,
+      source: 'live_agent_telemetry',
+      total_processes: freshProcs.length,
+      processes: freshProcs
     });
   }
 
@@ -2114,7 +2121,8 @@ app.get('/api/v1/devices/:id/app-usage', async (req, res) => {
   }
   // Hostname-only cache keys are not tenant-unique across old enrollments.
   const liveUsage = await db.cacheGet(`app_usage:${dev.id}`);
-  if (liveUsage && Array.isArray(liveUsage) && liveUsage.length > 0) {
+  if (dev.telemetry_status === 'AGENT_REPORTED' &&
+      liveUsage && Array.isArray(liveUsage) && liveUsage.length > 0) {
     return res.json({ device_id: dev.id, hostname: dev.hostname, source: "live_agent_telemetry", app_usage: liveUsage });
   }
 
@@ -3104,7 +3112,7 @@ app.get(['/api/v1/analytics/predictive', '/api/analytics/predictive'], async (re
   if (!tenantId) return res.status(403).json({ error: 'TENANT_REQUIRED' });
   const agents = await db.getDevices({ tenant_id: tenantId });
   const analysis = await Promise.all(agents.map(async agent => {
-    const history = await db.getTelemetryHistory(agent.id, 20);
+    const history = await db.getTelemetryHistory(agent.id, 256);
     return analyzeMeasuredTelemetry(history, agent);
   }));
 

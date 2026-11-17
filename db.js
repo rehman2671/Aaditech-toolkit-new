@@ -272,8 +272,9 @@ export async function runDatabaseMigrations() {
       memAppliedMigrations.add('006');
       memAppliedMigrations.add('007');
       memAppliedMigrations.add('008');
+      memAppliedMigrations.add('009');
     }
-    return { applied: [], skipped: ['001_init_schema.sql', '002_partitioning.sql', '003_rbac_and_audit.sql', '004_workspace_memberships.sql', '005_remediation_tenant_logs.sql', '006_notification_outbox.sql', '007_scrub_legacy_github_pat.sql', '008_scrub_legacy_ticket_keys.sql'], status: 'FALLBACK_MODE' };
+    return { applied: [], skipped: ['001_init_schema.sql', '002_partitioning.sql', '003_rbac_and_audit.sql', '004_workspace_memberships.sql', '005_remediation_tenant_logs.sql', '006_notification_outbox.sql', '007_scrub_legacy_github_pat.sql', '008_scrub_legacy_ticket_keys.sql', '009_notification_destination_binding.sql'], status: 'FALLBACK_MODE' };
   }
 
   let lockAcquired = false;
@@ -2081,7 +2082,8 @@ export async function createAlert(alt, notifications = []) {
   const jobs = Array.isArray(notifications) ? notifications : [];
   for (const job of jobs) {
     if (!['webhook', 'email'].includes(job?.channel) ||
-        !job?.event || typeof job.event !== 'object' || Array.isArray(job.event)) {
+        !job?.event || typeof job.event !== 'object' || Array.isArray(job.event) ||
+        !/^[0-9a-f]{64}$/.test(String(job.destination_hash || ''))) {
       throw new Error('INVALID_NOTIFICATION_CHANNEL');
     }
   }
@@ -2094,8 +2096,8 @@ export async function createAlert(alt, notifications = []) {
       [res] = await conn.query(sql, values);
       for (const job of jobs) {
         await conn.query(
-          'INSERT IGNORE INTO notification_outbox (tenant_id, alert_id, channel, payload_json) VALUES (?, ?, ?, ?)',
-          [values[0], res.insertId, job.channel, JSON.stringify(job.event)]
+          'INSERT IGNORE INTO notification_outbox (tenant_id, alert_id, channel, destination_hash, payload_json) VALUES (?, ?, ?, ?, ?)',
+          [values[0], res.insertId, job.channel, job.destination_hash, JSON.stringify(job.event)]
         );
       }
       await conn.commit();
@@ -2110,8 +2112,8 @@ export async function createAlert(alt, notifications = []) {
     res = await executeQuery(sql, values);
     for (const job of jobs) {
       await executeQuery(
-        'INSERT IGNORE INTO notification_outbox (tenant_id, alert_id, channel, payload_json) VALUES (?, ?, ?, ?)',
-        [values[0], res.insertId, job.channel, JSON.stringify(job.event)]
+        'INSERT IGNORE INTO notification_outbox (tenant_id, alert_id, channel, destination_hash, payload_json) VALUES (?, ?, ?, ?, ?)',
+        [values[0], res.insertId, job.channel, job.destination_hash, JSON.stringify(job.event)]
       );
     }
   }
@@ -2143,7 +2145,7 @@ export async function claimNotificationOutbox(batchSize = 20) {
   );
   const claimed = await executeQuery(
     "UPDATE notification_outbox SET status = 'PROCESSING', lease_token = ?, attempts = attempts + 1, " +
-    "lease_expires_at = DATE_ADD(UTC_TIMESTAMP(3), INTERVAL 90 SECOND) " +
+    "lease_expires_at = DATE_ADD(UTC_TIMESTAMP(3), INTERVAL 300 SECOND) " +
     "WHERE attempts < 5 AND ((status = 'PENDING' AND available_at <= UTC_TIMESTAMP(3)) " +
     "OR (status = 'PROCESSING' AND lease_expires_at <= UTC_TIMESTAMP(3))) " +
     "ORDER BY id ASC LIMIT ?",

@@ -17,22 +17,24 @@ describe('Stage N17 durable tenant notification worker', () => {
   it('dispatches only the configured tenant and records relay acceptance', async () => {
     const getEmailConfig = vi.fn(async t => ({ enabled: t === 'tenant-A', recipient: 'alerts@example.com' }));
     const sendEmail = vi.fn(async () => ({ accepted: true }));
-    expect(await deliverOutboxEntry(emailRow, { getEmailConfig, sendEmail }))
+    expect(await deliverOutboxEntry(emailRow, { getEmailConfig, sendEmail, verifyDestination: () => true }))
       .toMatchObject({ outcome: 'DELIVERED' });
     expect(sendEmail).toHaveBeenCalledWith('tenant-A', { enabled: true, recipient: 'alerts@example.com' },
       { title: 'Disk warning', message: '10GB', severity: 'warning' });
     expect((await deliverOutboxEntry({ ...emailRow, tenant_id: 'tenant-B' },
-      { getEmailConfig, sendEmail })).outcome).toBe('SKIPPED');
+      { getEmailConfig, sendEmail, verifyDestination: () => true })).outcome).toBe('SKIPPED');
     expect(sendEmail).toHaveBeenCalledTimes(1);
   });
   it('handles transient failures via retry and does not fabricate delivery', async () => {
     expect(await deliverOutboxEntry(emailRow, {
       getEmailConfig: async () => ({ enabled: true, recipient: 'alerts@example.com' }),
-      sendEmail: async () => ({ accepted: false, reason: 'SMTP_NOT_CONFIGURED' })
+      sendEmail: async () => ({ accepted: false, reason: 'SMTP_NOT_CONFIGURED' }),
+      verifyDestination: () => true
     })).toMatchObject({ outcome: 'RETRY' });
     await expect(deliverOutboxEntry({ ...emailRow, channel: 'webhook' }, {
       getWebhookConfig: async () => ({ enabled: true, url: 'https://hooks.slack.com/x' }),
-      sendWebhook: async () => { throw new Error('offline'); }
+      sendWebhook: async () => { throw new Error('offline'); },
+      verifyDestination: () => true
     })).rejects.toThrow('offline');
   });
   it('acknowledges only leased claimed rows, retries failures, skips disabled jobs', async () => {
@@ -48,9 +50,10 @@ describe('Stage N17 durable tenant notification worker', () => {
       getEmailConfig: async t => ({ enabled: t === 'tenant-A', recipient: 'alerts@example.com' }),
       getWebhookConfig: async () => ({ enabled: true, url: 'https://hooks.slack.com/x' }),
       sendEmail: async () => ({ accepted: true }),
-      sendWebhook: async () => ({ dispatched: false, reason: 'UPSTREAM_503' })
+      sendWebhook: async () => ({ dispatched: false, reason: 'UPSTREAM_503' }),
+      verifyDestination: () => true
     });
-    expect(result).toEqual({ processed: 3, delivered: 1, skipped: 1, retried: 1 });
+    expect(result).toEqual({ processed: 3, delivered: 1, skipped: 1, retried: 1, lostLease: 0 });
     expect(complete).toHaveBeenCalledWith(7, 'lease-A', 'DELIVERED');
     expect(complete).toHaveBeenCalledWith(9, 'lease-C', 'SKIPPED');
     expect(retry).toHaveBeenCalledWith(rows[1], 'WEBHOOK_DELIVERY_FAILED');
@@ -79,7 +82,7 @@ describe('Stage N17 MySQL outbox transactional SQL contract', () => {
     try {
       await expect(db.createAlert({ tenant_id: 'tenant-A', device_id: 'PC-1',
         hostname: 'PC-1', rule: 'CPU overload' }, [
-          { channel: 'email', event: { title: 'CPU alert' } }
+          { channel: 'email', destination_hash: 'a'.repeat(64), event: { title: 'CPU alert' } }
         ])).rejects.toThrow('SQL_OUTBOX_WRITE_FAILED');
       expect(actions).toEqual(['begin', 'alert', 'job', 'rollback', 'release']);
     } finally {
@@ -106,15 +109,16 @@ describe('Stage N17 MySQL outbox transactional SQL contract', () => {
     db.setConnectionStateForTesting(true, { getConnection: async () => connection });
     try {
       const alert = await db.createAlert({ tenant_id: 'tenant-A', device_id: 'PC-1' }, [
-        { channel: 'webhook', event: { title: 'CPU' } },
-        { channel: 'email', event: { title: 'CPU' } }
+        { channel: 'webhook', destination_hash: 'a'.repeat(64), event: { title: 'CPU' } },
+        { channel: 'email', destination_hash: 'b'.repeat(64), event: { title: 'CPU' } }
       ]);
       expect(alert.id).toBe(20);
       expect(calls.filter(c => c === 'commit')).toHaveLength(1);
       expect(calls.filter(c => c === 'rollback')).toHaveLength(0);
       const inserts = calls.filter(c => typeof c === 'object' && c.sql.includes('notification_outbox'));
-      expect(inserts.map(x => x.params.slice(0, 3))).toEqual([
-        ['tenant-A', 20, 'webhook'], ['tenant-A', 20, 'email']
+      expect(inserts.map(x => x.params.slice(0, 4))).toEqual([
+        ['tenant-A', 20, 'webhook', 'a'.repeat(64)],
+        ['tenant-A', 20, 'email', 'b'.repeat(64)]
       ]);
     } finally {
       db.setConnectionStateForTesting(false, null);

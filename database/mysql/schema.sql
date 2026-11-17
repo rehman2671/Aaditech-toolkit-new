@@ -492,6 +492,7 @@ CREATE TABLE IF NOT EXISTS `notification_outbox` (
   `tenant_id` VARCHAR(36) NOT NULL,
   `alert_id` BIGINT UNSIGNED NOT NULL,
   `channel` VARCHAR(16) NOT NULL,
+  `destination_hash` CHAR(64) NULL,
   `payload_json` JSON NOT NULL,
   `status` VARCHAR(16) NOT NULL DEFAULT 'PENDING',
   `attempts` INT UNSIGNED NOT NULL DEFAULT 0,

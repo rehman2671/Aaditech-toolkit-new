@@ -1,10 +1,12 @@
 # Phase N — Production release acceptance and sign-off
 
-## Stage N30 — real MSI pending SQLite queue + safe receipt cleanup (CODE PROPOSED; CI PENDING)
+## Stage N30 — real MSI pending SQLite queue + safe receipt cleanup (CODE/CI ACCEPTED; CUSTOMER PRODUCTION BLOCKED)
 
-- [ ] On main CI, real Windows diagnostic MSI major upgrade verifies installed sqlite3.exe, ProgramData queue.sqlite3 integrity, persistent queue UUID, two pending rows and exact original pending JSON before/after upgrade.
-- [ ] Isolated MySQL verifies migration 015, 400-day active receipt still dedupes, dry-run default, 180-day minimum, bounded deletion and absent-tenant/zero-device owner guards.
-- [ ] Confirm main Node/Vitest, PowerShell, API/MySQL, Windows MSI and safety results before code/CI acceptance.
+**Verified 2026-11-18 IST:** [PR #20](https://github.com/rehman2671/Aaditech-toolkit-new/pull/20) merged at `3aa28aee3061f5b70ee81dca9b6460f67837e6ac`. [Main CI #44190267130](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44190267130) **4/4 SUCCESS**, including actual SQLite in-flight queue + exact JSON preservation across real Windows major upgrade 1.1.2001 -> 1.1.2002; [main safety #44190267337](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44190267337) **2/2 SUCCESS**. Signed public MSI upload skipped.
+
+- [x] On main CI, real Windows diagnostic MSI major upgrade verifies installed sqlite3.exe, ProgramData queue.sqlite3 integrity, persistent queue UUID, two pending rows and exact original pending JSON before/after upgrade.
+- [x] Isolated MySQL verifies migration 015, 400-day active receipt still dedupes, dry-run default, 180-day minimum, bounded deletion and absent-tenant/zero-device owner guards.
+- [x] Confirm main Node/Vitest, PowerShell, API/MySQL, Windows MSI and safety results before code/CI acceptance.
 - [ ] Production customer backup/offsite restore, real Windows NETWORK SERVICE and offline ACK-loss, Hostinger VPS/DNS/TLS, public signed MSI, real SMTP/webhook, Graph/ITSM integrations remain separately pending.
 
 ## Stage N29 — atomic keyed telemetry request replay (CODE/CI ACCEPTED; PRODUCTION BLOCKED)

@@ -1,6 +1,16 @@
 # Phase N Stage 30 — MSI Pending Queue and Protected Receipt Retention
 
-**Status: CODE PROPOSED; PR/main CI PENDING; CUSTOMER PRODUCTION BLOCKED.**
+**Status: CODE/CI ACCEPTED — CUSTOMER PRODUCTION BLOCKED (2026-11-18 IST).**
+
+## Verified automation and Windows upgrade evidence
+
+- [PR #20](https://github.com/rehman2671/Aaditech-toolkit-new/pull/20) squash-merged to main as `3aa28aee3061f5b70ee81dca9b6460f67837e6ac`.
+- [PR CI #44189789034](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44189789034): **SUCCESS** Node/Vitest (coverage >=70%), PowerShell; real MySQL/API (migration 015, 400-day active-tenant receipt still dedupes, preview cannot delete, explicit confirmed 180-day bounded cleanup protects live tenants, device-backed orphan and recent orphans). PR diagnostic Windows MSI intentionally **SKIPPED**.
+- [PR deployment safety #44189788957](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44189788957): **SUCCESS 2/2**.
+- [Main CI #44190267130](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44190267130): **SUCCESS 4/4** — Node/Vitest, PowerShell, genuine MySQL/API, real Windows ps2exe/WiX diagnostic MSI build, extraction, installation/uninstall and upgrade.
+- Main Windows job log states **"N30 PASS: real SQLite integrity, persistent queue UUID, pending outbox and exact JSON survived major upgrade."** Major upgrade **1.1.2001 -> 1.1.2002** additionally preserved HTTPS/tenant/device configuration; upgraded MSI uninstalled cleanly.
+- [Main deployment safety #44190267337](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44190267337): **SUCCESS 2/2**.
+- **Signed public artifact upload remained SKIPPED**, and all tests used isolated CI/disposable Windows, not a physical customer deployment.
 
 ## Correctness and test scope
 
@@ -33,8 +43,8 @@ PURGE_DECOMMISSIONED_BATCH_RECEIPTS.
 
 ## Acceptance checklist
 
-- [ ] PR Node/Vitest, PowerShell, real MySQL/API and safety checks.
-- [ ] Main Windows EXE/WiX MSI build, SQLite-before/after major upgrade fixture,
+- [x] PR Node/Vitest, PowerShell, real MySQL/API and safety checks.
+- [x] Main Windows EXE/WiX MSI build, SQLite-before/after major upgrade fixture,
       install/uninstall, and 4/4 CI plus 2/2 deployment safety.
 - [ ] Physical enrolled customer Windows test with NETWORK SERVICE, real lost
       HTTP ACK, restart, upgrade and eventual server-acknowledged replay.

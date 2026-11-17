@@ -3217,76 +3217,60 @@ app.post(['/api/v1/tickets', '/api/v1/tickets/create', '/api/tickets/create'], r
   if (!req.user?.tenant_id) return res.status(403).json({ error: 'TENANT_REQUIRED' });
   const cfg = await db.getTenantTicketConfig(req.user.tenant_id);
   const newId = `${cfg.project || 'ITSUP'}-${crypto.randomUUID()}`;
+  // This endpoint creates an internal helpdesk record only. It does not
+  // contact Jira, ServiceNow or Zendesk, so never claim external sync.
+  if (agent) {
+    const target = await db.getDeviceByHostname(agent);
+    if (!belongsToCurrentTenant(req.user, target)) {
+      return res.status(404).json({ error: 'Target agent/device not found' });
+    }
+  }
   const ticket = {
     id: newId,
     tenant_id: req.user.tenant_id,
-    system: cfg.system || "none",
+    system: 'internal',
     title: title || `Issue reported on ${agent || 'Host'}`,
     status: "Open",
     severity: severity || "Medium",
-    agent: agent || "WIN-DC01.corp.internal"
+    agent: agent || ''
   };
   await db.createTicket(ticket);
   logAudit(req.user, "TICKET_CREATED", `Ticket:${newId}`, { title: ticket.title, severity: ticket.severity }, req);
-  res.json({ ok: true, ticket });
+  return res.json({ ok: true, ticket, external_sync: 'NOT_CONNECTED' });
 });
 
 // ---------------- GAP FULFILLMENT: CLOUD & HYBRID AUDIT ----------------
+// No Microsoft Graph/OAuth transport is implemented. Environment variable
+// presence alone is NOT proof of Azure AD, Intune or M365 connectivity.
 app.get(['/api/v1/compliance/cloud-audit', '/api/compliance/cloud-audit'], async (req, res) => {
   if (!req.user?.tenant_id) return res.status(403).json({ error: 'TENANT_REQUIRED' });
-  const isCloudConfigured = Boolean(process.env.AZURE_TENANT_ID && process.env.GRAPH_CLIENT_ID);
   const agents = await db.getDevices({ tenant_id: req.user.tenant_id });
-
-  if (!isCloudConfigured) {
-    const bitlockerCount = agents.filter(a => a.bitlocker_status === 'ENCRYPTED').length;
-    const defenderCount = agents.filter(a => a.antivirus_status === 'ACTIVE').length;
-    const bitlockerPct = agents.length > 0 ? `${Math.round((bitlockerCount / agents.length) * 100)}%` : "0%";
-    const defenderPct = agents.length > 0 ? `${Math.round((defenderCount / agents.length) * 100)}%` : "0%";
-
-    return res.json({
-      configured: false,
-      status: "NOT_CONFIGURED",
-      summary: {
-        azure_ad_sync: "Not Configured",
-        intune_enrolled_pct: "0%",
-        m365_services_status: "Not Configured",
-        bitlocker_compliant_pct: bitlockerPct,
-        defender_active_pct: defenderPct
-      },
-      cloud_services: [],
-      agent_compliance: agents.map(a => ({
-        hostname: a.hostname,
-        azure_ad_joined: false,
-        intune_managed: false,
-        bitlocker_encrypted: a.bitlocker_status === 'ENCRYPTED',
-        defender_realtime_on: a.antivirus_status === 'ACTIVE',
-        compliance_status: (a.bitlocker_status === 'ENCRYPTED' && a.antivirus_status === 'ACTIVE') ? "Compliant" : "Non-Compliant"
-      })),
-      note: "Azure AD and Microsoft 365 cloud sync requires AZURE_TENANT_ID and GRAPH_CLIENT_ID configuration."
-    });
-  }
-
-  res.json({
-    configured: true,
-    status: "CONFIGURED",
+  const credentialsPresent = Boolean(process.env.AZURE_TENANT_ID && process.env.GRAPH_CLIENT_ID);
+  const pct = (prop, value) => agents.length
+    ? Math.round(agents.filter(a => a[prop] === value).length / agents.length * 100) + '%'
+    : 'N/A';
+  return res.json({
+    configured: false,
+    status: 'NOT_CONNECTED',
+    credentials_present: credentialsPresent,
     summary: {
-      azure_ad_sync: "Connected",
-      intune_enrolled_pct: "N/A",
-      m365_services_status: "Connected",
-      bitlocker_compliant_pct: agents.length ? `${Math.round((agents.filter(a => a.bitlocker_status === 'ENCRYPTED').length / agents.length) * 100)}%` : "0%",
-      defender_active_pct: agents.length ? `${Math.round((agents.filter(a => a.antivirus_status === 'ACTIVE').length / agents.length) * 100)}%` : "0%"
+      azure_ad_sync: 'Not connected',
+      intune_enrolled_pct: 'N/A',
+      m365_services_status: 'Not connected',
+      bitlocker_compliant_pct: pct('bitlocker_status', 'ENCRYPTED'),
+      defender_active_pct: pct('antivirus_status', 'ACTIVE')
     },
-    cloud_services: [
-      { name: "Azure AD Identity Sync", status: "Connected", last_sync: new Date().toISOString() }
-    ],
+    cloud_services: [],
     agent_compliance: agents.map(a => ({
       hostname: a.hostname,
-      azure_ad_joined: false,
-      intune_managed: false,
+      azure_ad_joined: null,
+      intune_managed: null,
       bitlocker_encrypted: a.bitlocker_status === 'ENCRYPTED',
       defender_realtime_on: a.antivirus_status === 'ACTIVE',
-      compliance_status: (a.bitlocker_status === 'ENCRYPTED' && a.antivirus_status === 'ACTIVE') ? "Compliant" : "Non-Compliant"
-    }))
+      compliance_status: (a.bitlocker_status === 'ENCRYPTED' &&
+        a.antivirus_status === 'ACTIVE') ? 'Compliant' : 'Not verified'
+    })),
+    note: 'Local device telemetry only. Microsoft Graph sync and cloud/MDM status are not connected or verified.'
   });
 });
 

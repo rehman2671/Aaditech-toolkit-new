@@ -323,12 +323,15 @@ export const remediationTriggerSchema = z.object({
   action_type: z.string().regex(/^[a-z][a-z0-9_]{0,63}$/, 'Invalid remediation action')
 });
 
+// A provider selection is metadata, NOT a live remote ticket connector.
+// Secrets must be stored only in private operator-owned integrations.
 export const ticketConfigSchema = z.object({
-  system: z.string().optional(),
-  project: z.string().optional(),
-  url: z.string().optional(),
-  api_key: z.string().optional()
-});
+  system: z.enum(['none', 'jira', 'servicenow', 'zendesk']).optional(),
+  project: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/).optional(),
+  url: z.string().max(512).refine(value => value === '' ||
+    (value.startsWith('https://') && /^https:\/\/[^/@?#]+\.[^/@?#]+/.test(value)),
+    'An HTTPS provider URL is required').optional()
+}).strict();
 
 export const createTicketSchema = z.object({
   title: z.string().min(1, "Ticket title is required"),

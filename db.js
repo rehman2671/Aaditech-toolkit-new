@@ -271,8 +271,9 @@ export async function runDatabaseMigrations() {
       memAppliedMigrations.add('005');
       memAppliedMigrations.add('006');
       memAppliedMigrations.add('007');
+      memAppliedMigrations.add('008');
     }
-    return { applied: [], skipped: ['001_init_schema.sql', '002_partitioning.sql', '003_rbac_and_audit.sql', '004_workspace_memberships.sql', '005_remediation_tenant_logs.sql', '006_notification_outbox.sql', '007_scrub_legacy_github_pat.sql'], status: 'FALLBACK_MODE' };
+    return { applied: [], skipped: ['001_init_schema.sql', '002_partitioning.sql', '003_rbac_and_audit.sql', '004_workspace_memberships.sql', '005_remediation_tenant_logs.sql', '006_notification_outbox.sql', '007_scrub_legacy_github_pat.sql', '008_scrub_legacy_ticket_keys.sql'], status: 'FALLBACK_MODE' };
   }
 
   let lockAcquired = false;
@@ -3171,11 +3172,15 @@ export async function getTenantTicketConfig(tenantId) {
   if (!tenantId || typeof tenantId !== 'string') throw new Error('TENANT_REQUIRED');
   const defaults = { system: 'none', url: '', project: 'ITSUP', auto_create_on_critical: false };
   const stored = await getSetting(`tenant:${tenantId}:ticketConfig`, null);
-  return { ...defaults, ...(stored || {}) };
+  // Historical API keys are deleted by migration 008; never return them to
+  // any authenticated workspace user even before the migration completes.
+  const { api_key: _legacyKey, ...safe } = stored || {};
+  return { ...defaults, ...safe };
 }
 
 export async function updateTenantTicketConfig(tenantId, updates) {
   if (!tenantId || typeof tenantId !== 'string') throw new Error('TENANT_REQUIRED');
+  if (updates?.api_key !== undefined) throw new Error('BROWSER_CREDENTIALS_NOT_ALLOWED');
   const current = await getTenantTicketConfig(tenantId);
   const merged = { ...current, ...updates };
   await setSetting(`tenant:${tenantId}:ticketConfig`, merged);

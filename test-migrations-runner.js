@@ -21,7 +21,7 @@ async function runTests() {
   const migrationFiles = fs.readdirSync(migrationsDir).filter(f => f.endsWith('.sql')).sort();
   assert.deepStrictEqual(
     migrationFiles,
-    ['001_init_schema.sql', '002_partitioning.sql', '003_rbac_and_audit.sql', '004_workspace_memberships.sql', '005_remediation_tenant_logs.sql', '006_notification_outbox.sql', '007_scrub_legacy_github_pat.sql'],
+    ['001_init_schema.sql', '002_partitioning.sql', '003_rbac_and_audit.sql', '004_workspace_memberships.sql', '005_remediation_tenant_logs.sql', '006_notification_outbox.sql', '007_scrub_legacy_github_pat.sql', '008_scrub_legacy_ticket_keys.sql'],
     'Expected ordered 001–007 migrations including secure GitHub PAT scrub'
   );
 

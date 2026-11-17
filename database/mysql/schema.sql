@@ -390,6 +390,7 @@ CREATE TABLE IF NOT EXISTS `events` (
   `device_id` VARCHAR(64) NULL,
   `client_msg_id` VARCHAR(160) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NULL,
   `event_hash` CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NULL,
+  `event_insert_nonce` CHAR(32) CHARACTER SET ascii COLLATE ascii_bin NULL,
   `hostname` VARCHAR(128) NOT NULL,
   `kind` VARCHAR(64) NOT NULL,
   `sanitized` BOOLEAN DEFAULT TRUE,

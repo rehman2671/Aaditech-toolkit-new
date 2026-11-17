@@ -24,6 +24,21 @@ PREPARE event_hash_stmt FROM @event_hash_sql;
 EXECUTE event_hash_stmt;
 DEALLOCATE PREPARE event_hash_stmt;
 
+-- FOUND_ROWS cannot distinguish successful insert from an idempotent no-op.
+-- A server-generated winner nonce is written only on first insertion; replay
+-- compares the stored value to the current attempt nonce.
+SET @event_nonce_exists = (
+  SELECT COUNT(*) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'events' AND COLUMN_NAME = 'event_insert_nonce'
+);
+SET @event_nonce_sql = IF(@event_nonce_exists = 0,
+  'ALTER TABLE events ADD COLUMN event_insert_nonce CHAR(32) CHARACTER SET ascii COLLATE ascii_bin NULL AFTER event_hash',
+  'SELECT 1'
+);
+PREPARE event_nonce_stmt FROM @event_nonce_sql;
+EXECUTE event_nonce_stmt;
+DEALLOCATE PREPARE event_nonce_stmt;
+
 SET @event_index_exists = (
   SELECT COUNT(*) FROM information_schema.STATISTICS
   WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'events' AND INDEX_NAME = 'uq_events_owner_msg'

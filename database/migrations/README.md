@@ -18,7 +18,7 @@ This directory contains ordered, idempotent, versioned schema migrations managed
 10. `010_events_tenant_device_identity.sql`: add nullable tenant/device ownership and index to event logs. Legacy rows remain NULL (never inferred from potentially duplicate hostnames); new verified agent events are tenant-bound at insert.
 11. `011_security_posture_provenance.sql`: add nullable server-owned enrolled-agent posture evidence timestamp and neutral new-device security defaults. Historic optimistic values remain unverified until fresh authenticated telemetry arrives.
 12. `012_measured_device_telemetry.sql`: add nullable server-owned metric evidence timestamp, neutral CPU/RAM/disk/battery/total-capacity defaults and nullable missing history samples. Historic default values remain unverified.
-13. `013_events_idempotency.sql`: add nullable per-event message keys and server-side content digests, plus unique tenant/device/message index. Historic NULL-owned and unkeyed events remain unmodified.
+13. `013_events_idempotency.sql`: add nullable per-event message keys, server-side content digests and insertion-winner nonce, plus unique tenant/device/message index. Historic NULL-owned and unkeyed events remain unmodified.
 
 ## Migration Runner & Concurrency
 - Tracked via the `schema_migrations` table (`version`, `name`, `applied_at`, `execution_time_ms`, `checksum`).

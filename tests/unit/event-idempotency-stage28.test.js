@@ -21,14 +21,14 @@ describe('Stage N28 event retry idempotency', () => {
   });
   it('resolves exact retry and rejects altered content with reused message ID',async()=>{
     process.env.NODE_ENV='production';
-    const queries=[];let persistedHash=null;
+    const queries=[];let persistedHash=null,persistedNonce=null;
     db.setConnectionStateForTesting(true,{query:async(sql,params=[])=>{
       queries.push({sql,params});
       if(sql.includes('ON DUPLICATE KEY UPDATE')){
-        if(!persistedHash){persistedHash=params[3];return [{insertId:19,affectedRows:1},[]];}
+        if(!persistedHash){persistedHash=params[3];persistedNonce=params[4];return [{insertId:19,affectedRows:1},[]];}
         return [{insertId:19,affectedRows:0},[]];
       }
-      if(sql.startsWith('SELECT id, event_hash'))return [[{id:19,event_hash:persistedHash}],[]];
+      if(sql.startsWith('SELECT id, event_hash'))return [[{id:19,event_hash:persistedHash,event_insert_nonce:persistedNonce}],[]];
       throw Error('Unexpected SQL: '+sql);
     }});
     const ev={tenant_id:'t-A',device_id:'d-A',hostname:'SHARED',kind:'health',payload:{free:0},client_msg_id:'q:1'};

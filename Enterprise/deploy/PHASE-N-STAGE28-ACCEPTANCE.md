@@ -9,7 +9,7 @@ collide after a clean reinstall of the SQLite queue.
 Migration 013 adds nullable `client_msg_id`, nullable server-calculated
 `event_hash`, and case-sensitive UNIQUE
 `(tenant_id, device_id, client_msg_id)`. Historic NULL keys are preserved.
-Atomic MySQL duplicate-key insertion resolves exact concurrent retries without
+Atomic MySQL duplicate-key insertion with a persisted insertion-winner nonce (required because MySQL FOUND_ROWS returns affectedRows=1 even for a duplicate no-op) resolves exact concurrent retries without
 a new row. Changed content under an existing key raises HTTP 409 instead of
 silently acknowledging altered events. Owner identity is from authenticated
 tenant/device, never hostname.

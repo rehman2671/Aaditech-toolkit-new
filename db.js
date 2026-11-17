@@ -2868,30 +2868,31 @@ export async function addEvent(event) {
     }
     const digest = crypto.createHash('sha256')
       .update(JSON.stringify([event.kind, sanitized, payload])).digest('hex');
-    // MySQL's unique index serializes concurrent retry workers across hosts.
-    const result = await executeQuery(
+    // FOUND_ROWS makes affectedRows=1 even on a duplicate no-op in mysql2.
+    // Generate a per-attempt nonce and store it only for the actual winner.
+    // A unique index serializes retries across all API worker processes.
+    const insertNonce = crypto.randomBytes(16).toString('hex');
+    await executeQuery(
       `INSERT INTO events
-       (tenant_id, device_id, client_msg_id, event_hash, hostname, kind, sanitized, payload, captured_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(3))
+       (tenant_id, device_id, client_msg_id, event_hash, event_insert_nonce, hostname, kind, sanitized, payload, captured_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(3))
        ON DUPLICATE KEY UPDATE id = LAST_INSERT_ID(id)`,
-      [event.tenant_id, event.device_id, key, digest, event.hostname,
-       event.kind, sanitized, JSON.stringify(payload)]
+      [event.tenant_id, event.device_id, key, digest, insertNonce,
+       event.hostname, event.kind, sanitized, JSON.stringify(payload)]
     );
-    if (Number(result?.affectedRows) === 1) {
-      const inserted = { id: result.insertId, ...event, event_hash: digest, captured_at: new Date() };
-      memEvents.push(inserted);
-      return { ...inserted, duplicate: false };
-    }
-    // Reusing a key with changed content is an integrity conflict. Do not
-    // acknowledge somebody else's event or silently overwrite existing data.
+    // A separate SELECT verifies the committed row and unambiguously
+    // identifies the insert winner, regardless of CLIENT_FOUND_ROWS flags.
     const rows = await executeQuery(
-      'SELECT id, event_hash FROM events WHERE tenant_id = ? AND device_id = ? AND client_msg_id = ? LIMIT 1',
+      'SELECT id, event_hash, event_insert_nonce FROM events WHERE tenant_id = ? AND device_id = ? AND client_msg_id = ? LIMIT 1',
       [event.tenant_id, event.device_id, key]
     );
     if (rows.length !== 1 || rows[0].event_hash !== digest) {
       throw new Error('EVENT_IDEMPOTENCY_CONFLICT');
     }
-    return { id: rows[0].id, ...event, event_hash: digest, duplicate: true };
+    const duplicate = rows[0].event_insert_nonce !== insertNonce;
+    const recorded = { id: rows[0].id, ...event, event_hash: digest, duplicate };
+    if (!duplicate) memEvents.push(recorded);
+    return recorded;
   }
   // Historical agents send no key. SQL UNIQUE allows multiple NULL entries.
   const sql = `

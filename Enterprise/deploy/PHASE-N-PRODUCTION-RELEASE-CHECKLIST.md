@@ -1,5 +1,13 @@
 # Phase N — Production release acceptance and sign-off
 
+## Stage N27 — idle-device metrics cadence and outbox ACK safety (PR CI PENDING)
+
+- [ ] Verify PR Node/Vitest, behavioral PowerShell agent tests, real MySQL/API and safety CI; merge and verify genuine diagnostic Windows EXE/MSI pipeline on main.
+- [ ] With a properly enrolled physical Windows MSI agent, monitor a device with no queued collector events for at least 30 minutes: measured CPU/RAM/disk must refresh at about five-minute intervals without rerunning full inventory or privileged collectors.
+- [ ] Deny outbound HTTPS, return malformed/partial ACK responses in a controlled environment and verify pending SQLite events remain retryable. Verify successful server ACK marks exactly the local rows delivered; retries are at-least-once (not deduplicated exactly-once).
+- [ ] Recheck the 15-minute tenant telemetry freshness policy, legitimate zero values and real notification behavior. No acceptance without genuine customer devices and independent evidence.
+- [ ] All public signer, Hostinger VPS/DNS/TLS, offsite customer MySQL recovery, live SMTP/webhook and independent Graph/Jira acceptance gates remain **BLOCKED**.
+
 ## Stage N26 — canonical MSI-agent telemetry (CODE/CI ACCEPTED; PRODUCTION BLOCKED)
 
 **Automated accepted (2026-11-17):** [PR #16](https://github.com/rehman2671/Aaditech-toolkit-new/pull/16);

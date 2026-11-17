@@ -72,6 +72,9 @@ jobs:
       - name: Test one-use enrollment bootstrap token is cleared after provisioning
         run: pwsh -NoProfile -File ./Enterprise/tests/Test-EnrollmentBootstrapCleanup.ps1
 
+      - name: Exercise canonical agent idle telemetry and durable ACK handling (N27)
+        run: pwsh -NoProfile -File ./Enterprise/tests/Test-CanonicalAgent-AckCadence.ps1
+
       - name: Verify unsigned MSI publication fails closed and invalid certificates are rejected
         run: pwsh -NoProfile -File ./Enterprise/tests/Test-ReleaseSigningGates.ps1
 

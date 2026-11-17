@@ -68,6 +68,7 @@ $sent = Send-AgentBatch -Config $cfg
 Assert-True ($sent -eq 0) 'empty queue ACK count'
 Assert-True ($script:Sent.Count -eq 1) 'empty queue still sends authenticated telemetry'
 Assert-True ($script:Sent[0].events.Count -eq 0) 'empty queue produces events=[]'
+Write-Host ('N27 diagnostic snapshot: ' + ($script:Sent[0] | ConvertTo-Json -Compress -Depth 8))
 Assert-True ($script:Sent[0].metrics.disk.free_gb -eq 0) 'genuine measured 0 GB preserved'
 Assert-True ($script:Sent[0].posture.bitlocker_status -eq 'UNKNOWN') 'unknown posture preserved'
 Assert-True ($script:Updates.Count -eq 0) 'empty outbox requires no destructive UPDATE'

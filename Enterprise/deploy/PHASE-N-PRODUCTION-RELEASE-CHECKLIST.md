@@ -1,5 +1,16 @@
 # Phase N — Production release acceptance and sign-off
 
+## Stage N31 — read-only deployment and physical-Windows preflight; independently pinned public release (CODE PROPOSED; CI PENDING)
+
+- [ ] Use `preflight-stage31.sh --env-file PRIVATE_ENV --report-file NEW_JSON` to validate local permissions/config offline; no secret content may enter logs or report.
+- [ ] Real Hostinger public TLS/redirect/MySQL check only after operator explicitly passes `--live --confirm-live PROBE_PUBLIC_HEALTH`. No host/domain is assumed before deployment.
+- [ ] On customer Windows, run `Enterprise/tests/Test-CustomerWindowsAcceptance.ps1 -ReportPath NEW_JSON`; confirm correct HTTPS setup, real enrolled credentials, NETWORK SERVICE task, installed SQLite queue integrity and redacted report. Live GET /healthz requires `-NetworkProbe`.
+- [ ] Approved public installer workflow must require manually supplied `approved_source_sha` plus independent `approved_msi_sha256`; source GitHub CI run, signer, timestamp, checksum, embedded signed EXE and new tag must all validate.
+- [ ] CI regression proves offline tests, unsigned/mismatched publisher checksum rejection and unconfigured Windows reports BLOCKED without network activity.
+- [ ] On actual Hostinger VPS: approve private env, DNS/TLS ownership, encryption, production migration and offsite MySQL restore. **NOT YET VERIFIED.**
+- [ ] On real customer Windows: verify offline ACK-loss/retry under NETWORK SERVICE and trusted publisher MSI installation. **NOT YET VERIFIED.**
+- [ ] Protected manual release approval, public Authenticode-signed MSI publication and live SMTP/webhook/Graph/ITSM integrations. **NOT YET VERIFIED.**
+
 ## Stage N30 — real MSI pending SQLite queue + safe receipt cleanup (CODE/CI ACCEPTED; CUSTOMER PRODUCTION BLOCKED)
 
 **Verified 2026-11-18 IST:** [PR #20](https://github.com/rehman2671/Aaditech-toolkit-new/pull/20) merged at `3aa28aee3061f5b70ee81dca9b6460f67837e6ac`. [Main CI #44190267130](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44190267130) **4/4 SUCCESS**, including actual SQLite in-flight queue + exact JSON preservation across real Windows major upgrade 1.1.2001 -> 1.1.2002; [main safety #44190267337](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44190267337) **2/2 SUCCESS**. Signed public MSI upload skipped.

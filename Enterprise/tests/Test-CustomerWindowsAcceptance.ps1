@@ -16,8 +16,8 @@ $checks = [System.Collections.Generic.List[object]]::new()
 function Add-Check([string]$Id,[string]$State,[string]$Note) {
   $checks.Add([pscustomobject]@{id=$Id;state=$State;note=$Note})
 }
-$isWindows = $env:OS -eq 'Windows_NT'
-if ($isWindows) { Add-Check 'platform' 'PASS' 'Windows detected.' }
+$runningOnWindows = $env:OS -eq 'Windows_NT'
+if ($runningOnWindows) { Add-Check 'platform' 'PASS' 'Windows detected.' }
 else { Add-Check 'platform' 'BLOCKED' 'Run on actual customer Windows.' }
 $exe = Join-Path $InstallRoot 'IT-Toolkit-Agent.exe'
 $sqlite = Join-Path $InstallRoot 'sqlite3.exe'
@@ -44,7 +44,7 @@ try {
       (Get-Item -LiteralPath $tokenFile).Length -lt 1) { throw 'Unprovisioned device' }
   Add-Check 'enrollment' 'PASS' 'Local enrolled identity and token file exist; no values recorded.'
 } catch { Add-Check 'enrollment' 'BLOCKED' 'Enrolled device identity/token missing.' }
-if ($isWindows) {
+if ($runningOnWindows) {
   try {
     $task = Get-ScheduledTask -TaskName 'ITToolkitAgent' -ErrorAction Stop
     if ([string]$task.Principal.UserId -notmatch '(?i)(NETWORK SERVICE|S-1-5-20)$') {

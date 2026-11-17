@@ -179,14 +179,14 @@ SELECT json_object(
 );
 "@
         $rows = & $sqliteCli -batch $queueDb $sql 2>&1
-        if ($LASTEXITCODE -ne 0) { throw "$Phase: SQLite read failed: $rows" }
+        if ($LASTEXITCODE -ne 0) { throw "${Phase}: SQLite read failed: $rows" }
         $state = ([string]($rows -join '') | ConvertFrom-Json)
         if ($state.integrity -cne 'ok' -or
             $state.instance -cne $queueId -or
             $state.body -cne $body -or
             $state.ids -cne $eventIds -or
             [int]$state.pending -ne 2 -or [int]$state.staged -ne 1) {
-            throw "$Phase: queue UUID, exact pending HTTP JSON or unacknowledged events differ"
+            throw "${Phase}: queue UUID, exact pending HTTP JSON or unacknowledged events differ"
         }
     }
     Assert-QueueBeforeAndAfterUpgrade 'before major upgrade'

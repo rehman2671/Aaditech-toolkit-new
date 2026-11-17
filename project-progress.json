@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-17T18:29:11+00:00",
-  "last_verified_commit": "703e8ecbad6f41677f230a6c592eacd694d96d68",
-  "last_verified_date": "2026-11-17T23:59:00+05:30",
+  "generated": "2026-11-17T20:51:17+00:00",
+  "last_verified_commit": "007c23a10e5cd46a6d71be0eacc90d56215a022e",
+  "last_verified_date": "2026-11-18T02:21:09+05:30",
   "overall_progress_percent": 100.0,
   "progress_scope": "historic audit issue closure only; production acceptance pending",
   "production_ready": false,
@@ -16,19 +16,10 @@
   "latest_delta": {
     "added": 2,
     "removed": 0,
-    "changed": 11,
-    "unchanged": 303
+    "changed": 7,
+    "unchanged": 309
   },
   "delta_history": [
-    {
-      "detected_at": "2026-11-16T18:43:34+00:00",
-      "added": [
-        "Enterprise/deploy/preflight-stage14.sh"
-      ],
-      "removed": [],
-      "changed": [],
-      "unchanged_count": 270
-    },
     {
       "detected_at": "2026-11-16T18:43:59+00:00",
       "added": [
@@ -372,6 +363,24 @@
         "Enterprise/agent/Agent-Collect.ps1"
       ],
       "unchanged_count": 303
+    },
+    {
+      "detected_at": "2026-11-17T20:51:17+00:00",
+      "added": [
+        "Enterprise/tests/Test-CanonicalAgent-AckCadence.ps1",
+        "Enterprise/deploy/PHASE-N-STAGE27-ACCEPTANCE.md"
+      ],
+      "removed": [],
+      "changed": [
+        "Enterprise/deploy/PHASE-N-STAGE26-ACCEPTANCE.md",
+        "docs/assessment/TEST-RESULTS.md",
+        "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md",
+        "docs/assessment/GAP-REGISTER.md",
+        ".github/workflows/ci.yml",
+        "docs/assessment/RELEASE-READINESS.md",
+        "Enterprise/agent/Agent-Collect.ps1"
+      ],
+      "unchanged_count": 309
     }
   ],
   "next_recommended_tasks": [

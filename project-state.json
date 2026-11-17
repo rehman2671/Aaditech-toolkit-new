@@ -1,37 +1,33 @@
 {
   "state_version": "1.0",
   "path": "project-state.json",
-  "generated": "2026-11-17T18:29:11+00:00",
+  "generated": "2026-11-17T20:51:17+00:00",
   "phase": "PHASE N STAGE 4 / PRODUCTION ACCEPTANCE IN PROGRESS",
-  "last_verified_commit": "703e8ecbad6f41677f230a6c592eacd694d96d68",
-  "last_verified_date": "2026-11-17T23:59:00+05:30",
+  "last_verified_commit": "007c23a10e5cd46a6d71be0eacc90d56215a022e",
+  "last_verified_date": "2026-11-18T02:21:09+05:30",
   "git": {
     "branch": "main",
     "commit_count": 1,
     "clean_working_tree": true,
-    "head": "703e8ecbad6f41677f230a6c592eacd694d96d68"
+    "head": "007c23a10e5cd46a6d71be0eacc90d56215a022e"
   },
   "latest_delta": {
-    "detected_at": "2026-11-17T18:29:11+00:00",
+    "detected_at": "2026-11-17T20:51:17+00:00",
     "added": [
-      "tests/unit/canonical-agent-snapshot-stage26.test.js",
-      "Enterprise/deploy/PHASE-N-STAGE26-ACCEPTANCE.md"
+      "Enterprise/tests/Test-CanonicalAgent-AckCadence.ps1",
+      "Enterprise/deploy/PHASE-N-STAGE27-ACCEPTANCE.md"
     ],
     "removed": [],
     "changed": [
+      "Enterprise/deploy/PHASE-N-STAGE26-ACCEPTANCE.md",
+      "docs/assessment/TEST-RESULTS.md",
       "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md",
       "docs/assessment/GAP-REGISTER.md",
-      "Enterprise/deploy/PHASE-N-STAGE25-ACCEPTANCE.md",
-      "CHANGELOG.md",
-      "Enterprise/agent/collectors/Get-DiskHealth.ps1",
-      "server.js",
-      "Enterprise/agent/collectors/Get-SystemHealth.ps1",
-      "device-metrics.js",
-      "docs/assessment/TEST-RESULTS.md",
+      ".github/workflows/ci.yml",
       "docs/assessment/RELEASE-READINESS.md",
       "Enterprise/agent/Agent-Collect.ps1"
     ],
-    "unchanged_count": 303
+    "unchanged_count": 309
   },
   "production_ready": false,
   "acceptance_gates": [

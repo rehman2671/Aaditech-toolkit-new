@@ -16,6 +16,7 @@ This directory contains ordered, idempotent, versioned schema migrations managed
 8. `008_scrub_legacy_ticket_keys.sql`: remove historical `api_key` fields from tenant and legacy global ticket configuration records. Both migrations are data hygiene steps, not live external integrations.
 9. `009_notification_destination_binding.sql`: add nullable, keyed destination fingerprint to the MySQL outbox. Historic unbound queued jobs stay NULL and are **SKIPPED** by dispatchers, rather than sent to a new address/URL on subsequent opt-in or configuration changes.
 10. `010_events_tenant_device_identity.sql`: add nullable tenant/device ownership and index to event logs. Legacy rows remain NULL (never inferred from potentially duplicate hostnames); new verified agent events are tenant-bound at insert.
+11. `011_security_posture_provenance.sql`: add nullable server-owned enrolled-agent posture evidence timestamp and neutral new-device security defaults. Historic optimistic values remain unverified until fresh authenticated telemetry arrives.
 
 ## Migration Runner & Concurrency
 - Tracked via the `schema_migrations` table (`version`, `name`, `applied_at`, `execution_time_ms`, `checksum`).
@@ -50,3 +51,9 @@ This directory contains ordered, idempotent, versioned schema migrations managed
 - Migration 010 uses information_schema feature detection to avoid duplicate ALTERs and is safe to rerun. No historical row is assigned to a tenant automatically.
 - New event writes require an enrolled, credential-verified device tenant+ID in production. `GET /api/v1/events` filters `events.tenant_id` directly; per-device history also filters `events.device_id`. A duplicate hostname in another workspace cannot satisfy these predicates.
 - Existing unowned events are retained for operator-only incident review under approved handling, but hidden from tenant APIs rather than exposing ambiguous data. Restore backup before any customer DB migration.
+
+## Stage N24 security posture evidence rollout
+
+- Backup/restore into a separate authorized environment before running `011` on customer MySQL. The migration is idempotent and does not guess whether historical healthy values were ever measured; existing `posture_reported_at` is NULL.
+- Security/compliance endpoints require device-bound server-stamped telemetry not older than 24 hours; registration, heartbeat or a SQL default never grants a compliant verdict. Unknown and stale fields return null; `N/A` is reported for metrics without a trustworthy denominator.
+- The agent must be upgraded to stop optimistic PowerShell collector fallback. Microsoft Graph/MDM attestation is still NOT_CONNECTED; even an enrolled agent report is device-reported, not independent security attestation.

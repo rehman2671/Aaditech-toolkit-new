@@ -3,6 +3,7 @@
 import * as db from './db.js';
 import { deliverTenantWebhook } from './tenant-alert-safety.js';
 import { deliverTenantEmail } from './smtp-alerts.js';
+import { matchesQueuedDestination } from './notification-destination.js';
 
 export async function deliverOutboxEntry(row, adapters = {}) {
   if (!row?.tenant_id || !['webhook', 'email'].includes(row.channel)) {
@@ -22,6 +23,11 @@ export async function deliverOutboxEntry(row, adapters = {}) {
   if (row.channel === 'webhook') {
     const config = await (adapters.getWebhookConfig || db.getTenantWebhookConfig)(row.tenant_id);
     if (!config?.enabled) return { outcome: 'SKIPPED', reason: 'DISABLED' };
+    // Historical NULL rows and reconfigured destinations must never be sent
+    // to the new tenant endpoint, even with a fresh opt-in.
+    if (!(adapters.verifyDestination || matchesQueuedDestination)(row, config)) {
+      return { outcome: 'SKIPPED', reason: 'DESTINATION_CHANGED_OR_UNBOUND' };
+    }
     const result = await (adapters.sendWebhook || deliverTenantWebhook)(
       row.tenant_id, config, event
     );
@@ -33,6 +39,9 @@ export async function deliverOutboxEntry(row, adapters = {}) {
 
   const config = await (adapters.getEmailConfig || db.getTenantEmailConfig)(row.tenant_id);
   if (!config?.enabled) return { outcome: 'SKIPPED', reason: 'DISABLED' };
+  if (!(adapters.verifyDestination || matchesQueuedDestination)(row, config)) {
+    return { outcome: 'SKIPPED', reason: 'DESTINATION_CHANGED_OR_UNBOUND' };
+  }
   const result = await (adapters.sendEmail || deliverTenantEmail)(
     row.tenant_id, config, event
   );
@@ -48,8 +57,9 @@ export async function runNotificationOutboxBatch(adapters = {}) {
   const complete = adapters.complete || db.finishNotificationOutbox;
   const retry = adapters.retry || db.retryNotificationOutbox;
   const rows = await claim(20);
-  if (!Array.isArray(rows) || !rows.length) return { processed: 0, delivered: 0, skipped: 0, retried: 0 };
-  const counts = { processed: 0, delivered: 0, skipped: 0, retried: 0 };
+  const empty = { processed: 0, delivered: 0, skipped: 0, retried: 0, lostLease: 0 };
+  if (!Array.isArray(rows) || !rows.length) return empty;
+  const counts = { ...empty };
   // Five concurrent messages => max ~25 seconds per 20-item batch under
   // per-recipient 5/12 sec timeouts; DB lease is 90 seconds.
   for (let i = 0; i < rows.length; i += 5) {
@@ -61,14 +71,14 @@ export async function runNotificationOutboxBatch(adapters = {}) {
         outcome = { outcome: 'RETRY', reason: 'DELIVERY_EXCEPTION' };
       }
       if (outcome.outcome === 'DELIVERED') {
-        await complete(row.id, row.lease_token, 'DELIVERED');
-        counts.delivered += 1;
+        if (await complete(row.id, row.lease_token, 'DELIVERED')) counts.delivered += 1;
+        else counts.lostLease += 1;
       } else if (outcome.outcome === 'SKIPPED') {
-        await complete(row.id, row.lease_token, 'SKIPPED');
-        counts.skipped += 1;
+        if (await complete(row.id, row.lease_token, 'SKIPPED')) counts.skipped += 1;
+        else counts.lostLease += 1;
       } else {
-        await retry(row, outcome.reason || 'DELIVERY_FAILED');
-        counts.retried += 1;
+        if (await retry(row, outcome.reason || 'DELIVERY_FAILED')) counts.retried += 1;
+        else counts.lostLease += 1;
       }
       counts.processed += 1;
     }));

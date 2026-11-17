@@ -1,6 +1,7 @@
 import { scopedAlertRules, isApprovedWebhookUrl, deliverTenantWebhook } from './tenant-alert-safety.js';
 import { smtpTransportConfig, isApprovedEmailRecipient, deliverTenantEmail } from './smtp-alerts.js';
 import { startNotificationOutboxWorker } from './notification-outbox.js';
+import { destinationFingerprint } from './notification-destination.js';
 import { approvedGithubBuildConfig, readApprovedBuildStatus, dispatchApprovedBuild } from './github-build-release.js';
 /**
  * ARCHITECTURAL HARD PREREQUISITE: STATELESSNESS FOR MULTI-INSTANCE / CLUSTER DEPLOYMENTS
@@ -1428,13 +1429,15 @@ app.post(['/api/v1/ingest/telemetry', '/api/ingest'], agentLimiter, validateBody
             db.getTenantEmailConfig(dev.tenant_id)
           ]);
           authorizedChannels = [];
-          if (webhook?.enabled) authorizedChannels.push('webhook');
-          if (email?.enabled) authorizedChannels.push('email');
+          const webhookHash = destinationFingerprint(dev.tenant_id, 'webhook', webhook);
+          const emailHash = destinationFingerprint(dev.tenant_id, 'email', email);
+          if (webhookHash) authorizedChannels.push({ channel: 'webhook', destination_hash: webhookHash });
+          if (emailHash) authorizedChannels.push({ channel: 'email', destination_hash: emailHash });
         }
         // On production MySQL, the alert and enabled channel jobs share one
         // transaction. Disabled channels leave no backlog of historical data.
-        await db.createAlert(alt, authorizedChannels.map(channel => ({
-          channel, event: notification
+        await db.createAlert(alt, authorizedChannels.map(job => ({
+          ...job, event: notification
         })));
       }
     }

@@ -106,3 +106,13 @@ These tests execute on CI runners and disposable databases. They do **not** prov
 - [Main deployment safety #44065258073](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44065258073) **SUCCESS 2/2**, including disposable MySQL8 backup/restore and Bash recovery checks.
 - New tests verify that absent/legacy/stale posture does not produce compliance, known real reported fields remain distinguishable, zero scores preserve numeric 0, partial reports are non-attested and validation rejects invalid status shapes and score ranges. Enrollment SQL defaults are neutral, migration 011 is checked, and agent code no longer presumes protected/active on failed collectors.
 - **Not independently validated:** real physical customer Windows estate, signed public installer, live Hostinger, customer DB offsite restore, delivered mailbox/webhook receipt, OAuth Graph/Jira service calls. Test results above are diagnostic CI only.
+
+---
+
+## 10. Phase N Stage 25 — measured telemetry and truthful device inventory (2026-11-17)
+
+- [PR CI #44068196552](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44068196552) **SUCCESS**; [PR deployment safety #44068196591](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44068196591) **SUCCESS**; squash merge `89ac38e9e77ee99dcd6d74cddd4d4fe0e547d32a`.
+- [Main CI #44068596639](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44068596639) **SUCCESS 4/4**: Node/Vitest, PowerShell agent/installer validation, real MySQL/API fault injection and Windows diagnostic WiX MSI install/uninstall/major-upgrade.
+- [Main safety #44068596502](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44068596502) **SUCCESS 2/2**: disposable MySQL 8 recovery/data integrity and offline Bash controls.
+- Regression tests verify missing vs true zero measurements, stale/future timestamps, invalid sample types and ranges, neutral enrollment defaults, nullable MySQL sample history, non-synthetic process/app-usage, process INSERT eight-column integrity, no production memory fallback, 15-min cache freshness, and no disk cleanup offered from a null prediction.
+- **External acceptance remains BLOCKED:** publisher-signed public MSI, actual Hostinger production DNS/TLS/VPS, customer-owned offsite MySQL recovery, real SMTP/webhook inbox, physical Windows UAC/upgrade; Graph/ITSM provider APIs are NOT_CONNECTED.

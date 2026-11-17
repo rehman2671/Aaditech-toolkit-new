@@ -1,6 +1,6 @@
 # Phase N Stage 25 — Authentic device metrics and non-synthetic inventory
 
-**Status: Code PR staged; CI pending. Production RELEASE BLOCKED.**
+**Status: STAGE 25 CODE/CI ACCEPTED; PRODUCTION RELEASE BLOCKED.** [PR #15](https://github.com/rehman2671/Aaditech-toolkit-new/pull/15) merged at `89ac38e9e77ee99dcd6d74cddd4d4fe0e547d32a`. [Main CI #44068596639](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44068596639) **SUCCESS 4/4**, including Windows diagnostic MSI install/uninstall/major-upgrade; [main deployment safety #44068596502](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44068596502) **SUCCESS 2/2**. Public signed release and live customer acceptance are still blocked.
 
 ## Findings
 
@@ -28,3 +28,11 @@
 - Real MySQL process snapshot INSERT formerly declared eight columns but passed seven values. Stage25 now writes a server-owned `updated_at` as the eighth value within the atomic transaction. Production process list refuses in-memory fallback if the persistent database returns no rows.
 - Process snapshots are only labeled `live_agent_telemetry` if their `updated_at` timestamps and device metric provenance are both within 15 minutes. Stale rows return `NOT_REPORTED`. Cached app-usage snapshots have a 900-second TTL and require fresh agent provenance before being reported.
 - Predictive history fetch is bounded to 256 recent samples so an enrolled agent polling every 30 seconds has enough room for the required one-hour trend window. No sampled data means no forecast or cleanup action.
+
+## Independent Stage25 acceptance evidence — 2026-11-17
+
+- [PR CI #44068196552](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44068196552) **SUCCESS** and [PR safety #44068196591](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44068196591) **SUCCESS** at reviewed branch head `2731bb42cf20f8507fb2ad7d7f22b780ed9730a3`.
+- PR #15 squash-merged to main at `89ac38e9e77ee99dcd6d74cddd4d4fe0e547d32a`.
+- [Main CI #44068596639](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44068596639) **SUCCESS 4/4**: Node/Vitest, PowerShell, real isolated MySQL/API fault injection, Windows diagnostic WiX MSI installation/uninstall/major-upgrade with tenant configuration preservation.
+- [Main deployment-safety #44068596502](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44068596502) **SUCCESS 2/2**: disposable MySQL 8 backup/restore and Bash/offline recovery controls.
+- Physical customer Windows, publicly signed MSI, authorized real Hostinger VPS/DNS/TLS, offsite customer DB restore and live SMTP/webhook receipt were **not** validated by these CI runs.

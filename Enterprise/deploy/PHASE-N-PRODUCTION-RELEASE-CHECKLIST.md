@@ -1,5 +1,16 @@
 # Phase N — Production release acceptance and sign-off
 
+## Stage N25 measured device telemetry and real-inventory acceptance
+
+**Automated CODE/CI accepted (2026-11-17):** [PR #15](https://github.com/rehman2671/Aaditech-toolkit-new/pull/15), [main CI #44068596639](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44068596639) **4/4 SUCCESS** including diagnostic Windows MSI, [main safety #44068596502](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44068596502) **2/2 SUCCESS**. Customer/production evidence checkboxes remain unchecked.
+
+- [ ] Back up the authorized production MySQL database and rehearse full offsite recovery before applying `012_measured_device_telemetry.sql`. Historic default usage must stay unverified until genuine enrolled-device reports.
+- [ ] On customer-managed Windows, verify a never-connected registration shows no CPU/RAM/disk/battery values, and a collector failure reports NULL, not fabricated success. Validate real measured 0%, partial and stale snapshots.
+- [ ] Verify processes and app-usage display `NOT_REPORTED` without current agent evidence; validate real MySQL process INSERT `updated_at` and that an unplugged/offline device's cached activity expires within 15 minutes.
+- [ ] Verify prediction requires measured samples over at least one hour and that a NULL disk forecast never presents a cleanup action; require operator approval for any actual remote remediation.
+- [ ] Rehearse diagnostic Windows EXE/MSI upgrade on physical devices, then obtain separate authorized public Authenticode signer approval and Hostinger customer production sign-off.
+
+
 ## Stage N24 genuine posture collection and customer evidence
 
 **Automated code/CI accepted (2026-11-17):** [PR #14](https://github.com/rehman2671/Aaditech-toolkit-new/pull/14), [main CI #44065258102](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44065258102) **4/4 SUCCESS** including diagnostic Windows MSI, [main safety #44065258073](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44065258073) **2/2 SUCCESS**. Live production acceptance remains BLOCKED pending operator evidence.

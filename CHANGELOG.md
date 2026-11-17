@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased — Phase N Stage 25 (measured endpoint inventory and no synthetic forecasts)
+- Device registration no longer inserts fictitious CPU/RAM/disk metrics or pretends a physical check-in. Authenticated telemetry writes server-owned `telemetry_reported_at` and nullifies missing fields; only <=15-minute observations are displayed. Legitimate zero remains measured zero. Battery stays NULL until a real battery collector exists.
+- Migration `012_measured_device_telemetry.sql` neutralizes new-device CPU/RAM/disk/battery and capacity SQL defaults; missing telemetry-history values are NULL, not invented 0% or 24ms. Historical rows remain unverified without provenance.
+- Windows collector CPU/RAM/disk/hardware/network failures yield NULL, not guessed Windows/CPU/RAM/disk values. Process/app-usage endpoints no longer return demo records; stale process and 24-hour cache results cannot be presented as current.
+- Fixed real process snapshot MySQL INSERT eight-column/seven-value defect by adding `updated_at`; production process reads no longer fall back to stale memory fixtures.
+- Predictive engine requires at least five measured samples spanning one hour with fresh last sample; returns no fake disk depletion rate or forecast for flat/unknown disk space. HTML renders missing values clearly and refuses remote cleanup if predicted days are NULL.
+- [Main CI #44068596639](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44068596639) **4/4 SUCCESS** and [main safety #44068596502](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44068596502) **2/2 SUCCESS**. Live production release gates still open.
+
+
 ## Unreleased — Phase N Stage 24 (truthful endpoint posture and agent measurement provenance)
 - Removed fake `secure_boot: true`, `local_admins_count: 2`, antivirus ACTIVE, BitLocker protected, firewall enabled and score 95 from device security APIs when no authenticated agent evidence exists.
 - Server records `posture_reported_at` at authenticated telemetry ingest, clears missing status fields per snapshot and reports unknown/stale data as `null`; evidence older than 24h cannot support health or compliance claims.

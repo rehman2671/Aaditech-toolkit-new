@@ -61,6 +61,8 @@ This runbook applies to the repository's Node.js/Express + MySQL 8 service and W
 |---|---|---|
 | Stage 17 code + diagnostic CI | Accepted: main CI #43981328283 4/4; safety #43981328387 2/2 | GitHub Actions |
 | Stage 18 tenant boundaries | **Accepted diagnostic CI:** main #43982225279 SUCCESS 4/4; safety #43982225214 SUCCESS 2/2 | GitHub Actions |
+| Stage 19 operator-only release controls | **Accepted diagnostic CI:** main #43988981985 SUCCESS 4/4; safety #43988982034 SUCCESS 2/2 | GitHub Actions |
+| Stage 20 truthful ticket/cloud integrations | **Accepted diagnostic CI:** main #43989734105 SUCCESS 4/4; safety #43989734122 SUCCESS 2/2 | GitHub Actions |
 | Real Hostinger VPS/DNS/TLS | **BLOCKED** | __________ |
 | Authorized production migration / offsite restore | **BLOCKED** | __________ |
 | Real SMTP inbox + webhook receiver | **BLOCKED** | __________ |

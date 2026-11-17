@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased — Phase N Stage 20 (truthful external integrations and secret hygiene)
+- Ticket records are explicitly local-only: no fake Jira/ServiceNow/Zendesk dispatch or misleading Linked UI. Foreign/unknown device hostnames cannot be attached to tickets.
+- Cloud audit cannot claim Azure AD/Intune/Microsoft 365 connection solely from environment identifiers; only real local agent telemetry is presented, with external cloud status `NOT_CONNECTED`.
+- Ticket provider API metadata cannot accept browser API keys, historical stored keys are masked and removed by idempotent SQL migration `008_scrub_legacy_ticket_keys.sql`.
+- Remediation portal selects real enrolled workspace device targets; dashboard shortcuts no longer send to hard-coded demo hosts, and UI acknowledges only queueing, not execution.
+- [Main CI #43989734105](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43989734105) **4/4** and [safety #43989734122](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43989734122) **2/2** verified. Signed MSI/live provider acceptance remains external.
+
+## Unreleased — Phase N Stage 19 (trusted release controls and command truthfulness)
+- Build status/trigger and agent rollout changes require designated persistent platform admin, not any tenant workspace role.
+- GitHub Actions dispatch uses only private server-owned `GITHUB_ACTIONS_REPO`/`GITHUB_ACTIONS_TOKEN`, pinned `main` and approved GitHub API origin; no browser token/repo selection or repurposed agent API token.
+- Initial setup no longer collects/persists GitHub PAT. SQL migration `007_scrub_legacy_github_pat.sql` removes historical credentials; API does not fabricate build success.
+- Synthetic `simulate: true` command completions rejected; command results require real per-device proof, and device audits carry correct tenant.
+- [Main CI #43988981985](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43988981985) **4/4** and [safety #43988982034](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43988982034) **2/2** verified; not public signing approval.
+
+
 ## Unreleased — Phase N Stage 18 (cross-tenant API containment)
 
 - Default workspace SUPER_ADMIN no longer bypasses tenant-scoped audit log filtering; foreign tenant query IDs are rejected, not interpreted as platform-wide entitlement.

@@ -63,3 +63,15 @@ These runs are **new evidence**, not included in the historical November 3 check
 | N18 | PR #8, CI #43981861732 and safety #43981861681 SUCCESS | [#43982225279](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43982225279) **SUCCESS 4/4** | [#43982225214](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43982225214) **SUCCESS 2/2** | Tenant-scoped audit, device processes/usage, groups/policies, patch approvals; Node/Vitest, PowerShell, real MySQL/API and Windows diagnostic MSI installation/upgrade |
 
 These tests execute on CI runners and disposable databases. They do **not** prove real Hostinger TLS/recovery, an independent signed public MSI, recipient inbox delivery, actual production secrets, or physical customer Windows install/UAC. **Do not certify production** without those external proofs.
+
+---
+
+## 6. Verified Phase N Stage 19 and Stage 20 (2026-11-17)
+
+- Stage 19 [PR CI #43988626978](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43988626978) SUCCESS and [PR safety #43988626942](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43988626942) SUCCESS.
+- Stage 19 [main CI #43988981985](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43988981985) SUCCESS **4/4**: Node/Vitest, PowerShell, real MySQL/API, diagnostic Windows EXE/MSI extraction and install/uninstall/upgrade. [Main safety #43988982034](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43988982034) SUCCESS **2/2**.
+- Stage 20 [PR CI #43989416002](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43989416002) SUCCESS and [PR safety #43989416187](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43989416187) SUCCESS.
+- Stage 20 [main CI #43989734105](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43989734105) SUCCESS **4/4**: Node/Vitest, PowerShell, isolated real MySQL/API migration and fault injection, Windows EXE/MSI install/uninstall and upgrade rehearsal. [Main safety #43989734122](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/43989734122) SUCCESS **2/2**.
+- Verified code regressions: platform-only release-control gating, fixed trusted CI destination, server-only GitHub PAT, credentials scrub SQL 007, synthetic command dispatch rejection, agent-tenant audit, SQL 008 ticket key scrub and redaction, local-only ticket truthfulness, cloud no-false-connect and selected-tenant device remediation.
+
+**Not covered by these automated proofs:** signed public installer, physical managed Windows UAC/upgrade, live Hostinger VPS/domain/TLS, authorized real production DB restore, actual SMTP inbox receipt or live Jira/Graph provider response. These remain **BLOCKED / NOT_CONNECTED** as appropriate.

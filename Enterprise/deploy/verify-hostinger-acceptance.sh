@@ -2,13 +2,14 @@
 # Read-only live public HTTPS acceptance: Docker-capable Hostinger VPS.
 # Never changes DNS, containers, database or server files and never sends secrets.
 set -euo pipefail
-usage() { echo "Usage: $0 --host PUBLIC_DNS_HOST [--dry-run]"; }
+usage() { echo "Usage: $0 --host PUBLIC_DNS_HOST [--dry-run | --confirm-live PROBE_PUBLIC_HEALTH]"; }
 die() { echo "[hostinger-acceptance][BLOCKED] $*" >&2; exit 1; }
-HOST='' ; DRY_RUN=0
+HOST='' ; DRY_RUN=0 ; LIVE_CONFIRM=''
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --host) [ "$#" -ge 2 ] || die '--host requires DNS'; HOST="$2"; shift 2 ;;
     --dry-run) DRY_RUN=1; shift ;;
+    --confirm-live) [ "$#" -ge 2 ] || die '--confirm-live requires a value'; LIVE_CONFIRM="$2"; shift 2 ;;
     -h|--help) usage; exit 0 ;;
     *) die "Unknown option: $1" ;;
   esac
@@ -25,9 +26,13 @@ esac
 [[ "$HOST" =~ \.[A-Za-z][A-Za-z0-9-]*$ ]] ||
   die 'Public DNS needs a nonnumeric final label; IP literals are not accepted.'
 if [ "$DRY_RUN" -eq 1 ]; then
+  [ -z "$LIVE_CONFIRM" ] || die 'Do not combine offline dry-run with live consent.'
   echo '[hostinger-acceptance] DRY RUN: valid DNS syntax, no network or deployment operations performed.'
   exit 0
 fi
+# Require explicit consent even on direct invocation; fail before DNS or curl.
+[ "$LIVE_CONFIRM" = 'PROBE_PUBLIC_HEALTH' ] ||
+  die 'Live public health checks require --confirm-live PROBE_PUBLIC_HEALTH.'
 command -v curl >/dev/null 2>&1 || die 'curl is required.'
 command -v python3 >/dev/null 2>&1 || die 'python3 is required for live public DNS address validation.'
 command -v grep >/dev/null 2>&1 || die 'grep is required.'
@@ -42,7 +47,8 @@ PIN_IP="$(python3 "$(dirname "$0")/resolve-public-host.py" "$HOST")" ||
 [ -n "$PIN_IP" ] || die 'Public DNS pin was empty.'
 body="$(mktemp)"
 trap 'rm -f "$body"' EXIT
-# -q must be the first curl option to ignore untrusted ~/.curlrc overrides.\n# curl validates OS CA trust, hostname verification and HTTPS protocol.
+# -q must be the first curl option to ignore untrusted ~/.curlrc overrides.
+# curl validates OS CA trust, hostname verification and HTTPS protocol.
 # The operator's ambient curl trust overrides must not silently replace the
 # system CA store, or an unrelated private CA could satisfy our HTTPS check.
 # Only unset for this subprocess; no user shell or filesystem is modified.

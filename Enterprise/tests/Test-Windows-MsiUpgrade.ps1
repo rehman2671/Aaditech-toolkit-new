@@ -247,6 +247,17 @@ COMMIT;
         throw 'N32 local evidence changed payload, dropped events or fabricated server certification'
     }
     Write-Host 'N32 PASS: real SQLite local ACK evidence preserves exact payload hash, queue UUID and event state; external network/server still pending.'
+    # Build the redacted SHA256 provenance index from local evidence only.
+    $bundler = Join-Path $PSScriptRoot 'New-Stage32CustomerEvidenceBundle.ps1'
+    $bundlePath = Join-Path $stage32Dir 'stage32-bundle.json'
+    & $bundler -EvidenceDirectory $stage32Dir -BundlePath $bundlePath
+    $bundleEvidence = Get-Content -LiteralPath $bundlePath -Raw | ConvertFrom-Json
+    if ($bundleEvidence.production_certified -ne $false -or
+        $bundleEvidence.local_sqlite_ack_evidence -cne 'HASHES_MATCH_LOCAL_DELIVERED' -or
+        @($bundleEvidence.artifacts).Count -ne 2) {
+        throw 'N32 evidence bundler incorrectly certified production or omitted local digest files.'
+    }
+    Write-Host 'N32 PASS: redacted SHA256 evidence bundle created; independent customer/network/server receipt not certified.'
     if (-not (Get-ScheduledTask -TaskName 'ITToolkitAgent' -ErrorAction SilentlyContinue)) {
         throw 'Major MSI upgrade removed the scheduled agent task.'
     }

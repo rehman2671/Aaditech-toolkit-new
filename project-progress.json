@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-18T10:49:35+00:00",
-  "last_verified_commit": "974d3a0b66ce58446b0365d28f1f90c643245520",
-  "last_verified_date": "2026-11-18T16:19:22+05:30",
+  "generated": "2026-11-18T11:18:03+00:00",
+  "last_verified_commit": "c13818e84b7ad8bd28ae3c38fe10ddbee88eac0b",
+  "last_verified_date": "2026-11-18T16:47:54+05:30",
   "overall_progress_percent": 100.0,
   "progress_scope": "historic audit issue closure only; production acceptance pending",
   "production_ready": false,
@@ -14,34 +14,12 @@
     "percent": 100.0
   },
   "latest_delta": {
-    "added": 5,
+    "added": 4,
     "removed": 0,
-    "changed": 7,
-    "unchanged": 338
+    "changed": 8,
+    "unchanged": 342
   },
   "delta_history": [
-    {
-      "detected_at": "2026-11-16T22:29:34+00:00",
-      "added": [
-        "tenant-alert-safety.js",
-        "tests/unit/tenant-alert-safety-stage15.test.js",
-        "Enterprise/deploy/PHASE-N-STAGE15-ACCEPTANCE.md"
-      ],
-      "removed": [],
-      "changed": [
-        "Enterprise/.env.example",
-        "CHANGELOG.md",
-        "Enterprise/README.md",
-        "Enterprise/portal/index.html",
-        "Enterprise/docker-compose.yml",
-        "tests/integration/server.integration.test.js",
-        "db.js",
-        "validation.js",
-        "Enterprise/deploy/PHASE-N-STAGE14-ACCEPTANCE.md",
-        "server.js"
-      ],
-      "unchanged_count": 264
-    },
     {
       "detected_at": "2026-11-16T23:07:17+00:00",
       "added": [
@@ -481,6 +459,27 @@
         ".github/workflows/ci.yml"
       ],
       "unchanged_count": 338
+    },
+    {
+      "detected_at": "2026-11-18T11:18:03+00:00",
+      "added": [
+        "tests/unit/stage35-operator-registry.test.js",
+        "Enterprise/deploy/PHASE-N-STAGE35-ACCEPTANCE.md",
+        "Enterprise/deploy/stage35-operator-registry-core.mjs",
+        "Enterprise/deploy/stage35-key-registry.mjs"
+      ],
+      "removed": [],
+      "changed": [
+        "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md",
+        "test-stage34-operator-signature.mjs",
+        "docs/assessment/TEST-RESULTS.md",
+        "docs/assessment/GAP-REGISTER.md",
+        "docs/assessment/RELEASE-READINESS.md",
+        "Enterprise/tests/New-Stage32CustomerEvidenceBundle.ps1",
+        "Enterprise/deploy/PHASE-N-STAGE34-ACCEPTANCE.md",
+        ".github/workflows/ci.yml"
+      ],
+      "unchanged_count": 342
     }
   ],
   "next_recommended_tasks": [

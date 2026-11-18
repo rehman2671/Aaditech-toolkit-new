@@ -10,7 +10,10 @@ param(
   [Parameter(Mandatory=$true)][string]$EvidenceDirectory,
   [Parameter(Mandatory=$true)][string]$BundlePath,
   [string]$WindowsPreflightReport,
-  [string]$ServerReceiptReport
+  [string]$ServerReceiptReport,
+  [string]$OperatorAttestationFile,
+  [string]$TrustedOperatorPublicKeyFile,
+  [string]$ApprovedOperatorKeySha256
 )
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
@@ -106,6 +109,50 @@ if ($ServerReceiptReport) {
     sha256 = (Get-FileHash -LiteralPath $ServerReceiptReport -Algorithm SHA256).Hash.ToLowerInvariant()
   })
 }
+# N34: optional independently pinned Ed25519 signature over exact local
+# N32 and scoped N33 files. The key pin comes from the customer, not from
+# untrusted attestation content. Verifier makes no network/database calls.
+$signedEvidenceStatus = 'NOT_PROVIDED'
+$signedEvidenceVerified = $false
+$approvedKeyPinForReport = $null
+$hasAnySignatureOption = -not [string]::IsNullOrWhiteSpace($OperatorAttestationFile) -or
+  -not [string]::IsNullOrWhiteSpace($TrustedOperatorPublicKeyFile) -or
+  -not [string]::IsNullOrWhiteSpace($ApprovedOperatorKeySha256)
+if ($hasAnySignatureOption) {
+  if (-not $ServerReceiptReport -or -not $OperatorAttestationFile -or
+      -not $TrustedOperatorPublicKeyFile -or
+      $ApprovedOperatorKeySha256 -cnotmatch '^[a-f0-9]{64}$') {
+    throw 'N34 signed evidence requires server receipt, attestation, trusted key and independent 64-hex public-key pin.'
+  }
+  foreach ($evidenceFile in @($OperatorAttestationFile,$TrustedOperatorPublicKeyFile)) {
+    if (-not (Test-Path -LiteralPath $evidenceFile -PathType Leaf) -or
+        (Get-Item -LiteralPath $evidenceFile).Attributes.HasFlag([IO.FileAttributes]::ReparsePoint)) {
+      throw 'N34 attestation and public key must be regular non-symlink files.'
+    }
+  }
+  $verifier = Join-Path (Split-Path $PSScriptRoot -Parent) 'deploy\stage34-operator-signature.mjs'
+  if (-not (Test-Path -LiteralPath $verifier -PathType Leaf)) {
+    throw 'N34 cryptographic verifier not installed with toolkit.'
+  }
+  $node = Get-Command node -ErrorAction SilentlyContinue
+  if (-not $node) { throw 'Node.js is required to verify pinned Ed25519 signature.' }
+  $verifyArgs = @($verifier,'verify',
+    '--offline',$offlineFile,'--recovered',$recoveredFile,
+    '--receipt',$ServerReceiptReport,'--attestation',$OperatorAttestationFile,
+    '--trusted-public-key',$TrustedOperatorPublicKeyFile,
+    '--approved-spki-sha256',$ApprovedOperatorKeySha256)
+  $null = & $node.Source @verifyArgs 2>&1
+  if ($LASTEXITCODE -ne 0) {
+    throw 'N34 pinned operator attestation cryptographic verification failed.'
+  }
+  $signedEvidenceStatus = 'PINNED_ED25519_SIGNATURE_VERIFIED_EXTERNAL_OPERATOR_APPROVAL_PENDING'
+  $signedEvidenceVerified = $true
+  $approvedKeyPinForReport = $ApprovedOperatorKeySha256
+  $artifacts.Add([pscustomobject]@{
+    kind = 'ed25519_operator_attestation'
+    sha256 = (Get-FileHash -LiteralPath $OperatorAttestationFile -Algorithm SHA256).Hash.ToLowerInvariant()
+  })
+}
 $bundle = [ordered]@{
   schema = 'aaditech-stage32-customer-evidence-bundle-v1'
   created_utc = [DateTime]::UtcNow.ToString('o')
@@ -115,6 +162,9 @@ $bundle = [ordered]@{
   external_network_partition_proof = 'REQUIRES_OPERATOR_EVIDENCE'
   authenticated_server_receipt_proof = $serverReportStatus
   server_report_source_authenticated = $false
+  server_report_signature = $signedEvidenceStatus
+  approved_operator_public_key_spki_sha256 = $approvedKeyPinForReport
+  pinned_operator_signature_verified = $signedEvidenceVerified
   human_operator_signoff = 'PENDING'
   production_backup_restore = 'REQUIRES_CUSTOMER_APPROVAL'
   public_signed_installer = 'REQUIRES_PUBLISHER_APPROVAL'

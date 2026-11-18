@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-18T11:18:03+00:00",
-  "last_verified_commit": "c13818e84b7ad8bd28ae3c38fe10ddbee88eac0b",
-  "last_verified_date": "2026-11-18T16:47:54+05:30",
+  "generated": "2026-11-18T22:33:50+00:00",
+  "last_verified_commit": "517c8d0b25f645b76fb1a17367301b0443d397a3",
+  "last_verified_date": "2026-11-19T04:03:36+05:30",
   "overall_progress_percent": 100.0,
   "progress_scope": "historic audit issue closure only; production acceptance pending",
   "production_ready": false,
@@ -14,37 +14,12 @@
     "percent": 100.0
   },
   "latest_delta": {
-    "added": 4,
+    "added": 1,
     "removed": 0,
-    "changed": 8,
+    "changed": 12,
     "unchanged": 342
   },
   "delta_history": [
-    {
-      "detected_at": "2026-11-16T23:07:17+00:00",
-      "added": [
-        "smtp-alerts.js",
-        "tests/unit/tenant-operational-inventory-stage16.test.js",
-        "tests/unit/smtp-alerts-stage16.test.js",
-        "Enterprise/deploy/PHASE-N-STAGE16-ACCEPTANCE.md"
-      ],
-      "removed": [],
-      "changed": [
-        "Enterprise/docker-compose.yml",
-        "tests/integration/workspace-selection.integration.test.js",
-        "validation.js",
-        "CHANGELOG.md",
-        "Enterprise/portal/index.html",
-        "Enterprise/.env.example",
-        "docs/assessment/RELEASE-READINESS.md",
-        "docs/assessment/TEST-RESULTS.md",
-        "db.js",
-        "tests/integration/server.integration.test.js",
-        "server.js",
-        "Enterprise/deploy/PHASE-N-STAGE15-ACCEPTANCE.md"
-      ],
-      "unchanged_count": 265
-    },
     {
       "detected_at": "2026-11-16T23:40:57+00:00",
       "added": [
@@ -478,6 +453,28 @@
         "Enterprise/tests/New-Stage32CustomerEvidenceBundle.ps1",
         "Enterprise/deploy/PHASE-N-STAGE34-ACCEPTANCE.md",
         ".github/workflows/ci.yml"
+      ],
+      "unchanged_count": 342
+    },
+    {
+      "detected_at": "2026-11-18T22:33:50+00:00",
+      "added": [
+        "Enterprise/deploy/PHASE-N-STAGE36-ACCEPTANCE.md"
+      ],
+      "removed": [],
+      "changed": [
+        "Enterprise/tests/Test-Stage31WindowsPreflight.ps1",
+        "Enterprise/tests/Test-Stage14Preflight.sh",
+        "Enterprise/deploy/PHASE-N-STAGE35-ACCEPTANCE.md",
+        "Enterprise/tests/Test-CustomerWindowsAcceptance.ps1",
+        "docs/assessment/RELEASE-READINESS.md",
+        "Enterprise/tests/Test-Stage31Preflight.sh",
+        "docs/assessment/TEST-RESULTS.md",
+        "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md",
+        "Enterprise/deploy/preflight-stage31.sh",
+        "docs/assessment/GAP-REGISTER.md",
+        "Enterprise/deploy/preflight-stage14.sh",
+        "Enterprise/deploy/verify-hostinger-acceptance.sh"
       ],
       "unchanged_count": 342
     }

@@ -1,5 +1,16 @@
 # Phase N — Production release acceptance and sign-off
 
+## Stage N38 — Windows customer acceptance live-probe fail-closed mitigation (CODE PROPOSED; CI/REVIEW PENDING; PRODUCTION BLOCKED)
+
+- [ ] Eliminate unpinned Windows `-NetworkProbe` health HTTP calls; when requested, report `public_https=BLOCKED` instead of attempting DNS/HTTP or reporting `PASS`. Default offline must stay `PENDING`.
+- [ ] Windows offline regression on a configured-looking synthetic HTTPS endpoint passes with **no** DNS/web/socket transport, no leaked host/token, and `certified_for_production=false`.
+- [ ] Existing N31/N32 Windows evidence non-overwrite tests continue to pass and new `Test-Stage38WindowsNetworkProbe.ps1` runs in CI.
+- [ ] Independent N36 and N37 review/merge, then N38 retarget/retest/independent review and main MSI diagnostic build.
+- [ ] **Issue #29 remains open:** the actual secure Windows native live HTTPS transport is **not** implemented or certified; pinned TLS, DNS/redirect/proxy/health negative tests and real customer approval still required.
+- [ ] Hostinger ownership/TLS, physical Windows authenticated ACK replay, real signing-key custody/public MSI, offsite restore and integrations remain independently blocked. **Production: NOT APPROVED.**
+
+See [Stage38 acceptance](PHASE-N-STAGE38-ACCEPTANCE.md) and [Windows probe tracking issue #29](https://github.com/rehman2671/Aaditech-toolkit-new/issues/29).
+
 ## Stage N37 — public DNS pinning for optional authorized live acceptance (LATEST CODE CI PENDING; EARLIER CI PASSED; REVIEW PENDING; DEPENDS ON N36; PRODUCTION BLOCKED)
 
 **Historical verified result (before latest Python isolated-mode code):** N37 **code** head `664d701c1523737b0d59b02431310d822be7c753` passed [PR CI #44384629009](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44384629009) **3/3 executable jobs**, with PR Windows MSI build **SKIPPED**, and [PR safety #44384629243](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44384629243) **2/2 SUCCESS**. N36 prerequisite [PR #27](https://github.com/rehman2671/Aaditech-toolkit-new/pull/27) has green PR checks but remains **unmerged pending independent approval**. N37 [PR #28](https://github.com/rehman2671/Aaditech-toolkit-new/pull/28) is also **unmerged/pending review**, stacked on N36. Any new doc-only SHA and later retarget need new CI verification.

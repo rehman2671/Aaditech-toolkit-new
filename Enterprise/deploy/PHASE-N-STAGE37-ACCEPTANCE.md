@@ -21,6 +21,10 @@ could bypass the intended resolution.
 - Both requests use `--noproxy '*'`; curl's ordinary OS certificate trust and
   hostname verification remain mandatory for HTTPS. Requests do not follow
   redirects; HTTP only inspects the intended redirect target.
+- HTTPS health JSON is bounded to 64 KiB and parsed as structured JSON, with
+  duplicate-key rejection and exact top-level `status="ok"` plus
+  `components.database="HEALTHY"`. Ambiguous nested, malformed, degraded or
+  oversized payloads are denied without logging response bodies.
 - DNS errors, absence of answers, private and special-use addresses, unavailable
   Python 3, and rejected curl connections are failures. No fallback to an
   unvalidated DNS answer or automatic retry to a different endpoint.
@@ -34,6 +38,8 @@ could bypass the intended resolution.
       metadata, transition-protocol and mixed DNS-answer negative fixtures.
 - [ ] Bash mock acceptance proves both HTTPS and redirect checks use the same
       pinned public address, bypass proxies, and are never called after DNS denial.
+- [ ] Python and mocked HTTP tests reject duplicate, malformed, oversized,
+      nested and degraded health JSON even when misleading outer fields say HEALTHY.
 - [ ] PR CI (PowerShell, Node/Vitest, isolated MySQL/API) passes without affecting N32–N35.
 - [ ] N36 independent review/merge accepted before retargeting N37 onto main;
       then obtain independent N37 review and main CI/MSI acceptance.

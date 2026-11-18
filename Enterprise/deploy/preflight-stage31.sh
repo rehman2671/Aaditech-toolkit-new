@@ -45,7 +45,7 @@ bash "$DIR/verify-hostinger-acceptance.sh" --host "$HOST" --dry-run >/dev/null |
   fail 'Host changed or is not a valid public DNS name'
 if [ "$LIVE" -eq 1 ]; then
   # Real TLS/redirect/DB check, NEVER sends credentials from .env.
-  bash "$DIR/verify-hostinger-acceptance.sh" --host "$HOST"
+  bash "$DIR/verify-hostinger-acceptance.sh" --host "$HOST" --confirm-live "$LIVE_CONFIRM"
 fi
 # No untrusted env value except previously validated public-DNS hostname.
 tmp="$(mktemp "$REPORT_FILE.tmp.XXXXXXXX")" || fail 'Cannot create protected report'

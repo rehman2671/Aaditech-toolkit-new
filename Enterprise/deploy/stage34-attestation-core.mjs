@@ -20,6 +20,14 @@ function validateDate(value) {
   return typeof value==='string' && /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z$/.test(value) &&
     Number.isFinite(Date.parse(value)) && new Date(value).toISOString()===value;
 }
+// PowerShell DateTime.ToString('o') emits seven fractional digits while
+// JavaScript ISO timestamps emit three. Preserve both exact UTC encodings.
+function validSourceClock(value) {
+  if (typeof value!=='string' ||
+      !/^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d\\.\\d{3,7}Z$/.test(value)) return false;
+  const time=Date.parse(value);
+  return Number.isFinite(time);
+}
 function checkReports(receipt,offline,recovered,offlineBytes,recoveredBytes) {
   if (![receipt,offline,recovered].every(validObject) ||
       !Buffer.isBuffer(offlineBytes) || !Buffer.isBuffer(recoveredBytes)) deny('INVALID_INPUT');
@@ -54,7 +62,7 @@ function checkReports(receipt,offline,recovered,offlineBytes,recoveredBytes) {
   if (!Number.isSafeInteger(offline.in_flight_events) || offline.in_flight_events<0 ||
       offline.in_flight_events>50 || recovered.delivered_event_count!==offline.in_flight_events ||
       receipt.accepted_count!==offline.in_flight_events) deny('EVENT_COUNT_MISMATCH');
-  if (!validateDate(offline.captured_utc) || !validateDate(recovered.captured_utc) ||
+  if (!validSourceClock(offline.captured_utc) || !validSourceClock(recovered.captured_utc) ||
       Date.parse(recovered.captured_utc)<Date.parse(offline.captured_utc) ||
       typeof receipt.recorded_at_database_utc!=='string' ||
       !/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{6}Z$/.test(receipt.recorded_at_database_utc)) {

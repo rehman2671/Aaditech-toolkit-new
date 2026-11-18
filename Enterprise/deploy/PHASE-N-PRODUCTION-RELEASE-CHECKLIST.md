@@ -1,23 +1,28 @@
 # Phase N — Production release acceptance and sign-off
 
-## Stage N37 — public DNS pinning for optional authorized live acceptance (CODE PROPOSED; CI PENDING; DEPENDS ON N36; PRODUCTION BLOCKED)
+## Stage N37 — public DNS pinning for optional authorized live acceptance (PR CI PASSED; REVIEW PENDING; DEPENDS ON N36; PRODUCTION BLOCKED)
 
-- [ ] N37 offline Python tests reject RFC1918/loopback/link-local/metadata, special-use IPv4/IPv6 and mixed DNS answers (one private answer must block the entire hostname).
-- [ ] Mocked curl acceptance requires same validated public IP pinned for HTTPS/HTTP via `--resolve` and `--noproxy '*'`; DNS errors deny any HTTP, dry-run remains network-free.
-- [ ] Strict bounded `/healthz` JSON parser must reject duplicate/nested/oversized/malformed or degraded responses and accept only `status=ok` with `components.database=HEALTHY`; do not trust raw grep matches.
-- [ ] Direct Hostinger live CLI and Stage31 wrapper require explicit `--confirm-live PROBE_PUBLIC_HEALTH` before DNS/curl; missing/wrong consent and combined dry-run+live are denied without network access.
-- [ ] Live curl requests ignore user curlrc with first-argument `-q`; HTTP redirect check requires 301/302/303/307/308 and exact HTTPS-origin match (never accepts HTTP 200 with Location); no redirect is followed.
-- [ ] Both live curl subprocesses explicitly clear caller-provided `CURL_CA_BUNDLE`, `SSL_CERT_FILE`, `SSL_CERT_DIR` and `CURL_SSL_BACKEND`; offline mocked tests poison these environment variables and enforce fail-closed isolation. System CA trust **alone** does not establish independent publicly approved certificate issuer/custody.
-- [ ] PR deployment-safety plus PowerShell, Node/Vitest and real MySQL/API green; independent review after N36 accepted/merged; main Windows MSI diagnostic CI green before N37 code acceptance.
+**Verified 2026-11-19 IST:** N37 **code** head `664d701c1523737b0d59b02431310d822be7c753` passed [PR CI #44384629009](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44384629009) **3/3 executable jobs**, with PR Windows MSI build **SKIPPED**, and [PR safety #44384629243](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44384629243) **2/2 SUCCESS**. N36 prerequisite [PR #27](https://github.com/rehman2671/Aaditech-toolkit-new/pull/27) has green PR checks but remains **unmerged pending independent approval**. N37 [PR #28](https://github.com/rehman2671/Aaditech-toolkit-new/pull/28) is also **unmerged/pending review**, stacked on N36. Any new doc-only SHA and later retarget need new CI verification.
+
+- [x] N37 offline Python tests reject RFC1918/loopback/link-local/metadata, special-use IPv4/IPv6 and mixed DNS answers (one private answer must block the entire hostname).
+- [x] Mocked curl acceptance requires same validated public IP pinned for HTTPS/HTTP via `--resolve` and `--noproxy '*'`; DNS errors deny any HTTP, dry-run remains network-free.
+- [x] Strict bounded `/healthz` JSON parser must reject duplicate/nested/oversized/malformed or degraded responses and accept only `status=ok` with `components.database=HEALTHY`; do not trust raw grep matches.
+- [x] Direct Hostinger live CLI and Stage31 wrapper require explicit `--confirm-live PROBE_PUBLIC_HEALTH` before DNS/curl; missing/wrong consent and combined dry-run+live are denied without network access.
+- [x] Live curl requests ignore user curlrc with first-argument `-q`; HTTP redirect check requires 301/302/303/307/308 and exact HTTPS-origin match (never accepts HTTP 200 with Location); no redirect is followed.
+- [x] Both live curl subprocesses explicitly clear caller-provided `CURL_CA_BUNDLE`, `SSL_CERT_FILE`, `SSL_CERT_DIR` and `CURL_SSL_BACKEND`; offline mocked tests poison these environment variables and enforce fail-closed isolation. System CA trust **alone** does not establish independent publicly approved certificate issuer/custody.
+- [x] N37 PR deployment-safety and PowerShell, Node/Vitest and real MySQL/API jobs passed on exact code commit `664d701c1523737b0d59b02431310d822be7c753`. This is **not** N37 main code acceptance.
+- [ ] Independent N36 review/approved merge, N37 retargeted-to-main recheck and separate independent review.
+- [ ] Main Windows MSI diagnostic build, install/upgrade acceptance and deployment safety must pass after authorized merges.
 - [ ] Real Hostinger DNS ownership/actual TLS, offsite restore, physical Windows outage and replay, authority keys, public signed MSI and third-party services remain independently pending. Do not confuse synthetic pinned-route CI with actual live acceptance.
 See [Stage37 acceptance](PHASE-N-STAGE37-ACCEPTANCE.md).
 
-## Stage N36 — reconciled exclusive-report publication and reserved DNS policy (CODE PROPOSED; PR CI PENDING; PRODUCTION BLOCKED)
+## Stage N36 — reconciled exclusive-report publication and reserved DNS policy (PR CI PASSED; INDEPENDENT REVIEW PENDING; PRODUCTION BLOCKED)
 
 - [ ] Reconcile old PR #22 on top of accepted Stage N32–N35 without overwriting their runbooks. Use this Stage36 branch; do **not** merge stale/conflicting Stage32 document from #22.
 - [ ] Linux Stage31 concurrent output report writers: only one may create mode-600 report; symlink, collision, and unsafe hostnames must fail closed; Stage14/live Hostinger offline DNS policies agree.
 - [ ] Windows Stage31 CreateNew must refuse existing/late-created report without changing any bytes.
-- [ ] PR/main CI and independent review acceptance: record actual workflow IDs and resulting merge SHA only after they exist. PR Windows MSI is intentionally skipped.
+- [x] [N36 PR CI #44304775570](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44304775570) and [PR safety #44304775551](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44304775551) **SUCCESS** for code head `7ea65635239d2013ca8fcea16d4392d33a9d62c3`. PR Windows MSI intentionally **SKIPPED**.
+- [ ] Independent reviewer approval, authorized merge and resulting merge SHA must be recorded before main-only Windows MSI/production claims.
 - [ ] Hostinger DNS/TLS, real offsite restore, physical enrolled Windows replay, external authority key custody, public signed installer and live integrations remain independently blocked.
 See [Stage36 acceptance](PHASE-N-STAGE36-ACCEPTANCE.md). This does not change any Stage N32–N35 accepted-code/blocked-production conclusions.
 

@@ -6,6 +6,7 @@
 - [ ] Mocked curl acceptance requires same validated public IP pinned for HTTPS/HTTP via `--resolve` and `--noproxy '*'`; DNS errors deny any HTTP, dry-run remains network-free.
 - [ ] Strict bounded `/healthz` JSON parser must reject duplicate/nested/oversized/malformed or degraded responses and accept only `status=ok` with `components.database=HEALTHY`; do not trust raw grep matches.
 - [ ] Live curl requests ignore user curlrc with first-argument `-q`; HTTP redirect check requires 301/302/303/307/308 and exact HTTPS-origin match (never accepts HTTP 200 with Location); no redirect is followed.
+- [ ] Both live curl subprocesses explicitly clear caller-provided `CURL_CA_BUNDLE`, `SSL_CERT_FILE`, `SSL_CERT_DIR` and `CURL_SSL_BACKEND`; offline mocked tests poison these environment variables and enforce fail-closed isolation. System CA trust **alone** does not establish independent publicly approved certificate issuer/custody.
 - [ ] PR deployment-safety plus PowerShell, Node/Vitest and real MySQL/API green; independent review after N36 accepted/merged; main Windows MSI diagnostic CI green before N37 code acceptance.
 - [ ] Real Hostinger DNS ownership/actual TLS, offsite restore, physical Windows outage and replay, authority keys, public signed MSI and third-party services remain independently pending. Do not confuse synthetic pinned-route CI with actual live acceptance.
 See [Stage37 acceptance](PHASE-N-STAGE37-ACCEPTANCE.md).

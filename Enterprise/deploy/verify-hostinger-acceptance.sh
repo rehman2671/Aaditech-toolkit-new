@@ -42,7 +42,9 @@ command -v mktemp >/dev/null 2>&1 || die 'mktemp is required.'
 # health probes to private/loopback/metadata endpoints. No proxy may override
 # the pinned route. A single endpoint is chosen fail-closed, never retried
 # automatically against a second address.
-PIN_IP="$(python3 "$(dirname "$0")/resolve-public-host.py" "$HOST")" ||
+# -I ignores inherited PYTHONPATH/user-site imports, protecting the stdlib
+# resolver against a caller-supplied shadowed socket/ipaddress module.
+PIN_IP="$(python3 -I "$(dirname "$0")/resolve-public-host.py" "$HOST")" ||
   die 'Public DNS returned invalid/untrusted addresses or could not be resolved.'
 [ -n "$PIN_IP" ] || die 'Public DNS pin was empty.'
 body="$(mktemp)"
@@ -62,7 +64,8 @@ status="$(
 [ "$status" = '200' ] || die "Remote healthz returned HTTP $status, expected 200."
 # Parse actual JSON hierarchy (not raw grep matches). Reject duplicate keys,
 # forged nested values and oversized responses; never log a health response.
-python3 "$(dirname "$0")/validate-public-health.py" "$body" ||
+# Health JSON parsing must likewise ignore poisoned import paths.
+python3 -I "$(dirname "$0")/validate-public-health.py" "$body" ||
   die 'Remote healthz response is malformed, ambiguous or persistent MySQL is degraded.'
 # -q must be curl's FIRST argument: disable ~/.curlrc, whose options could
 # silently override pinned routes, TLS verification or redirect behavior.

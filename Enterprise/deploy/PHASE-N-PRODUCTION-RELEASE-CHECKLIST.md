@@ -1,5 +1,13 @@
 # Phase N — Production release acceptance and sign-off
 
+## Stage N37 — public DNS pinning for optional authorized live acceptance (CODE PROPOSED; CI PENDING; DEPENDS ON N36; PRODUCTION BLOCKED)
+
+- [ ] N37 offline Python tests reject RFC1918/loopback/link-local/metadata, special-use IPv4/IPv6 and mixed DNS answers (one private answer must block the entire hostname).
+- [ ] Mocked curl acceptance requires same validated public IP pinned for HTTPS/HTTP via `--resolve` and `--noproxy '*'`; DNS errors deny any HTTP, dry-run remains network-free.
+- [ ] PR deployment-safety plus PowerShell, Node/Vitest and real MySQL/API green; independent review after N36 accepted/merged; main Windows MSI diagnostic CI green before N37 code acceptance.
+- [ ] Real Hostinger DNS ownership/actual TLS, offsite restore, physical Windows outage and replay, authority keys, public signed MSI and third-party services remain independently pending. Do not confuse synthetic pinned-route CI with actual live acceptance.
+See [Stage37 acceptance](PHASE-N-STAGE37-ACCEPTANCE.md).
+
 ## Stage N36 — reconciled exclusive-report publication and reserved DNS policy (CODE PROPOSED; PR CI PENDING; PRODUCTION BLOCKED)
 
 - [ ] Reconcile old PR #22 on top of accepted Stage N32–N35 without overwriting their runbooks. Use this Stage36 branch; do **not** merge stale/conflicting Stage32 document from #22.

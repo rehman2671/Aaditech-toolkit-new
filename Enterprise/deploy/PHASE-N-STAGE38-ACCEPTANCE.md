@@ -1,6 +1,13 @@
 # Phase N Stage 38 — Fail-Closed Customer Windows Live-Probe Mitigation
 
-**Status: CODE PROPOSED; PR CI AND INDEPENDENT REVIEW PENDING; CUSTOMER PRODUCTION NOT APPROVED (2026-11-19 IST).**
+**Status: PR CODE/CI GREEN; INDEPENDENT REVIEW & STACKED N36/N37 MERGES PENDING; CUSTOMER PRODUCTION NOT APPROVED (verified 2026-11-19 IST).**
+
+## CI evidence (not customer acceptance)
+
+- [N38 PR #30](https://github.com/rehman2671/Aaditech-toolkit-new/pull/30) code SHA `5b596d347f5b7eebc491e95aa553d6866f2cf2f5`.
+- [Full PR CI #44405914078](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44405914078): **SUCCESS**, Windows PowerShell (including N38 regression), Node/Vitest+MySQL 8 and isolated API/MySQL 8; the genuine Windows EXE/MSI build is **SKIPPED** on pull requests.
+- [Deployment safety #44405914047](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44405914047): **SUCCESS 2/2** (offline preflights and isolated MySQL backup/restore).
+- The tests establish **refusal of unsafe network access**, not successful secure live Windows HTTPS or physical customer certification. The requested independent reviewer `rehman2671` has not yet submitted approval. Any later code/docs SHA, retargeting or merge requires fresh CI verification.
 
 Related tracking: [Issue #29](https://github.com/rehman2671/Aaditech-toolkit-new/issues/29).
 
@@ -23,14 +30,15 @@ attempted by either path. The report always preserves
 
 ## Automated checks
 
-- [ ] Windows CI syntax and N31/N32 acceptance regressions pass.
-- [ ] `Test-Stage38WindowsNetworkProbe.ps1` confirms direct web/socket
+- [x] Windows CI syntax and N31/N32 acceptance regressions pass.
+- [x] `Test-Stage38WindowsNetworkProbe.ps1` confirms direct web/socket
       transport is absent and a configured-looking synthetic endpoint cannot
       cause a network request; requested live produces `public_https=BLOCKED`.
-- [ ] Default offline invocation produces `public_https=PENDING`.
-- [ ] Both cases create redacted, unoverwriteable and non-certified reports;
+- [x] Default offline invocation produces `public_https=PENDING`.
+- [x] Both cases create redacted, unoverwriteable and non-certified reports;
       no synthetic secret or host is printed.
-- [ ] Full PR CI, isolated MySQL API tests and independent review pass.
+- [x] Full PR CI and isolated MySQL API tests successful on exact code head.
+- [ ] Independent N36/N37/N38 reviews, authorized merges, retargeted checks and main MSI diagnostic certification.
 
 ## What is intentionally NOT done
 

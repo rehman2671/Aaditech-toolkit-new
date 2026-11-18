@@ -25,7 +25,16 @@ try {
   if ($offline.Count -ne 1 -or $offline[0].state -cne 'PENDING') {
     throw 'Unapproved network probe or incorrect offline status.'
   }
-  Write-Host 'N31 PASS: Windows customer acceptance blocks missing setup, redacts secrets, avoids network.'
+  # Existing report files must remain byte-identical; a second invocation
+  # must never overwrite evidence produced by a previous run.
+  $before = [IO.File]::ReadAllBytes($report)
+  & pwsh @probeArguments 2>$null | Out-Null
+  if ($LASTEXITCODE -eq 0) { throw 'Existing customer acceptance report was overwritten.' }
+  $after = [IO.File]::ReadAllBytes($report)
+  if ([Convert]::ToBase64String($before) -cne [Convert]::ToBase64String($after)) {
+    throw 'Report contents changed on a refused second run.'
+  }
+  Write-Host 'N32 PASS: Windows report creation refuses existing evidence without modification.'
 } finally {
   Remove-Item -LiteralPath $root -Recurse -Force -ErrorAction SilentlyContinue
 }

@@ -55,9 +55,16 @@ caddy="$(get CADDY_HOST)"
 [ "$(printf '%s' "$host" | wc -c)" -le 253 ] || fail 'DNS hostname too long'
 [[ "$host" =~ ^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)+$ ]] ||
   fail 'SERVER_HOST must be a public DNS hostname, not IP, URL or localhost'
-case "$host" in
-  *.local|*.localhost|*.test|*.example|*.invalid) fail 'Placeholder/local domain cannot pass preflight' ;;
+# Hostnames are case-insensitive. Reject reserved documentation zones and numeric
+# pseudo-domains: even when they match the shape of dotted DNS, they are not
+# operator-owned public service hosts.
+lower_host="${host,,}"
+case "$lower_host" in
+  *.local|*.localhost|*.test|*.example|*.invalid|example.com|*.example.com|example.net|*.example.net|example.org|*.example.org)
+    fail 'Reserved/local DNS cannot pass preflight' ;;
 esac
+[[ "$host" =~ \.[A-Za-z][A-Za-z0-9-]*$ ]] ||
+  fail 'Public DNS needs a nonnumeric final label; IP literals are not accepted'
 printf '%s' "$host" | awk -F. '{for(i=1;i<=NF;i++) if(length($i)>63) exit 1}' ||
   fail 'DNS label longer than 63 characters'
 admin="$(get PLATFORM_ADMIN_USER_ID)"

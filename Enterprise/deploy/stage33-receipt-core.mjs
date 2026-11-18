@@ -68,7 +68,9 @@ export async function verifyScopedReceipt(queryRows, context) {
   if (!Array.isArray(rows) || rows.length !== 1) deny('RECEIPT_NOT_UNIQUE_OR_NOT_FOUND');
   const receipt = rows[0];
   if (!hash(receipt.request_hash) ||
+      receipt.accepted_count === null || receipt.accepted_count === undefined ||
       !Number.isSafeInteger(Number(receipt.accepted_count)) ||
+      Number(receipt.accepted_count) < 0 || Number(receipt.accepted_count) > 50 ||
       Number(receipt.accepted_count) !== context.expectedCount ||
       typeof receipt.recorded_at_utc !== 'string' ||
       !/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{6}Z$/.test(receipt.recorded_at_utc)) {

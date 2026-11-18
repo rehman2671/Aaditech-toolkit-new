@@ -1,11 +1,13 @@
 # Phase N — Production release acceptance and sign-off
 
-## Stage N32 — physical agent local ACK evidence and redacted SHA256 provenance (CODE PROPOSED; CI PENDING)
+## Stage N32 — physical agent local ACK evidence and redacted SHA256 provenance (CODE/CI ACCEPTED; CUSTOMER PRODUCTION BLOCKED)
 
-- [ ] Windows operator collector requires explicit offline/reconnect attestations. It only reads installed SQLite; it never disconnects network, triggers the agent, reads credentials, mutates outbox rows, or reports actual server ACK without independent evidence.
-- [ ] CI test proves consent missing, missing queue, report overwrite and tampered payload/queue evidence are rejected.
-- [ ] Real diagnostic Windows MSI test exercises N32 Offline snapshot before major upgrade, queue survival, synthetic local-ACK state, Recovered snapshot and redacted SHA256 manifest against actual bundled sqlite3.exe.
-- [ ] After PR/main checks are green, synchronize acceptance and release ledgers with genuine workflow links; do NOT equate simulated local-ACK CI with a real network failure.
+**Verified 2026-11-18 IST:** [PR #23](https://github.com/rehman2671/Aaditech-toolkit-new/pull/23) merged at `022cdf78c2c69946b860a9cfaeb97f3e53f29318`. [Main CI #44277910476](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44277910476) **SUCCESS 4/4**; [main safety #44277910495](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44277910495) **SUCCESS 2/2**. Windows job log explicitly confirms **N32 PASS** for real SQLite offline/recovered SHA256 evidence and bundle across a genuine diagnostic MSI upgrade, using **synthetic local ACK only**. Public signed artifact upload **SKIPPED**.
+
+- [x] Windows operator collector requires explicit offline/reconnect attestations. It only reads installed SQLite; it never disconnects network, triggers the agent, reads credentials, mutates outbox rows, or reports actual server ACK without independent evidence.
+- [x] CI test proves consent missing, missing queue, report overwrite and tampered payload/queue evidence are rejected.
+- [x] Real diagnostic Windows MSI test exercises N32 Offline snapshot before major upgrade, queue survival, synthetic local-ACK state, Recovered snapshot and redacted SHA256 manifest against actual bundled sqlite3.exe.
+- [x] After PR/main checks are green, synchronize acceptance and release ledgers with genuine workflow links; do NOT equate simulated local-ACK CI with a real network failure.
 - [ ] Operator-authorized physical enrolled customer Windows and real DNS/TLS must show offline interruption followed by eventual local ACK; independent authorized MySQL receipt query must confirm scoped batch receipt and event count.
 - [ ] Real production offsite MySQL restore/migration, public publisher-signed MSI and external SMTP/webhook/Graph/ITSM integrations remain separate approval gates.
 

@@ -1,6 +1,16 @@
 # Phase N Stage 32 — Customer Telemetry Replay Evidence and Operator Workflow
 
-**Status: CODE PROPOSED; CI PENDING; CUSTOMER PRODUCTION BLOCKED.**
+**Status: CODE/CI ACCEPTED — CUSTOMER PRODUCTION BLOCKED (2026-11-18 IST).**
+
+## Verified automation evidence
+
+- [PR #23](https://github.com/rehman2671/Aaditech-toolkit-new/pull/23) squash-merged on main as `022cdf78c2c69946b860a9cfaeb97f3e53f29318`.
+- [PR CI #44277385633](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44277385633): **SUCCESS** — Node/Vitest, PowerShell N32 negative consent/redaction/tamper/no-overwrite regression and real MySQL/API tests. Genuine Windows MSI build is intentionally **SKIPPED** for PRs.
+- [PR deployment safety #44277384738](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44277384738): **SUCCESS 2/2**, including isolated MySQL restore checks.
+- [Main CI #44277910476](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44277910476): **SUCCESS 4/4** — Node/Vitest, PowerShell, real MySQL/API and genuine Windows diagnostic ps2exe/WiX MSI build, install/uninstall and major-upgrade with actual SQLite payload continuity.
+- [Main Windows job #134711901381](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44277910476/job/134711901381) contains explicit **"N32 PASS"** logs: Offline digest from installed SQLite, N30 queue preservation through MSI major upgrade, synthetic local ACK in disposable CI, matching Recovered digest/queue UUID/event state, and redacted SHA256 evidence bundle. This is **not** a real customer network interruption, a real received HTTPS ACK, or independent server receipt proof.
+- [Main deployment safety #44277910495](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44277910495): **SUCCESS 2/2**.
+- Diagnostic-signing steps may show success with no authorized certificate. **"Upload verified signed artifacts only" was SKIPPED.** No signed public release or Hostinger/customer production acceptance was performed.
 
 ## Purpose
 
@@ -98,9 +108,9 @@ separate server-transaction coverage.
 
 ## Acceptance gates
 
-- [ ] PR Node/Vitest, PowerShell negative consent/tampering regressions,
+- [x] PR Node/Vitest, PowerShell negative consent/tampering regressions,
       real MySQL/API, deployment-safety results.
-- [ ] Main CI 4/4 including genuine Windows MSI + N32 real SQLite local
+- [x] Main CI 4/4 including genuine Windows MSI + N32 real SQLite local
       evidence fixture, and deployment-safety 2/2.
 - [ ] Physical customer approved interruption and reconnect, local read-only
       N32 evidence, independently confirmed authenticated server receipt.

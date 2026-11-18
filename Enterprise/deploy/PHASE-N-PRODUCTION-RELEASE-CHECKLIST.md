@@ -1,11 +1,13 @@
 # Phase N — Production release acceptance and sign-off
 
-## Stage N33 — independently queried MySQL batch receipts and operator review (CODE PROPOSED; CI PENDING)
+## Stage N33 — independently queried MySQL batch receipts and operator review (CODE/CI ACCEPTED; CUSTOMER PRODUCTION BLOCKED)
 
-- [ ] Independently verify immutable N32 Offline/Recovered evidence and private tenant/device/case binding with Stage33 read-only MySQL CLI, not the agent's token or the production app's admin DB credential.
-- [ ] One parameterized, tenant/device/batch-scoped SELECT must return exactly one receipt and identical event count, in a read-only transaction. Wrong owner, missing receipt, altered local hash, invalid event count and destination overwrite must fail closed.
-- [ ] Optional N32 evidence bundle -ServerReceiptReport must match SHA256 and counts. Source authentication and human review remain pending: unsigned JSON is not a certificate.
-- [ ] PR Node/Vitest, PowerShell, disposable real MySQL/API and deployment safety, plus main Windows diagnostic MSI 4/4 and safety 2/2, must pass before code/CI acceptance.
+**Verified 2026-11-18 IST:** [PR #24](https://github.com/rehman2671/Aaditech-toolkit-new/pull/24) merged as `96d125a453264e6ea30e55df1f7b4d5e811fb6ca`. [Main CI #44282989949](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44282989949) **4/4 SUCCESS**, [safety #44282989853](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44282989853) **2/2 SUCCESS**. Real isolated MySQL confirms N33 scoped SELECT, tenant/device owner isolation, raw-count and tamper rejection. Public signed artifact upload was **SKIPPED**.
+
+- [x] Independently verify immutable N32 Offline/Recovered evidence and private tenant/device/case binding with Stage33 read-only MySQL CLI, not the agent's token or the production app's admin DB credential.
+- [x] One parameterized, tenant/device/batch-scoped SELECT must return exactly one receipt and identical event count, in a read-only transaction. Wrong owner, missing receipt, altered local hash, invalid event count and destination overwrite must fail closed.
+- [x] Optional N32 evidence bundle -ServerReceiptReport must match SHA256 and counts. Source authentication and human review remain pending: unsigned JSON is not a certificate.
+- [x] PR Node/Vitest, PowerShell, disposable real MySQL/API and deployment safety, plus main Windows diagnostic MSI 4/4 and safety 2/2, must pass before code/CI acceptance.
 - [ ] Separate customer physical network outage, NETWORK SERVICE reconnect, independently authenticated MySQL operator evidence, approved signed MSI, Hostinger VPS/DNS/TLS, offsite restore and live integrations remain OPEN.
 
 ## Stage N32 — physical agent local ACK evidence and redacted SHA256 provenance (CODE/CI ACCEPTED; CUSTOMER PRODUCTION BLOCKED)

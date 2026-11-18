@@ -1,6 +1,17 @@
 # Phase N Stage 33 — Independent MySQL Receipt Verification and Operator Review
 
-**Status: CODE PROPOSED; PR/main CI PENDING; CUSTOMER PRODUCTION BLOCKED.**
+**Status: CODE/CI ACCEPTED — CUSTOMER PRODUCTION BLOCKED (2026-11-18 IST).**
+
+## Verified automation evidence
+
+- [PR #24](https://github.com/rehman2671/Aaditech-toolkit-new/pull/24) squash-merged into main at `96d125a453264e6ea30e55df1f7b4d5e811fb6ca`.
+- [PR CI #44282496020](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44282496020): **SUCCESS** — Node/Vitest tests, PowerShell N33 unsigned MySQL receipt bundle/count-tamper validation and real isolated MySQL/API scoped receipt verification. PR Windows diagnostic MSI intentionally **SKIPPED**.
+- [PR deployment safety #44282489152](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44282489152): **SUCCESS 2/2**.
+- [Main CI #44282989949](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44282989949): **SUCCESS 4/4** — Node/Vitest, PowerShell, real MySQL/API and genuine Windows diagnostic ps2exe/WiX MSI build, payload extraction, install/uninstall and major-upgrade with retained enrolled queue evidence.
+- [Main MySQL job #134728706218](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44282989949/job/134728706218) logged **"N33 PASS: scoped MySQL receipt and event count, wrong tenant/device, tampering, permission, missing row and no-write evidence"** against a disposable MySQL 8 instance.
+- [Main deployment safety #44282989853](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44282989853): **SUCCESS 2/2**.
+- The Windows CI tests use a **diagnostic** MSI; the **signed-public-artifact upload was SKIPPED**. No customer physical outage, real Hostinger DB verification, public publisher signing or independently authenticated operator evidence was performed.
+
 
 ## Motivation
 
@@ -88,9 +99,9 @@ used. Main Windows MSI diagnostic upgrade remains a separate gate.
 
 ## Gates
 
-- [ ] PR CI Node/Vitest, PowerShell and real isolated MySQL/API green;
+- [x] PR CI Node/Vitest, PowerShell and real isolated MySQL/API green;
       deployment safety 2/2 green.
-- [ ] Main CI 4/4 including genuine Windows diagnostic MSI and safety 2/2.
+- [x] Main CI 4/4 including genuine Windows diagnostic MSI and safety 2/2.
 - [ ] Actual customer Windows operator-observed network interruption and
       recovery plus independently authenticated read-only MySQL receipt.
 - [ ] Approved public signed MSI, production Hostinger VPS/DNS/TLS, encrypted

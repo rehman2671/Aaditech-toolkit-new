@@ -29,6 +29,12 @@ fail_expected() {
     exit 1
   fi
 }
+# Reject disguised IP literals and reserved zones, including mixed-case DNS.
+for unsafe in '127.0.0.1' '999.999.999.999' 'console.example.com' 'console.EXAMPLE.ORG' 'host.local'; do
+  sed -i "s@console.aaditech.net@$unsafe@g" "$file"
+  fail_expected
+  sed -i "s@$unsafe@console.aaditech.net@g" "$file"
+done
 sed -i 's@console.aaditech.net@console.example@g' "$file"
 fail_expected
 sed -i 's@console.example@console.aaditech.net@g' "$file"

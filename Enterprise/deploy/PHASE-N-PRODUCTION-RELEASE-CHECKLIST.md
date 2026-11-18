@@ -1,5 +1,14 @@
 # Phase N — Production release acceptance and sign-off
 
+## Stage N32 — physical agent local ACK evidence and redacted SHA256 provenance (CODE PROPOSED; CI PENDING)
+
+- [ ] Windows operator collector requires explicit offline/reconnect attestations. It only reads installed SQLite; it never disconnects network, triggers the agent, reads credentials, mutates outbox rows, or reports actual server ACK without independent evidence.
+- [ ] CI test proves consent missing, missing queue, report overwrite and tampered payload/queue evidence are rejected.
+- [ ] Real diagnostic Windows MSI test exercises N32 Offline snapshot before major upgrade, queue survival, synthetic local-ACK state, Recovered snapshot and redacted SHA256 manifest against actual bundled sqlite3.exe.
+- [ ] After PR/main checks are green, synchronize acceptance and release ledgers with genuine workflow links; do NOT equate simulated local-ACK CI with a real network failure.
+- [ ] Operator-authorized physical enrolled customer Windows and real DNS/TLS must show offline interruption followed by eventual local ACK; independent authorized MySQL receipt query must confirm scoped batch receipt and event count.
+- [ ] Real production offsite MySQL restore/migration, public publisher-signed MSI and external SMTP/webhook/Graph/ITSM integrations remain separate approval gates.
+
 ## Stage N31 — read-only deployment/Windows preflight and independent public release pins (CODE/CI ACCEPTED; CUSTOMER PRODUCTION BLOCKED)
 
 **Verified 2026-11-18 IST:** [PR #21](https://github.com/rehman2671/Aaditech-toolkit-new/pull/21) merged at `6874e72f2faf9499b4d584b8852781a111b092da`. [Main CI #44193878515](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44193878515) **4/4 SUCCESS**; [main safety #44193879125](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44193879125) **2/2 SUCCESS**. Public signing and signed-artifact upload **SKIPPED**.

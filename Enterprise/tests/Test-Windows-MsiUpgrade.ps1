@@ -191,6 +191,18 @@ SELECT json_object(
     }
     Assert-QueueBeforeAndAfterUpgrade 'before major upgrade'
 
+    # N32: synthetic local fixture only, NOT a customer network outage.
+    $stage32 = Join-Path $PSScriptRoot 'Invoke-Stage32CustomerReplayAcceptance.ps1'
+    $stage32Dir = Join-Path $logs 'stage32-local-ack-fixture'
+    New-Item -ItemType Directory -Force -Path $stage32Dir | Out-Null
+    & $stage32 -Phase Offline -EvidenceDirectory $stage32Dir -QueueDb $queueDb -SqliteExe $sqliteCli -OperatorConfirmedOffline
+    $offlineEvidence = Get-Content -LiteralPath (Join-Path $stage32Dir 'stage32-offline.json') -Raw | ConvertFrom-Json
+    if ($offlineEvidence.in_flight_events -ne 1 -or
+        $offlineEvidence.batch_id -cne $batchId -or
+        $offlineEvidence.certified_for_production -ne $false) {
+        throw 'N32 synthetic offline snapshot redaction/identity incorrect'
+    }
+
     Invoke-Msi '/i' $upgradeMsi (Join-Path $logs 'upgrade.log')
     $cleanupMsi = $upgradeMsi
 
@@ -214,6 +226,38 @@ SELECT json_object(
     }
     Assert-QueueBeforeAndAfterUpgrade 'after major upgrade'
     Write-Host 'N30 PASS: real SQLite integrity, persistent queue UUID, pending outbox and exact JSON survived major upgrade.'
+
+    # Simulate only the LOCAL post-ACK state on disposable CI. No HTTP.
+    $syntheticLocalAckSql = @"
+BEGIN IMMEDIATE;
+UPDATE outbox SET status='delivered' WHERE id=$eventId AND status='pending';
+UPDATE telemetry_outbox SET status='delivered' WHERE batch_id='$batchId' AND status='pending';
+COMMIT;
+"@
+    $null = & $sqliteCli -batch $queueDb $syntheticLocalAckSql 2>&1
+    if ($LASTEXITCODE -ne 0) { throw 'N32 isolated local ACK transition fixture failed' }
+    & $stage32 -Phase Recovered -EvidenceDirectory $stage32Dir -QueueDb $queueDb -SqliteExe $sqliteCli -OperatorConfirmedReconnect
+    $recoveredEvidence = Get-Content -LiteralPath (Join-Path $stage32Dir 'stage32-recovered.json') -Raw | ConvertFrom-Json
+    if ($recoveredEvidence.batch_id -cne $batchId -or
+        $recoveredEvidence.payload_sha256 -cne $offlineEvidence.payload_sha256 -or
+        $recoveredEvidence.queue_identity_sha256 -cne $offlineEvidence.queue_identity_sha256 -or
+        $recoveredEvidence.delivered_event_count -ne 1 -or
+        $recoveredEvidence.server_receipt_independently_verified -ne $false -or
+        $recoveredEvidence.certified_for_production -ne $false) {
+        throw 'N32 local evidence changed payload, dropped events or fabricated server certification'
+    }
+    Write-Host 'N32 PASS: real SQLite local ACK evidence preserves exact payload hash, queue UUID and event state; external network/server still pending.'
+    # Build the redacted SHA256 provenance index from local evidence only.
+    $bundler = Join-Path $PSScriptRoot 'New-Stage32CustomerEvidenceBundle.ps1'
+    $bundlePath = Join-Path $stage32Dir 'stage32-bundle.json'
+    & $bundler -EvidenceDirectory $stage32Dir -BundlePath $bundlePath
+    $bundleEvidence = Get-Content -LiteralPath $bundlePath -Raw | ConvertFrom-Json
+    if ($bundleEvidence.production_certified -ne $false -or
+        $bundleEvidence.local_sqlite_ack_evidence -cne 'HASHES_MATCH_LOCAL_DELIVERED' -or
+        @($bundleEvidence.artifacts).Count -ne 2) {
+        throw 'N32 evidence bundler incorrectly certified production or omitted local digest files.'
+    }
+    Write-Host 'N32 PASS: redacted SHA256 evidence bundle created; independent customer/network/server receipt not certified.'
     if (-not (Get-ScheduledTask -TaskName 'ITToolkitAgent' -ErrorAction SilentlyContinue)) {
         throw 'Major MSI upgrade removed the scheduled agent task.'
     }

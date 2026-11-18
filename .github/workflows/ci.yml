@@ -84,6 +84,9 @@ jobs:
       - name: N31 release publication requires independently approved source and MSI pins
         run: pwsh -NoProfile -File ./Enterprise/tests/Test-Stage31PublicationPins.ps1
 
+      - name: N32 redacted replay evidence and consent/immutability regression
+        run: pwsh -NoProfile -File ./Enterprise/tests/Test-Stage32CustomerEvidence.ps1
+
       - name: Run Pester suites (RemoteToolkit, BatchLauncher, Phase2 modules)
         run: |
           if (-not (Get-Module -ListAvailable -Name Pester | Where-Object { $_.Version.Major -ge 6 })) {

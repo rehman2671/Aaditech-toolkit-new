@@ -1,6 +1,18 @@
 # Phase N Stage 35 — Root-Signed Operator Key Enrollment, Rotation and Revocation
 
-**Status: CODE PROPOSED; PR/main CI PENDING; CUSTOMER PRODUCTION BLOCKED.**
+**Status: CODE/CI ACCEPTED — CUSTOMER PRODUCTION BLOCKED (2026-11-18 IST).**
+
+## Verified automation evidence
+
+- [PR #26](https://github.com/rehman2671/Aaditech-toolkit-new/pull/26) squash-merged into main as `c13818e84b7ad8bd28ae3c38fe10ddbee88eac0b`.
+- [PR CI #44292807781](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44292807781): **SUCCESS 3/3** — Node/Vitest Stage35 signed registry tests, Windows PowerShell N34/N35 key lifecycle and signed customer-bundle synthetic tests, real isolated MySQL/API. Genuine MSI diagnostic build is intentionally **SKIPPED** for PRs.
+- [PR safety #44292807718](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44292807718): **SUCCESS 2/2**.
+- [Main CI #44293404866](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44293404866): **SUCCESS 4/4** — Node/Vitest, PowerShell, real MySQL/API and genuine Windows diagnostic ps2exe/WiX MSI build, payload extraction, install/uninstall and major-upgrade retaining enrolled tenant configuration and durable SQLite evidence.
+- [Main Windows PowerShell job #134764100242](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44293404866/job/134764100242) logged **"N34/N35 PASS"** for ephemeral Ed25519 root-signed registry issue/verify, independently pinned authority and registry hash/revision, revoked old key, successor-key rotation, stale rollback and positive/negative PowerShell composite bundle evidence tests.
+- [Main safety #44293404832](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44293404832): **SUCCESS 2/2**.
+- Only **ephemeral CI synthetic root/operator private keys** were used. The Windows publisher-signing flow remained diagnostic and **"Upload verified signed artifacts only" was SKIPPED**. No real operator root key was approved/enrolled/rotated, and no live customer Hostinger or physical Windows replay signoff was performed.
+
+
 
 ## Why Stage N35
 
@@ -132,9 +144,9 @@ new-key rotation, invalid purpose/key and Windows evidence-bundler fail
 closed checks. No real customer keys, HSM approvals or production databases
 are contacted. Main Windows MSI remains diagnostic only.
 
-- [ ] PR Node/Vitest, PowerShell synthetic key lifecycle and isolated MySQL
+- [x] PR Node/Vitest, PowerShell synthetic key lifecycle and isolated MySQL
       integration tests green; deployment safety 2/2.
-- [ ] Main Node/Vitest, PowerShell, real MySQL/API and diagnostic MSI 4/4
+- [x] Main Node/Vitest, PowerShell, real MySQL/API and diagnostic MSI 4/4
       green; deployment safety 2/2.
 - [ ] Independently approved actual root key custody, current registry SHA
       and revision, real customer key revocation/rotation exercise.

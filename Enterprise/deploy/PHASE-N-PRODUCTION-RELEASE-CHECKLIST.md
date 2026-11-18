@@ -1,12 +1,14 @@
 # Phase N — Production release acceptance and sign-off
 
-## Stage N35 — signed operator key enrollment, revocation, rotation and anti-rollback registry (CODE PROPOSED; CI PENDING)
+## Stage N35 — signed operator key enrollment, revocation, rotation and anti-rollback registry (CODE/CI ACCEPTED; CUSTOMER PRODUCTION BLOCKED)
 
-- [ ] An independently approved Ed25519 root authority must sign a key registry that binds enrolled operator key IDs, exact DER SPKI SHA256 fingerprints, ACTIVE/REVOKED status, purpose and validity windows. No customer signing/root keys are generated or stored in CI.
-- [ ] Customer must separately approve root SPKI SHA256, exact signed registry JSON SHA256 and exact revision. Missing, stale, altered, unsigned, expired or rolled-back registry must never validate operator evidence.
-- [ ] Revoked operators are rejected **even for older signatures** under the current approved registry; active successor can verify after root-signed higher revision and independent reapproval. Prevent duplicate key IDs/pins and privilege changes.
-- [ ] Windows N32 signed evidence bundle may optionally require N35 registry approval. On success report root pin, registry hash/revision and cryptographic key status, but operator authorization, physical outage, production release and customer signoff remain externally PENDING.
-- [ ] PR/main Node/Vitest, Windows PowerShell synthetic registry rotation/revocation, real isolated MySQL/API, genuine diagnostic Windows MSI, and deployment-safety must all pass before code/CI acceptance.
+**Verified 2026-11-18 IST:** [PR #26](https://github.com/rehman2671/Aaditech-toolkit-new/pull/26) merged as `c13818e84b7ad8bd28ae3c38fe10ddbee88eac0b`. [Main CI #44293404866](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44293404866) **4/4 SUCCESS**, [main safety #44293404832](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44293404832) **2/2 SUCCESS**. Real Windows PowerShell test used **CI-only ephemeral keys**. Publisher-signed public artifact upload **SKIPPED**.
+
+- [x] Code/CI validates an Ed25519 root-authority signed registry with operator key IDs, DER SPKI SHA256, ACTIVE/REVOKED, purpose and validity. Only ephemeral test keys were generated; actual customer root approval is separately pending.
+- [x] N35 verifier enforces separately supplied root SPKI SHA256, exact signed registry JSON SHA256 and exact revision; CI rejects missing/stale/altered/unsigned/expired/rolled-back inputs. Actual independent customer approvals are still pending.
+- [x] CI confirms revoked operator rejection (including older signatures), higher-revision key rotation/successor acceptance and duplicate key ID/pin/purpose refusal. Real customer revocation/change control remains pending.
+- [x] Windows CI verifies optional N35 registry-approval enforcement and records root pin/registry hash/revision while all external operator authorization, physical outage, production release and customer signoff statuses remain PENDING.
+- [x] PR/main Node/Vitest, Windows PowerShell synthetic registry rotation/revocation, real isolated MySQL/API, genuine diagnostic Windows MSI and deployment-safety passed.
 - [ ] Real root signing-key custody, external change approval/revocation distribution, production Hostinger DNS/TLS/restore, physical Windows replay, publicly signed MSI and live integrations remain separately required.
 
 ## Stage N34 — Ed25519 signed receipt evidence with independent public-key pin (CODE/CI ACCEPTED; CUSTOMER PRODUCTION BLOCKED)

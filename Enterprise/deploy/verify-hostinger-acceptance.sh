@@ -15,10 +15,15 @@ while [ "$#" -gt 0 ]; do
 done
 [[ "$HOST" =~ ^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)+$ ]] ||
   die 'Expected a DNS hostname, not a URL, IP or localhost.'
-case "$HOST" in
-  *.local|*.localhost|*.test|*.example|*.invalid|*.example.com|*.example.net|*.example.org)
+# Case-insensitive reserved-zone policy; numeric dotted hostnames can be
+# interpreted as IP literals by curl and must never pass as public DNS.
+lower_host="${HOST,,}"
+case "$lower_host" in
+  *.local|*.localhost|*.test|*.example|*.invalid|example.com|*.example.com|example.net|*.example.net|example.org|*.example.org)
     die 'Reserved/non-public DNS hostname is not valid for live acceptance.' ;;
 esac
+[[ "$HOST" =~ \.[A-Za-z][A-Za-z0-9-]*$ ]] ||
+  die 'Public DNS needs a nonnumeric final label; IP literals are not accepted.'
 if [ "$DRY_RUN" -eq 1 ]; then
   echo '[hostinger-acceptance] DRY RUN: valid DNS syntax, no network or deployment operations performed.'
   exit 0

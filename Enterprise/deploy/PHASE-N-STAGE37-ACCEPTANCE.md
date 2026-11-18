@@ -1,14 +1,14 @@
 # Phase N Stage 37 — Pinned, Read-Only Public HTTPS Acceptance
 
-**Status: LATEST PYTHON ISOLATION CODE/CI PENDING; EARLIER PR CI GREEN; N36 REVIEW/MERGE PENDING; CUSTOMER PRODUCTION BLOCKED (2026-11-19 IST).**
+**Status: N36 GITHUB APPROVAL/MERGE RECORDED; N37 RETARGETED TO MAIN, PR CI GREEN ON LAST CODE HEAD; NEW RETARGETED CI/REVIEW PENDING; CUSTOMER PRODUCTION BLOCKED (2026-11-19 IST).**
 
 ## Independently checkable CI evidence
 
-- [PR #28](https://github.com/rehman2671/Aaditech-toolkit-new/pull/28) currently targets the N36 integration branch; corrected **code** commit `664d701c1523737b0d59b02431310d822be7c753` (direct live consent, isolated curl trust, pinned DNS and strict health JSON).
+- [PR #28](https://github.com/rehman2671/Aaditech-toolkit-new/pull/28) is now **retargeted to `main`**, after N36 #27 merge; N37 last code HEAD `ae807fbe5524ef1d96ecb0c78ece311d92fda05a` includes isolated Python `-I`, direct live consent, isolated curl trust, pinned DNS and strict health JSON.
 - [PR CI #44384629009](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44384629009): **SUCCESS**. Windows PowerShell, Node/Vitest+MySQL 8 and real isolated API/MySQL 8 passed; PR-only Windows EXE/MSI diagnostic job **SKIPPED BY DESIGN**.
 - [PR deployment-safety #44384629243](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44384629243): **SUCCESS 2/2**. Offline DNS/HTTP/payload/consent negative tests and isolated MySQL restore.
-- N36 prerequisite [PR #27](https://github.com/rehman2671/Aaditech-toolkit-new/pull/27) passed [CI #44304775570](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44304775570) and [safety #44304775551](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44304775551), but **neither PR currently has a submitted independent approval**. Requested reviewer is `rehman2671`; no authorized merge has occurred.
-- The green SHA/workflows cited here PRECEDE the latest isolated-Python changes. The latest branch HEAD needs its own fresh CI result before code acceptance.
+- N36 prerequisite [PR #27](https://github.com/rehman2671/Aaditech-toolkit-new/pull/27) has a submitted GitHub **APPROVED** review and was merged at `517c8d0b25f645b76fb1a17367301b0443d397a3` on 2026-11-18 UTC. Team/account-level GitHub approval does **not by itself establish independently performed security review** where the same operator controls both accounts. N36 main Windows MSI job remains to be evidenced separately.
+- The latest isolated-Python code HEAD `ae807fbe5524ef1d96ecb0c78ece311d92fda05a` passed [full PR CI #44389058206](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44389058206) and [deployment safety #44389058159](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44389058159). Those runs preceded the retarget onto `main`, so **new base-context and new HEAD CI must be reconfirmed**, along with an N37-specific submitted review.
 - These are automated tests on disposable CI data and mocked network probes, **not** independently approved customer network/DNS/TLS evidence. New commits, retargeting or merges require fresh gate verification.
 
 ## Why
@@ -71,12 +71,12 @@ could bypass the intended resolution.
 - [x] Positive mock probes poison all four caller CA/SSL-backend environment
       variables and verify neither HTTPS nor HTTP curl sees them.
 - [ ] Independently verify customer-approved public CA chain and host trust-store provenance.
-- [ ] Python resolver and health validator both use isolated `-I` mode, and deliberate ambient `PYTHONPATH` poisoning cannot alter health acceptance.
+- [x] Python resolver and health validator both use isolated `-I` mode, and deliberate ambient `PYTHONPATH` poisoning cannot alter health acceptance (verified in N37 deployment safety #44389058159).
 - [x] Python and mocked HTTP tests reject duplicate, malformed, oversized,
       nested and degraded health JSON even when misleading outer fields say HEALTHY.
 - [x] PR CI (PowerShell, Node/Vitest, isolated MySQL/API) passes without affecting N32–N35.
-- [ ] N36 independent review/merge accepted before retargeting N37 onto main;
-      then obtain independent N37 review and main CI/MSI acceptance.
+- [x] N36 GitHub review recorded and N36 merged into `main`; N37 PR retargeted to `main` (separately validate independence of approver as a human security reviewer).
+- [ ] Verify retargeted N37 base-context PR CI, obtain actual N37 code/security review and authorized merge; then certify main CI / Windows MSI diagnostics.
 
 ## Explicit limitations
 

@@ -12,7 +12,8 @@ const id32=s=>typeof s==='string' && /^[0-9a-f]{32}$/.test(s);
 const validObject=o=>o && typeof o==='object' && !Array.isArray(o);
 
 export function publicKeyPin(publicKey) {
-  const key=crypto.createPublicKey(publicKey);
+  const key=publicKey instanceof crypto.KeyObject && publicKey.type==='public' ?
+    publicKey : crypto.createPublicKey(publicKey);
   if (key.asymmetricKeyType!=='ed25519') deny('ED25519_KEY_REQUIRED');
   return sha256(key.export({type:'spki',format:'der'}));
 }
@@ -93,7 +94,8 @@ export function buildPayload({receipt,offline,recovered,receiptBytes,offlineByte
   };
 }
 export function signAttestation(input,privateKey,issuedAt=new Date().toISOString()) {
-  const key=crypto.createPrivateKey(privateKey);
+  const key=privateKey instanceof crypto.KeyObject && privateKey.type==='private' ?
+    privateKey : crypto.createPrivateKey(privateKey);
   if (key.asymmetricKeyType!=='ed25519') deny('ED25519_KEY_REQUIRED');
   const payload=buildPayload({...input,issuedAt});
   const publicKey=crypto.createPublicKey(key);

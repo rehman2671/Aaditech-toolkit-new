@@ -75,6 +75,47 @@ try {
     throw 'Evidence index incorrectly certified production or missed file hashes.'
   }
   if ($text.Contains($fakeSecret)) { throw 'Private input leaked into redacted N32 evidence.' }
+
+  # N33: optional standalone MySQL report must match hashes AND count. It
+  # remains unsigned and must never be treated as production signoff.
+  $serverFile = Join-Path $temp 'stage33-server.json'
+  $serverBundle = Join-Path $temp 'stage33-bundle.json'
+  $localHash = (Get-FileHash -LiteralPath $offlinePath -Algorithm SHA256).Hash.ToLowerInvariant()
+  $recoveredHash = (Get-FileHash -LiteralPath $recoveredPath -Algorithm SHA256).Hash.ToLowerInvariant()
+  [pscustomobject]@{
+    schema='aaditech-stage33-server-receipt-v1'
+    run_id=$run
+    batch_id=$batchId
+    scoped_mysql_receipt_verified=$true
+    report_authenticated_to_operator=$false
+    production_certified=$false
+    raw_http_json_hash_matched=$false
+    network_partition_independently_measured=$false
+    receipt_count=1
+    accepted_count=1
+    offline_evidence_sha256=$localHash
+    recovered_evidence_sha256=$recoveredHash
+    local_payload_sha256=$sha
+    scoped_owner_fingerprint_sha256=('e' * 64)
+    server_request_hash_fingerprint_sha256=('f' * 64)
+  } | ConvertTo-Json | Set-Content -LiteralPath $serverFile -Encoding utf8
+  & $bundler -EvidenceDirectory $temp -BundlePath $serverBundle -ServerReceiptReport $serverFile
+  $joined = Get-Content -LiteralPath $serverBundle -Raw | ConvertFrom-Json
+  if ($joined.authenticated_server_receipt_proof -cne 'SCOPED_MYSQL_REPORT_MATCHED_OPERATOR_SIGNOFF_PENDING' -or
+      $joined.server_report_source_authenticated -ne $false -or
+      $joined.production_certified -ne $false -or
+      @($joined.artifacts).Count -ne 3) {
+    throw 'N33 composite bundle incorrectly trusts unsigned server receipt or loses provenance.'
+  }
+  $serverEvidence = Get-Content -LiteralPath $serverFile -Raw | ConvertFrom-Json
+  $serverEvidence.accepted_count = 3
+  $serverEvidence | ConvertTo-Json | Set-Content -LiteralPath $serverFile -Encoding utf8
+  Assert-Blocked {
+    & $bundler -EvidenceDirectory $temp -BundlePath (Join-Path $temp 'bad-n33-bundle.json') -ServerReceiptReport $serverFile
+  } 'changed server event count'
+  if (Test-Path (Join-Path $temp 'bad-n33-bundle.json')) {
+    throw 'N33 count mismatch produced a composite bundle.'
+  }
   Assert-Blocked {
     & $bundler -EvidenceDirectory $temp -BundlePath $bundlePath
   } 'bundle overwrite'

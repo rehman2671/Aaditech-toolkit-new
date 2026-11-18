@@ -117,7 +117,8 @@ export function verifyAttestation(input,attestation,trustedPublicKey,approvedPin
       attestation.public_key_spki_sha256!==approvedPin ||
       typeof attestation.signature_base64!=='string' ||
       !/^[A-Za-z0-9+/]{86}==$/.test(attestation.signature_base64)) deny('INVALID_ATTESTATION');
-  const key=crypto.createPublicKey(trustedPublicKey);
+  const key=trustedPublicKey instanceof crypto.KeyObject && trustedPublicKey.type==='public' ?
+    trustedPublicKey : crypto.createPublicKey(trustedPublicKey);
   if (publicKeyPin(key)!==approvedPin) deny('PUBLIC_KEY_NOT_APPROVED');
   const issued=attestation.payload.issued_at_utc;
   if (!validateDate(issued) || !(now instanceof Date) || !Number.isFinite(now.getTime()) ||

@@ -62,6 +62,7 @@ function Assert-QueueIdentity($State) {
 }
 function Get-EventIds([string]$EventIdsJson) {
     $ids = @()
+    if ($EventIdsJson.Trim() -ceq '[]') { return @() }
     try {
         $decoded = ConvertFrom-Json -InputObject $EventIdsJson -ErrorAction Stop
         foreach ($x in @($decoded)) {
@@ -75,7 +76,7 @@ function Get-EventIds([string]$EventIdsJson) {
     if (@($ids | Select-Object -Unique).Count -ne $ids.Count -or $ids.Count -gt 50) {
         throw 'Saved queue event IDs are duplicated or too many.'
     }
-    return ,$ids
+    return $ids
 }
 function Test-EventsWithStatus([long[]]$Ids,[string]$State) {
     if ($Ids.Count -eq 0) { return $true }

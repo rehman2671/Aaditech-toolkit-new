@@ -13,7 +13,7 @@ function options(argv){
   const values={};
   for (let i=0;i<argv.length;i+=2) {
     const k=argv[i],v=argv[i+1];
-    if (!/^--[a-z-]+$/.test(k) || values[k] || !v) deny('INVALID_ARGUMENTS');
+    if (!/^--[a-z0-9-]+$/.test(k) || values[k] || !v) deny('INVALID_ARGUMENTS');
     values[k]=v;
   }
   const common=['--offline','--recovered','--receipt'];

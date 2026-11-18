@@ -9,8 +9,10 @@ work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 mkdir -p "$work/bin"
 export CURL_CALLS="$work/curl.calls"
+export DNS_CALLS="$work/dns.calls"
 export REAL_PYTHON3="$(command -v python3)"
 : > "$CURL_CALLS"
+: > "$DNS_CALLS"
 # Poison the caller environment with unapproved CA/backend choices.
 # The real checker must clear these only for each curl subprocess, rather
 # than treating an inherited private test CA as independent public trust.
@@ -22,6 +24,7 @@ cat > "$work/bin/python3" <<'PYTHON'
 #!/usr/bin/env bash
 case "$1" in
   */resolve-public-host.py)
+    printf "resolved\\n" >> "$DNS_CALLS"
     if [ "${FAKE_DNS_DENY:-0}" = 1 ]; then exit 1; fi
     printf '%s\n' '8.8.8.8'
     ;;
@@ -65,7 +68,34 @@ case " $* " in
 esac
 CURL
 chmod 700 "$work/bin/python3" "$work/bin/curl"
-PATH="$work/bin:$PATH" bash "$CHECKER" --host console.aaditech.net >"$work/output"
+# Calling the verifier directly must require confirmation BEFORE DNS lookup
+# or HTTP traffic, not merely through the higher-level N31 wrapper.
+for consent_args in 'none' 'invalid' 'dry-run-with-live'; do
+  curl_before="$(wc -l < "$CURL_CALLS")"
+  dns_before="$(wc -l < "$DNS_CALLS")"
+  case "$consent_args" in
+    none)
+      if PATH="$work/bin:$PATH" bash "$CHECKER" --host console.aaditech.net >/dev/null 2>&1; then
+        echo '[FAIL] direct live request without confirmation was accepted' >&2; exit 1
+      fi
+      ;;
+    invalid)
+      if PATH="$work/bin:$PATH" bash "$CHECKER" --host console.aaditech.net --confirm-live NOT_APPROVED >/dev/null 2>&1; then
+        echo '[FAIL] direct live request with invalid confirmation accepted' >&2; exit 1
+      fi
+      ;;
+    dry-run-with-live)
+      if PATH="$work/bin:$PATH" bash "$CHECKER" --host console.aaditech.net --dry-run --confirm-live PROBE_PUBLIC_HEALTH >/dev/null 2>&1; then
+        echo '[FAIL] combined dry-run and live confirmation accepted' >&2; exit 1
+      fi
+      ;;
+  esac
+  [ "$(wc -l < "$CURL_CALLS")" -eq "$curl_before" ] ||
+    { echo '[FAIL] HTTP performed without valid live consent' >&2; exit 1; }
+  [ "$(wc -l < "$DNS_CALLS")" -eq "$dns_before" ] ||
+    { echo '[FAIL] DNS lookup performed without valid live consent' >&2; exit 1; }
+done
+PATH="$work/bin:$PATH" bash "$CHECKER" --host console.aaditech.net --confirm-live PROBE_PUBLIC_HEALTH >"$work/output"
 grep -Fq -- '--resolve console.aaditech.net:443:8.8.8.8' "$CURL_CALLS"
 grep -Fq -- '--resolve console.aaditech.net:80:8.8.8.8' "$CURL_CALLS"
 [ "$(grep -Fc -- "--noproxy *" "$CURL_CALLS")" -eq 2 ]
@@ -74,20 +104,20 @@ grep -Fq -- '--max-redirs 0' "$CURL_CALLS"
 grep -Fq 'Public HTTPS' "$work/output" || grep -Fq '[PASS]' "$work/output"
 # Reject deceptive responses with a Location URL but HTTP 200, and any
 # cross-origin redirect (including private/internal redirect targets).
-if FAKE_HTTP_STATUS=200 PATH="$work/bin:$PATH" bash "$CHECKER" --host console.aaditech.net >/dev/null 2>&1; then
+if FAKE_HTTP_STATUS=200 PATH="$work/bin:$PATH" bash "$CHECKER" --host console.aaditech.net --confirm-live PROBE_PUBLIC_HEALTH >/dev/null 2>&1; then
   echo '[FAIL] HTTP 200 with Location accepted as a redirect' >&2; exit 1
 fi
-if FAKE_HTTP_DEST='https://127.0.0.1/' PATH="$work/bin:$PATH" bash "$CHECKER" --host console.aaditech.net >/dev/null 2>&1; then
+if FAKE_HTTP_DEST='https://127.0.0.1/' PATH="$work/bin:$PATH" bash "$CHECKER" --host console.aaditech.net --confirm-live PROBE_PUBLIC_HEALTH >/dev/null 2>&1; then
   echo '[FAIL] cross-origin redirect accepted' >&2; exit 1
 fi
 # A response with an enticing top-level database field but an unhealthy
 # authoritative components.database must never be accepted. The fake resolver
 # still returns a public IP; this covers the actual structured parser path.
-if FAKE_HEALTH_DEGRADED=1 PATH="$work/bin:$PATH" bash "$CHECKER" --host console.aaditech.net >/dev/null 2>&1; then
+if FAKE_HEALTH_DEGRADED=1 PATH="$work/bin:$PATH" bash "$CHECKER" --host console.aaditech.net --confirm-live PROBE_PUBLIC_HEALTH >/dev/null 2>&1; then
   echo '[FAIL] nested degraded MySQL accepted by real health JSON parser' >&2; exit 1
 fi
 before="$(wc -l < "$CURL_CALLS")"
-if FAKE_DNS_DENY=1 PATH="$work/bin:$PATH" bash "$CHECKER" --host console.aaditech.net > /dev/null 2>&1; then
+if FAKE_DNS_DENY=1 PATH="$work/bin:$PATH" bash "$CHECKER" --host console.aaditech.net --confirm-live PROBE_PUBLIC_HEALTH > /dev/null 2>&1; then
   echo '[FAIL] DNS refusal did not block public probes' >&2; exit 1
 fi
 [ "$(wc -l < "$CURL_CALLS")" -eq "$before" ] || {

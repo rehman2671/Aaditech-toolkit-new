@@ -42,8 +42,8 @@ PIN_IP="$(python3 "$(dirname "$0")/resolve-public-host.py" "$HOST")" ||
 [ -n "$PIN_IP" ] || die 'Public DNS pin was empty.'
 body="$(mktemp)"
 trap 'rm -f "$body"' EXIT
-# curl validates OS CA trust, hostname verification and HTTPS protocol.
-status="$(curl --silent --show-error --noproxy '*' --resolve "$HOST:443:$PIN_IP" \
+# -q must be the first curl option to ignore untrusted ~/.curlrc overrides.\n# curl validates OS CA trust, hostname verification and HTTPS protocol.
+status="$(curl -q --silent --show-error --noproxy '*' --resolve "$HOST:443:$PIN_IP" \
   --proto '=https' --tlsv1.2 --connect-timeout 8 --max-time 18 \
   --max-filesize 65536 --output "$body" --write-out '%{http_code}' "https://$HOST/healthz")" ||
   die 'Public HTTPS/certificate/network health check failed.'
@@ -52,10 +52,20 @@ status="$(curl --silent --show-error --noproxy '*' --resolve "$HOST:443:$PIN_IP"
 # forged nested values and oversized responses; never log a health response.
 python3 "$(dirname "$0")/validate-public-health.py" "$body" ||
   die 'Remote healthz response is malformed, ambiguous or persistent MySQL is degraded.'
-redirect="$(curl --silent --show-error --head --noproxy '*' \
-  --resolve "$HOST:80:$PIN_IP" --proto '=http' --max-time 15 --output /dev/null \
-  --write-out '%{redirect_url}' "http://$HOST/" )" ||
+# -q must be curl's FIRST argument: disable ~/.curlrc, whose options could
+# silently override pinned routes, TLS verification or redirect behavior.
+# Demand a genuine HTTP redirect status plus the approved HTTPS origin.
+# --max-redirs 0 and no --location means the redirect target is never fetched.
+redirect_result="$(curl -q --silent --show-error --head --noproxy '*' \
+  --resolve "$HOST:80:$PIN_IP" --proto '=http' --max-time 15 --max-redirs 0 --output /dev/null \
+  --write-out '%{http_code} %{redirect_url}' "http://$HOST/" )" ||
   die 'HTTP port 80 is not reachable for HTTPS redirect check.'
+redirect_status="${redirect_result%% *}"
+redirect="${redirect_result#* }"
+case "$redirect_status" in
+  301|302|303|307|308) ;;
+  *) die 'HTTP port 80 must return an actual HTTPS redirect status (301/302/303/307/308).' ;;
+esac
 case "$redirect" in
   "https://$HOST/"*) ;;
   *) die 'HTTP port 80 must redirect to the expected HTTPS origin.' ;;

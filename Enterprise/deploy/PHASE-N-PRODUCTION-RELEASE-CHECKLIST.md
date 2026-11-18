@@ -1,10 +1,12 @@
 # Phase N — Production release acceptance and sign-off
 
-## Stage N38 — Windows customer acceptance live-probe fail-closed mitigation (CODE PROPOSED; CI/REVIEW PENDING; PRODUCTION BLOCKED)
+## Stage N38 — Windows customer acceptance live-probe fail-closed mitigation (PR CI PASSED; INDEPENDENT REVIEW PENDING; PRODUCTION BLOCKED)
 
-- [ ] Eliminate unpinned Windows `-NetworkProbe` health HTTP calls; when requested, report `public_https=BLOCKED` instead of attempting DNS/HTTP or reporting `PASS`. Default offline must stay `PENDING`.
-- [ ] Windows offline regression on a configured-looking synthetic HTTPS endpoint passes with **no** DNS/web/socket transport, no leaked host/token, and `certified_for_production=false`.
-- [ ] Existing N31/N32 Windows evidence non-overwrite tests continue to pass and new `Test-Stage38WindowsNetworkProbe.ps1` runs in CI.
+**Verified 2026-11-19 IST:** [PR #30](https://github.com/rehman2671/Aaditech-toolkit-new/pull/30) code SHA `5b596d347f5b7eebc491e95aa553d6866f2cf2f5` passed [full CI #44405914078](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44405914078) **3/3 executable jobs**, with PR MSI **SKIPPED**, and [deployment safety #44405914047](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44405914047) **2/2 SUCCESS**. This is *not* live Windows transport acceptance. N36→N37→N38 review/merge dependencies still unmet.
+
+- [x] Eliminate unpinned Windows `-NetworkProbe` health HTTP calls; when requested, report `public_https=BLOCKED` instead of attempting DNS/HTTP or reporting `PASS`. Default offline must stay `PENDING`.
+- [x] Windows offline regression on a configured-looking synthetic HTTPS endpoint passes with **no** DNS/web/socket transport, no leaked host/token, and `certified_for_production=false`.
+- [x] Existing N31/N32 Windows evidence non-overwrite tests continue to pass and new `Test-Stage38WindowsNetworkProbe.ps1` runs in CI.
 - [ ] Independent N36 and N37 review/merge, then N38 retarget/retest/independent review and main MSI diagnostic build.
 - [ ] **Issue #29 remains open:** the actual secure Windows native live HTTPS transport is **not** implemented or certified; pinned TLS, DNS/redirect/proxy/health negative tests and real customer approval still required.
 - [ ] Hostinger ownership/TLS, physical Windows authenticated ACK replay, real signing-key custody/public MSI, offsite restore and integrations remain independently blocked. **Production: NOT APPROVED.**

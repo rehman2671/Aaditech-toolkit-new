@@ -8,6 +8,8 @@ on:
       - 'Enterprise/tests/Test-MySQL-Backup-Restore.sh'
       - 'Enterprise/tests/Test-Stage14Preflight.sh'
       - 'Enterprise/tests/Test-Stage31Preflight.sh'
+      - 'Enterprise/tests/Test-Stage37PinnedPublicDns.sh'
+      - 'Enterprise/tests/test_public_dns_resolution.py'
       - 'Enterprise/tests/Test-DeployMySQL.sh'
       - 'Enterprise/tests/Test-LegacyMsiMigration.sh'
       - 'Enterprise/tests/Test-LegacyMsiMigration-Live.sh'
@@ -19,6 +21,8 @@ on:
       - 'Enterprise/tests/Test-MySQL-Backup-Restore.sh'
       - 'Enterprise/tests/Test-Stage14Preflight.sh'
       - 'Enterprise/tests/Test-Stage31Preflight.sh'
+      - 'Enterprise/tests/Test-Stage37PinnedPublicDns.sh'
+      - 'Enterprise/tests/test_public_dns_resolution.py'
       - 'Enterprise/tests/Test-DeployMySQL.sh'
       - 'Enterprise/tests/Test-LegacyMsiMigration.sh'
       - 'Enterprise/tests/Test-LegacyMsiMigration-Live.sh'
@@ -48,6 +52,12 @@ jobs:
           bash -n Enterprise/tests/Test-Stage14Preflight.sh
           bash -n Enterprise/tests/Test-LegacyMsiMigration-Live.sh
           bash -n Enterprise/deploy/verify-hostinger-acceptance.sh
+          bash -n Enterprise/tests/Test-Stage37PinnedPublicDns.sh
+      - name: N37 reject private/reserved and mixed DNS answers offline, assert pinned public curl routes
+        shell: bash
+        run: |
+          python3 -m unittest discover -s Enterprise/tests -p 'test_public_dns_resolution.py' -v
+          bash Enterprise/tests/Test-Stage37PinnedPublicDns.sh
       - name: Verify VPS public HTTPS acceptance CLI is safe in offline dry-run
         shell: bash
         run: bash Enterprise/deploy/verify-hostinger-acceptance.sh --host toolkit.aaditech.net --dry-run

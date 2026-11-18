@@ -13,6 +13,8 @@ import sys
 EXTRA_DENIED = (
     ipaddress.ip_network("192.0.0.0/24"),
     ipaddress.ip_network("192.88.99.0/24"),
+    ipaddress.ip_network("224.0.0.0/4"),   # IPv4 multicast is not a single public service
+    ipaddress.ip_network("ff00::/8"),     # IPv6 multicast
     ipaddress.ip_network("2001::/32"),   # Teredo / embedded IPv4
     ipaddress.ip_network("2002::/16"),  # 6to4 / embedded IPv4
 )
@@ -24,6 +26,8 @@ def public_address(address):
     return bool(
         value.is_global
         and effective.is_global
+        and not value.is_multicast
+        and not effective.is_multicast
         and not value.is_reserved
         and not any(value in subnet for subnet in EXTRA_DENIED if subnet.version == value.version)
         and not any(effective in subnet for subnet in EXTRA_DENIED if subnet.version == effective.version)

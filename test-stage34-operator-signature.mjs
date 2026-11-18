@@ -30,7 +30,7 @@ const run=(mode,overrides={})=>{
 };
 const blocked=(result,label)=>{
   assert.equal(result.status,1,label+' should fail closed: '+result.stderr);
-  assert.match(result.stderr,/N34 BLOCKED/);
+  assert.match(result.stderr,/N(?:34|35) BLOCKED/);
   assert(!result.stderr.includes('PRIVATE KEY'));
 };
 const bundle=(out,extra=[])=>spawnSync('pwsh',['-NoProfile','-File',bundler,

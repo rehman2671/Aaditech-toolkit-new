@@ -1,8 +1,8 @@
 # Phase N — Production release acceptance and sign-off
 
-## Stage N37 — public DNS pinning for optional authorized live acceptance (PR CI PASSED; REVIEW PENDING; DEPENDS ON N36; PRODUCTION BLOCKED)
+## Stage N37 — public DNS pinning for optional authorized live acceptance (LATEST CODE CI PENDING; EARLIER CI PASSED; REVIEW PENDING; DEPENDS ON N36; PRODUCTION BLOCKED)
 
-**Verified 2026-11-19 IST:** N37 **code** head `664d701c1523737b0d59b02431310d822be7c753` passed [PR CI #44384629009](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44384629009) **3/3 executable jobs**, with PR Windows MSI build **SKIPPED**, and [PR safety #44384629243](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44384629243) **2/2 SUCCESS**. N36 prerequisite [PR #27](https://github.com/rehman2671/Aaditech-toolkit-new/pull/27) has green PR checks but remains **unmerged pending independent approval**. N37 [PR #28](https://github.com/rehman2671/Aaditech-toolkit-new/pull/28) is also **unmerged/pending review**, stacked on N36. Any new doc-only SHA and later retarget need new CI verification.
+**Historical verified result (before latest Python isolated-mode code):** N37 **code** head `664d701c1523737b0d59b02431310d822be7c753` passed [PR CI #44384629009](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44384629009) **3/3 executable jobs**, with PR Windows MSI build **SKIPPED**, and [PR safety #44384629243](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44384629243) **2/2 SUCCESS**. N36 prerequisite [PR #27](https://github.com/rehman2671/Aaditech-toolkit-new/pull/27) has green PR checks but remains **unmerged pending independent approval**. N37 [PR #28](https://github.com/rehman2671/Aaditech-toolkit-new/pull/28) is also **unmerged/pending review**, stacked on N36. Any new doc-only SHA and later retarget need new CI verification.
 
 - [x] N37 offline Python tests reject RFC1918/loopback/link-local/metadata, special-use IPv4/IPv6 and mixed DNS answers (one private answer must block the entire hostname).
 - [x] Mocked curl acceptance requires same validated public IP pinned for HTTPS/HTTP via `--resolve` and `--noproxy '*'`; DNS errors deny any HTTP, dry-run remains network-free.
@@ -10,6 +10,7 @@
 - [x] Direct Hostinger live CLI and Stage31 wrapper require explicit `--confirm-live PROBE_PUBLIC_HEALTH` before DNS/curl; missing/wrong consent and combined dry-run+live are denied without network access.
 - [x] Live curl requests ignore user curlrc with first-argument `-q`; HTTP redirect check requires 301/302/303/307/308 and exact HTTPS-origin match (never accepts HTTP 200 with Location); no redirect is followed.
 - [x] Both live curl subprocesses explicitly clear caller-provided `CURL_CA_BUNDLE`, `SSL_CERT_FILE`, `SSL_CERT_DIR` and `CURL_SSL_BACKEND`; offline mocked tests poison these environment variables and enforce fail-closed isolation. System CA trust **alone** does not establish independent publicly approved certificate issuer/custody.
+- [ ] Python DNS and health JSON helpers are both executed with `-I` isolated mode; mocked and real parsing tests poison `PYTHONPATH` to verify untrusted import resolution cannot change acceptance. Revalidate latest code SHA in both CI workflows.
 - [x] N37 PR deployment-safety and PowerShell, Node/Vitest and real MySQL/API jobs passed on exact code commit `664d701c1523737b0d59b02431310d822be7c753`. This is **not** N37 main code acceptance.
 - [ ] Independent N36 review/approved merge, N37 retargeted-to-main recheck and separate independent review.
 - [ ] Main Windows MSI diagnostic build, install/upgrade acceptance and deployment safety must pass after authorized merges.

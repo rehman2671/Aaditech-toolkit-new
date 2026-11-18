@@ -83,7 +83,8 @@ try {
   const attestation=JSON.parse(fs.readFileSync(file('stage34-attestation.json'),'utf8'));
   assert.equal(attestation.public_key_spki_sha256,pin);
   assert.equal(attestation.payload.customer_production_certified,false);
-  assert.equal(run('verify').status,0,'pinned key must verify');
+  const originalVerification=run('verify');
+  assert.equal(originalVerification.status,0,'pinned key must verify: '+originalVerification.stderr.trim());
   blocked(run('verify',{key:file('other-public.pem')}),'substituted trusted key');
   blocked(run('verify',{pin:'2'.repeat(64)}),'unapproved independent pin');
   blocked(run('sign'),'immutable attestation overwrite');

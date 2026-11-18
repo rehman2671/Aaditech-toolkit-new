@@ -1,6 +1,6 @@
 # Phase N Stage 37 — Pinned, Read-Only Public HTTPS Acceptance
 
-**Status: PR CODE/CI GREEN; INDEPENDENT REVIEW AND N36 MERGE PENDING; CUSTOMER PRODUCTION BLOCKED (verified 2026-11-19 IST).**
+**Status: LATEST PYTHON ISOLATION CODE/CI PENDING; EARLIER PR CI GREEN; N36 REVIEW/MERGE PENDING; CUSTOMER PRODUCTION BLOCKED (2026-11-19 IST).**
 
 ## Independently checkable CI evidence
 
@@ -8,6 +8,7 @@
 - [PR CI #44384629009](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44384629009): **SUCCESS**. Windows PowerShell, Node/Vitest+MySQL 8 and real isolated API/MySQL 8 passed; PR-only Windows EXE/MSI diagnostic job **SKIPPED BY DESIGN**.
 - [PR deployment-safety #44384629243](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44384629243): **SUCCESS 2/2**. Offline DNS/HTTP/payload/consent negative tests and isolated MySQL restore.
 - N36 prerequisite [PR #27](https://github.com/rehman2671/Aaditech-toolkit-new/pull/27) passed [CI #44304775570](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44304775570) and [safety #44304775551](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44304775551), but **neither PR currently has a submitted independent approval**. Requested reviewer is `rehman2671`; no authorized merge has occurred.
+- The green SHA/workflows cited here PRECEDE the latest isolated-Python changes. The latest branch HEAD needs its own fresh CI result before code acceptance.
 - These are automated tests on disposable CI data and mocked network probes, **not** independently approved customer network/DNS/TLS evidence. New commits, retargeting or merges require fresh gate verification.
 
 ## Why
@@ -39,6 +40,7 @@ could bypass the intended resolution.
   The HTTP check accepts only 301/302/303/307/308 with an HTTPS redirect
   to the approved hostname; 200-with-Location, a cross-origin redirect or
   an error status must be rejected. Redirects are **not followed**.
+- Python DNS resolution and JSON health validation run using `python3 -I`, avoiding ambient `PYTHONPATH` and user-site import hijacking. Offline tests poison the standard `json` import; passing this check does not independently authenticate the system's Python executable.
 - HTTPS health JSON is bounded to 64 KiB and parsed as structured JSON, with
   duplicate-key rejection and exact top-level `status="ok"` plus
   `components.database="HEALTHY"`. Ambiguous nested, malformed, degraded or
@@ -69,6 +71,7 @@ could bypass the intended resolution.
 - [x] Positive mock probes poison all four caller CA/SSL-backend environment
       variables and verify neither HTTPS nor HTTP curl sees them.
 - [ ] Independently verify customer-approved public CA chain and host trust-store provenance.
+- [ ] Python resolver and health validator both use isolated `-I` mode, and deliberate ambient `PYTHONPATH` poisoning cannot alter health acceptance.
 - [x] Python and mocked HTTP tests reject duplicate, malformed, oversized,
       nested and degraded health JSON even when misleading outer fields say HEALTHY.
 - [x] PR CI (PowerShell, Node/Vitest, isolated MySQL/API) passes without affecting N32–N35.

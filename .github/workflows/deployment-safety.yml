@@ -10,6 +10,7 @@ on:
       - 'Enterprise/tests/Test-Stage31Preflight.sh'
       - 'Enterprise/tests/Test-Stage37PinnedPublicDns.sh'
       - 'Enterprise/tests/test_public_dns_resolution.py'
+      - 'Enterprise/tests/test_public_health_json.py'
       - 'Enterprise/tests/Test-DeployMySQL.sh'
       - 'Enterprise/tests/Test-LegacyMsiMigration.sh'
       - 'Enterprise/tests/Test-LegacyMsiMigration-Live.sh'
@@ -23,6 +24,7 @@ on:
       - 'Enterprise/tests/Test-Stage31Preflight.sh'
       - 'Enterprise/tests/Test-Stage37PinnedPublicDns.sh'
       - 'Enterprise/tests/test_public_dns_resolution.py'
+      - 'Enterprise/tests/test_public_health_json.py'
       - 'Enterprise/tests/Test-DeployMySQL.sh'
       - 'Enterprise/tests/Test-LegacyMsiMigration.sh'
       - 'Enterprise/tests/Test-LegacyMsiMigration-Live.sh'
@@ -57,6 +59,7 @@ jobs:
         shell: bash
         run: |
           python3 -m unittest discover -s Enterprise/tests -p 'test_public_dns_resolution.py' -v
+          python3 -m unittest discover -s Enterprise/tests -p 'test_public_health_json.py' -v
           bash Enterprise/tests/Test-Stage37PinnedPublicDns.sh
       - name: Verify VPS public HTTPS acceptance CLI is safe in offline dry-run
         shell: bash

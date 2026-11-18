@@ -245,7 +245,7 @@ try {
   const mutated={...attestation,payload:{...attestation.payload,customer_production_certified:true}};
   put(file('stage34-attestation.json'),mutated);
   blocked(run('verify'),'forged production claim in signed payload');
-  console.log('N34 PASS: CI-only Ed25519 signing, independent key pin, tampering/overwrite denial'+
+  console.log('N34/N35 PASS: CI-only Ed25519 signing, signed/revoked/rotated registry, independent hash/revision approval, tampering/overwrite denial'+
     (process.platform==='win32'?' and PowerShell composite bundle verification':''));
 } finally {
   fs.rmSync(root,{recursive:true,force:true});

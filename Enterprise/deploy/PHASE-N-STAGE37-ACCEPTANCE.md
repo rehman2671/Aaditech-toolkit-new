@@ -35,6 +35,10 @@ could bypass the intended resolution.
   duplicate-key rejection and exact top-level `status="ok"` plus
   `components.database="HEALTHY"`. Ambiguous nested, malformed, degraded or
   oversized payloads are denied without logging response bodies.
+- Direct live CLI invocation requires explicit `--confirm-live PROBE_PUBLIC_HEALTH`;
+  the N31 wrapper forwards its own approved consent. Missing or wrong consent
+  must fail **before any DNS lookup or curl**, and `--dry-run` must never
+  combine with live consent. Tests enforce these cases with offline counters.
 - DNS errors, absence of answers, private and special-use addresses, unavailable
   Python 3, and rejected curl connections are failures. No fallback to an
   unvalidated DNS answer or automatic retry to a different endpoint.
@@ -48,6 +52,9 @@ could bypass the intended resolution.
       metadata, transition-protocol and mixed DNS-answer negative fixtures.
 - [ ] Bash mock acceptance proves both HTTPS and redirect checks use the same
       pinned public address, bypass proxies, and are never called after DNS denial.
+- [ ] Direct checker and N31 wrapper require explicit approved live consent;
+      missing/invalid consent and conflicting dry-run+live arguments fail
+      before a DNS resolver or curl subprocess runs.
 - [ ] Mocked curl checks enforce `-q` first, no HTTP redirect following,
       and actual 301/302/303/307/308 status; synthetic 200-with-Location and
       cross-origin/private redirect targets must fail closed.

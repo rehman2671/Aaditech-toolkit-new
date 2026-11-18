@@ -11,6 +11,15 @@ mkdir -p "$work/bin"
 export CURL_CALLS="$work/curl.calls"
 export DNS_CALLS="$work/dns.calls"
 export REAL_PYTHON3="$(command -v python3)"
+export PYTHON_CALLS="$work/python.calls"
+: > "$PYTHON_CALLS"
+# A hostile environment tries to replace stdlib imports in the health validator.
+# A real Python interpreter must load its own stdlib, never this shadow file.
+mkdir -p "$work/python-poison"
+cat > "$work/python-poison/json.py" <<'POISON'
+raise RuntimeError('Untrusted PYTHONPATH json module was executed')
+POISON
+export PYTHONPATH="$work/python-poison"
 : > "$CURL_CALLS"
 : > "$DNS_CALLS"
 # Poison the caller environment with unapproved CA/backend choices.
@@ -22,6 +31,9 @@ export SSL_CERT_DIR="$work/unapproved-cert-dir"
 export CURL_SSL_BACKEND="unapproved-backend"
 cat > "$work/bin/python3" <<'PYTHON'
 #!/usr/bin/env bash
+[ "${1:-}" = '-I' ] || { echo '[FAIL] Python interpreter not isolated' >&2; exit 94; }
+printf '%s\n' "$*" >> "$PYTHON_CALLS"
+shift
 case "$1" in
   */resolve-public-host.py)
     printf "resolved\\n" >> "$DNS_CALLS"
@@ -29,7 +41,7 @@ case "$1" in
     printf '%s\n' '8.8.8.8'
     ;;
   */validate-public-health.py)
-    exec "$REAL_PYTHON3" "$@"
+    exec "$REAL_PYTHON3" -I "$@"
     ;;
   *) echo 'Unexpected python3 execution' >&2; exit 1 ;;
 esac
@@ -98,6 +110,8 @@ done
 PATH="$work/bin:$PATH" bash "$CHECKER" --host console.aaditech.net --confirm-live PROBE_PUBLIC_HEALTH >"$work/output"
 grep -Fq -- '--resolve console.aaditech.net:443:8.8.8.8' "$CURL_CALLS"
 grep -Fq -- '--resolve console.aaditech.net:80:8.8.8.8' "$CURL_CALLS"
+grep -Fq -- '-I ' "$PYTHON_CALLS"
+grep -Fq -- '/validate-public-health.py' "$PYTHON_CALLS"
 [ "$(grep -Fc -- "--noproxy *" "$CURL_CALLS")" -eq 2 ]
 [ "$(grep -Fc -- "-q --silent --show-error" "$CURL_CALLS")" -eq 2 ]
 grep -Fq -- '--max-redirs 0' "$CURL_CALLS"

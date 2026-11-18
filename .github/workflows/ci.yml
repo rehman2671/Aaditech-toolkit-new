@@ -303,6 +303,18 @@ jobs:
           AADITECH_RECEIPT_RETENTION_REHEARSAL: isolated-ci
         run: timeout 120s node test-batch-receipt-retention-mysql.js
 
+      - name: N33 verify independent scoped MySQL receipt and redacted evidence against isolated CI database
+        timeout-minutes: 3
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_USER: itk_user
+          DB_PASSWORD: itk_password_ci
+          DB_NAME: it_toolkit
+          NODE_ENV: test
+          AADITECH_STAGE33_REHEARSAL: isolated-ci
+        run: timeout 150s node test-stage33-server-receipt-mysql.js
+
       - name: Rehearse multi-process tenant/device identity concurrency against real MySQL
         env:
           DB_HOST: 127.0.0.1

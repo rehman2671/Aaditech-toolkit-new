@@ -26,6 +26,8 @@ esac
 PYTHON
 cat > "$work/bin/curl" <<'CURL'
 #!/usr/bin/env bash
+# Missing -q as FIRST arg means ~/.curlrc can silently alter live curl options.
+[ "${1:-}" = '-q' ] || { echo 'curlrc bypass missing' >&2; exit 97; }
 printf '%s\n' "$*" >> "$CURL_CALLS"
 case " $* " in
   *"https://console.aaditech.net/healthz"*)
@@ -44,7 +46,7 @@ case " $* " in
     printf '200'
     ;;
   *"http://console.aaditech.net/"*)
-    printf 'https://console.aaditech.net/'
+    printf '%s %s' "${FAKE_HTTP_STATUS:-301}" "${FAKE_HTTP_DEST:-https://console.aaditech.net/}"
     ;;
   *) exit 17 ;;
 esac
@@ -54,7 +56,17 @@ PATH="$work/bin:$PATH" bash "$CHECKER" --host console.aaditech.net >"$work/outpu
 grep -Fq -- '--resolve console.aaditech.net:443:8.8.8.8' "$CURL_CALLS"
 grep -Fq -- '--resolve console.aaditech.net:80:8.8.8.8' "$CURL_CALLS"
 [ "$(grep -Fc -- "--noproxy *" "$CURL_CALLS")" -eq 2 ]
+[ "$(grep -Fc -- "-q --silent --show-error" "$CURL_CALLS")" -eq 2 ]
+grep -Fq -- '--max-redirs 0' "$CURL_CALLS"
 grep -Fq 'Public HTTPS' "$work/output" || grep -Fq '[PASS]' "$work/output"
+# Reject deceptive responses with a Location URL but HTTP 200, and any
+# cross-origin redirect (including private/internal redirect targets).
+if FAKE_HTTP_STATUS=200 PATH="$work/bin:$PATH" bash "$CHECKER" --host console.aaditech.net >/dev/null 2>&1; then
+  echo '[FAIL] HTTP 200 with Location accepted as a redirect' >&2; exit 1
+fi
+if FAKE_HTTP_DEST='https://127.0.0.1/' PATH="$work/bin:$PATH" bash "$CHECKER" --host console.aaditech.net >/dev/null 2>&1; then
+  echo '[FAIL] cross-origin redirect accepted' >&2; exit 1
+fi
 # A response with an enticing top-level database field but an unhealthy
 # authoritative components.database must never be accepted. The fake resolver
 # still returns a public IP; this covers the actual structured parser path.

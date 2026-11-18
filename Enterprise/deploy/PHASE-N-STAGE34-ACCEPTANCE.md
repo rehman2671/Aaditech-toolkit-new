@@ -1,6 +1,17 @@
 # Phase N Stage 34 — Independent Operator Ed25519 Signature for Telemetry Evidence
 
-**Status: CODE PROPOSED; CI PENDING; CUSTOMER PRODUCTION BLOCKED.**
+**Status: CODE/CI ACCEPTED — CUSTOMER PRODUCTION BLOCKED (2026-11-18 IST).**
+
+## Verified automated evidence
+
+- [PR #25](https://github.com/rehman2671/Aaditech-toolkit-new/pull/25) squash-merged into main as `974d3a0b66ce58446b0365d28f1f90c643245520`.
+- [PR CI #44288503054](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44288503054): **SUCCESS** — Node/Vitest Ed25519 canonical signed-report tests, PowerShell real pinned public-key evidence bundle and tamper/wrong-key/overwrite denial with **ephemeral CI-only Ed25519 keys**, and real MySQL/API integration. PR genuine Windows diagnostic MSI build intentionally **SKIPPED**.
+- [PR safety #44288503385](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44288503385): **SUCCESS 2/2**.
+- [Main CI #44288994978](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44288994978): **SUCCESS 4/4** — Node/Vitest, PowerShell N34 signing-and-verification CI fixture, real isolated MySQL/API, and genuine Windows diagnostic ps2exe/WiX MSI build, extraction, install/uninstall and major-upgrade with retained configuration and SQLite evidence.
+- [Main deployment safety #44288994965](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44288994965): **SUCCESS 2/2**.
+- Main Windows signer handling ran in a **diagnostic/no-approved-publisher** path. **"Upload verified signed artifacts only" SKIPPED.** No production Ed25519 key, external operator identity attestation, authorized customer change approval, real Hostinger/customer network replay or public Authenticode signed release is claimed.
+
+
 
 ## Purpose and boundary
 
@@ -92,8 +103,8 @@ or customer production readiness.
 
 ## Gates
 
-- [ ] PR Node/Vitest, PowerShell, real isolated MySQL/API and safety green.
-- [ ] Main 4/4 including real Windows diagnostic MSI and safety 2/2 green.
+- [x] PR Node/Vitest, PowerShell, real isolated MySQL/API and safety green.
+- [x] Main 4/4 including real Windows diagnostic MSI and safety 2/2 green.
 - [ ] Authorized real customer operator key and separately approved fingerprint.
 - [ ] Physical Windows telemetry outage/replay, independent live MySQL check,
       public signed MSI, authorized Hostinger/offsite restore and real

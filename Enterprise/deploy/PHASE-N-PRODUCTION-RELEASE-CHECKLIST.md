@@ -1,11 +1,13 @@
 # Phase N — Production release acceptance and sign-off
 
-## Stage N34 — Ed25519 signed receipt evidence with independent public-key pin (CODE PROPOSED; CI PENDING)
+## Stage N34 — Ed25519 signed receipt evidence with independent public-key pin (CODE/CI ACCEPTED; CUSTOMER PRODUCTION BLOCKED)
 
-- [ ] Sign canonical digest-binding N32/N33 report payload with a separately authorized operator-controlled Ed25519 key, without generating/committing any real private key.
-- [ ] Independently approve the full SHA256 of the operator's DER SPKI public key. Signature verification must reject wrong trusted key, wrong pin, changed file bytes/event count, forged production claims, invalid/expired signatures and overwrites.
-- [ ] Windows evidence bundler optional signed mode must require server receipt + attestation + public key + approved pin, and keep source authorization, real network loss and production approval externally pending even when signature verifies.
-- [ ] PR/main Node/Vitest, PowerShell, real isolated MySQL/API, genuine diagnostic Windows MSI and safety CI must all pass before code acceptance.
+**Verified 2026-11-18 IST:** [PR #25](https://github.com/rehman2671/Aaditech-toolkit-new/pull/25) merged at `974d3a0b66ce58446b0365d28f1f90c643245520`. [Main CI #44288994978](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44288994978) **4/4 SUCCESS**, [main safety #44288994965](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44288994965) **2/2 SUCCESS**. Windows/Node tested pinned Ed25519 with ephemeral test keys only. Signed public artifact upload **SKIPPED**.
+
+- [x] Sign canonical digest-binding N32/N33 report payload with a separately authorized operator-controlled Ed25519 key, without generating/committing any real private key.
+- [x] Independently approve the full SHA256 of the operator's DER SPKI public key. Signature verification must reject wrong trusted key, wrong pin, changed file bytes/event count, forged production claims, invalid/expired signatures and overwrites.
+- [x] Windows evidence bundler optional signed mode must require server receipt + attestation + public key + approved pin, and keep source authorization, real network loss and production approval externally pending even when signature verifies.
+- [x] PR/main Node/Vitest, PowerShell, real isolated MySQL/API, genuine diagnostic Windows MSI and safety CI must all pass before code acceptance.
 - [ ] Real operator signing-key approval/rotation, physical customer network replay, real production MySQL, Hostinger/DNS/TLS, encrypted offsite restore, signed public MSI and live integrations remain independently required.
 
 ## Stage N33 — independently queried MySQL batch receipts and operator review (CODE/CI ACCEPTED; CUSTOMER PRODUCTION BLOCKED)

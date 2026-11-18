@@ -9,11 +9,20 @@ work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 mkdir -p "$work/bin"
 export CURL_CALLS="$work/curl.calls"
+export REAL_PYTHON3="$(command -v python3)"
 : > "$CURL_CALLS"
 cat > "$work/bin/python3" <<'PYTHON'
 #!/usr/bin/env bash
-if [ "${FAKE_DNS_DENY:-0}" = 1 ]; then exit 1; fi
-printf '%s\n' '8.8.8.8'
+case "$1" in
+  */resolve-public-host.py)
+    if [ "${FAKE_DNS_DENY:-0}" = 1 ]; then exit 1; fi
+    printf '%s\n' '8.8.8.8'
+    ;;
+  */validate-public-health.py)
+    exec "$REAL_PYTHON3" "$@"
+    ;;
+  *) echo 'Unexpected python3 execution' >&2; exit 1 ;;
+esac
 PYTHON
 cat > "$work/bin/curl" <<'CURL'
 #!/usr/bin/env bash
@@ -23,7 +32,11 @@ case " $* " in
     while [ "$#" -gt 0 ]; do
       if [ "$1" = '--output' ]; then
         shift
-        printf '%s\n' '{"status":"ok","database":"HEALTHY"}' > "$1"
+        if [ "${FAKE_HEALTH_DEGRADED:-0}" = 1 ]; then
+          printf '%s\n' '{"status":"ok","database":"HEALTHY","components":{"database":"DEGRADED"}}' > "$1"
+        else
+          printf '%s\n' '{"status":"ok","components":{"database":"HEALTHY"}}' > "$1"
+        fi
         break
       fi
       shift
@@ -42,6 +55,12 @@ grep -Fq -- '--resolve console.aaditech.net:443:8.8.8.8' "$CURL_CALLS"
 grep -Fq -- '--resolve console.aaditech.net:80:8.8.8.8' "$CURL_CALLS"
 [ "$(grep -Fc -- "--noproxy *" "$CURL_CALLS")" -eq 2 ]
 grep -Fq 'Public HTTPS' "$work/output" || grep -Fq '[PASS]' "$work/output"
+# A response with an enticing top-level database field but an unhealthy
+# authoritative components.database must never be accepted. The fake resolver
+# still returns a public IP; this covers the actual structured parser path.
+if FAKE_HEALTH_DEGRADED=1 PATH="$work/bin:$PATH" bash "$CHECKER" --host console.aaditech.net >/dev/null 2>&1; then
+  echo '[FAIL] nested degraded MySQL accepted by real health JSON parser' >&2; exit 1
+fi
 before="$(wc -l < "$CURL_CALLS")"
 if FAKE_DNS_DENY=1 PATH="$work/bin:$PATH" bash "$CHECKER" --host console.aaditech.net > /dev/null 2>&1; then
   echo '[FAIL] DNS refusal did not block public probes' >&2; exit 1

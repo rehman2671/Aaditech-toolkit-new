@@ -42,6 +42,34 @@ must_fail --live --confirm-live NOT_APPROVED
 if bash "$CLI" --env-file "$envfile" --report-file "$work/preview.json" >/dev/null 2>&1; then
   echo '[FAIL] preflight overwrote existing report' >&2; exit 1
 fi
+# A preexisting symlink must not be followed or overwritten.
+printf '%s\n' 'SENTINEL-UNCHANGED' > "$work/target"
+ln -s "$work/target" "$work/linked.json"
+if bash "$CLI" --env-file "$envfile" --report-file "$work/linked.json" >/dev/null 2>&1; then
+  echo '[FAIL] symlink report target accepted' >&2; exit 1
+fi
+[ "$(cat "$work/target")" = 'SENTINEL-UNCHANGED' ] || { echo '[FAIL] sentinel changed' >&2; exit 1; }
+# Two independent processes targeting one report must result in exactly one
+# successful publication; not two misleading CONFIG_READY successes.
+set +e
+bash "$CLI" --env-file "$envfile" --report-file "$work/race.json" >"$work/race1.out" 2>&1 &
+pid1=$!
+bash "$CLI" --env-file "$envfile" --report-file "$work/race.json" >"$work/race2.out" 2>&1 &
+pid2=$!
+wait "$pid1"; rc1=$?
+wait "$pid2"; rc2=$?
+set -e
+[ $(( (rc1 == 0) + (rc2 == 0) )) -eq 1 ] || {
+  echo '[FAIL] expected exactly one atomic report publisher' >&2; exit 1;
+}
+grep -q '"decision":"EXTERNAL_APPROVAL_REQUIRED"' "$work/race.json"
+# Offline host validation and live dry-run must agree on reserved and IP hosts.
+checker="$ROOT/Enterprise/deploy/verify-hostinger-acceptance.sh"
+for unsafe in '127.0.0.1' '127.0.0.01' 'console.example.net' 'CONSOLE.EXAMPLE.COM'; do
+  if bash "$checker" --host "$unsafe" --dry-run >/dev/null 2>&1; then
+    echo '[FAIL] unsafe live host accepted in dry-run' >&2; exit 1
+  fi
+done
 chmod 644 "$envfile"
 must_fail
 chmod 600 "$envfile"

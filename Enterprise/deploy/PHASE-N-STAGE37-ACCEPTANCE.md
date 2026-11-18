@@ -1,14 +1,14 @@
 # Phase N Stage 37 — Pinned, Read-Only Public HTTPS Acceptance
 
-**Status: N36 GITHUB APPROVAL/MERGE RECORDED; N37 RETARGETED TO MAIN, PR CI GREEN ON LAST CODE HEAD; NEW RETARGETED CI/REVIEW PENDING; CUSTOMER PRODUCTION BLOCKED (2026-11-19 IST).**
+**Status: N36 GITHUB APPROVED/MERGED WITH MAIN DIAGNOSTIC CI GREEN; N37 RETARGETED MAIN PR CI GREEN, N37 SECURITY REVIEW/MERGE PENDING; CUSTOMER PRODUCTION BLOCKED (2026-11-19 IST).**
 
 ## Independently checkable CI evidence
 
 - [PR #28](https://github.com/rehman2671/Aaditech-toolkit-new/pull/28) is now **retargeted to `main`**, after N36 #27 merge; N37 last code HEAD `ae807fbe5524ef1d96ecb0c78ece311d92fda05a` includes isolated Python `-I`, direct live consent, isolated curl trust, pinned DNS and strict health JSON.
 - [PR CI #44384629009](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44384629009): **SUCCESS**. Windows PowerShell, Node/Vitest+MySQL 8 and real isolated API/MySQL 8 passed; PR-only Windows EXE/MSI diagnostic job **SKIPPED BY DESIGN**.
 - [PR deployment-safety #44384629243](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44384629243): **SUCCESS 2/2**. Offline DNS/HTTP/payload/consent negative tests and isolated MySQL restore.
-- N36 prerequisite [PR #27](https://github.com/rehman2671/Aaditech-toolkit-new/pull/27) has a submitted GitHub **APPROVED** review and was merged at `517c8d0b25f645b76fb1a17367301b0443d397a3` on 2026-11-18 UTC. Team/account-level GitHub approval does **not by itself establish independently performed security review** where the same operator controls both accounts. N36 main Windows MSI job remains to be evidenced separately.
-- The latest isolated-Python code HEAD `ae807fbe5524ef1d96ecb0c78ece311d92fda05a` passed [full PR CI #44389058206](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44389058206) and [deployment safety #44389058159](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44389058159). Those runs preceded the retarget onto `main`, so **new base-context and new HEAD CI must be reconfirmed**, along with an N37-specific submitted review.
+- N36 prerequisite [PR #27](https://github.com/rehman2671/Aaditech-toolkit-new/pull/27) has a submitted GitHub **APPROVED** review and merged at `517c8d0b25f645b76fb1a17367301b0443d397a3` (2026-11-18 UTC). [Post-merge **main CI #44412725232**](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44412725232) passed **4/4 jobs**, including Windows EXE/MSI build, administrative extraction, MSI install/uninstall and major-upgrade rehearsal. [Main safety #44412725281](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44412725281) passed **2/2**. Public publisher-signed artifact publication was **SKIPPED**. Account-level approval does not, by itself, establish an independently performed human security audit when both accounts share an operator.
+- The latest isolated-Python code HEAD `ae807fbe5524ef1d96ecb0c78ece311d92fda05a` passed [full PR CI #44389058206](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44389058206) and [deployment safety #44389058159](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44389058159). **After retargeting N37 to `main`**, head `128280d8c9e9290e13f55537c5b54e3990d5559d` passed [PR CI #44413295997](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44413295997) (PowerShell, Node/Vitest, API/MySQL; PR MSI skipped) and [safety #44413296037](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44413296037) (**2/2**). N37-specific submitted security review and authorized merge remain required. Later docs-only commits require separate checks.
 - These are automated tests on disposable CI data and mocked network probes, **not** independently approved customer network/DNS/TLS evidence. New commits, retargeting or merges require fresh gate verification.
 
 ## Why
@@ -76,7 +76,8 @@ could bypass the intended resolution.
       nested and degraded health JSON even when misleading outer fields say HEALTHY.
 - [x] PR CI (PowerShell, Node/Vitest, isolated MySQL/API) passes without affecting N32–N35.
 - [x] N36 GitHub review recorded and N36 merged into `main`; N37 PR retargeted to `main` (separately validate independence of approver as a human security reviewer).
-- [ ] Verify retargeted N37 base-context PR CI, obtain actual N37 code/security review and authorized merge; then certify main CI / Windows MSI diagnostics.
+- [x] Retargeted N37 base-context PR CI verified GREEN on head `128280d8c9e9290e13f55537c5b54e3990d5559d` (subsequent docs-only commit must be retested).
+- [ ] Obtain actual N37 code/security review and authorized merge; then certify **N37 post-merge** main CI / Windows MSI diagnostics.
 
 ## Explicit limitations
 

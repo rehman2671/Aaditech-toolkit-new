@@ -81,6 +81,9 @@ jobs:
       - name: N31 customer Windows preflight fails closed without configuration or consent
         run: pwsh -NoProfile -File ./Enterprise/tests/Test-Stage31WindowsPreflight.ps1
 
+      - name: N38 refuse unpinned Windows live network probe, preserve offline redacted evidence
+        run: pwsh -NoProfile -File ./Enterprise/tests/Test-Stage38WindowsNetworkProbe.ps1
+
       - name: N31 release publication requires independently approved source and MSI pins
         run: pwsh -NoProfile -File ./Enterprise/tests/Test-Stage31PublicationPins.ps1
 

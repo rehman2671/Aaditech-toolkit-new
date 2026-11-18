@@ -13,7 +13,12 @@ param(
   [string]$ServerReceiptReport,
   [string]$OperatorAttestationFile,
   [string]$TrustedOperatorPublicKeyFile,
-  [string]$ApprovedOperatorKeySha256
+  [string]$ApprovedOperatorKeySha256,
+  [string]$OperatorKeyRegistryFile,
+  [string]$RegistryAuthorityPublicKeyFile,
+  [string]$ApprovedRegistryAuthorityPin,
+  [string]$ApprovedOperatorRegistrySha256,
+  [int]$ApprovedOperatorRegistryRevision = 0
 )
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
@@ -153,6 +158,59 @@ if ($hasAnySignatureOption) {
     sha256 = (Get-FileHash -LiteralPath $OperatorAttestationFile -Algorithm SHA256).Hash.ToLowerInvariant()
   })
 }
+# N35: optional current authority-signed registry. Never trust revocation state
+# or version from the received registry itself: an independently approved
+# exact registry file SHA256 + revision and root SPKI pin are mandatory.
+$operatorRegistryStatus = 'NOT_PROVIDED'
+$operatorRegistryVerified = $false
+$operatorRegistrySha = $null
+$registryRevision = $null
+$registryRootPin = $null
+$hasRegistryInput = -not [string]::IsNullOrWhiteSpace($OperatorKeyRegistryFile) -or
+  -not [string]::IsNullOrWhiteSpace($RegistryAuthorityPublicKeyFile) -or
+  -not [string]::IsNullOrWhiteSpace($ApprovedRegistryAuthorityPin) -or
+  -not [string]::IsNullOrWhiteSpace($ApprovedOperatorRegistrySha256) -or
+  $ApprovedOperatorRegistryRevision -ne 0
+if ($hasRegistryInput) {
+  if (-not $signedEvidenceVerified -or -not $OperatorKeyRegistryFile -or
+      -not $RegistryAuthorityPublicKeyFile -or
+      $ApprovedRegistryAuthorityPin -cnotmatch '^[a-f0-9]{64}$' -or
+      $ApprovedOperatorRegistrySha256 -cnotmatch '^[a-f0-9]{64}$' -or
+      $ApprovedOperatorRegistryRevision -lt 1) {
+    throw 'N35 registry verification requires N34 signature, authority public key, separately approved root pin, registry hash and revision.'
+  }
+  foreach ($registryInputFile in @($OperatorKeyRegistryFile,$RegistryAuthorityPublicKeyFile)) {
+    if (-not (Test-Path -LiteralPath $registryInputFile -PathType Leaf) -or
+        (Get-Item -LiteralPath $registryInputFile).Attributes.HasFlag([IO.FileAttributes]::ReparsePoint)) {
+      throw 'N35 registry and root public key must be regular non-symlink files.'
+    }
+  }
+  $registryVerifier = Join-Path (Split-Path $PSScriptRoot -Parent) 'deploy\stage35-key-registry.mjs'
+  if (-not (Test-Path -LiteralPath $registryVerifier -PathType Leaf)) {
+    throw 'N35 registry verifier missing.'
+  }
+  $registryArgs = @($registryVerifier,'check',
+    '--registry',$OperatorKeyRegistryFile,
+    '--authority-public-key',$RegistryAuthorityPublicKeyFile,
+    '--approved-root-spki-sha256',$ApprovedRegistryAuthorityPin,
+    '--approved-registry-sha256',$ApprovedOperatorRegistrySha256,
+    '--approved-revision',[string]$ApprovedOperatorRegistryRevision,
+    '--offline',$offlineFile,
+    '--recovered',$recoveredFile,
+    '--receipt',$ServerReceiptReport,
+    '--attestation',$OperatorAttestationFile)
+  $null = & $node.Source @registryArgs 2>&1
+  if ($LASTEXITCODE -ne 0) { throw 'N35 approved operator registry was rejected; no composite bundle created.' }
+  $operatorRegistryVerified = $true
+  $operatorRegistryStatus = 'CURRENT_AUTHORITY_SIGNED_OPERATOR_KEY_VALIDATED_EXTERNAL_APPROVAL_PENDING'
+  $operatorRegistrySha = $ApprovedOperatorRegistrySha256
+  $registryRevision = $ApprovedOperatorRegistryRevision
+  $registryRootPin = $ApprovedRegistryAuthorityPin
+  $artifacts.Add([pscustomobject]@{
+    kind = 'authority_signed_operator_key_registry'
+    sha256 = (Get-FileHash -LiteralPath $OperatorKeyRegistryFile -Algorithm SHA256).Hash.ToLowerInvariant()
+  })
+}
 $bundle = [ordered]@{
   schema = 'aaditech-stage32-customer-evidence-bundle-v1'
   created_utc = [DateTime]::UtcNow.ToString('o')
@@ -165,6 +223,11 @@ $bundle = [ordered]@{
   server_report_signature = $signedEvidenceStatus
   approved_operator_public_key_spki_sha256 = $approvedKeyPinForReport
   pinned_operator_signature_verified = $signedEvidenceVerified
+  operator_key_lifecycle_status = $operatorRegistryStatus
+  operator_key_lifecycle_verified = $operatorRegistryVerified
+  operator_registry_sha256 = $operatorRegistrySha
+  operator_registry_revision = $registryRevision
+  registry_authority_public_key_spki_sha256 = $registryRootPin
   human_operator_signoff = 'PENDING'
   production_backup_restore = 'REQUIRES_CUSTOMER_APPROVAL'
   public_signed_installer = 'REQUIRES_PUBLISHER_APPROVAL'

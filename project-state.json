@@ -1,39 +1,35 @@
 {
   "state_version": "1.0",
   "path": "project-state.json",
-  "generated": "2026-11-17T22:50:30+00:00",
+  "generated": "2026-11-18T09:39:10+00:00",
   "phase": "PHASE N STAGE 4 / PRODUCTION ACCEPTANCE IN PROGRESS",
-  "last_verified_commit": "6874e72f2faf9499b4d584b8852781a111b092da",
-  "last_verified_date": "2026-11-18T04:20:15+05:30",
+  "last_verified_commit": "022cdf78c2c69946b860a9cfaeb97f3e53f29318",
+  "last_verified_date": "2026-11-18T15:09:00+05:30",
   "git": {
     "branch": "main",
     "commit_count": 1,
     "clean_working_tree": true,
-    "head": "6874e72f2faf9499b4d584b8852781a111b092da"
+    "head": "022cdf78c2c69946b860a9cfaeb97f3e53f29318"
   },
   "latest_delta": {
-    "detected_at": "2026-11-17T22:50:30+00:00",
+    "detected_at": "2026-11-18T09:39:10+00:00",
     "added": [
-      "Enterprise/deploy/PHASE-N-STAGE31-ACCEPTANCE.md",
-      "Enterprise/deploy/preflight-stage31.sh",
-      "Enterprise/tests/Test-Stage31Preflight.sh",
-      "Enterprise/tests/Test-Stage31PublicationPins.ps1",
-      "Enterprise/tests/Test-CustomerWindowsAcceptance.ps1",
-      "Enterprise/tests/Test-Stage31WindowsPreflight.ps1"
+      "Enterprise/tests/Invoke-Stage32CustomerReplayAcceptance.ps1",
+      "Enterprise/deploy/PHASE-N-STAGE32-ACCEPTANCE.md",
+      "Enterprise/tests/New-Stage32CustomerEvidenceBundle.ps1",
+      "Enterprise/tests/Test-Stage32CustomerEvidence.ps1"
     ],
     "removed": [],
     "changed": [
-      "docs/assessment/TEST-RESULTS.md",
-      "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md",
       ".github/workflows/ci.yml",
-      ".github/workflows/publish-signed-installer.yml",
-      "Enterprise/deploy/PHASE-N-STAGE30-ACCEPTANCE.md",
-      ".github/workflows/deployment-safety.yml",
-      "Enterprise/agent/build/Verify-ReleaseArtifact.ps1",
+      "Enterprise/deploy/PHASE-N-STAGE31-ACCEPTANCE.md",
+      "Enterprise/tests/Test-Windows-MsiUpgrade.ps1",
+      "docs/assessment/GAP-REGISTER.md",
       "docs/assessment/RELEASE-READINESS.md",
-      "docs/assessment/GAP-REGISTER.md"
+      "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md",
+      "docs/assessment/TEST-RESULTS.md"
     ],
-    "unchanged_count": 321
+    "unchanged_count": 329
   },
   "production_ready": false,
   "acceptance_gates": [

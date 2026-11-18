@@ -9,7 +9,8 @@ This is an evidence index for operator review, NOT production certification.
 param(
   [Parameter(Mandatory=$true)][string]$EvidenceDirectory,
   [Parameter(Mandatory=$true)][string]$BundlePath,
-  [string]$WindowsPreflightReport
+  [string]$WindowsPreflightReport,
+  [string]$ServerReceiptReport
 )
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
@@ -71,6 +72,40 @@ if ($WindowsPreflightReport) {
     sha256 = (Get-FileHash -LiteralPath $WindowsPreflightReport -Algorithm SHA256).Hash.ToLowerInvariant()
   })
 }
+# N33: a standalone *read-only MySQL* report may accompany local N32
+# evidence. This JSON alone is unsigned; the receiving operator must
+# independently authenticate its source. Never turn this into production signoff.
+$serverReportStatus = 'REQUIRES_INDEPENDENT_READ_ONLY_DB_VERIFICATION'
+if ($ServerReceiptReport) {
+  if (-not (Test-Path -LiteralPath $ServerReceiptReport -PathType Leaf) -or
+      (Get-Item -LiteralPath $ServerReceiptReport).Attributes.HasFlag([IO.FileAttributes]::ReparsePoint)) {
+    throw 'Server receipt report missing or symlinked.'
+  }
+  try { $server = Get-Content -LiteralPath $ServerReceiptReport -Raw | ConvertFrom-Json -ErrorAction Stop }
+  catch { throw 'Invalid server receipt evidence.' }
+  if ($server.schema -cne 'aaditech-stage33-server-receipt-v1' -or
+      $server.scoped_mysql_receipt_verified -ne $true -or
+      $server.report_authenticated_to_operator -ne $false -or
+      $server.production_certified -ne $false -or
+      $server.raw_http_json_hash_matched -ne $false -or
+      $server.network_partition_independently_measured -ne $false -or
+      $server.receipt_count -ne 1 -or
+      $server.run_id -cne $offline.run_id -or
+      $server.batch_id -cne $offline.batch_id -or
+      $server.offline_evidence_sha256 -cne (Get-FileHash -LiteralPath $offlineFile -Algorithm SHA256).Hash.ToLowerInvariant() -or
+      $server.recovered_evidence_sha256 -cne (Get-FileHash -LiteralPath $recoveredFile -Algorithm SHA256).Hash.ToLowerInvariant() -or
+      $server.local_payload_sha256 -cne $offline.payload_sha256 -or
+      $server.accepted_count -ne [int]$offline.in_flight_events -or
+      $server.scoped_owner_fingerprint_sha256 -notmatch '^[0-9a-f]{64}$' -or
+      $server.server_request_hash_fingerprint_sha256 -notmatch '^[0-9a-f]{64}$') {
+    throw 'Server receipt report conflicts with immutable offline/recovered evidence.'
+  }
+  $serverReportStatus = 'SCOPED_MYSQL_REPORT_MATCHED_OPERATOR_SIGNOFF_PENDING'
+  $artifacts.Add([pscustomobject]@{
+    kind = 'mysql_scoped_receipt_unattested'
+    sha256 = (Get-FileHash -LiteralPath $ServerReceiptReport -Algorithm SHA256).Hash.ToLowerInvariant()
+  })
+}
 $bundle = [ordered]@{
   schema = 'aaditech-stage32-customer-evidence-bundle-v1'
   created_utc = [DateTime]::UtcNow.ToString('o')
@@ -78,7 +113,9 @@ $bundle = [ordered]@{
   local_sqlite_ack_evidence = 'HASHES_MATCH_LOCAL_DELIVERED'
   windows_preflight = $preflightStatus
   external_network_partition_proof = 'REQUIRES_OPERATOR_EVIDENCE'
-  authenticated_server_receipt_proof = 'REQUIRES_INDEPENDENT_READ_ONLY_DB_VERIFICATION'
+  authenticated_server_receipt_proof = $serverReportStatus
+  server_report_source_authenticated = $false
+  human_operator_signoff = 'PENDING'
   production_backup_restore = 'REQUIRES_CUSTOMER_APPROVAL'
   public_signed_installer = 'REQUIRES_PUBLISHER_APPROVAL'
   live_integrations = 'NOT_VERIFIED'

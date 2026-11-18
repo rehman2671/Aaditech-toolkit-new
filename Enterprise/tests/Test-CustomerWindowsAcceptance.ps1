@@ -103,7 +103,7 @@ $pending = @($checks | Where-Object { $_.state -eq 'PENDING' }).Count
 $decision = if ($blockers -gt 0) { 'BLOCKED' } else { 'EXTERNAL_ACCEPTANCE_REQUIRED' }
 $parent = Split-Path -Parent $ReportPath
 if ($parent -and -not (Test-Path -LiteralPath $parent -PathType Container)) { throw 'Report parent missing.' }
-[pscustomobject]@{
+$reportData = [pscustomobject]@{
   schema='aaditech-stage31-windows-v1'
   timestamp_utc=[DateTime]::UtcNow.ToString('o')
   decision=$decision
@@ -111,7 +111,17 @@ if ($parent -and -not (Test-Path -LiteralPath $parent -PathType Container)) { th
   pending=$pending
   certified_for_production=$false
   checks=@($checks)
-} | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $ReportPath -Encoding UTF8
+}
+# CreateNew refuses even a concurrently created file/symlink. Set-Content
+# would truncate a file that appeared after the earlier Test-Path check.
+$payload = $reportData | ConvertTo-Json -Depth 6
+$bytes = [System.Text.UTF8Encoding]::new($false).GetBytes($payload + [Environment]::NewLine)
+$stream = [System.IO.File]::Open($ReportPath, [System.IO.FileMode]::CreateNew,
+  [System.IO.FileAccess]::Write, [System.IO.FileShare]::None)
+try {
+  $stream.Write($bytes, 0, $bytes.Length)
+  $stream.Flush($true)
+} finally { $stream.Dispose() }
 Write-Host "N31 Windows preflight $decision; $blockers blockers, $pending external gates."
 Write-Host 'Report redacted: no credential, identity data or queue body printed or transmitted.'
 if ($blockers -gt 0) { exit 1 }

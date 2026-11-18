@@ -1,5 +1,14 @@
 # Phase N — Production release acceptance and sign-off
 
+## Stage N36 — reconciled exclusive-report publication and reserved DNS policy (CODE PROPOSED; PR CI PENDING; PRODUCTION BLOCKED)
+
+- [ ] Reconcile old PR #22 on top of accepted Stage N32–N35 without overwriting their runbooks. Use this Stage36 branch; do **not** merge stale/conflicting Stage32 document from #22.
+- [ ] Linux Stage31 concurrent output report writers: only one may create mode-600 report; symlink, collision, and unsafe hostnames must fail closed; Stage14/live Hostinger offline DNS policies agree.
+- [ ] Windows Stage31 CreateNew must refuse existing/late-created report without changing any bytes.
+- [ ] PR/main CI and independent review acceptance: record actual workflow IDs and resulting merge SHA only after they exist. PR Windows MSI is intentionally skipped.
+- [ ] Hostinger DNS/TLS, real offsite restore, physical enrolled Windows replay, external authority key custody, public signed installer and live integrations remain independently blocked.
+See [Stage36 acceptance](PHASE-N-STAGE36-ACCEPTANCE.md). This does not change any Stage N32–N35 accepted-code/blocked-production conclusions.
+
 ## Stage N35 — signed operator key enrollment, revocation, rotation and anti-rollback registry (CODE/CI ACCEPTED; CUSTOMER PRODUCTION BLOCKED)
 
 **Verified 2026-11-18 IST:** [PR #26](https://github.com/rehman2671/Aaditech-toolkit-new/pull/26) merged as `c13818e84b7ad8bd28ae3c38fe10ddbee88eac0b`. [Main CI #44293404866](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44293404866) **4/4 SUCCESS**, [main safety #44293404832](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44293404832) **2/2 SUCCESS**. Real Windows PowerShell test used **CI-only ephemeral keys**. Publisher-signed public artifact upload **SKIPPED**.

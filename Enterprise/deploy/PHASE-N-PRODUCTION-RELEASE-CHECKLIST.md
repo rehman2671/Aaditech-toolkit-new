@@ -1,5 +1,13 @@
 # Phase N — Production release acceptance and sign-off
 
+## Stage N34 — Ed25519 signed receipt evidence with independent public-key pin (CODE PROPOSED; CI PENDING)
+
+- [ ] Sign canonical digest-binding N32/N33 report payload with a separately authorized operator-controlled Ed25519 key, without generating/committing any real private key.
+- [ ] Independently approve the full SHA256 of the operator's DER SPKI public key. Signature verification must reject wrong trusted key, wrong pin, changed file bytes/event count, forged production claims, invalid/expired signatures and overwrites.
+- [ ] Windows evidence bundler optional signed mode must require server receipt + attestation + public key + approved pin, and keep source authorization, real network loss and production approval externally pending even when signature verifies.
+- [ ] PR/main Node/Vitest, PowerShell, real isolated MySQL/API, genuine diagnostic Windows MSI and safety CI must all pass before code acceptance.
+- [ ] Real operator signing-key approval/rotation, physical customer network replay, real production MySQL, Hostinger/DNS/TLS, encrypted offsite restore, signed public MSI and live integrations remain independently required.
+
 ## Stage N33 — independently queried MySQL batch receipts and operator review (CODE/CI ACCEPTED; CUSTOMER PRODUCTION BLOCKED)
 
 **Verified 2026-11-18 IST:** [PR #24](https://github.com/rehman2671/Aaditech-toolkit-new/pull/24) merged as `96d125a453264e6ea30e55df1f7b4d5e811fb6ca`. [Main CI #44282989949](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44282989949) **4/4 SUCCESS**, [safety #44282989853](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44282989853) **2/2 SUCCESS**. Real isolated MySQL confirms N33 scoped SELECT, tenant/device owner isolation, raw-count and tamper rejection. Public signed artifact upload was **SKIPPED**.

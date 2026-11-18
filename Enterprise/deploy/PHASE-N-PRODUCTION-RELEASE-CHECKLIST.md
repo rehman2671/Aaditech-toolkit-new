@@ -1,5 +1,14 @@
 # Phase N — Production release acceptance and sign-off
 
+## Stage N35 — signed operator key enrollment, revocation, rotation and anti-rollback registry (CODE PROPOSED; CI PENDING)
+
+- [ ] An independently approved Ed25519 root authority must sign a key registry that binds enrolled operator key IDs, exact DER SPKI SHA256 fingerprints, ACTIVE/REVOKED status, purpose and validity windows. No customer signing/root keys are generated or stored in CI.
+- [ ] Customer must separately approve root SPKI SHA256, exact signed registry JSON SHA256 and exact revision. Missing, stale, altered, unsigned, expired or rolled-back registry must never validate operator evidence.
+- [ ] Revoked operators are rejected **even for older signatures** under the current approved registry; active successor can verify after root-signed higher revision and independent reapproval. Prevent duplicate key IDs/pins and privilege changes.
+- [ ] Windows N32 signed evidence bundle may optionally require N35 registry approval. On success report root pin, registry hash/revision and cryptographic key status, but operator authorization, physical outage, production release and customer signoff remain externally PENDING.
+- [ ] PR/main Node/Vitest, Windows PowerShell synthetic registry rotation/revocation, real isolated MySQL/API, genuine diagnostic Windows MSI, and deployment-safety must all pass before code/CI acceptance.
+- [ ] Real root signing-key custody, external change approval/revocation distribution, production Hostinger DNS/TLS/restore, physical Windows replay, publicly signed MSI and live integrations remain separately required.
+
 ## Stage N34 — Ed25519 signed receipt evidence with independent public-key pin (CODE/CI ACCEPTED; CUSTOMER PRODUCTION BLOCKED)
 
 **Verified 2026-11-18 IST:** [PR #25](https://github.com/rehman2671/Aaditech-toolkit-new/pull/25) merged at `974d3a0b66ce58446b0365d28f1f90c643245520`. [Main CI #44288994978](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44288994978) **4/4 SUCCESS**, [main safety #44288994965](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44288994965) **2/2 SUCCESS**. Windows/Node tested pinned Ed25519 with ephemeral test keys only. Signed public artifact upload **SKIPPED**.

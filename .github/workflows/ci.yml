@@ -87,7 +87,7 @@ jobs:
       - name: N32 redacted replay evidence and consent/immutability regression
         run: pwsh -NoProfile -File ./Enterprise/tests/Test-Stage32CustomerEvidence.ps1
 
-      - name: N34 operator Ed25519 signature and pinned customer evidence bundle (CI-only ephemeral key)
+      - name: N34/N35 operator Ed25519, registry revocation/rotation and signed customer evidence bundle (CI-only keys)
         run: node ./test-stage34-operator-signature.mjs
 
       - name: Run Pester suites (RemoteToolkit, BatchLauncher, Phase2 modules)
@@ -318,7 +318,7 @@ jobs:
           AADITECH_STAGE33_REHEARSAL: isolated-ci
         run: timeout 150s node test-stage33-server-receipt-mysql.js
 
-      - name: N34 verify Ed25519 operator report provenance and tamper rejection with ephemeral CI key
+      - name: N34/N35 verify signed operator evidence, registry rotation/revocation and stale replay rejection with ephemeral CI keys
         timeout-minutes: 2
         run: node test-stage34-operator-signature.mjs
 

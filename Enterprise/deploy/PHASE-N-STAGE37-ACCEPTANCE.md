@@ -23,6 +23,11 @@ could bypass the intended resolution.
   redirects; HTTP only inspects the intended redirect target.
 - Both curl calls require `-q` as their **first** command-line argument to
   ignore user curlrc configuration that could override TLS/routing options.
+  Additionally, each curl subprocess clears inherited `CURL_CA_BUNDLE`,
+  `SSL_CERT_FILE`, `SSL_CERT_DIR` and `CURL_SSL_BACKEND` overrides, failing
+  closed if cleanup fails. This checks the system-configured CA trust store,
+  **not independent proof that the certificate chains to an approved public CA**
+  when the host trust store contains custom roots.
   The HTTP check accepts only 301/302/303/307/308 with an HTTPS redirect
   to the approved hostname; 200-with-Location, a cross-origin redirect or
   an error status must be rejected. Redirects are **not followed**.
@@ -46,6 +51,9 @@ could bypass the intended resolution.
 - [ ] Mocked curl checks enforce `-q` first, no HTTP redirect following,
       and actual 301/302/303/307/308 status; synthetic 200-with-Location and
       cross-origin/private redirect targets must fail closed.
+- [ ] Positive mock probes poison all four caller CA/SSL-backend environment
+      variables and verify neither HTTPS nor HTTP curl sees them. Independently
+      verify customer-approved public CA chain and host trust-store provenance.
 - [ ] Python and mocked HTTP tests reject duplicate, malformed, oversized,
       nested and degraded health JSON even when misleading outer fields say HEALTHY.
 - [ ] PR CI (PowerShell, Node/Vitest, isolated MySQL/API) passes without affecting N32–N35.

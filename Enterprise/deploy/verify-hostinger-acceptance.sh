@@ -29,20 +29,31 @@ if [ "$DRY_RUN" -eq 1 ]; then
   exit 0
 fi
 command -v curl >/dev/null 2>&1 || die 'curl is required.'
+command -v python3 >/dev/null 2>&1 || die 'python3 is required for live public DNS address validation.'
 command -v grep >/dev/null 2>&1 || die 'grep is required.'
 command -v mktemp >/dev/null 2>&1 || die 'mktemp is required.'
+# Resolve once, reject ALL non-global answers, then pin curl at the approved
+# address so DNS rebinding between validation and the requests cannot redirect
+# health probes to private/loopback/metadata endpoints. No proxy may override
+# the pinned route. A single endpoint is chosen fail-closed, never retried
+# automatically against a second address.
+PIN_IP="$(python3 "$(dirname "$0")/resolve-public-host.py" "$HOST")" ||
+  die 'Public DNS returned invalid/untrusted addresses or could not be resolved.'
+[ -n "$PIN_IP" ] || die 'Public DNS pin was empty.'
 body="$(mktemp)"
 trap 'rm -f "$body"' EXIT
 # curl validates OS CA trust, hostname verification and HTTPS protocol.
-status="$(curl --silent --show-error --proto '=https' --tlsv1.2 \
-  --connect-timeout 8 --max-time 18 --output "$body" --write-out '%{http_code}' \
-  "https://$HOST/healthz")" || die 'Public HTTPS/certificate/network health check failed.'
+status="$(curl --silent --show-error --noproxy '*' --resolve "$HOST:443:$PIN_IP" \
+  --proto '=https' --tlsv1.2 --connect-timeout 8 --max-time 18 \
+  --output "$body" --write-out '%{http_code}' "https://$HOST/healthz")" ||
+  die 'Public HTTPS/certificate/network health check failed.'
 [ "$status" = '200' ] || die "Remote healthz returned HTTP $status, expected 200."
 grep -Eq '"database"[[:space:]]*:[[:space:]]*"HEALTHY"' "$body" ||
   die 'Remote healthz did not report a healthy persistent MySQL database.'
 grep -Eq '"status"[[:space:]]*:[[:space:]]*"ok"' "$body" ||
   die 'Remote healthz did not report status ok.'
-redirect="$(curl --silent --show-error --head --max-time 15 --output /dev/null \
+redirect="$(curl --silent --show-error --head --noproxy '*' \
+  --resolve "$HOST:80:$PIN_IP" --proto '=http' --max-time 15 --output /dev/null \
   --write-out '%{redirect_url}' "http://$HOST/" )" ||
   die 'HTTP port 80 is not reachable for HTTPS redirect check.'
 case "$redirect" in

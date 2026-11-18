@@ -24,7 +24,7 @@ function validateDate(value) {
 // JavaScript ISO timestamps emit three. Preserve both exact UTC encodings.
 function validSourceClock(value) {
   if (typeof value!=='string' ||
-      !/^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d\\.\\d{3,7}Z$/.test(value)) return false;
+      !/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3,7}Z$/.test(value)) return false;
   const time=Date.parse(value);
   return Number.isFinite(time);
 }

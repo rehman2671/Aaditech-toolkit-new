@@ -11,6 +11,13 @@ mkdir -p "$work/bin"
 export CURL_CALLS="$work/curl.calls"
 export REAL_PYTHON3="$(command -v python3)"
 : > "$CURL_CALLS"
+# Poison the caller environment with unapproved CA/backend choices.
+# The real checker must clear these only for each curl subprocess, rather
+# than treating an inherited private test CA as independent public trust.
+export CURL_CA_BUNDLE="$work/unapproved-ca.pem"
+export SSL_CERT_FILE="$work/unapproved-cert.pem"
+export SSL_CERT_DIR="$work/unapproved-cert-dir"
+export CURL_SSL_BACKEND="unapproved-backend"
 cat > "$work/bin/python3" <<'PYTHON'
 #!/usr/bin/env bash
 case "$1" in
@@ -28,6 +35,12 @@ cat > "$work/bin/curl" <<'CURL'
 #!/usr/bin/env bash
 # Missing -q as FIRST arg means ~/.curlrc can silently alter live curl options.
 [ "${1:-}" = '-q' ] || { echo 'curlrc bypass missing' >&2; exit 97; }
+# The public TLS acceptance probe must not trust arbitrary caller CA paths or
+# backend choices. The main test exports poisoned variables intentionally.
+[ -z "${CURL_CA_BUNDLE+x}" ] && [ -z "${SSL_CERT_FILE+x}" ] &&
+  [ -z "${SSL_CERT_DIR+x}" ] && [ -z "${CURL_SSL_BACKEND+x}" ] || {
+  echo 'inherited unapproved TLS trust overrides reached curl' >&2; exit 98;
+}
 printf '%s\n' "$*" >> "$CURL_CALLS"
 case " $* " in
   *"https://console.aaditech.net/healthz"*)

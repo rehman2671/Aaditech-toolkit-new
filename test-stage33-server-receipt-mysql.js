@@ -101,7 +101,11 @@ try {
   assert.equal(fs.statSync(outputPath).mode & 0o777,0o600);
   assert(!fs.readFileSync(outputPath,'utf8').includes(tenant));
   assert(!fs.readFileSync(outputPath,'utf8').includes(device));
-  expectsFailure('overwrite',outputPath);
+  const originalOutputBytes=fs.readFileSync(outputPath);
+  const deniedOverwrite=invoke(outputPath);
+  assert.equal(deniedOverwrite.status,1,'existing evidence must reject overwrite');
+  assert.match(deniedOverwrite.stderr,/N33 BLOCKED: REFUSING_OVERWRITE/);
+  assert.deepEqual(fs.readFileSync(outputPath),originalOutputBytes,'overwrite denial preserves existing report bytes');
   const wrongOwner=path.join(root,'wrong-owner.json');
   write(wrongOwner,{case_run_id:runId,tenant_id:crypto.randomUUID(),device_id:device});
   expectsFailure('wrong tenant',path.join(root,'wrong-tenant-report.json'),wrongOwner);

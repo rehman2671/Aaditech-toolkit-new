@@ -39,6 +39,10 @@ else
 fi
 HOST="$(awk 'index($0,"SERVER_HOST=")==1 { print substr($0,13); exit }' "$ENV_FILE")"
 [ -n "$HOST" ] || fail 'Validated public server host missing'
+# Revalidate the host read from disk after N14; an .env edit between checks
+# must never turn the optional public probe into an IP/reserved-host request.
+bash "$DIR/verify-hostinger-acceptance.sh" --host "$HOST" --dry-run >/dev/null ||
+  fail 'Host changed or is not a valid public DNS name'
 if [ "$LIVE" -eq 1 ]; then
   # Real TLS/redirect/DB check, NEVER sends credentials from .env.
   bash "$DIR/verify-hostinger-acceptance.sh" --host "$HOST"
@@ -51,7 +55,11 @@ if [ "$RELEASE" -eq 1 ]; then release_state='"RELEASE_CONFIG_SYNTAX_ONLY"' ; els
 printf '{"schema":"aaditech-stage31-preflight-v1","decision":"EXTERNAL_APPROVAL_REQUIRED","configuration":"VALIDATED_OFFLINE","public_https":%s,"signed_release":%s,"customer_backup_restore":"NOT_TESTED","physical_windows":"NOT_TESTED","host":"%s","credentials_exposed":false}\n' \
   "$live_state" "$release_state" "$HOST" > "$tmp"
 chmod 600 "$tmp"
-[ ! -e "$REPORT_FILE" ] && [ ! -L "$REPORT_FILE" ] || fail 'Report path was created concurrently'
-mv -n "$tmp" "$REPORT_FILE"
+# ln(2) creates the new destination atomically and fails with EEXIST.
+# Unlike mv -n, it cannot silently report success when another writer wins.
+# Keep the restrictive mktemp permissions and clean up the temporary hardlink.
+ln "$tmp" "$REPORT_FILE" || fail 'Report path was created concurrently or cannot be created safely'
+rm -f "$tmp"
+trap - EXIT
 say 'CONFIG_READY_FOR_OPERATOR_REVIEW (NOT signed release or production acceptance)'
 say 'No credentials printed; no deployment, DNS, backup or installer changes.'

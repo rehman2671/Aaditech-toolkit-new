@@ -47,7 +47,7 @@ trap 'rm -f "$body"' EXIT
 # system CA store, or an unrelated private CA could satisfy our HTTPS check.
 # Only unset for this subprocess; no user shell or filesystem is modified.
 status="$(
-  unset CURL_CA_BUNDLE SSL_CERT_FILE SSL_CERT_DIR CURL_SSL_BACKEND
+  unset CURL_CA_BUNDLE SSL_CERT_FILE SSL_CERT_DIR CURL_SSL_BACKEND || exit 1
   curl -q --silent --show-error --noproxy '*' --resolve "$HOST:443:$PIN_IP" \
     --proto '=https' --tlsv1.2 --connect-timeout 8 --max-time 18 \
     --max-filesize 65536 --output "$body" --write-out '%{http_code}' "https://$HOST/healthz"
@@ -63,7 +63,7 @@ python3 "$(dirname "$0")/validate-public-health.py" "$body" ||
 # Demand a genuine HTTP redirect status plus the approved HTTPS origin.
 # --max-redirs 0 and no --location means the redirect target is never fetched.
 redirect_result="$(
-  unset CURL_CA_BUNDLE SSL_CERT_FILE SSL_CERT_DIR CURL_SSL_BACKEND
+  unset CURL_CA_BUNDLE SSL_CERT_FILE SSL_CERT_DIR CURL_SSL_BACKEND || exit 1
   curl -q --silent --show-error --head --noproxy '*' \
     --resolve "$HOST:80:$PIN_IP" --proto '=http' --max-time 15 --max-redirs 0 --output /dev/null \
     --write-out '%{http_code} %{redirect_url}' "http://$HOST/"
@@ -79,6 +79,6 @@ case "$redirect" in
   "https://$HOST/"*) ;;
   *) die 'HTTP port 80 must redirect to the expected HTTPS origin.' ;;
 esac
-echo "[hostinger-acceptance][PASS] https://$HOST/healthz uses publicly trusted TLS and reports MySQL HEALTHY."
+echo "[hostinger-acceptance][PASS] https://$HOST/healthz verified with curl system CA trust and reports MySQL HEALTHY."
 echo '[hostinger-acceptance][PASS] Plain HTTP redirects to the expected HTTPS host.'
 echo '[hostinger-acceptance][PENDING] External VPS ownership, backup restore, tenant/API and Windows enrollment must be approved separately.'

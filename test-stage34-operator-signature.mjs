@@ -8,7 +8,8 @@ import os from 'node:os';
 import path from 'node:path';
 import {spawnSync} from 'node:child_process';
 import {sha256} from './Enterprise/deploy/stage33-receipt-core.mjs';
-import {publicKeyPin} from './Enterprise/deploy/stage34-attestation-core.mjs';
+import {publicKeyPin,signAttestation} from './Enterprise/deploy/stage34-attestation-core.mjs';
+import {signRegistry,verifyRegistry,verifyActiveOperatorEvidence} from './Enterprise/deploy/stage35-operator-registry-core.mjs';
 
 const root=fs.mkdtempSync(path.join(os.tmpdir(),'n34-ci-'));
 const cli=path.resolve('Enterprise/deploy/stage34-operator-signature.mjs');
@@ -110,6 +111,127 @@ try {
     assert.notEqual(wrong.status,0,'bundler rejects wrong operator pin');
     assert(!fs.existsSync(file('wrong-pin.json')));
   }
+
+  // N35: synthetic, independent ROOT authority key; it never enters any
+  // public release. Two approval pins (root and exact registry bytes) are
+  // supplied out-of-band by this isolated test fixture.
+  const rootAuthority=crypto.generateKeyPairSync('ed25519');
+  const nextOperator=crypto.generateKeyPairSync('ed25519');
+  const rootPin=publicKeyPin(rootAuthority.publicKey);
+  const timestamp=new Date().toISOString();
+  const from=new Date(Date.now()-86400000).toISOString();
+  const until=new Date(Date.now()+20*86400000).toISOString();
+  const rootPrivate=file('stage35-root-private.pem');
+  const rootPublic=file('stage35-root-public.pem');
+  fs.writeFileSync(rootPrivate,rootAuthority.privateKey.export({type:'pkcs8',format:'pem'}),{mode:0o600});
+  fs.writeFileSync(rootPublic,rootAuthority.publicKey.export({type:'spki',format:'pem'}),{mode:0o600});
+  const keyInfo=(key,keyId,state='ACTIVE')=>({
+    key_id:keyId,
+    public_key_spki_base64:key.export({type:'spki',format:'der'}).toString('base64'),
+    public_key_spki_sha256:publicKeyPin(key),
+    state,purpose:'SCOPED_MYSQL_RECEIPT_REVIEW',
+    valid_from_utc:from,valid_until_utc:until,
+    revoked_at_utc:state==='REVOKED'?timestamp:null
+  });
+  const draft={
+    schema:'aaditech-stage35-operator-key-registry-payload-v1',
+    revision:10,issued_at_utc:timestamp,
+    expires_at_utc:new Date(Date.now()+2*86400000).toISOString(),
+    keys:[keyInfo(keys.publicKey,'ops-primary-2026')]
+  };
+  const issueRegistry=file('stage35-issue-draft.json');
+  put(issueRegistry,draft);
+  const issuedPath=file('stage35-registry.json');
+  const issued=spawnSync(process.execPath,[
+    path.resolve('Enterprise/deploy/stage35-key-registry.mjs'),'issue',
+    '--draft',issueRegistry,'--authority-private-key',rootPrivate,
+    '--output',issuedPath
+  ],{encoding:'utf8',timeout:10000});
+  assert.equal(issued.status,0,'N35 offline issue denied: '+issued.stderr);
+  const registryBytes=fs.readFileSync(issuedPath);
+  const registryHash=sha256(registryBytes);
+  const parsedRegistry=JSON.parse(registryBytes.toString('utf8'));
+  assert.equal(parsedRegistry.authority_spki_sha256,rootPin);
+  const approved=verifyRegistry(registryBytes,rootAuthority.publicKey,rootPin,registryHash,10);
+  const input={offline,recovered,receipt,
+    offlineBytes:fs.readFileSync(file('stage32-offline.json')),
+    recoveredBytes:fs.readFileSync(file('stage32-recovered.json')),
+    receiptBytes:fs.readFileSync(file('stage33-server-receipt.json'))};
+  const n35Verified=verifyActiveOperatorEvidence(input,attestation,approved);
+  assert.equal(n35Verified.n34_signature_verified,true);
+  assert.equal(n35Verified.production_certified,false);
+  assert.equal(n35Verified.operator_legal_authorization_independently_pending,true);
+  const keyRegistryCli=path.resolve('Enterprise/deploy/stage35-key-registry.mjs');
+  const n35Args=(registryFile,registryDigest,revision,attestationFile=file('stage34-attestation.json'))=>[
+    '--registry',registryFile,'--authority-public-key',rootPublic,
+    '--approved-root-spki-sha256',rootPin,
+    '--approved-registry-sha256',registryDigest,
+    '--approved-revision',String(revision),
+    '--offline',file('stage32-offline.json'),'--recovered',file('stage32-recovered.json'),
+    '--receipt',file('stage33-server-receipt.json'),'--attestation',attestationFile
+  ];
+  const n35Check=(regPath=issuedPath,hash=registryHash,rev=10,attestPath)=>spawnSync(process.execPath,
+    [keyRegistryCli,'check',...n35Args(regPath,hash,rev,attestPath)],{encoding:'utf8',timeout:10000});
+  assert.equal(n35Check().status,0,'approved N35 active operator evidence should verify');
+  blocked(n35Check(issuedPath,registryHash,9),'old/unapproved registry revision');
+  blocked(n35Check(issuedPath,'2'.repeat(64),10),'unapproved registry file SHA256');
+  const fakeRoot=crypto.generateKeyPairSync('ed25519');
+  fs.writeFileSync(file('stage35-other-root.pem'),fakeRoot.publicKey.export({type:'spki',format:'pem'}),{mode:0o600});
+  const badRoot=spawnSync(process.execPath,[keyRegistryCli,'check',
+    ...n35Args(issuedPath,registryHash,10).map((x,i,a)=>a[i-1]==='--authority-public-key'?file('stage35-other-root.pem'):x)
+  ],{encoding:'utf8',timeout:10000});
+  blocked(badRoot,'substituted registry authority');
+  const registryArgs=[
+    '-OperatorKeyRegistryFile',issuedPath,
+    '-RegistryAuthorityPublicKeyFile',rootPublic,
+    '-ApprovedRegistryAuthorityPin',rootPin,
+    '-ApprovedOperatorRegistrySha256',registryHash,
+    '-ApprovedOperatorRegistryRevision','10'
+  ];
+  if(process.platform==='win32'){
+    const good35=bundle('stage35-bundle.json',[...signArgs,...registryArgs]);
+    assert.equal(good35.status,0,'N35 approved key registry Windows bundle: '+good35.stderr);
+    const verifiedBundle=JSON.parse(fs.readFileSync(file('stage35-bundle.json'),'utf8'));
+    assert.equal(verifiedBundle.operator_key_lifecycle_verified,true);
+    assert.equal(verifiedBundle.operator_registry_revision,10);
+    assert.equal(verifiedBundle.operator_registry_sha256,registryHash);
+    assert.equal(verifiedBundle.production_certified,false);
+    assert.equal(verifiedBundle.server_report_source_authenticated,false);
+    assert.equal(verifiedBundle.human_operator_signoff,'PENDING');
+    assert.equal(verifiedBundle.artifacts.length,5);
+    const wrong35=bundle('stage35-unapproved-revision.json',
+      [...signArgs,...registryArgs.slice(0,-1),'9']);
+    assert.notEqual(wrong35.status,0,'N35 must reject incorrect approved version');
+    assert(!fs.existsSync(file('stage35-unapproved-revision.json')));
+    const partial35=bundle('stage35-missing-pin.json',
+      [...signArgs,...registryArgs.slice(0,-4)]);
+    assert.notEqual(partial35.status,0,'N35 must reject incomplete independent registry approval');
+    assert(!fs.existsSync(file('stage35-missing-pin.json')));
+  }
+  // Root signature + exact SHA match cannot restore a revoked key.
+  const revoked={...draft,revision:11,keys:[keyInfo(keys.publicKey,'ops-primary-2026','REVOKED')]};
+  const revokedPath=file('stage35-revoked.json');
+  put(revokedPath,signRegistry(revoked,rootAuthority.privateKey));
+  const revokedHash=sha256(fs.readFileSync(revokedPath));
+  blocked(n35Check(revokedPath,revokedHash,11),'current registry revokes old signer');
+  // Key rotation: old signer remains revoked, successor becomes ACTIVE.
+  const rotation={...draft,revision:12,keys:[
+    keyInfo(nextOperator.publicKey,'ops-next-2026'),
+    keyInfo(keys.publicKey,'ops-primary-2026','REVOKED')
+  ]};
+  const rotationPath=file('stage35-rotated.json');
+  put(rotationPath,signRegistry(rotation,rootAuthority.privateKey));
+  const rotationHash=sha256(fs.readFileSync(rotationPath));
+  blocked(n35Check(rotationPath,rotationHash,12),'rotated registry must reject old key');
+  const successor=signAttestation(input,nextOperator.privateKey);
+  const successorPath=file('stage34-next-operator.json');
+  put(successorPath,successor);
+  const successorCheck=n35Check(rotationPath,rotationHash,12,successorPath);
+  assert.equal(successorCheck.status,0,'new active key after rotation must verify: '+successorCheck.stderr);
+  blocked(n35Check(issuedPath,registryHash,12),'old registry cannot be replayed as latest approved revision');
+  const registryNow=verifyRegistry(fs.readFileSync(rotationPath),rootAuthority.publicKey,rootPin,rotationHash,12);
+  const rotated=verifyActiveOperatorEvidence(input,successor,registryNow);
+  assert.equal(rotated.operator_key_id,'ops-next-2026');
 
   const modified={...receipt,accepted_count:0};
   put(file('stage33-server-receipt.json'),modified);

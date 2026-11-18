@@ -1,5 +1,13 @@
 # Phase N — Production release acceptance and sign-off
 
+## Stage N32 — atomic evidence and reserved-DNS safety (CODE PROPOSED; CI PENDING; PRODUCTION BLOCKED)
+
+- [ ] PR Linux deployment safety proves exclusive mode-600 N31 report publication and refusal of symlink/concurrent writers; Windows CI proves immutable existing customer report.
+- [ ] Stage 14 + Hostinger live dry-run reject numeric IPv4-shaped hosts and case-insensitive reserved domains; N31 rechecks host after config validation.
+- [ ] Reverify merged main CI and deployment-safety checks; update this section with actual commit and Actions evidence only after results.
+- [ ] Real operator-hosted DNS/TLS, customer Windows, public signed MSI, offsite restore and integrations remain outstanding regardless of CI.
+See [N32 acceptance](PHASE-N-STAGE32-ACCEPTANCE.md) for exact scope and limitations.
+
 ## Stage N31 — read-only deployment/Windows preflight and independent public release pins (CODE/CI ACCEPTED; CUSTOMER PRODUCTION BLOCKED)
 
 **Verified 2026-11-18 IST:** [PR #21](https://github.com/rehman2671/Aaditech-toolkit-new/pull/21) merged at `6874e72f2faf9499b4d584b8852781a111b092da`. [Main CI #44193878515](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44193878515) **4/4 SUCCESS**; [main safety #44193879125](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44193879125) **2/2 SUCCESS**. Public signing and signed-artifact upload **SKIPPED**.

@@ -45,13 +45,13 @@ trap 'rm -f "$body"' EXIT
 # curl validates OS CA trust, hostname verification and HTTPS protocol.
 status="$(curl --silent --show-error --noproxy '*' --resolve "$HOST:443:$PIN_IP" \
   --proto '=https' --tlsv1.2 --connect-timeout 8 --max-time 18 \
-  --output "$body" --write-out '%{http_code}' "https://$HOST/healthz")" ||
+  --max-filesize 65536 --output "$body" --write-out '%{http_code}' "https://$HOST/healthz")" ||
   die 'Public HTTPS/certificate/network health check failed.'
 [ "$status" = '200' ] || die "Remote healthz returned HTTP $status, expected 200."
-grep -Eq '"database"[[:space:]]*:[[:space:]]*"HEALTHY"' "$body" ||
-  die 'Remote healthz did not report a healthy persistent MySQL database.'
-grep -Eq '"status"[[:space:]]*:[[:space:]]*"ok"' "$body" ||
-  die 'Remote healthz did not report status ok.'
+# Parse actual JSON hierarchy (not raw grep matches). Reject duplicate keys,
+# forged nested values and oversized responses; never log a health response.
+python3 "$(dirname "$0")/validate-public-health.py" "$body" ||
+  die 'Remote healthz response is malformed, ambiguous or persistent MySQL is degraded.'
 redirect="$(curl --silent --show-error --head --noproxy '*' \
   --resolve "$HOST:80:$PIN_IP" --proto '=http' --max-time 15 --output /dev/null \
   --write-out '%{redirect_url}' "http://$HOST/" )" ||

@@ -1,5 +1,13 @@
 # Phase N — Production release acceptance and sign-off
 
+## Stage N33 — independently queried MySQL batch receipts and operator review (CODE PROPOSED; CI PENDING)
+
+- [ ] Independently verify immutable N32 Offline/Recovered evidence and private tenant/device/case binding with Stage33 read-only MySQL CLI, not the agent's token or the production app's admin DB credential.
+- [ ] One parameterized, tenant/device/batch-scoped SELECT must return exactly one receipt and identical event count, in a read-only transaction. Wrong owner, missing receipt, altered local hash, invalid event count and destination overwrite must fail closed.
+- [ ] Optional N32 evidence bundle -ServerReceiptReport must match SHA256 and counts. Source authentication and human review remain pending: unsigned JSON is not a certificate.
+- [ ] PR Node/Vitest, PowerShell, disposable real MySQL/API and deployment safety, plus main Windows diagnostic MSI 4/4 and safety 2/2, must pass before code/CI acceptance.
+- [ ] Separate customer physical network outage, NETWORK SERVICE reconnect, independently authenticated MySQL operator evidence, approved signed MSI, Hostinger VPS/DNS/TLS, offsite restore and live integrations remain OPEN.
+
 ## Stage N32 — physical agent local ACK evidence and redacted SHA256 provenance (CODE/CI ACCEPTED; CUSTOMER PRODUCTION BLOCKED)
 
 **Verified 2026-11-18 IST:** [PR #23](https://github.com/rehman2671/Aaditech-toolkit-new/pull/23) merged at `022cdf78c2c69946b860a9cfaeb97f3e53f29318`. [Main CI #44277910476](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44277910476) **SUCCESS 4/4**; [main safety #44277910495](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44277910495) **SUCCESS 2/2**. Windows job log explicitly confirms **N32 PASS** for real SQLite offline/recovered SHA256 evidence and bundle across a genuine diagnostic MSI upgrade, using **synthetic local ACK only**. Public signed artifact upload **SKIPPED**.

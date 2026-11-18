@@ -83,7 +83,7 @@ $bundle = [ordered]@{
   public_signed_installer = 'REQUIRES_PUBLISHER_APPROVAL'
   live_integrations = 'NOT_VERIFIED'
   production_certified = $false
-  artifacts = @($artifacts)
+  artifacts = @($artifacts.ToArray())
 }
 $dir = Split-Path -Parent $BundlePath
 if ($dir -and -not (Test-Path -LiteralPath $dir -PathType Container)) {

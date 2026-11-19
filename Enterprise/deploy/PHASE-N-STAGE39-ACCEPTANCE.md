@@ -1,6 +1,6 @@
 # Phase N Stage 39 — Windows Public Address Policy (Offline-Only)
 
-**Status: CODE PROPOSED; NEW PR CI PENDING; N38 MAIN DIAGNOSTIC TESTS PASSED; CUSTOMER PRODUCTION NOT APPROVED (2026-11-19 IST).**
+**Status: N39 CODE MERGED; PR CI AND SAFETY PASSED; POST-MERGE MAIN MSI CI PENDING; CUSTOMER PRODUCTION NOT APPROVED (verified 2026-11-19 IST).**
 
 ## Purpose
 
@@ -10,11 +10,19 @@ Issue [#29](https://github.com/rehman2671/Aaditech-toolkit-new/issues/29) tracks
 - `Enterprise/tests/Test-Stage39WindowsPublicAddressPolicy.ps1`: deterministic offline unit/negative fixtures, redacted denial errors, no network API, mixed-answer refusal.
 - Windows PowerShell CI runs the test alongside N31/N38 regressions. No actual customer hostname is resolved.
 
+## Merged code and CI evidence
+
+- [PR #32](https://github.com/rehman2671/Aaditech-toolkit-new/pull/32) merged into `main` as `96adb26a73c8a7dd74c7c20336a62c8fed12deca`, preserving N38's disabled unsafe customer network probe.
+- [PR CI #44575178079](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44575178079) **SUCCESS 3/3** (PowerShell N39 offline unit/negative tests, Node/Vitest+MySQL, isolated API/MySQL); PR MSI intentionally **SKIPPED**.
+- [PR deployment safety #44575178222](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44575178222) **SUCCESS 2/2**. These are synthetic offline fixtures; they do not establish customer DNS/TLS evidence.
+- Post-merge main [CI #44575659496](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44575659496) and [deployment safety #44575659160](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44575659160) need their final GitHub conclusion verified before claiming main MSI diagnostics for N39.
+
 ## Verification and limits
 
-- [ ] Offline Windows negative tests pass against the exact PR SHA.
-- [ ] PowerShell, Node/Vitest+MySQL and real isolated API/MySQL regression pass; deployment-safety 2/2.
-- [ ] Maintainer-authorized merge and **post-merge main Windows MSI** diagnostic lifecycle checks pass.
+- [x] Offline Windows negative tests passed on the exact N39 PR SHA.
+- [x] N39 PR PowerShell, Node/Vitest+MySQL and isolated API/MySQL regression passed, plus deployment-safety 2/2.
+- [x] Maintainer-authorized N39 PR merge recorded.
+- [ ] Verify post-merge main Windows MSI diagnostic lifecycle checks on exact N39 merge SHA.
 - [ ] Independent human security inspection of special-use IP ranges and platform support.
 - [ ] A separate future Windows native transport provides explicit live operator consent; DNS all-answer validation; hostname-verified TLS with a **connection-time pinned IP**; no proxies or redirects; bounded unambiguous health JSON; refusal/redaction tests and real customer acceptance.
 

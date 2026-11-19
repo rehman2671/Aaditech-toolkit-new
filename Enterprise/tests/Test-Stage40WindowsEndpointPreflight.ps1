@@ -34,7 +34,8 @@ $badUrls = @(
     "https://$goodHost$telemetry" + [char]10,
     " https://$goodHost$telemetry"
 )
-foreach ($url in $badUrls) {
+for ($fixtureIndex = 0; $fixtureIndex -lt $badUrls.Count; $fixtureIndex++) {
+    $url = $badUrls[$fixtureIndex]
     $rejected = $false
     try {
         $null = Test-PublicWindowsEndpointOrigin -Endpoint $url -ErrorAction Stop
@@ -44,7 +45,7 @@ foreach ($url in $badUrls) {
             throw 'Denied endpoint exposed untrusted URL details.'
         }
     }
-    if (-not $rejected) { throw 'Unsafe endpoint URL admitted by offline N40 policy.' }
+    if (-not $rejected) { throw "Unsafe endpoint admitted at offline fixture index $fixtureIndex." }
 }
 
 # Integration: N31 preflight must use the same gate. Other missing customer

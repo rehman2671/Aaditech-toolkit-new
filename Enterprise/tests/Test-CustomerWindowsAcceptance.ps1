@@ -27,13 +27,12 @@ if (Test-Path -LiteralPath $exe -PathType Leaf) {
 $origin = $null
 try {
   $config = Get-Content -LiteralPath $ConfigPath -Raw | ConvertFrom-Json
-  $uri = $null
-  $valid = [uri]::TryCreate([string]$config.endpoint,[UriKind]::Absolute,[ref]$uri)
-  if (-not $valid -or $uri.Scheme -cne 'https' -or $uri.UserInfo -or
-      $uri.Query -or $uri.Fragment -or $uri.AbsolutePath -cne '/api/v1/ingest/telemetry' -or
-      $config.needs_setup -ne $false) { throw 'Invalid setup' }
-  $origin = $uri.GetLeftPart([UriPartial]::Authority)
-  Add-Check 'setup' 'PASS' 'Configured HTTPS endpoint is valid; secret values redacted.'
+  if ($config.needs_setup -ne $false) { throw 'Invalid setup' }
+  $addressPolicy = [IO.Path]::GetFullPath(
+    (Join-Path $PSScriptRoot '..\deploy\PublicWindowsAddressPolicy.psm1'))
+  Import-Module -Name $addressPolicy -Force -ErrorAction Stop
+  $origin = Test-PublicWindowsEndpointOrigin -Endpoint ([string]$config.endpoint)
+  Add-Check 'setup' 'PASS' 'HTTPS public-name shape validated offline; DNS and TLS not verified.'
 } catch { Add-Check 'setup' 'BLOCKED' 'HTTPS setup incomplete or invalid.' }
 $runtime = Split-Path $QueueDb -Parent
 try {

@@ -1,10 +1,19 @@
 # Phase N — Production release acceptance and sign-off
 
-## Stage N40 — offline Windows HTTPS endpoint admission (CODE PROPOSED; PR CI PENDING; PRODUCTION BLOCKED)
+## Stage N41 — offline strict Windows public health JSON validation (CODE PROPOSED; PR CI PENDING; PRODUCTION BLOCKED)
 
-- [ ] N40 `Test-PublicWindowsEndpointOrigin` rejects noncanonical or unsafe agent setup URLs (private/metadata IPs, localhost, reserved domains, non-443 ports, userinfo, query/fragment, encoded or alternate paths), without DNS or HTTP.
-- [ ] N31 Windows preflight consumes the same N39/N40 policy and reports setup status as **offline name-shape only**, leaving `public_https=PENDING` or `BLOCKED` for the disabled `-NetworkProbe` and `certified_for_production=false`.
-- [ ] Windows N40 policy, report/redaction integration, N31/N38/N39 regressions, Node/API/MySQL and deployment-safety PR CI pass; authorized merge and post-merge MSI diagnostics separately verified.
+- [ ] Pure PowerShell 5.1 offline `Assert-PublicWindowsHealthJson` verifies valid UTF-8 at most 65,536 bytes, JSON-depth/object-key bounds, decoded duplicate-key rejection at all depths and **exact** `status=ok`, `components.database=HEALTHY`.
+- [ ] N41 Windows CI synthetic regression accepts the real server health shape but rejects duplicate/escaped keys, nested spoofing, degraded state, wrong types, malformed UTF-8, BOM, oversized payload and nonfinite constants; no customer network invoked.
+- [ ] N41 PR PowerShell, Node/Vitest, isolated API/MySQL and deployment-safety pass; authorized merge and genuine post-merge main MSI lifecycle diagnostic pass separately.
+- [ ] No N41 live probe activation, TLS trust assertion or `public_https=PASS`; Windows `-NetworkProbe` stays **BLOCKED** under N38. Independently approved Windows pinned HTTPS transport and external customer evidence are required.
+- [ ] Real Hostinger DNS/TLS, publisher signature/key custody, offsite restore, physical Windows ACK and external integrations remain PENDING. **Production NOT APPROVED.**
+
+See [Stage41 acceptance](PHASE-N-STAGE41-ACCEPTANCE.md) and [Issue #29](https://github.com/rehman2671/Aaditech-toolkit-new/issues/29).
+## Stage N40 — offline Windows HTTPS endpoint admission (MERGED; MAIN CI/MSI 4/4 AND SAFETY 2/2 GREEN; PRODUCTION BLOCKED)
+
+- [x] N40 `Test-PublicWindowsEndpointOrigin` rejects noncanonical or unsafe agent setup URLs (private/metadata IPs, localhost, reserved domains, non-443 ports, userinfo, query/fragment, encoded or alternate paths), without DNS or HTTP.
+- [x] N31 Windows preflight consumes the same N39/N40 policy and reports setup status as **offline name-shape only**, leaving `public_https=PENDING` or `BLOCKED` for the disabled `-NetworkProbe` and `certified_for_production=false`.
+- [x] N40 policy/report-redaction, N31/N38/N39, Node/API/MySQL and safety PR CI passed; PR #34 merged. [Main CI #44633379380](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44633379380) **4/4** (Windows MSI diagnostic included) and [main safety #44633379367](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44633379367) **2/2** passed. Signed public MSI remains unverified.
 - [ ] Live Windows TLS pinning, no-proxy/no-redirect transport, strict bounded health JSON, real customer proof, independently approved signing and Hostinger/restore/integration acceptance remain pending. **Production NOT APPROVED.**
 
 See [Stage40 acceptance](PHASE-N-STAGE40-ACCEPTANCE.md) and [Issue #29](https://github.com/rehman2671/Aaditech-toolkit-new/issues/29).

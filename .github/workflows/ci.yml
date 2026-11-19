@@ -90,6 +90,9 @@ jobs:
       - name: N40 Windows HTTPS endpoint admission rejects unsafe origins offline
         run: pwsh -NoProfile -File ./Enterprise/tests/Test-Stage40WindowsEndpointPreflight.ps1
 
+      - name: N41 Windows health response rejects ambiguous and degraded JSON offline
+        run: pwsh -NoProfile -File ./Enterprise/tests/Test-Stage41WindowsHealthJson.ps1
+
 
       - name: N31 release publication requires independently approved source and MSI pins
         run: pwsh -NoProfile -File ./Enterprise/tests/Test-Stage31PublicationPins.ps1

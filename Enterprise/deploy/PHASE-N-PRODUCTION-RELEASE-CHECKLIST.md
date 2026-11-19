@@ -1,10 +1,19 @@
 # Phase N — Production release acceptance and sign-off
 
-## Stage N39 — offline Windows public A/AAAA address policy (CODE PROPOSED; PR CI PENDING; PRODUCTION BLOCKED)
+## Stage N40 — offline Windows HTTPS endpoint admission (CODE PROPOSED; PR CI PENDING; PRODUCTION BLOCKED)
 
-- [ ] Public Windows PowerShell 5.1 module `PublicWindowsAddressPolicy.psm1` rejects private, metadata, documentation, multicast, mapped/tunnel IPv6, reserved hostnames and mixed public+private A/AAAA sets; deterministic public IP pin output (offline fixtures only).
-- [ ] Windows offline `Test-Stage39WindowsPublicAddressPolicy.ps1` passes without DNS/HTTP; redacted validation failures do not disclose hostile answer contents.
-- [ ] PR PowerShell/Node/API MySQL and deployment-safety CI pass, then owner-authorized merge and post-merge Windows EXE/MSI diagnostic CI recorded.
+- [ ] N40 `Test-PublicWindowsEndpointOrigin` rejects noncanonical or unsafe agent setup URLs (private/metadata IPs, localhost, reserved domains, non-443 ports, userinfo, query/fragment, encoded or alternate paths), without DNS or HTTP.
+- [ ] N31 Windows preflight consumes the same N39/N40 policy and reports setup status as **offline name-shape only**, leaving `public_https=PENDING` or `BLOCKED` for the disabled `-NetworkProbe` and `certified_for_production=false`.
+- [ ] Windows N40 policy, report/redaction integration, N31/N38/N39 regressions, Node/API/MySQL and deployment-safety PR CI pass; authorized merge and post-merge MSI diagnostics separately verified.
+- [ ] Live Windows TLS pinning, no-proxy/no-redirect transport, strict bounded health JSON, real customer proof, independently approved signing and Hostinger/restore/integration acceptance remain pending. **Production NOT APPROVED.**
+
+See [Stage40 acceptance](PHASE-N-STAGE40-ACCEPTANCE.md) and [Issue #29](https://github.com/rehman2671/Aaditech-toolkit-new/issues/29).
+
+## Stage N39 — offline Windows public A/AAAA address policy (MERGED; MAIN MSI CI 4/4 AND SAFETY 2/2 GREEN; PRODUCTION BLOCKED)
+
+- [x] Public Windows PowerShell 5.1 module `PublicWindowsAddressPolicy.psm1` rejects private, metadata, documentation, multicast, mapped/tunnel IPv6, reserved hostnames and mixed public+private A/AAAA sets; deterministic public IP pin output (offline fixtures only).
+- [x] Windows offline `Test-Stage39WindowsPublicAddressPolicy.ps1` passes without DNS/HTTP; redacted validation failures do not disclose hostile answer contents.
+- [x] PR PowerShell/Node/API MySQL and deployment-safety passed; PR #32 merged and post-merge [main MSI CI #44575659496](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44575659496) **4/4** plus [main safety #44575659160](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44575659160) **2/2** passed. Real signed public MSI release not evidenced.
 - [ ] Future native Windows live HTTPS probe remains **BLOCKED** until consent, public DNS resolution, **connection-time IP pinning**, TLS hostname trust, no proxy/redirect, strict JSON and real customer external checks are completed; [Issue #29](https://github.com/rehman2671/Aaditech-toolkit-new/issues/29) remains OPEN.
 - [ ] Independent human security review, signing/keys, physical Windows authenticated ACK, Hostinger external TLS, offsite restore and integrations not certified. **Production NOT APPROVED.**
 

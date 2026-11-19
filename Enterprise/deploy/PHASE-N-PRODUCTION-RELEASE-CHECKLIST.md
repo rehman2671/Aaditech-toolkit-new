@@ -1,6 +1,18 @@
 # Phase N — Production release acceptance and sign-off
 
-## Stage N38 — Windows customer acceptance live-probe fail-closed mitigation (PR #31 RECONCILED TO MAIN; NEW CI PENDING; PRODUCTION BLOCKED)
+## Stage N39 — offline Windows public A/AAAA address policy (CODE PROPOSED; PR CI PENDING; PRODUCTION BLOCKED)
+
+- [ ] Public Windows PowerShell 5.1 module `PublicWindowsAddressPolicy.psm1` rejects private, metadata, documentation, multicast, mapped/tunnel IPv6, reserved hostnames and mixed public+private A/AAAA sets; deterministic public IP pin output (offline fixtures only).
+- [ ] Windows offline `Test-Stage39WindowsPublicAddressPolicy.ps1` passes without DNS/HTTP; redacted validation failures do not disclose hostile answer contents.
+- [ ] PR PowerShell/Node/API MySQL and deployment-safety CI pass, then owner-authorized merge and post-merge Windows EXE/MSI diagnostic CI recorded.
+- [ ] Future native Windows live HTTPS probe remains **BLOCKED** until consent, public DNS resolution, **connection-time IP pinning**, TLS hostname trust, no proxy/redirect, strict JSON and real customer external checks are completed; [Issue #29](https://github.com/rehman2671/Aaditech-toolkit-new/issues/29) remains OPEN.
+- [ ] Independent human security review, signing/keys, physical Windows authenticated ACK, Hostinger external TLS, offsite restore and integrations not certified. **Production NOT APPROVED.**
+
+See [Stage39 acceptance](PHASE-N-STAGE39-ACCEPTANCE.md).
+
+## Stage N38 — Windows customer acceptance live-probe fail-closed mitigation (MERGED; MAIN CI/MSI 4/4 GREEN; PRODUCTION BLOCKED)
+
+**Post-merge main verified 2026-11-19 IST:** Reconciled [N38 PR #31](https://github.com/rehman2671/Aaditech-toolkit-new/pull/31) merged as `d54325c9323a02152272ceb8f4c35be86fcf2767`. [Main CI #44517752267](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44517752267) **SUCCESS 4/4** (PowerShell N38 offline regression, Node/Vitest+MySQL, isolated API/MySQL, Windows EXE/MSI build/extraction/install/uninstall/major upgrade); [main safety #44517752316](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44517752316) **SUCCESS 2/2**. Publisher-signed release artifact upload **SKIPPED**. Owner-authorized merge is not independent human security certification.
 
 **Historical N38 code evidence:** [Original #30](https://github.com/rehman2671/Aaditech-toolkit-new/pull/30) code head `5b596d347f5b7eebc491e95aa553d6866f2cf2f5` passed [full CI #44405914078](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44405914078) and [safety #44405914047](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44405914047). It conflicted after N37 merge. **Reconciled main-based [N38 PR #31](https://github.com/rehman2671/Aaditech-toolkit-new/pull/31)** carries forward exactly five intended N38 files, preserving latest main N37. New #31 CI and post-merge main MSI diagnostics must still be verified. This is *not* live Windows transport or independent human security acceptance.
 
@@ -8,8 +20,8 @@
 - [x] Windows offline regression on a configured-looking synthetic HTTPS endpoint passes with **no** DNS/web/socket transport, no leaked host/token, and `certified_for_production=false`.
 - [x] Existing N31/N32 Windows evidence non-overwrite tests continue to pass and new `Test-Stage38WindowsNetworkProbe.ps1` runs in CI.
 - [x] N36 #27 and N37 #28 merged into main; conflicted N38 #30 reconciled on latest main into #31 without replacing N37 security changes.
-- [ ] Reconciled #31 full PR CI and deployment-safety green before maintainer-authorized code merge.
-- [ ] N38 post-merge main EXE/MSI diagnostic Windows install/uninstall and upgrade tests verified separately.
+- [x] Reconciled #31 [PR CI #44517374529](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44517374529) and [safety #44517374643](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44517374643) passed; owner-authorized merge completed.
+- [x] N38 post-merge main EXE/MSI diagnostics, Windows install/uninstall and major upgrade tests **SUCCESS** in main CI #44517752267.
 - [ ] Independent human security review remains an external requirement; cross-account maintainer merges do not establish it.
 - [ ] **Issue #29 remains open:** the actual secure Windows native live HTTPS transport is **not** implemented or certified; pinned TLS, DNS/redirect/proxy/health negative tests and real customer approval still required.
 - [ ] Hostinger ownership/TLS, physical Windows authenticated ACK replay, real signing-key custody/public MSI, offsite restore and integrations remain independently blocked. **Production: NOT APPROVED.**

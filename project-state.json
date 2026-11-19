@@ -1,31 +1,30 @@
 {
   "state_version": "1.0",
   "path": "project-state.json",
-  "generated": "2026-11-19T22:57:43+00:00",
+  "generated": "2026-11-19T23:26:18+00:00",
   "phase": "PHASE N STAGE 4 / PRODUCTION ACCEPTANCE IN PROGRESS",
-  "last_verified_commit": "4a568f3bd083d91b8b363143e7ab43814004abfd",
-  "last_verified_date": "2026-11-20T04:27:32+05:30",
+  "last_verified_commit": "dcf11a6aae4d33aa4325bb3a43c414debe5402a6",
+  "last_verified_date": "2026-11-20T04:56:01+05:30",
   "git": {
     "branch": "main",
     "commit_count": 1,
     "clean_working_tree": true,
-    "head": "4a568f3bd083d91b8b363143e7ab43814004abfd"
+    "head": "dcf11a6aae4d33aa4325bb3a43c414debe5402a6"
   },
   "latest_delta": {
-    "detected_at": "2026-11-19T22:57:43+00:00",
+    "detected_at": "2026-11-19T23:26:18+00:00",
     "added": [
-      "Enterprise/deploy/PHASE-N-STAGE40-ACCEPTANCE.md",
-      "Enterprise/tests/Test-Stage40WindowsEndpointPreflight.ps1"
+      "Enterprise/deploy/PHASE-N-STAGE41-ACCEPTANCE.md",
+      "Enterprise/deploy/ValidateWindowsHealthJson.psm1",
+      "Enterprise/tests/Test-Stage41WindowsHealthJson.ps1"
     ],
     "removed": [],
     "changed": [
-      "Enterprise/tests/Test-CustomerWindowsAcceptance.ps1",
-      ".github/workflows/ci.yml",
-      "Enterprise/deploy/PublicWindowsAddressPolicy.psm1",
       "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md",
-      "Enterprise/deploy/PHASE-N-STAGE39-ACCEPTANCE.md"
+      "Enterprise/deploy/PHASE-N-STAGE40-ACCEPTANCE.md",
+      ".github/workflows/ci.yml"
     ],
-    "unchanged_count": 361
+    "unchanged_count": 365
   },
   "production_ready": false,
   "acceptance_gates": [

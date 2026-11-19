@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-19T22:57:43+00:00",
-  "last_verified_commit": "4a568f3bd083d91b8b363143e7ab43814004abfd",
-  "last_verified_date": "2026-11-20T04:27:32+05:30",
+  "generated": "2026-11-19T23:26:18+00:00",
+  "last_verified_commit": "dcf11a6aae4d33aa4325bb3a43c414debe5402a6",
+  "last_verified_date": "2026-11-20T04:56:01+05:30",
   "overall_progress_percent": 100.0,
   "progress_scope": "historic audit issue closure only; production acceptance pending",
   "production_ready": false,
@@ -14,39 +14,12 @@
     "percent": 100.0
   },
   "latest_delta": {
-    "added": 2,
+    "added": 3,
     "removed": 0,
-    "changed": 5,
-    "unchanged": 361
+    "changed": 3,
+    "unchanged": 365
   },
   "delta_history": [
-    {
-      "detected_at": "2026-11-17T07:54:49+00:00",
-      "added": [
-        "database/migrations/009_notification_destination_binding.sql",
-        "Enterprise/deploy/PHASE-N-STAGE21-ACCEPTANCE.md",
-        "tests/unit/notification-destination-stage21.test.js",
-        "notification-destination.js"
-      ],
-      "removed": [],
-      "changed": [
-        "CHANGELOG.md",
-        "docs/assessment/TEST-RESULTS.md",
-        "server.js",
-        "db.js",
-        "Enterprise/deploy/PHASE-N-STAGE19-ACCEPTANCE.md",
-        "test-migrations-runner.js",
-        "docs/assessment/GAP-REGISTER.md",
-        "database/mysql/schema.sql",
-        "Enterprise/deploy/PHASE-N-STAGE20-ACCEPTANCE.md",
-        "database/migrations/README.md",
-        "notification-outbox.js",
-        "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md",
-        "tests/unit/notification-outbox-stage17.test.js",
-        "docs/assessment/RELEASE-READINESS.md"
-      ],
-      "unchanged_count": 283
-    },
     {
       "detected_at": "2026-11-17T08:03:41+00:00",
       "added": [
@@ -451,6 +424,21 @@
         "Enterprise/deploy/PHASE-N-STAGE39-ACCEPTANCE.md"
       ],
       "unchanged_count": 361
+    },
+    {
+      "detected_at": "2026-11-19T23:26:18+00:00",
+      "added": [
+        "Enterprise/deploy/PHASE-N-STAGE41-ACCEPTANCE.md",
+        "Enterprise/deploy/ValidateWindowsHealthJson.psm1",
+        "Enterprise/tests/Test-Stage41WindowsHealthJson.ps1"
+      ],
+      "removed": [],
+      "changed": [
+        "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md",
+        "Enterprise/deploy/PHASE-N-STAGE40-ACCEPTANCE.md",
+        ".github/workflows/ci.yml"
+      ],
+      "unchanged_count": 365
     }
   ],
   "next_recommended_tasks": [

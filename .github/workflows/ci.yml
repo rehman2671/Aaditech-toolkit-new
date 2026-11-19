@@ -97,6 +97,13 @@ jobs:
         shell: powershell
         run: ./Enterprise/tests/Test-Stage41WindowsHealthJson.ps1
 
+      - name: N42 offline pinned HTTPS plan, consent and immutable report regression (PowerShell 7)
+        run: pwsh -NoProfile -File ./Enterprise/tests/Test-Stage42WindowsPinnedHttps.ps1
+
+      - name: N42 verify offline pinned HTTPS plan on Windows PowerShell 5.1
+        shell: powershell
+        run: ./Enterprise/tests/Test-Stage42WindowsPinnedHttps.ps1
+
 
       - name: N31 release publication requires independently approved source and MSI pins
         run: pwsh -NoProfile -File ./Enterprise/tests/Test-Stage31PublicationPins.ps1

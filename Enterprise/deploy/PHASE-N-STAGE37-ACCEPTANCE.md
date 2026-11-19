@@ -1,0 +1,92 @@
+# Phase N Stage 37 — Pinned, Read-Only Public HTTPS Acceptance
+
+**Status: N36 GITHUB APPROVED/MERGED WITH MAIN DIAGNOSTIC CI GREEN; N37 RETARGETED MAIN PR CI GREEN, N37 SECURITY REVIEW/MERGE PENDING; CUSTOMER PRODUCTION BLOCKED (2026-11-19 IST).**
+
+## Independently checkable CI evidence
+
+- [PR #28](https://github.com/rehman2671/Aaditech-toolkit-new/pull/28) is now **retargeted to `main`**, after N36 #27 merge; N37 last code HEAD `ae807fbe5524ef1d96ecb0c78ece311d92fda05a` includes isolated Python `-I`, direct live consent, isolated curl trust, pinned DNS and strict health JSON.
+- [PR CI #44384629009](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44384629009): **SUCCESS**. Windows PowerShell, Node/Vitest+MySQL 8 and real isolated API/MySQL 8 passed; PR-only Windows EXE/MSI diagnostic job **SKIPPED BY DESIGN**.
+- [PR deployment-safety #44384629243](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44384629243): **SUCCESS 2/2**. Offline DNS/HTTP/payload/consent negative tests and isolated MySQL restore.
+- N36 prerequisite [PR #27](https://github.com/rehman2671/Aaditech-toolkit-new/pull/27) has a submitted GitHub **APPROVED** review and merged at `517c8d0b25f645b76fb1a17367301b0443d397a3` (2026-11-18 UTC). [Post-merge **main CI #44412725232**](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44412725232) passed **4/4 jobs**, including Windows EXE/MSI build, administrative extraction, MSI install/uninstall and major-upgrade rehearsal. [Main safety #44412725281](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44412725281) passed **2/2**. Public publisher-signed artifact publication was **SKIPPED**. Account-level approval does not, by itself, establish an independently performed human security audit when both accounts share an operator.
+- The latest isolated-Python code HEAD `ae807fbe5524ef1d96ecb0c78ece311d92fda05a` passed [full PR CI #44389058206](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44389058206) and [deployment safety #44389058159](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44389058159). **After retargeting N37 to `main`**, head `128280d8c9e9290e13f55537c5b54e3990d5559d` passed [PR CI #44413295997](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44413295997) (PowerShell, Node/Vitest, API/MySQL; PR MSI skipped) and [safety #44413296037](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44413296037) (**2/2**). N37-specific submitted security review and authorized merge remain required. Later docs-only commits require separate checks.
+- These are automated tests on disposable CI data and mocked network probes, **not** independently approved customer network/DNS/TLS evidence. New commits, retargeting or merges require fresh gate verification.
+
+## Why
+
+Valid DNS *syntax* alone is insufficient for a live Hostinger acceptance check:
+the name might resolve to loopback, an RFC1918 address, cloud instance metadata,
+IPv6 ULA/link-local or mixed public+private answers. Separate resolver and curl
+lookups can also see different answers after rebinding. A configured HTTP proxy
+could bypass the intended resolution.
+
+## N37 safety boundary
+
+- Live acceptance requires Python 3, resolves the hostname using OS resolver
+  `socket.getaddrinfo` and rejects **all** non-global/special-use A and AAAA
+  answers, including mixed answer sets. This step is offline only in CI fixtures,
+  and happens **only** after N31 explicit live consent and N14 DNS-shape checks.
+- One public address is chosen (IPv4 preferred, IPv6 bracketed) and pinned with
+  curl `--resolve HOST:443:IP` and `--resolve HOST:80:IP`.
+- Both requests use `--noproxy '*'`; curl's ordinary OS certificate trust and
+  hostname verification remain mandatory for HTTPS. Requests do not follow
+  redirects; HTTP only inspects the intended redirect target.
+- Both curl calls require `-q` as their **first** command-line argument to
+  ignore user curlrc configuration that could override TLS/routing options.
+  Additionally, each curl subprocess clears inherited `CURL_CA_BUNDLE`,
+  `SSL_CERT_FILE`, `SSL_CERT_DIR` and `CURL_SSL_BACKEND` overrides, failing
+  closed if cleanup fails. This checks the system-configured CA trust store,
+  **not independent proof that the certificate chains to an approved public CA**
+  when the host trust store contains custom roots.
+  The HTTP check accepts only 301/302/303/307/308 with an HTTPS redirect
+  to the approved hostname; 200-with-Location, a cross-origin redirect or
+  an error status must be rejected. Redirects are **not followed**.
+- Python DNS resolution and JSON health validation run using `python3 -I`, avoiding ambient `PYTHONPATH` and user-site import hijacking. Offline tests poison the standard `json` import; passing this check does not independently authenticate the system's Python executable.
+- HTTPS health JSON is bounded to 64 KiB and parsed as structured JSON, with
+  duplicate-key rejection and exact top-level `status="ok"` plus
+  `components.database="HEALTHY"`. Ambiguous nested, malformed, degraded or
+  oversized payloads are denied without logging response bodies.
+- Direct live CLI invocation requires explicit `--confirm-live PROBE_PUBLIC_HEALTH`;
+  the N31 wrapper forwards its own approved consent. Missing or wrong consent
+  must fail **before any DNS lookup or curl**, and `--dry-run` must never
+  combine with live consent. Tests enforce these cases with offline counters.
+- DNS errors, absence of answers, private and special-use addresses, unavailable
+  Python 3, and rejected curl connections are failures. No fallback to an
+  unvalidated DNS answer or automatic retry to a different endpoint.
+- `--dry-run` still performs **no DNS lookup and no HTTP request**.
+
+## Verification
+
+- [ ] Review Python stdlib public address decisions across supported VPS Python
+      versions; no network calls in unit tests.
+- [x] Deployment-safety CI passes IPv4/IPv6 private, loopback, documentation,
+      metadata, transition-protocol and mixed DNS-answer negative fixtures.
+- [x] Bash mock acceptance proves both HTTPS and redirect checks use the same
+      pinned public address, bypass proxies, and are never called after DNS denial.
+- [x] Direct checker and N31 wrapper require explicit approved live consent;
+      missing/invalid consent and conflicting dry-run+live arguments fail
+      before a DNS resolver or curl subprocess runs.
+- [x] Mocked curl checks enforce `-q` first, no HTTP redirect following,
+      and actual 301/302/303/307/308 status; synthetic 200-with-Location and
+      cross-origin/private redirect targets must fail closed.
+- [x] Positive mock probes poison all four caller CA/SSL-backend environment
+      variables and verify neither HTTPS nor HTTP curl sees them.
+- [ ] Independently verify customer-approved public CA chain and host trust-store provenance.
+- [x] Python resolver and health validator both use isolated `-I` mode, and deliberate ambient `PYTHONPATH` poisoning cannot alter health acceptance (verified in N37 deployment safety #44389058159).
+- [x] Python and mocked HTTP tests reject duplicate, malformed, oversized,
+      nested and degraded health JSON even when misleading outer fields say HEALTHY.
+- [x] PR CI (PowerShell, Node/Vitest, isolated MySQL/API) passes without affecting N32–N35.
+- [x] N36 GitHub review recorded and N36 merged into `main`; N37 PR retargeted to `main` (separately validate independence of approver as a human security reviewer).
+- [x] Retargeted N37 base-context PR CI verified GREEN on head `128280d8c9e9290e13f55537c5b54e3990d5559d` (subsequent docs-only commit must be retested).
+- [ ] Obtain actual N37 code/security review and authorized merge; then certify **N37 post-merge** main CI / Windows MSI diagnostics.
+
+## Explicit limitations
+
+This is defense-in-depth, **not proof of Hostinger ownership**. NAT, transparent
+network interception, DNSSEC validation, customer DNS change control, actual
+certificate trust, Caddy configuration, database health and outside-in reachability
+require separately authorized real-world evidence. IPv4/IPv6 address special-use
+registries evolve, and validation may conservatively reject legitimate unusual
+network deployments; it must never silently allow a private route.
+
+No public DNS, internet endpoint, production tenant, customer Windows machine,
+real key vault or signed installer was accessed to create this code.

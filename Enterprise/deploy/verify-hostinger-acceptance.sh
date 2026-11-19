@@ -2,13 +2,14 @@
 # Read-only live public HTTPS acceptance: Docker-capable Hostinger VPS.
 # Never changes DNS, containers, database or server files and never sends secrets.
 set -euo pipefail
-usage() { echo "Usage: $0 --host PUBLIC_DNS_HOST [--dry-run]"; }
+usage() { echo "Usage: $0 --host PUBLIC_DNS_HOST [--dry-run | --confirm-live PROBE_PUBLIC_HEALTH]"; }
 die() { echo "[hostinger-acceptance][BLOCKED] $*" >&2; exit 1; }
-HOST='' ; DRY_RUN=0
+HOST='' ; DRY_RUN=0 ; LIVE_CONFIRM=''
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --host) [ "$#" -ge 2 ] || die '--host requires DNS'; HOST="$2"; shift 2 ;;
     --dry-run) DRY_RUN=1; shift ;;
+    --confirm-live) [ "$#" -ge 2 ] || die '--confirm-live requires a value'; LIVE_CONFIRM="$2"; shift 2 ;;
     -h|--help) usage; exit 0 ;;
     *) die "Unknown option: $1" ;;
   esac
@@ -25,30 +26,68 @@ esac
 [[ "$HOST" =~ \.[A-Za-z][A-Za-z0-9-]*$ ]] ||
   die 'Public DNS needs a nonnumeric final label; IP literals are not accepted.'
 if [ "$DRY_RUN" -eq 1 ]; then
+  [ -z "$LIVE_CONFIRM" ] || die 'Do not combine offline dry-run with live consent.'
   echo '[hostinger-acceptance] DRY RUN: valid DNS syntax, no network or deployment operations performed.'
   exit 0
 fi
+# Require explicit consent even on direct invocation; fail before DNS or curl.
+[ "$LIVE_CONFIRM" = 'PROBE_PUBLIC_HEALTH' ] ||
+  die 'Live public health checks require --confirm-live PROBE_PUBLIC_HEALTH.'
 command -v curl >/dev/null 2>&1 || die 'curl is required.'
+command -v python3 >/dev/null 2>&1 || die 'python3 is required for live public DNS address validation.'
 command -v grep >/dev/null 2>&1 || die 'grep is required.'
 command -v mktemp >/dev/null 2>&1 || die 'mktemp is required.'
+# Resolve once, reject ALL non-global answers, then pin curl at the approved
+# address so DNS rebinding between validation and the requests cannot redirect
+# health probes to private/loopback/metadata endpoints. No proxy may override
+# the pinned route. A single endpoint is chosen fail-closed, never retried
+# automatically against a second address.
+# -I ignores inherited PYTHONPATH/user-site imports, protecting the stdlib
+# resolver against a caller-supplied shadowed socket/ipaddress module.
+PIN_IP="$(python3 -I "$(dirname "$0")/resolve-public-host.py" "$HOST")" ||
+  die 'Public DNS returned invalid/untrusted addresses or could not be resolved.'
+[ -n "$PIN_IP" ] || die 'Public DNS pin was empty.'
 body="$(mktemp)"
 trap 'rm -f "$body"' EXIT
+# -q must be the first curl option to ignore untrusted ~/.curlrc overrides.
 # curl validates OS CA trust, hostname verification and HTTPS protocol.
-status="$(curl --silent --show-error --proto '=https' --tlsv1.2 \
-  --connect-timeout 8 --max-time 18 --output "$body" --write-out '%{http_code}' \
-  "https://$HOST/healthz")" || die 'Public HTTPS/certificate/network health check failed.'
+# The operator's ambient curl trust overrides must not silently replace the
+# system CA store, or an unrelated private CA could satisfy our HTTPS check.
+# Only unset for this subprocess; no user shell or filesystem is modified.
+status="$(
+  unset CURL_CA_BUNDLE SSL_CERT_FILE SSL_CERT_DIR CURL_SSL_BACKEND || exit 1
+  curl -q --silent --show-error --noproxy '*' --resolve "$HOST:443:$PIN_IP" \
+    --proto '=https' --tlsv1.2 --connect-timeout 8 --max-time 18 \
+    --max-filesize 65536 --output "$body" --write-out '%{http_code}' "https://$HOST/healthz"
+)" ||
+  die 'Public HTTPS/certificate/network health check failed.'
 [ "$status" = '200' ] || die "Remote healthz returned HTTP $status, expected 200."
-grep -Eq '"database"[[:space:]]*:[[:space:]]*"HEALTHY"' "$body" ||
-  die 'Remote healthz did not report a healthy persistent MySQL database.'
-grep -Eq '"status"[[:space:]]*:[[:space:]]*"ok"' "$body" ||
-  die 'Remote healthz did not report status ok.'
-redirect="$(curl --silent --show-error --head --max-time 15 --output /dev/null \
-  --write-out '%{redirect_url}' "http://$HOST/" )" ||
+# Parse actual JSON hierarchy (not raw grep matches). Reject duplicate keys,
+# forged nested values and oversized responses; never log a health response.
+# Health JSON parsing must likewise ignore poisoned import paths.
+python3 -I "$(dirname "$0")/validate-public-health.py" "$body" ||
+  die 'Remote healthz response is malformed, ambiguous or persistent MySQL is degraded.'
+# -q must be curl's FIRST argument: disable ~/.curlrc, whose options could
+# silently override pinned routes, TLS verification or redirect behavior.
+# Demand a genuine HTTP redirect status plus the approved HTTPS origin.
+# --max-redirs 0 and no --location means the redirect target is never fetched.
+redirect_result="$(
+  unset CURL_CA_BUNDLE SSL_CERT_FILE SSL_CERT_DIR CURL_SSL_BACKEND || exit 1
+  curl -q --silent --show-error --head --noproxy '*' \
+    --resolve "$HOST:80:$PIN_IP" --proto '=http' --max-time 15 --max-redirs 0 --output /dev/null \
+    --write-out '%{http_code} %{redirect_url}' "http://$HOST/"
+)" ||
   die 'HTTP port 80 is not reachable for HTTPS redirect check.'
+redirect_status="${redirect_result%% *}"
+redirect="${redirect_result#* }"
+case "$redirect_status" in
+  301|302|303|307|308) ;;
+  *) die 'HTTP port 80 must return an actual HTTPS redirect status (301/302/303/307/308).' ;;
+esac
 case "$redirect" in
   "https://$HOST/"*) ;;
   *) die 'HTTP port 80 must redirect to the expected HTTPS origin.' ;;
 esac
-echo "[hostinger-acceptance][PASS] https://$HOST/healthz uses publicly trusted TLS and reports MySQL HEALTHY."
+echo "[hostinger-acceptance][PASS] https://$HOST/healthz verified with curl system CA trust and reports MySQL HEALTHY."
 echo '[hostinger-acceptance][PASS] Plain HTTP redirects to the expected HTTPS host.'
 echo '[hostinger-acceptance][PENDING] External VPS ownership, backup restore, tenant/API and Windows enrollment must be approved separately.'

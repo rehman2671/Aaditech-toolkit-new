@@ -1,0 +1,143 @@
+#!/usr/bin/env bash
+# No external DNS or HTTPS requests: test the curl route pin contract with
+# disposable mocks; test actual address classification in Python unittest.
+set -euo pipefail
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+CHECKER="$ROOT/Enterprise/deploy/verify-hostinger-acceptance.sh"
+bash -n "$CHECKER"
+work="$(mktemp -d)"
+trap 'rm -rf "$work"' EXIT
+mkdir -p "$work/bin"
+export CURL_CALLS="$work/curl.calls"
+export DNS_CALLS="$work/dns.calls"
+export REAL_PYTHON3="$(command -v python3)"
+export PYTHON_CALLS="$work/python.calls"
+: > "$PYTHON_CALLS"
+# A hostile environment tries to replace stdlib imports in the health validator.
+# A real Python interpreter must load its own stdlib, never this shadow file.
+mkdir -p "$work/python-poison"
+cat > "$work/python-poison/json.py" <<'POISON'
+raise RuntimeError('Untrusted PYTHONPATH json module was executed')
+POISON
+export PYTHONPATH="$work/python-poison"
+: > "$CURL_CALLS"
+: > "$DNS_CALLS"
+# Poison the caller environment with unapproved CA/backend choices.
+# The real checker must clear these only for each curl subprocess, rather
+# than treating an inherited private test CA as independent public trust.
+export CURL_CA_BUNDLE="$work/unapproved-ca.pem"
+export SSL_CERT_FILE="$work/unapproved-cert.pem"
+export SSL_CERT_DIR="$work/unapproved-cert-dir"
+export CURL_SSL_BACKEND="unapproved-backend"
+cat > "$work/bin/python3" <<'PYTHON'
+#!/usr/bin/env bash
+[ "${1:-}" = '-I' ] || { echo '[FAIL] Python interpreter not isolated' >&2; exit 94; }
+printf '%s\n' "$*" >> "$PYTHON_CALLS"
+shift
+case "$1" in
+  */resolve-public-host.py)
+    printf "resolved\\n" >> "$DNS_CALLS"
+    if [ "${FAKE_DNS_DENY:-0}" = 1 ]; then exit 1; fi
+    printf '%s\n' '8.8.8.8'
+    ;;
+  */validate-public-health.py)
+    exec "$REAL_PYTHON3" -I "$@"
+    ;;
+  *) echo 'Unexpected python3 execution' >&2; exit 1 ;;
+esac
+PYTHON
+cat > "$work/bin/curl" <<'CURL'
+#!/usr/bin/env bash
+# Missing -q as FIRST arg means ~/.curlrc can silently alter live curl options.
+[ "${1:-}" = '-q' ] || { echo 'curlrc bypass missing' >&2; exit 97; }
+# The public TLS acceptance probe must not trust arbitrary caller CA paths or
+# backend choices. The main test exports poisoned variables intentionally.
+[ -z "${CURL_CA_BUNDLE+x}" ] && [ -z "${SSL_CERT_FILE+x}" ] &&
+  [ -z "${SSL_CERT_DIR+x}" ] && [ -z "${CURL_SSL_BACKEND+x}" ] || {
+  echo 'inherited unapproved TLS trust overrides reached curl' >&2; exit 98;
+}
+printf '%s\n' "$*" >> "$CURL_CALLS"
+case " $* " in
+  *"https://console.aaditech.net/healthz"*)
+    while [ "$#" -gt 0 ]; do
+      if [ "$1" = '--output' ]; then
+        shift
+        if [ "${FAKE_HEALTH_DEGRADED:-0}" = 1 ]; then
+          printf '%s\n' '{"status":"ok","database":"HEALTHY","components":{"database":"DEGRADED"}}' > "$1"
+        else
+          printf '%s\n' '{"status":"ok","components":{"database":"HEALTHY"}}' > "$1"
+        fi
+        break
+      fi
+      shift
+    done
+    printf '200'
+    ;;
+  *"http://console.aaditech.net/"*)
+    printf '%s %s' "${FAKE_HTTP_STATUS:-301}" "${FAKE_HTTP_DEST:-https://console.aaditech.net/}"
+    ;;
+  *) exit 17 ;;
+esac
+CURL
+chmod 700 "$work/bin/python3" "$work/bin/curl"
+# Calling the verifier directly must require confirmation BEFORE DNS lookup
+# or HTTP traffic, not merely through the higher-level N31 wrapper.
+for consent_args in 'none' 'invalid' 'dry-run-with-live'; do
+  curl_before="$(wc -l < "$CURL_CALLS")"
+  dns_before="$(wc -l < "$DNS_CALLS")"
+  case "$consent_args" in
+    none)
+      if PATH="$work/bin:$PATH" bash "$CHECKER" --host console.aaditech.net >/dev/null 2>&1; then
+        echo '[FAIL] direct live request without confirmation was accepted' >&2; exit 1
+      fi
+      ;;
+    invalid)
+      if PATH="$work/bin:$PATH" bash "$CHECKER" --host console.aaditech.net --confirm-live NOT_APPROVED >/dev/null 2>&1; then
+        echo '[FAIL] direct live request with invalid confirmation accepted' >&2; exit 1
+      fi
+      ;;
+    dry-run-with-live)
+      if PATH="$work/bin:$PATH" bash "$CHECKER" --host console.aaditech.net --dry-run --confirm-live PROBE_PUBLIC_HEALTH >/dev/null 2>&1; then
+        echo '[FAIL] combined dry-run and live confirmation accepted' >&2; exit 1
+      fi
+      ;;
+  esac
+  [ "$(wc -l < "$CURL_CALLS")" -eq "$curl_before" ] ||
+    { echo '[FAIL] HTTP performed without valid live consent' >&2; exit 1; }
+  [ "$(wc -l < "$DNS_CALLS")" -eq "$dns_before" ] ||
+    { echo '[FAIL] DNS lookup performed without valid live consent' >&2; exit 1; }
+done
+PATH="$work/bin:$PATH" bash "$CHECKER" --host console.aaditech.net --confirm-live PROBE_PUBLIC_HEALTH >"$work/output"
+grep -Fq -- '--resolve console.aaditech.net:443:8.8.8.8' "$CURL_CALLS"
+grep -Fq -- '--resolve console.aaditech.net:80:8.8.8.8' "$CURL_CALLS"
+grep -Fq -- '-I ' "$PYTHON_CALLS"
+grep -Fq -- '/validate-public-health.py' "$PYTHON_CALLS"
+[ "$(grep -Fc -- "--noproxy *" "$CURL_CALLS")" -eq 2 ]
+[ "$(grep -Fc -- "-q --silent --show-error" "$CURL_CALLS")" -eq 2 ]
+grep -Fq -- '--max-redirs 0' "$CURL_CALLS"
+grep -Fq 'Public HTTPS' "$work/output" || grep -Fq '[PASS]' "$work/output"
+# Reject deceptive responses with a Location URL but HTTP 200, and any
+# cross-origin redirect (including private/internal redirect targets).
+if FAKE_HTTP_STATUS=200 PATH="$work/bin:$PATH" bash "$CHECKER" --host console.aaditech.net --confirm-live PROBE_PUBLIC_HEALTH >/dev/null 2>&1; then
+  echo '[FAIL] HTTP 200 with Location accepted as a redirect' >&2; exit 1
+fi
+if FAKE_HTTP_DEST='https://127.0.0.1/' PATH="$work/bin:$PATH" bash "$CHECKER" --host console.aaditech.net --confirm-live PROBE_PUBLIC_HEALTH >/dev/null 2>&1; then
+  echo '[FAIL] cross-origin redirect accepted' >&2; exit 1
+fi
+# A response with an enticing top-level database field but an unhealthy
+# authoritative components.database must never be accepted. The fake resolver
+# still returns a public IP; this covers the actual structured parser path.
+if FAKE_HEALTH_DEGRADED=1 PATH="$work/bin:$PATH" bash "$CHECKER" --host console.aaditech.net --confirm-live PROBE_PUBLIC_HEALTH >/dev/null 2>&1; then
+  echo '[FAIL] nested degraded MySQL accepted by real health JSON parser' >&2; exit 1
+fi
+before="$(wc -l < "$CURL_CALLS")"
+if FAKE_DNS_DENY=1 PATH="$work/bin:$PATH" bash "$CHECKER" --host console.aaditech.net --confirm-live PROBE_PUBLIC_HEALTH > /dev/null 2>&1; then
+  echo '[FAIL] DNS refusal did not block public probes' >&2; exit 1
+fi
+[ "$(wc -l < "$CURL_CALLS")" -eq "$before" ] || {
+  echo '[FAIL] curl invoked despite rejected DNS' >&2; exit 1;
+}
+# --dry-run must not consult DNS or make HTTP calls.
+FAKE_DNS_DENY=1 PATH="$work/bin:$PATH" bash "$CHECKER" --host console.aaditech.net --dry-run >/dev/null
+[ "$(wc -l < "$CURL_CALLS")" -eq "$before" ]
+echo 'N37 PASS: only pinned HTTPS/HTTP routes used; untrusted DNS and dry-run never reach curl'

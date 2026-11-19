@@ -1,11 +1,33 @@
 # Phase N — Production release acceptance and sign-off
 
-## Stage N36 — reconciled exclusive-report publication and reserved DNS policy (CODE PROPOSED; PR CI PENDING; PRODUCTION BLOCKED)
+## Stage N37 — public DNS pinning for optional authorized live acceptance (RETARGETED MAIN PR CI GREEN; N37 REVIEW/MERGE PENDING; PRODUCTION BLOCKED)
 
-- [ ] Reconcile old PR #22 on top of accepted Stage N32–N35 without overwriting their runbooks. Use this Stage36 branch; do **not** merge stale/conflicting Stage32 document from #22.
-- [ ] Linux Stage31 concurrent output report writers: only one may create mode-600 report; symlink, collision, and unsafe hostnames must fail closed; Stage14/live Hostinger offline DNS policies agree.
-- [ ] Windows Stage31 CreateNew must refuse existing/late-created report without changing any bytes.
-- [ ] PR/main CI and independent review acceptance: record actual workflow IDs and resulting merge SHA only after they exist. PR Windows MSI is intentionally skipped.
+**Verified pre-retarget code:** N37 isolated-Python security head `ae807fbe5524ef1d96ecb0c78ece311d92fda05a` passed [CI #44389058206](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44389058206) and [safety #44389058159](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44389058159). N36 [PR #27](https://github.com/rehman2671/Aaditech-toolkit-new/pull/27) received a GitHub APPROVED review and **merged** into `main` as `517c8d0b25f645b76fb1a17367301b0443d397a3` (2026-11-18 UTC). N37 [PR #28](https://github.com/rehman2671/Aaditech-toolkit-new/pull/28) is now retargeted directly to `main`, remains **unmerged/review requested**, and must re-pass CI for the new HEAD/base context. Account-level approval alone is not evidence of an independent human security audit.
+
+- [x] N37 offline Python tests reject RFC1918/loopback/link-local/metadata, special-use IPv4/IPv6 and mixed DNS answers (one private answer must block the entire hostname).
+- [x] Mocked curl acceptance requires same validated public IP pinned for HTTPS/HTTP via `--resolve` and `--noproxy '*'`; DNS errors deny any HTTP, dry-run remains network-free.
+- [x] Strict bounded `/healthz` JSON parser must reject duplicate/nested/oversized/malformed or degraded responses and accept only `status=ok` with `components.database=HEALTHY`; do not trust raw grep matches.
+- [x] Direct Hostinger live CLI and Stage31 wrapper require explicit `--confirm-live PROBE_PUBLIC_HEALTH` before DNS/curl; missing/wrong consent and combined dry-run+live are denied without network access.
+- [x] Live curl requests ignore user curlrc with first-argument `-q`; HTTP redirect check requires 301/302/303/307/308 and exact HTTPS-origin match (never accepts HTTP 200 with Location); no redirect is followed.
+- [x] Both live curl subprocesses explicitly clear caller-provided `CURL_CA_BUNDLE`, `SSL_CERT_FILE`, `SSL_CERT_DIR` and `CURL_SSL_BACKEND`; offline mocked tests poison these environment variables and enforce fail-closed isolation. System CA trust **alone** does not establish independent publicly approved certificate issuer/custody.
+- [x] Python DNS and health JSON helpers use `-I` isolated mode; poisoned `PYTHONPATH` test passed in [N37 safety #44389058159](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44389058159).
+- [x] N37 PR deployment-safety plus PowerShell, Node/Vitest and isolated MySQL/API passed on last code commit `ae807fbe5524ef1d96ecb0c78ece311d92fda05a`. **New retargeted commit/context must pass separate CI before N37 acceptance.**
+- [x] N36 GitHub approval/merge recorded, N37 retargeted from stacked N36 branch to `main`.
+- [x] N37 retargeted-to-main head `128280d8c9e9290e13f55537c5b54e3990d5559d` passed [PR CI #44413295997](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44413295997) and [safety #44413296037](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44413296037); PR MSI build skipped.
+- [ ] N37-specific human code review and authorized merge (and new docs-only HEAD CI), without mistaking cross-account approval alone for independent security certification.
+- [ ] Main Windows MSI diagnostic build, install/upgrade acceptance and deployment safety must pass after authorized merges.
+- [ ] Real Hostinger DNS ownership/actual TLS, offsite restore, physical Windows outage and replay, authority keys, public signed MSI and third-party services remain independently pending. Do not confuse synthetic pinned-route CI with actual live acceptance.
+See [Stage37 acceptance](PHASE-N-STAGE37-ACCEPTANCE.md).
+
+## Stage N36 — reconciled exclusive-report publication and reserved DNS policy (GITHUB APPROVED/MERGED; MAIN MSI AND CUSTOMER PRODUCTION PENDING)
+
+- [x] Reconciled old PR #22's safe script/test fixes without overwriting accepted N32–N35 runbooks; stale/conflicting Stage32 document was excluded from merged N36.
+- [x] Linux Stage31 atomic mode-600 report publication and race/symlink/host-policy tests passed on N36 PR CI.
+- [x] Windows Stage31 `CreateNew` report non-overwrite regression passed on N36 PR CI.
+- [x] [N36 PR CI #44304775570](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44304775570) and [PR safety #44304775551](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44304775551) **SUCCESS** for code head `7ea65635239d2013ca8fcea16d4392d33a9d62c3`. PR Windows MSI intentionally **SKIPPED**.
+- [x] Formal GitHub APPROVED review and merge recorded: N36 `517c8d0b25f645b76fb1a17367301b0443d397a3` on 2026-11-18 UTC.
+- [x] N36 post-merge [main CI #44412725232](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44412725232) **4/4 SUCCESS**: EXE/MSI build, administrative extraction, Windows install/uninstall and major-upgrade rehearsal passed; signed production artifact upload **SKIPPED**. [Main safety #44412725281](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44412725281) **2/2 SUCCESS**.
+- [ ] Independent human security review provenance (if the two reviewer/account owners are the same operator), authorized publisher-signing custody and customer production gates remain separately pending.
 - [ ] Hostinger DNS/TLS, real offsite restore, physical enrolled Windows replay, external authority key custody, public signed installer and live integrations remain independently blocked.
 See [Stage36 acceptance](PHASE-N-STAGE36-ACCEPTANCE.md). This does not change any Stage N32–N35 accepted-code/blocked-production conclusions.
 

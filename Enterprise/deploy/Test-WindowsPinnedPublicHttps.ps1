@@ -22,8 +22,11 @@ if (Test-Path -LiteralPath $ReportPath) {
     throw 'Public Windows probe refuses to overwrite existing evidence.'
 }
 
-Import-Module -Name (Join-Path $PSScriptRoot 'PublicWindowsAddressPolicy.psm1') -Force -ErrorAction Stop
+# The pinned transport module imports the N39 policy in its own scope.
+# Re-import N39 last in this script scope so its exported endpoint admission
+# is visible here even when Import-Module -Force updates module sessions.
 Import-Module -Name (Join-Path $PSScriptRoot 'PublicWindowsPinnedTls.psm1') -Force -ErrorAction Stop
+Import-Module -Name (Join-Path $PSScriptRoot 'PublicWindowsAddressPolicy.psm1') -Force -ErrorAction Stop
 Import-Module -Name (Join-Path $PSScriptRoot 'ValidateWindowsHealthJson.psm1') -Force -ErrorAction Stop
 
 $mode = if ($DryRun) { 'OFFLINE_DRY_RUN' } else { 'OPERATOR_CONFIRMED_LIVE' }

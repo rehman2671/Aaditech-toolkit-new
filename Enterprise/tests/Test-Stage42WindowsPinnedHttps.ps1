@@ -88,7 +88,19 @@ try {
 
     $output = @(& $runner @baseArgs '-DryRun' 2>&1 | Out-String)
     if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $report -PathType Leaf)) {
-        throw 'Offline N42 operator dry run failed.'
+        $diagnostic = ($output -join '')
+        if ($diagnostic.Contains($secret) -or $diagnostic.Contains($hostname)) {
+            throw 'N42 dry run leaked configured URL or token to process output.'
+        }
+        $safeCategory = if ($diagnostic -match 'NamedParameterNotFound') { 'PARAMETER' }
+            elseif ($diagnostic -match 'Import-Module') { 'IMPORT' }
+            elseif ($diagnostic -match 'ConvertFrom-Json') { 'CONFIG_JSON' }
+            elseif ($diagnostic -match 'parameter cannot be found') { 'PARAMETER' }
+            elseif ($diagnostic -match 'Cannot find') { 'MISSING_RESOURCE' }
+            elseif ($diagnostic -match 'Access to the path') { 'FILE_ACCESS' }
+            elseif ($diagnostic -match 'TerminatingError') { 'TERMINATING_ERROR' }
+            else { 'OTHER' }
+        throw "Offline N42 operator dry run failed; exit=$LASTEXITCODE; reportPresent=$(Test-Path -LiteralPath $report); category=$safeCategory."
     }
     $raw = [IO.File]::ReadAllText($report)
     $obj = $raw | ConvertFrom-Json -ErrorAction Stop

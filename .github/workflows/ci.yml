@@ -87,6 +87,9 @@ jobs:
       - name: N39 Windows public DNS policy rejects private/mixed addresses offline
         run: pwsh -NoProfile -File ./Enterprise/tests/Test-Stage39WindowsPublicAddressPolicy.ps1
 
+      - name: N40 Windows HTTPS endpoint admission rejects unsafe origins offline
+        run: pwsh -NoProfile -File ./Enterprise/tests/Test-Stage40WindowsEndpointPreflight.ps1
+
 
       - name: N31 release publication requires independently approved source and MSI pins
         run: pwsh -NoProfile -File ./Enterprise/tests/Test-Stage31PublicationPins.ps1

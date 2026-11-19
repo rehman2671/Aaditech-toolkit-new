@@ -28,6 +28,7 @@ Import-Module -Name (Join-Path $PSScriptRoot 'ValidateWindowsHealthJson.psm1') -
 
 $mode = if ($DryRun) { 'OFFLINE_DRY_RUN' } else { 'OPERATOR_CONFIRMED_LIVE' }
 $state = 'BLOCKED'
+$phase = 'LOAD_CONFIGURATION'
 $temporaryDirectory = $null
 $originalEnv = @{}
 $clearEnv = @(
@@ -40,12 +41,15 @@ try {
     $config = Get-Content -LiteralPath $ConfigPath -Raw -ErrorAction Stop |
         ConvertFrom-Json -ErrorAction Stop
     if ($config.needs_setup -ne $false) { throw 'Agent setup is incomplete.' }
+    $phase = 'VALIDATE_ENDPOINT'
     $endpoint = [string]$config.endpoint
     $origin = Test-PublicWindowsEndpointOrigin -Endpoint $endpoint
     if ($DryRun) {
+        $phase = 'OFFLINE_DRY_RUN'
         # Dry run is a syntax check only; zero DNS/HTTP and no curl invocation.
         $state = 'PENDING'
     } else {
+        $phase = 'LIVE_DNS'
         if ($env:OS -cne 'Windows_NT') { throw 'Windows host required.' }
         $dnsHost = $origin.Substring('https://'.Length)
 
@@ -62,6 +66,7 @@ try {
 
         # Only use OS-owned curl. Fake curl.exe earlier in PATH must never
         # intercept customer traffic or replace hostname TLS verification.
+        $phase = 'VALIDATE_CURL'
         $curl = Join-Path ([Environment]::SystemDirectory) 'curl.exe'
         if (-not (Test-Path -LiteralPath $curl -PathType Leaf)) {
             throw 'Trusted Windows curl unavailable.'
@@ -81,6 +86,7 @@ try {
         }
         # Require Schannel native root trust, not arbitrary curl build/config.
         # System CA trust is NOT independent public-CA custody evidence.
+        $phase = 'VALIDATE_TLS_BACKEND'
         $version = @(& $curl -q --version 2>$null)
         if ($LASTEXITCODE -ne 0 -or
             @($version | Where-Object { $_ -match 'Schannel' }).Count -lt 1) {
@@ -89,6 +95,7 @@ try {
 
         # Fixed HTTPS GET only; -q ignores user curlrc, --resolve pins checked
         # IP while HTTPS URL retains TLS hostname/SNI. No redirect or proxy.
+        $phase = 'HTTPS_TRANSFER'
         $httpStatus = @(& $curl @curlArguments 2>$null)
         if ($LASTEXITCODE -ne 0 -or
             $httpStatus.Count -ne 1 -or [string]$httpStatus[0] -cne '200' -or
@@ -100,6 +107,7 @@ try {
         if ($responseBytes.Length -eq 0 -or $responseBytes.Length -gt 65536) {
             throw 'Health response size refused.'
         }
+        $phase = 'VALIDATE_HEALTH_JSON'
         $null = Assert-PublicWindowsHealthJson -JsonUtf8 $responseBytes
         $state = 'PASS'
     }
@@ -127,6 +135,7 @@ $report = [pscustomobject]@{
     timestamp_utc = [DateTime]::UtcNow.ToString('o')
     mode = $mode
     https_health_probe = $state
+    diagnostic_phase = if ($state -eq 'BLOCKED') { $phase } else { 'NONE' }
     certified_for_production = $false
     physical_lost_ack = 'PENDING'
     public_publisher_signed_msi = 'PENDING'

@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-19T11:41:53+00:00",
-  "last_verified_commit": "871f2e3900aae26f2abe4d9d9a93544700243c0f",
-  "last_verified_date": "2026-11-19T17:11:39+05:30",
+  "generated": "2026-11-19T11:46:18+00:00",
+  "last_verified_commit": "d54325c9323a02152272ceb8f4c35be86fcf2767",
+  "last_verified_date": "2026-11-19T17:16:05+05:30",
   "overall_progress_percent": 100.0,
   "progress_scope": "historic audit issue closure only; production acceptance pending",
   "production_ready": false,
@@ -14,26 +14,12 @@
     "percent": 100.0
   },
   "latest_delta": {
-    "added": 6,
+    "added": 2,
     "removed": 0,
-    "changed": 4,
-    "unchanged": 351
+    "changed": 3,
+    "unchanged": 358
   },
   "delta_history": [
-    {
-      "detected_at": "2026-11-16T23:47:11+00:00",
-      "added": [
-        "tests/unit/workspace-resource-boundaries-stage18.test.js",
-        "Enterprise/deploy/PHASE-N-STAGE18-ACCEPTANCE.md"
-      ],
-      "removed": [],
-      "changed": [
-        "db.js",
-        "server.js",
-        "tests/integration/server.integration.test.js"
-      ],
-      "unchanged_count": 284
-    },
     {
       "detected_at": "2026-11-17T00:36:35+00:00",
       "added": [
@@ -468,6 +454,20 @@
         "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md"
       ],
       "unchanged_count": 351
+    },
+    {
+      "detected_at": "2026-11-19T11:46:18+00:00",
+      "added": [
+        "Enterprise/deploy/PHASE-N-STAGE38-ACCEPTANCE.md",
+        "Enterprise/tests/Test-Stage38WindowsNetworkProbe.ps1"
+      ],
+      "removed": [],
+      "changed": [
+        "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md",
+        ".github/workflows/ci.yml",
+        "Enterprise/tests/Test-CustomerWindowsAcceptance.ps1"
+      ],
+      "unchanged_count": 358
     }
   ],
   "next_recommended_tasks": [

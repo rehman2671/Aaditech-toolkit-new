@@ -1,34 +1,29 @@
 {
   "state_version": "1.0",
   "path": "project-state.json",
-  "generated": "2026-11-19T11:41:53+00:00",
+  "generated": "2026-11-19T11:46:18+00:00",
   "phase": "PHASE N STAGE 4 / PRODUCTION ACCEPTANCE IN PROGRESS",
-  "last_verified_commit": "871f2e3900aae26f2abe4d9d9a93544700243c0f",
-  "last_verified_date": "2026-11-19T17:11:39+05:30",
+  "last_verified_commit": "d54325c9323a02152272ceb8f4c35be86fcf2767",
+  "last_verified_date": "2026-11-19T17:16:05+05:30",
   "git": {
     "branch": "main",
     "commit_count": 1,
     "clean_working_tree": true,
-    "head": "871f2e3900aae26f2abe4d9d9a93544700243c0f"
+    "head": "d54325c9323a02152272ceb8f4c35be86fcf2767"
   },
   "latest_delta": {
-    "detected_at": "2026-11-19T11:41:53+00:00",
+    "detected_at": "2026-11-19T11:46:18+00:00",
     "added": [
-      "Enterprise/deploy/resolve-public-host.py",
-      "Enterprise/deploy/validate-public-health.py",
-      "Enterprise/deploy/PHASE-N-STAGE37-ACCEPTANCE.md",
-      "Enterprise/tests/test_public_dns_resolution.py",
-      "Enterprise/tests/Test-Stage37PinnedPublicDns.sh",
-      "Enterprise/tests/test_public_health_json.py"
+      "Enterprise/deploy/PHASE-N-STAGE38-ACCEPTANCE.md",
+      "Enterprise/tests/Test-Stage38WindowsNetworkProbe.ps1"
     ],
     "removed": [],
     "changed": [
-      "Enterprise/deploy/preflight-stage31.sh",
-      "Enterprise/deploy/verify-hostinger-acceptance.sh",
-      ".github/workflows/deployment-safety.yml",
-      "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md"
+      "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md",
+      ".github/workflows/ci.yml",
+      "Enterprise/tests/Test-CustomerWindowsAcceptance.ps1"
     ],
-    "unchanged_count": 351
+    "unchanged_count": 358
   },
   "production_ready": false,
   "acceptance_gates": [

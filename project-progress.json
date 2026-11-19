@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-19T11:46:18+00:00",
-  "last_verified_commit": "d54325c9323a02152272ceb8f4c35be86fcf2767",
-  "last_verified_date": "2026-11-19T17:16:05+05:30",
+  "generated": "2026-11-19T17:18:06+00:00",
+  "last_verified_commit": "96adb26a73c8a7dd74c7c20336a62c8fed12deca",
+  "last_verified_date": "2026-11-19T22:47:56+05:30",
   "overall_progress_percent": 100.0,
   "progress_scope": "historic audit issue closure only; production acceptance pending",
   "production_ready": false,
@@ -14,41 +14,12 @@
     "percent": 100.0
   },
   "latest_delta": {
-    "added": 2,
+    "added": 3,
     "removed": 0,
-    "changed": 3,
-    "unchanged": 358
+    "changed": 2,
+    "unchanged": 361
   },
   "delta_history": [
-    {
-      "detected_at": "2026-11-17T00:36:35+00:00",
-      "added": [
-        "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md",
-        "Enterprise/deploy/PHASE-N-STAGE19-ACCEPTANCE.md",
-        "database/migrations/007_scrub_legacy_github_pat.sql",
-        "github-build-release.js",
-        "tests/unit/github-build-release-stage19.test.js"
-      ],
-      "removed": [],
-      "changed": [
-        "Enterprise/deploy/PHASE-N-STAGE17-ACCEPTANCE.md",
-        "Enterprise/deploy/PHASE-N-STAGE18-ACCEPTANCE.md",
-        "Enterprise/portal/index.html",
-        "database/migrations/README.md",
-        "server.js",
-        "Enterprise/docker-compose.yml",
-        "test-migrations-runner.js",
-        "db.js",
-        "tests/integration/server.integration.test.js",
-        "docs/assessment/RELEASE-READINESS.md",
-        "docs/assessment/GAP-REGISTER.md",
-        "validation.js",
-        "docs/assessment/TEST-RESULTS.md",
-        "Enterprise/.env.example",
-        "CHANGELOG.md"
-      ],
-      "unchanged_count": 274
-    },
     {
       "detected_at": "2026-11-17T00:42:16+00:00",
       "added": [
@@ -468,6 +439,20 @@
         "Enterprise/tests/Test-CustomerWindowsAcceptance.ps1"
       ],
       "unchanged_count": 358
+    },
+    {
+      "detected_at": "2026-11-19T17:18:06+00:00",
+      "added": [
+        "Enterprise/tests/Test-Stage39WindowsPublicAddressPolicy.ps1",
+        "Enterprise/deploy/PublicWindowsAddressPolicy.psm1",
+        "Enterprise/deploy/PHASE-N-STAGE39-ACCEPTANCE.md"
+      ],
+      "removed": [],
+      "changed": [
+        ".github/workflows/ci.yml",
+        "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md"
+      ],
+      "unchanged_count": 361
     }
   ],
   "next_recommended_tasks": [

@@ -79,21 +79,17 @@ if (-not $ApprovedPublisherThumbprint) {
     Add-Check 'publisher' 'PASS' 'Trusted timestamped Authenticode EXE publisher.'
   } catch { Add-Check 'publisher' 'BLOCKED' 'Signed EXE publisher verification failed.' }
 }
-if (-not $NetworkProbe) {
-  Add-Check 'public_https' 'PENDING' 'No network probe performed; opt in using -NetworkProbe.'
-} elseif (-not $origin) {
-  Add-Check 'public_https' 'BLOCKED' 'No configured HTTPS origin.'
+# N38 protective stop: the previous PowerShell HTTP helper performed
+# a second, unpinned DNS resolution and could follow a redirect to an internal
+# address despite a syntactically valid HTTPS configuration. Until a
+# separately reviewed, authenticated and connection-pinned Windows transport
+# exists, NEVER execute HTTP or DNS from this customer acceptance script.
+# The N37 Hostinger checker is a separate operator-authorized Linux workflow,
+# not evidence that the Windows endpoint probe is safe or certified.
+if ($NetworkProbe) {
+  Add-Check 'public_https' 'BLOCKED' 'Windows live probe disabled: DNS pinning, no-redirect transport and independent approval required.'
 } else {
-  try {
-    $hostUri = [uri]$origin; $parsed = $null
-    if ($hostUri.Host -match '(?i)(^localhost$|\.local$|\.test$|\.invalid$|\.example$)' -or
-        [System.Net.IPAddress]::TryParse($hostUri.Host,[ref]$parsed)) { throw 'Not public DNS' }
-    $health = Invoke-RestMethod -Uri ($origin+'/healthz') -TimeoutSec 12 -ErrorAction Stop
-    if ($health.status -ne 'ok' -or $health.components.database -ne 'HEALTHY') {
-      throw 'Unhealthy HTTPS/MySQL'
-    }
-    Add-Check 'public_https' 'PASS' 'Anonymous HTTPS health returned healthy persistent MySQL.'
-  } catch { Add-Check 'public_https' 'BLOCKED' 'Live TLS/health failed or host not public.' }
+  Add-Check 'public_https' 'PENDING' 'No network probe performed; Windows live path disabled pending secured transport certification.'
 }
 Add-Check 'physical_lost_ack' 'PENDING' 'Operator must witness offline/reconnect duplicate-free server ACK.'
 Add-Check 'offsite_restore' 'PENDING' 'Customer encrypted backup and offsite restore need independent approval.'

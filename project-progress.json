@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-18T22:33:50+00:00",
-  "last_verified_commit": "517c8d0b25f645b76fb1a17367301b0443d397a3",
-  "last_verified_date": "2026-11-19T04:03:36+05:30",
+  "generated": "2026-11-19T11:41:53+00:00",
+  "last_verified_commit": "871f2e3900aae26f2abe4d9d9a93544700243c0f",
+  "last_verified_date": "2026-11-19T17:11:39+05:30",
   "overall_progress_percent": 100.0,
   "progress_scope": "historic audit issue closure only; production acceptance pending",
   "production_ready": false,
@@ -14,40 +14,12 @@
     "percent": 100.0
   },
   "latest_delta": {
-    "added": 1,
+    "added": 6,
     "removed": 0,
-    "changed": 12,
-    "unchanged": 342
+    "changed": 4,
+    "unchanged": 351
   },
   "delta_history": [
-    {
-      "detected_at": "2026-11-16T23:40:57+00:00",
-      "added": [
-        "Enterprise/deploy/PHASE-N-STAGE17-ACCEPTANCE.md",
-        "database/migrations/005_remediation_tenant_logs.sql",
-        "notification-outbox.js",
-        "tests/unit/remediation-tenant-stage17.test.js",
-        "database/migrations/006_notification_outbox.sql",
-        "tests/unit/notification-outbox-stage17.test.js"
-      ],
-      "removed": [],
-      "changed": [
-        "CHANGELOG.md",
-        "test-migrations-runner.js",
-        "server.js",
-        "Enterprise/deploy/PHASE-N-STAGE16-ACCEPTANCE.md",
-        "tests/unit/db.unit.test.js",
-        "validation.js",
-        "docs/assessment/RELEASE-READINESS.md",
-        "db.js",
-        "docs/assessment/TEST-RESULTS.md",
-        "docs/assessment/GAP-REGISTER.md",
-        "database/mysql/schema.sql",
-        "tests/unit/tenant-alert-safety-stage15.test.js",
-        "tenant-alert-safety.js"
-      ],
-      "unchanged_count": 268
-    },
     {
       "detected_at": "2026-11-16T23:47:11+00:00",
       "added": [
@@ -477,6 +449,25 @@
         "Enterprise/deploy/verify-hostinger-acceptance.sh"
       ],
       "unchanged_count": 342
+    },
+    {
+      "detected_at": "2026-11-19T11:41:53+00:00",
+      "added": [
+        "Enterprise/deploy/resolve-public-host.py",
+        "Enterprise/deploy/validate-public-health.py",
+        "Enterprise/deploy/PHASE-N-STAGE37-ACCEPTANCE.md",
+        "Enterprise/tests/test_public_dns_resolution.py",
+        "Enterprise/tests/Test-Stage37PinnedPublicDns.sh",
+        "Enterprise/tests/test_public_health_json.py"
+      ],
+      "removed": [],
+      "changed": [
+        "Enterprise/deploy/preflight-stage31.sh",
+        "Enterprise/deploy/verify-hostinger-acceptance.sh",
+        ".github/workflows/deployment-safety.yml",
+        "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md"
+      ],
+      "unchanged_count": 351
     }
   ],
   "next_recommended_tasks": [

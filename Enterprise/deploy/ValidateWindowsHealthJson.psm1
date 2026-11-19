@@ -18,6 +18,11 @@ function Assert-PublicWindowsHealthJson {
         if ($body.Length -eq 0 -or $body[0] -eq [char]0xfeff) {
             throw 'Encoding invalid.'
         }
+        # Windows ConvertFrom-Json may unwrap single-element JSON arrays into
+        # a PSCustomObject. Require a true JSON object *before* parsing.
+        if (-not $body.TrimStart().StartsWith('{', [StringComparison]::Ordinal)) {
+            throw 'Health root must be a JSON object.'
+        }
 
         # ConvertFrom-Json on Windows PowerShell 5.1 does not guarantee
         # duplicate-key rejection. Before parsing, walk quoted string tokens
@@ -79,6 +84,15 @@ function Assert-PublicWindowsHealthJson {
                     $frames.RemoveAt($frames.Count - 1)
                 }
                 ',' {
+                    # Newtonsoft/PowerShell JSON parsers can accept a trailing
+                    # comma; RFC 8259 cannot. Never delegate this to a parser.
+                    $next = $i + 1
+                    while ($next -lt $body.Length -and [char]::IsWhiteSpace($body[$next])) {
+                        $next++
+                    }
+                    if ($next -ge $body.Length -or $body[$next] -eq '}' -or $body[$next] -eq ']') {
+                        throw 'Trailing JSON comma.'
+                    }
                     if ($frames.Count -gt 0) {
                         $frame = $frames[$frames.Count - 1]
                         if ($frame.kind -ceq 'object') { $frame.expectKey = $true }

@@ -93,6 +93,10 @@ jobs:
       - name: N41 Windows health response rejects ambiguous and degraded JSON offline
         run: pwsh -NoProfile -File ./Enterprise/tests/Test-Stage41WindowsHealthJson.ps1
 
+      - name: N41 verify compatibility with actual Windows PowerShell 5.1
+        shell: powershell
+        run: ./Enterprise/tests/Test-Stage41WindowsHealthJson.ps1
+
 
       - name: N31 release publication requires independently approved source and MSI pins
         run: pwsh -NoProfile -File ./Enterprise/tests/Test-Stage31PublicationPins.ps1

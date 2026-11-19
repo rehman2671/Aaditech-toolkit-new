@@ -32,7 +32,7 @@ function Assert-Denied {
     if (-not $refused) { throw 'Ambiguous, malformed or degraded health JSON was accepted.' }
 }
 function Assert-JsonDenied {
-    param([Parameter(Mandatory=$true)][string]$InputJson)
+    param([Parameter(Mandatory=$true)][AllowEmptyString()][string]$InputJson)
     Assert-Denied -Bytes ($utf8.GetBytes($InputJson))
 }
 

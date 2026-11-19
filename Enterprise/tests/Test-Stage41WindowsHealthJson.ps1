@@ -14,12 +14,12 @@ Import-Module -Name $policy -Force -ErrorAction Stop
 $utf8 = [System.Text.UTF8Encoding]::new($false, $true)
 
 function Assert-Accepted {
-    param([Parameter(Mandatory=$true)][string]$InputJson)
+    param([Parameter(Mandatory=$true)][AllowEmptyString()][string]$InputJson)
     $result = Assert-PublicWindowsHealthJson -JsonUtf8 ($utf8.GetBytes($InputJson)) -ErrorAction Stop
     if ($result -ne $true) { throw 'Healthy JSON was not positively validated.' }
 }
 function Assert-Denied {
-    param([Parameter(Mandatory=$true)][byte[]]$Bytes)
+    param([Parameter(Mandatory=$true)][AllowEmptyCollection()][byte[]]$Bytes)
     $refused = $false
     try {
         $null = Assert-PublicWindowsHealthJson -JsonUtf8 $Bytes -ErrorAction Stop

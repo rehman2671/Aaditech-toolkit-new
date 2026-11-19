@@ -1,13 +1,13 @@
 # Phase N Stage 38 — Fail-Closed Customer Windows Live-Probe Mitigation
 
-**Status: N36/N37 MERGED INTO MAIN; N38 SAFETY PATCH RECONCILED ON MAIN VIA PR #31; FRESH PR CI / MAIN MSI PENDING; CUSTOMER PRODUCTION NOT APPROVED (2026-11-19 IST).**
+**Status: N38 MERGED INTO MAIN; PR CI AND MAIN WINDOWS MSI DIAGNOSTICS PASSED; EXTERNAL CUSTOMER PRODUCTION NOT APPROVED (verified 2026-11-19 IST).**
 
 ## CI evidence (not customer acceptance)
 
 - [N38 reconciled PR #31](https://github.com/rehman2671/Aaditech-toolkit-new/pull/31) rebases the **five scoped N38 changes** onto the latest main after [N37 PR #28](https://github.com/rehman2671/Aaditech-toolkit-new/pull/28) merged at `871f2e3900aae26f2abe4d9d9a93544700243c0f`. It replaces the now-conflicted [original PR #30](https://github.com/rehman2671/Aaditech-toolkit-new/pull/30) without overwriting accepted N37 DNS/health/security controls.
 - [Full PR CI #44405914078](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44405914078): **SUCCESS**, Windows PowerShell (including N38 regression), Node/Vitest+MySQL 8 and isolated API/MySQL 8; the genuine Windows EXE/MSI build is **SKIPPED** on pull requests.
 - [Deployment safety #44405914047](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44405914047): **SUCCESS 2/2** (offline preflights and isolated MySQL backup/restore).
-- Prior #30 CI evidence above establishes the fail-closed mitigation on the **old base**, not a new #31 pass. Verify **fresh #31 CI and deployment safety** before main merge and check **post-merge main MSI diagnostics** separately. This is an owner-authorized workflow and must not be misrepresented as independent human security review.
+- The original #30 checks were on an old base; clean [replacement #31](https://github.com/rehman2671/Aaditech-toolkit-new/pull/31) passed [PR CI #44517374529](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44517374529) **3/3** and [safety #44517374643](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44517374643) **2/2**, then merged as `d54325c9323a02152272ceb8f4c35be86fcf2767`. [Post-merge main CI #44517752267](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44517752267) passed **4/4** including Windows agent EXE/MSI build, administrative extraction, actual Windows-runner install/uninstall and major-upgrade rehearsal; [main safety #44517752316](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44517752316) passed **2/2**. The publisher-signed public release artifact upload was **SKIPPED**. This owner-authorized merge is not a human independent security review or external customer certification.
 - The tests establish **refusal of unsafe network access**, not successful secure live Windows HTTPS or physical customer certification.
 
 Related tracking: [Issue #29](https://github.com/rehman2671/Aaditech-toolkit-new/issues/29).
@@ -39,8 +39,8 @@ attempted by either path. The report always preserves
 - [x] Both cases create redacted, unoverwriteable and non-certified reports;
       no synthetic secret or host is printed.
 - [x] Original N38 #30 CI and isolated MySQL API tests passed on the older N37 base.
-- [ ] Reconciled N38 #31 CI and deployment safety pass on the latest main-based head.
-- [ ] Post-merge main Windows MSI build, installer install/uninstall and upgrade validation pass; externally authorized signing and customer acceptance remain separate.
+- [x] Reconciled N38 #31 PR CI and deployment safety passed before owner-authorized merge.
+- [x] N38 post-merge main Windows MSI diagnostic build, installer install/uninstall and major-upgrade validations passed (production signed artifact upload remained SKIPPED).
 - [ ] Independent human security assessment is not yet evidenced by cross-account approvals.
 
 ## What is intentionally NOT done

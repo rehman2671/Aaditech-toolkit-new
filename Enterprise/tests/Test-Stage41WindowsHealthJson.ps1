@@ -42,6 +42,7 @@ Assert-Accepted -InputJson '{"components":{"database":"HEALTHY"},"status":"ok"}'
 Assert-Accepted -InputJson '{"st\u0061tus":"ok","components":{"dat\u0061base":"HEALTHY"}}'
 
 # Exact required fields, types and health values cannot be spoofed.
+$invalidIndex = 0
 foreach ($invalid in @(
     '{}',
     '{"status":"ok"}',
@@ -76,7 +77,9 @@ foreach ($invalid in @(
     '[]',
     ''
 )) {
-    Assert-JsonDenied -InputJson $invalid
+    try { Assert-JsonDenied -InputJson $invalid }
+    catch { throw "N41 negative health fixture index $invalidIndex failed to deny safely." }
+    $invalidIndex++
 }
 
 # Byte-level payload boundary, UTF-8 BOM, malformed sequences, control chars.

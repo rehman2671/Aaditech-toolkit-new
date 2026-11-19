@@ -1,6 +1,6 @@
 # Phase N Stage 39 — Windows Public Address Policy (Offline-Only)
 
-**Status: CODE PROPOSED; NEW PR CI PENDING; N38 MAIN DIAGNOSTIC TESTS PASSED; CUSTOMER PRODUCTION NOT APPROVED (2026-11-19 IST).**
+**Status: MERGED; N39 MAIN CI/MSI 4/4 AND DEPLOYMENT SAFETY 2/2 PASSED; CUSTOMER PRODUCTION NOT APPROVED (verified 2026-11-20 IST).**
 
 ## Purpose
 
@@ -12,9 +12,9 @@ Issue [#29](https://github.com/rehman2671/Aaditech-toolkit-new/issues/29) tracks
 
 ## Verification and limits
 
-- [ ] Offline Windows negative tests pass against the exact PR SHA.
-- [ ] PowerShell, Node/Vitest+MySQL and real isolated API/MySQL regression pass; deployment-safety 2/2.
-- [ ] Maintainer-authorized merge and **post-merge main Windows MSI** diagnostic lifecycle checks pass.
+- [x] Offline Windows negative tests passed against the merged PR SHA.
+- [x] PowerShell, Node/Vitest+MySQL and real isolated API/MySQL regression passed; deployment-safety 2/2.
+- [x] Maintainer-authorized merge and **post-merge main Windows MSI** diagnostic lifecycle checks passed.
 - [ ] Independent human security inspection of special-use IP ranges and platform support.
 - [ ] A separate future Windows native transport provides explicit live operator consent; DNS all-answer validation; hostname-verified TLS with a **connection-time pinned IP**; no proxies or redirects; bounded unambiguous health JSON; refusal/redaction tests and real customer acceptance.
 
@@ -23,3 +23,17 @@ Issue [#29](https://github.com/rehman2671/Aaditech-toolkit-new/issues/29) tracks
 N38 merged at `d54325c9323a02152272ceb8f4c35be86fcf2767`; [main CI #44517752267](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44517752267) passed **4/4** including Windows MSI build/extraction/install/uninstall/major upgrade; [main safety #44517752316](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44517752316) passed **2/2**. Publisher-signed release upload was **SKIPPED**.
 
 **Production: NOT APPROVED.**
+
+## N39 post-merge verification (not customer acceptance)
+
+[PR #32](https://github.com/rehman2671/Aaditech-toolkit-new/pull/32) merged
+at `96adb26a73c8a7dd74c7c20336a62c8fed12deca` (2026-11-19 UTC).
+[Main CI #44575659496](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44575659496)
+passed **4/4** including Windows MSI build, extraction, install/uninstall and
+major upgrade; [main deployment safety #44575659160](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44575659160)
+passed **2/2**. Public publisher-signed artifact publication was not evidenced.
+A maintainer-authorized merge and passing synthetic CI are not an independent
+human security assessment or actual customer DNS/TLS/production acceptance.
+
+Next: [N40 offline Windows HTTPS endpoint admission](PHASE-N-STAGE40-ACCEPTANCE.md)
+reuses this policy without enabling live Windows network probes.

@@ -1,6 +1,6 @@
 # Phase N Stage 40 — Offline Windows HTTPS Endpoint Admission
 
-**Status: CODE PROPOSED; PR CI NOT YET VERIFIED; CUSTOMER PRODUCTION NOT APPROVED (2026-11-20 IST).**
+**Status: MERGED; POST-MERGE MAIN WINDOWS MSI CI 4/4 AND SAFETY 2/2 GREEN; CUSTOMER PRODUCTION NOT APPROVED (verified 2026-11-20 IST).**
 
 ## Scope and exact boundary
 
@@ -33,10 +33,10 @@ live probe had actually contacted such an endpoint.
 
 ## Required verification
 
-- [ ] New N40 PowerShell policy and integration regression pass on the exact PR SHA.
-- [ ] N31/N38/N39, Node/Vitest/MySQL, API/MySQL and deployment-safety PR CI pass.
-- [ ] Maintainer-authorized merge and post-merge main Windows MSI build,
-      extraction, install/uninstall and major-upgrade jobs pass.
+- [x] N40 PowerShell policy and integration regression passed on exact merged PR SHA.
+- [x] N31/N38/N39, Node/Vitest/MySQL, API/MySQL and deployment-safety PR CI passed.
+- [x] Maintainer-authorized merge and post-merge main Windows MSI build,
+      extraction, install/uninstall and major-upgrade jobs passed.
 - [ ] Independent security review and actual external customer acceptance.
 
 ## Non-claims and external blockers
@@ -62,3 +62,17 @@ passed **4/4** including genuine Windows MSI diagnostics.
 [Main deployment safety](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44575659160)
 passed **2/2**. This is synthetic diagnostic evidence, not public signing,
 customer live-host evidence, or an independent security review.
+
+## N40 post-merge CI verification (diagnostic only)
+
+[PR #34](https://github.com/rehman2671/Aaditech-toolkit-new/pull/34)
+merged as `4a568f3bd083d91b8b363143e7ab43814004abfd`.
+[Main CI #44633379380](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44633379380)
+passed **4/4** including genuine Windows EXE/MSI build, extraction,
+install/uninstall and major-upgrade lifecycle rehearsal.
+[Main deployment safety #44633379367](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44633379367)
+passed **2/2** isolated Linux backup/restore safeguards. Publisher-signed
+artifact publication was not evidenced; real customer authority and
+independent human security approval are still external requirements.
+
+Next: [Stage N41 offline public health JSON validator](PHASE-N-STAGE41-ACCEPTANCE.md).

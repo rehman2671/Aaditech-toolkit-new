@@ -5,7 +5,7 @@ Set-StrictMode -Version Latest
 
 function Assert-PublicWindowsHealthJson {
     [CmdletBinding()]
-    param([Parameter(Mandatory=$true)][byte[]]$JsonUtf8)
+    param([Parameter(Mandatory=$true)][AllowEmptyCollection()][byte[]]$JsonUtf8)
 
     try {
         if ($JsonUtf8.Length -eq 0 -or $JsonUtf8.Length -gt 65536) {

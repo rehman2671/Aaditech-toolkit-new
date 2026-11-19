@@ -1,6 +1,6 @@
 # Phase N Stage 41 — Offline Windows Public Health JSON Validation
 
-**Status: CODE PROPOSED; FRESH PR CI NOT YET VERIFIED; CUSTOMER PRODUCTION NOT APPROVED (2026-11-20 IST).**
+**Status: MERGED; POST-MERGE MAIN WINDOWS MSI CI 4/4 AND DEPLOYMENT SAFETY 2/2 GREEN; CUSTOMER PRODUCTION NOT APPROVED (verified 2026-11-20 IST).**
 
 ## Why
 
@@ -35,10 +35,10 @@ keys or misleading nested `status`/`database` values.
 
 ## Required CI and external acceptance
 
-- [ ] PR Windows PowerShell N41 (plus N31/N38/N39/N40), Node/Vitest,
-      API/MySQL and deployment-safety checks green on the **exact** head SHA.
-- [ ] Authorized merge and post-merge main Windows EXE/MSI diagnostic
-      build/extraction/install/uninstall/major-upgrade 4/4, safety 2/2 recorded.
+- [x] PR Windows PowerShell 7 **and Windows PowerShell 5.1** N41 (plus N31/N38/N39/N40), Node/Vitest,
+      API/MySQL and deployment-safety checks GREEN on exact head SHA `fbfc6a24e387e5c6a7e2e31fd6ad68fc3851d7f3`.
+- [x] Maintainer-authorized PR #35 merge and post-merge main Windows EXE/MSI diagnostic
+      build/extraction/install/uninstall/major-upgrade passed 4/4, safety 2/2 recorded.
 - [ ] Independent human security review of the lexical duplicate-key scanner
       and supported Windows PowerShell/.NET versions.
 - [ ] Future explicit operator consent, full public DNS validation, pinned
@@ -66,3 +66,18 @@ and MSI build, extraction, install/uninstall and major upgrade);
 [main deployment safety #44633379367](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44633379367)
 passed **2/2**. A green main CI is **not** a public signed MSI release or
 customer-authorized physical and Hostinger production certification.
+
+## N41 verified code and main diagnostics (not external customer acceptance)
+
+[PR #35](https://github.com/rehman2671/Aaditech-toolkit-new/pull/35) merged as
+`dcf11a6aae4d33aa4325bb3a43c414debe5402a6` after N41 direct Windows
+PowerShell 7 **and 5.1** regression, Node/Vitest+MySQL, real isolated
+API/MySQL and deployment-safety PR checks passed on exact source SHA
+`fbfc6a24e387e5c6a7e2e31fd6ad68fc3851d7f3`.
+[Main CI #44637613809](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44637613809)
+passed **4/4** including Windows EXE/MSI build, administrative extraction,
+fresh install/uninstall and tenant-preserving major upgrade;
+[main deployment safety #44637613893](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44637613893)
+passed **2/2**. Production signing/publishing, independent human security
+approval, real Hostinger DNS/TLS and physical Windows replay remain separate
+unmet conditions. This stage **does not** enable any live network probe.

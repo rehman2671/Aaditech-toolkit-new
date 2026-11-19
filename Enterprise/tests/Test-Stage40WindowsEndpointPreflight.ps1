@@ -31,7 +31,7 @@ $badUrls = @(
     "https://$goodHost/api/v1/ingest/%74elemetry",
     "https://$goodHost/other/path",
     "https://$goodHost./api/v1/ingest/telemetry",
-    "https://$goodHost$telemetry" + [char]10,
+    "https://${goodHost}${telemetry}`n",
     " https://$goodHost$telemetry"
 )
 for ($fixtureIndex = 0; $fixtureIndex -lt $badUrls.Count; $fixtureIndex++) {

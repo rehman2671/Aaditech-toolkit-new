@@ -1,5 +1,15 @@
 # Phase N — Production release acceptance and sign-off
 
+## Stage N42 — separately approved, pinned Windows public HTTPS diagnostic (CODE PROPOSED; PR CI PENDING; PRODUCTION BLOCKED)
+
+- [ ] Optional `Test-WindowsPinnedPublicHttps.ps1` requires explicit `-ConfirmLive PROBE_PUBLIC_HEALTH` and denies absent/invalid/mixed dry-run consent **before** config/DNS/HTTP; default N31 `-NetworkProbe` remains **BLOCKED**.
+- [ ] Strict N39/N40 all-returned-A/AAAA public address admission, connection-time IP pin via curl `--resolve`, `-q` first, `--noproxy '*'`, no redirects, HTTPS-only, hostname-verifying Schannel TLS, verified OS curl signature and cleared caller CA/backend/proxy overrides.
+- [ ] HTTP 200 plus bounded N41 JSON `status=ok`, `components.database=HEALTHY`; exclusive redacted and non-production-certified report; no credentials/tokens/tenant/device data in request or report.
+- [ ] Offline Windows PowerShell 7 and 5.1 negative tests, Node/API/MySQL and deployment-safety PR CI, then maintainer-authorized merge and separate post-merge main Windows MSI diagnostic checks.
+- [ ] Independent security review, actual approved Windows live probe, external public Hostinger DNS/TLS, publisher signed MSI, physical ACK/queue evidence, offsite restore and integrations **PENDING**. **Production NOT APPROVED**.
+
+See [N42 acceptance](PHASE-N-STAGE42-ACCEPTANCE.md) and [Issue #29](https://github.com/rehman2671/Aaditech-toolkit-new/issues/29).
+
 ## Stage N41 — offline strict Windows public health JSON validation (MERGED; MAIN MSI CI 4/4 AND SAFETY 2/2 GREEN; PRODUCTION BLOCKED)
 
 - [x] Pure PowerShell 5.1 offline `Assert-PublicWindowsHealthJson` verifies valid UTF-8 at most 65,536 bytes, JSON-depth/object-key bounds, decoded duplicate-key rejection at all depths and **exact** `status=ok`, `components.database=HEALTHY`.

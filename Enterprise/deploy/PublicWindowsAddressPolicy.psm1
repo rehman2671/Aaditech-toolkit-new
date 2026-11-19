@@ -127,4 +127,31 @@ function Get-PublicWindowsAddressPin {
     throw 'Public DNS answer policy blocked.'
 }
 
-Export-ModuleMember -Function Get-PublicWindowsAddressPin
+# N40: Parse exactly the installer-managed telemetry URL, without resolving
+# DNS. URI parsing alone allows private IP literals, userinfo, custom ports and
+# percent-encoded aliases; none should count as a validated public setup.
+# This is ONLY offline preflight and never establishes live TLS reachability.
+function Test-PublicWindowsEndpointOrigin {
+    [CmdletBinding()]
+    param([Parameter(Mandatory=$true)][string]$Endpoint)
+
+    # Match the raw input instead of normalized [Uri] components so encoded
+    # separators, fragments, userinfo and alternate/custom ports cannot hide.
+    $match = [regex]::Match(
+        $Endpoint,
+        '\A(?i:https)://(?<dns>[A-Za-z0-9.-]+)(?::443)?/api/v1/ingest/telemetry\z',
+        [System.Text.RegularExpressions.RegexOptions]::CultureInvariant
+    )
+    if (-not $match.Success) { throw 'Public HTTPS endpoint policy blocked.' }
+
+    # Shares the independently tested N39 hostname rules; does not claim the
+    # name resolves to public DNS or the certificate is trusted.
+    try {
+        Assert-PublicWindowsDnsName -DnsHost $match.Groups['dns'].Value
+    } catch {
+        throw 'Public HTTPS endpoint policy blocked.'
+    }
+    return ('https://' + $match.Groups['dns'].Value.ToLowerInvariant())
+}
+
+Export-ModuleMember -Function Get-PublicWindowsAddressPin, Test-PublicWindowsEndpointOrigin

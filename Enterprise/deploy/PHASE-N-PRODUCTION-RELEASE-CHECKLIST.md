@@ -1,6 +1,24 @@
 # Phase N — Production release acceptance and sign-off
 
-## Stage N37 — public DNS pinning for optional authorized live acceptance (RETARGETED MAIN PR CI GREEN; N37 REVIEW/MERGE PENDING; PRODUCTION BLOCKED)
+## Stage N38 — Windows customer acceptance live-probe fail-closed mitigation (PR #31 RECONCILED TO MAIN; NEW CI PENDING; PRODUCTION BLOCKED)
+
+**Historical N38 code evidence:** [Original #30](https://github.com/rehman2671/Aaditech-toolkit-new/pull/30) code head `5b596d347f5b7eebc491e95aa553d6866f2cf2f5` passed [full CI #44405914078](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44405914078) and [safety #44405914047](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44405914047). It conflicted after N37 merge. **Reconciled main-based [N38 PR #31](https://github.com/rehman2671/Aaditech-toolkit-new/pull/31)** carries forward exactly five intended N38 files, preserving latest main N37. New #31 CI and post-merge main MSI diagnostics must still be verified. This is *not* live Windows transport or independent human security acceptance.
+
+- [x] Eliminate unpinned Windows `-NetworkProbe` health HTTP calls; when requested, report `public_https=BLOCKED` instead of attempting DNS/HTTP or reporting `PASS`. Default offline must stay `PENDING`.
+- [x] Windows offline regression on a configured-looking synthetic HTTPS endpoint passes with **no** DNS/web/socket transport, no leaked host/token, and `certified_for_production=false`.
+- [x] Existing N31/N32 Windows evidence non-overwrite tests continue to pass and new `Test-Stage38WindowsNetworkProbe.ps1` runs in CI.
+- [x] N36 #27 and N37 #28 merged into main; conflicted N38 #30 reconciled on latest main into #31 without replacing N37 security changes.
+- [ ] Reconciled #31 full PR CI and deployment-safety green before maintainer-authorized code merge.
+- [ ] N38 post-merge main EXE/MSI diagnostic Windows install/uninstall and upgrade tests verified separately.
+- [ ] Independent human security review remains an external requirement; cross-account maintainer merges do not establish it.
+- [ ] **Issue #29 remains open:** the actual secure Windows native live HTTPS transport is **not** implemented or certified; pinned TLS, DNS/redirect/proxy/health negative tests and real customer approval still required.
+- [ ] Hostinger ownership/TLS, physical Windows authenticated ACK replay, real signing-key custody/public MSI, offsite restore and integrations remain independently blocked. **Production: NOT APPROVED.**
+
+See [Stage38 acceptance](PHASE-N-STAGE38-ACCEPTANCE.md) and [Windows probe tracking issue #29](https://github.com/rehman2671/Aaditech-toolkit-new/issues/29).
+
+## Stage N37 — public DNS pinning for optional authorized live acceptance (MERGED TO MAIN; MAIN DIAGNOSTIC CI PENDING; CUSTOMER PRODUCTION BLOCKED)
+
+**GitHub merge 2026-11-19 IST:** [N37 PR #28](https://github.com/rehman2671/Aaditech-toolkit-new/pull/28) merged into main at `871f2e3900aae26f2abe4d9d9a93544700243c0f`, after PR CI and deployment safety passed. This was an **owner-authorized maintainer code merge**, not an independently certified human security review. Post-merge main Windows diagnostics and actual public Hostinger acceptance require their own evidence.
 
 **Verified pre-retarget code:** N37 isolated-Python security head `ae807fbe5524ef1d96ecb0c78ece311d92fda05a` passed [CI #44389058206](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44389058206) and [safety #44389058159](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44389058159). N36 [PR #27](https://github.com/rehman2671/Aaditech-toolkit-new/pull/27) received a GitHub APPROVED review and **merged** into `main` as `517c8d0b25f645b76fb1a17367301b0443d397a3` (2026-11-18 UTC). N37 [PR #28](https://github.com/rehman2671/Aaditech-toolkit-new/pull/28) is now retargeted directly to `main`, remains **unmerged/review requested**, and must re-pass CI for the new HEAD/base context. Account-level approval alone is not evidence of an independent human security audit.
 

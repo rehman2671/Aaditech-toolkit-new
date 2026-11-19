@@ -1,10 +1,10 @@
 # Phase N — Production release acceptance and sign-off
 
-## Stage N41 — offline strict Windows public health JSON validation (CODE PROPOSED; PR CI PENDING; PRODUCTION BLOCKED)
+## Stage N41 — offline strict Windows public health JSON validation (MERGED; MAIN MSI CI 4/4 AND SAFETY 2/2 GREEN; PRODUCTION BLOCKED)
 
-- [ ] Pure PowerShell 5.1 offline `Assert-PublicWindowsHealthJson` verifies valid UTF-8 at most 65,536 bytes, JSON-depth/object-key bounds, decoded duplicate-key rejection at all depths and **exact** `status=ok`, `components.database=HEALTHY`.
-- [ ] N41 Windows CI synthetic regression accepts the real server health shape but rejects duplicate/escaped keys, nested spoofing, degraded state, wrong types, malformed UTF-8, BOM, oversized payload and nonfinite constants; no customer network invoked.
-- [ ] N41 PR PowerShell, Node/Vitest, isolated API/MySQL and deployment-safety pass; authorized merge and genuine post-merge main MSI lifecycle diagnostic pass separately.
+- [x] Pure PowerShell 5.1 offline `Assert-PublicWindowsHealthJson` verifies valid UTF-8 at most 65,536 bytes, JSON-depth/object-key bounds, decoded duplicate-key rejection at all depths and **exact** `status=ok`, `components.database=HEALTHY`.
+- [x] N41 Windows CI synthetic regression accepts the real server health shape but rejects duplicate/escaped keys, nested spoofing, degraded state, wrong types, malformed UTF-8, BOM, oversized payload and nonfinite constants; no customer network invoked.
+- [x] N41 PR PowerShell 7/**5.1**, Node/Vitest, isolated API/MySQL and deployment-safety passed; PR #35 merged. [Main CI #44637613809](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44637613809) **4/4** (Windows MSI build/extraction/install/uninstall/major upgrade included) and [main safety #44637613893](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44637613893) **2/2** passed.
 - [ ] No N41 live probe activation, TLS trust assertion or `public_https=PASS`; Windows `-NetworkProbe` stays **BLOCKED** under N38. Independently approved Windows pinned HTTPS transport and external customer evidence are required.
 - [ ] Real Hostinger DNS/TLS, publisher signature/key custody, offsite restore, physical Windows ACK and external integrations remain PENDING. **Production NOT APPROVED.**
 

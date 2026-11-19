@@ -100,7 +100,10 @@ try {
             elseif ($diagnostic -match 'Access to the path') { 'FILE_ACCESS' }
             elseif ($diagnostic -match 'TerminatingError') { 'TERMINATING_ERROR' }
             else { 'OTHER' }
-        throw "Offline N42 operator dry run failed; exit=$LASTEXITCODE; reportPresent=$(Test-Path -LiteralPath $report); category=$safeCategory."
+        $reportedPhase = if (Test-Path -LiteralPath $report -PathType Leaf) {
+            (Get-Content -LiteralPath $report -Raw | ConvertFrom-Json).diagnostic_phase
+        } else { 'NO_REPORT' }
+        throw "Offline N42 operator dry run failed; exit=$LASTEXITCODE; phase=$reportedPhase; category=$safeCategory."
     }
     $raw = [IO.File]::ReadAllText($report)
     $obj = $raw | ConvertFrom-Json -ErrorAction Stop

@@ -1,6 +1,6 @@
 # Phase N Stage 49 — Per-invocation approval of the OS curl signing certificate
 
-**Status: CODE PROPOSED; PR CI PENDING; CUSTOMER PRODUCTION NOT APPROVED (2026-11-20 IST).**
+**Status: MERGED; PR CI AND DEPLOYMENT SAFETY GREEN; POST-MERGE MAIN CI/MSI RUNNING; CUSTOMER PRODUCTION NOT APPROVED (2026-11-20 IST).**
 
 ## Finding and remediation
 
@@ -88,10 +88,10 @@ the assurance boundary.
 
 ## Acceptance checklist
 
-- [ ] Windows PowerShell 5.1 and 7 N49 valid/mismatched/malformed pin and
+- [x] Windows PowerShell 5.1 and 7 N49 valid/mismatched/malformed pin and
   local Windows-signed curl checks pass; N31–N48 previous safety tests
   remain green with no valid live customer consent.
-- [ ] PR Node/Vitest+MySQL, API/MySQL and deployment-safety green.
+- [x] PR Node/Vitest+MySQL, API/MySQL and deployment-safety green.
 - [ ] Authorized merge and post-main Windows EXE/MSI build, extraction,
   clean install/uninstall, tenant-preserving major upgrade **4/4**,
   deployment safety **2/2**, signed public artifact upload **SKIPPED**.
@@ -101,3 +101,11 @@ the assurance boundary.
 
 [Security issue #29](https://github.com/rehman2671/Aaditech-toolkit-new/issues/29)
 stays OPEN. **Production NOT APPROVED.**
+
+## Verified PR results and pending post-merge acceptance
+
+- [PR #44](https://github.com/rehman2671/Aaditech-toolkit-new/pull/44) merged verified head `ec201f86461d39f8cefc0679a5384904a699632c` as `bef167c5304b92a3cf964c597b60fa34f4d4b1a2`.
+- [PR CI #44711587502](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44711587502): PowerShell 7 and real 5.1 N49, prior N31–N48, Node/Vitest+MySQL, API/MySQL **3/3 SUCCESS** (MSI skipped on PR).
+- [PR deployment safety #44711587550](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44711587550): **2/2 SUCCESS** (Bash/recovery and isolated MySQL backup/restore).
+- [Main CI #44712168071](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44712168071) and [main deployment safety #44712168110](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44712168110) are the independent post-merge checks. **Do not mark the MSI lifecycle green until this main CI run finishes.**
+- CI derives a signer hash from its own local system curl solely for unit/regression testing. This is not an independently approved customer signing certificate pin, physical TLS acceptance or authority to publish an MSI. **Production NOT APPROVED.**

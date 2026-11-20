@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-20T22:04:04+00:00",
-  "last_verified_commit": "053788a2670ee66b229e50da6c6634bca3fb1126",
-  "last_verified_date": "2026-11-21T03:33:38+05:30",
+  "generated": "2026-11-20T22:09:59+00:00",
+  "last_verified_commit": "fa1c38814a7e711fe48162d3393300d5846eeaae",
+  "last_verified_date": "2026-11-21T03:39:48+05:30",
   "overall_progress_percent": 100.0,
   "progress_scope": "historic audit issue closure only; production acceptance pending",
   "production_ready": false,
@@ -14,33 +14,12 @@
     "percent": 100.0
   },
   "latest_delta": {
-    "added": 4,
+    "added": 0,
     "removed": 0,
-    "changed": 3,
-    "unchanged": 430
+    "changed": 2,
+    "unchanged": 435
   },
   "delta_history": [
-    {
-      "detected_at": "2026-11-20T10:14:33+00:00",
-      "added": [
-        "Enterprise/tests/Test-Stage50WindowsCurlBinaryPin.ps1",
-        "Enterprise/deploy/PHASE-N-STAGE50-ACCEPTANCE.md"
-      ],
-      "removed": [],
-      "changed": [
-        "Enterprise/deploy/PHASE-N-STAGE42-ACCEPTANCE.md",
-        "Enterprise/deploy/PHASE-N-STAGE43-ACCEPTANCE.md",
-        ".github/workflows/ci.yml",
-        "Enterprise/deploy/Test-WindowsPinnedPublicHttps.ps1",
-        "Enterprise/deploy/TrustedWindowsSystemCurl.psm1",
-        "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md",
-        "Enterprise/deploy/PHASE-N-STAGE49-ACCEPTANCE.md",
-        "Enterprise/tests/Test-Stage48WindowsSystemCurlTrust.ps1",
-        "Enterprise/tests/Test-Stage49WindowsCurlSignerPin.ps1",
-        "Enterprise/deploy/PHASE-N-STAGE48-ACCEPTANCE.md"
-      ],
-      "unchanged_count": 382
-    },
     {
       "detected_at": "2026-11-20T10:55:10+00:00",
       "added": [
@@ -319,6 +298,16 @@
         "Enterprise/agent/build/BuildToolchainLock.psm1"
       ],
       "unchanged_count": 430
+    },
+    {
+      "detected_at": "2026-11-20T22:09:59+00:00",
+      "added": [],
+      "removed": [],
+      "changed": [
+        "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md",
+        "Enterprise/deploy/PHASE-N-STAGE63-ACCEPTANCE.md"
+      ],
+      "unchanged_count": 435
     }
   ],
   "next_recommended_tasks": [

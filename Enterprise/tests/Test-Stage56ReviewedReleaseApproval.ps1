@@ -40,7 +40,7 @@ foreach ($required in @('GITHUB_SHA','agent-version.json','-ReturnManifestSha256
 }
 foreach ($name in @('RELEASE_APPROVAL_MANIFEST_B64','RELEASE_APPROVAL_SIGNATURE_B64',
     'RELEASE_APPROVAL_REVIEWER_DER_B64','RELEASE_REVIEWER_CERT_SHA256_APPROVED')) {
-    if ([regex]::Matches($ci,[regex]::Escape($name+':')).Count -ne 3) {
+    if ([regex]::Matches($ci,[regex]::Escape($name+':')).Count -ne 4) {
         throw ('N56 protected reviewer secret not scoped to all three gates: '+$name)
     }
 }

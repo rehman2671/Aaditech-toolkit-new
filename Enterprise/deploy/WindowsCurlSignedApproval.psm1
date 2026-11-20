@@ -125,7 +125,11 @@ function Assert-PublicWindowsCurlSignedApproval {
         [Parameter(Mandatory=$true)][AllowEmptyString()][string]$ApprovedReviewerCertificateSha256,
         [Parameter(Mandatory=$true)][string]$ExpectedOrigin,
         [Parameter(Mandatory=$true)][string]$ExpectedSignerSha256,
-        [Parameter(Mandatory=$true)][string]$ExpectedBinarySha256
+        [Parameter(Mandatory=$true)][string]$ExpectedBinarySha256,
+        # N53: the first verified manifest digest is carried only in memory.
+        # Later gates refuse a newly signed but different approval record.
+        [AllowEmptyString()][string]$ExpectedManifestSha256,
+        [switch]$ReturnManifestSha256
     )
     $certificate = $null
     $rsa = $null
@@ -167,6 +171,26 @@ function Assert-PublicWindowsCurlSignedApproval {
                 [Security.Cryptography.HashAlgorithmName]::SHA256,
                 [Security.Cryptography.RSASignaturePadding]::Pkcs1)) {
             throw 'Signed manifest not verified.'
+        }
+        # N53: bind the WHOLE live diagnostic to the exact initially
+        # approved canonical manifest, not merely the same reviewer key,
+        # origin and curl pins. A separately signed replacement approval
+        # must not silently take over a diagnostic already in progress.
+        # Compute only after the reviewer signature is authenticated.
+        $manifestDigest = $sha.ComputeHash($manifest)
+        if ($PSBoundParameters.ContainsKey('ExpectedManifestSha256')) {
+            if ($ExpectedManifestSha256 -cnotmatch '\\A[0-9A-Fa-f]{64}\\z') {
+                throw 'Initial approved manifest digest required.'
+            }
+            $different = 0
+            for ($i = 0; $i -lt 32; $i++) {
+                $expected = [Convert]::ToByte($ExpectedManifestSha256.Substring($i*2,2),16)
+                $different = $different -bor ([int]$expected -bxor [int]$manifestDigest[$i])
+            }
+            if ($different -ne 0) { throw 'Approval changed during diagnostic.' }
+        }
+        if ($ReturnManifestSha256) {
+            return [BitConverter]::ToString($manifestDigest).Replace('-','')
         }
         return $true
     } catch {

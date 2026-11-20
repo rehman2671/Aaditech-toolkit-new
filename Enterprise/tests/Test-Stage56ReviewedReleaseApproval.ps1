@@ -170,6 +170,64 @@ try {
     Assert-N56Denied -Case 'malformed base64 approval' -Action {
         Assert-N56ReviewedRelease @check
     }
+
+    # Exercise the actual shared three-stage wrapper on disposable synthetic
+    # environment values; never invoke Release-Sign.ps1 or touch any real PFX.
+    $null=Set-N56SignedRecord $original
+    $environmentNames=@(
+        'GITHUB_ACTIONS','GITHUB_EVENT_NAME','GITHUB_REF','GITHUB_SHA',
+        'CODESIGN_APPROVED_THUMBPRINT','SQLITE_TOOLS_ARCHIVE_SHA256_APPROVED',
+        'SQLITE3_EXE_SHA256_APPROVED','RELEASE_APPROVAL_MANIFEST_B64',
+        'RELEASE_APPROVAL_SIGNATURE_B64','RELEASE_APPROVAL_REVIEWER_DER_B64',
+        'RELEASE_REVIEWER_CERT_SHA256_APPROVED','RELEASE_APPROVAL_MANIFEST_SHA256'
+    )
+    $previous=@{}
+    foreach ($key in $environmentNames) {
+        $previous[$key]=[Environment]::GetEnvironmentVariable($key,'Process')
+    }
+    try {
+        $synthetic=@{
+            GITHUB_ACTIONS='true'
+            GITHUB_EVENT_NAME='workflow_dispatch'
+            GITHUB_REF='refs/heads/main'
+            GITHUB_SHA=$git
+            CODESIGN_APPROVED_THUMBPRINT=$publisherHash
+            SQLITE_TOOLS_ARCHIVE_SHA256_APPROVED=$zip
+            SQLITE3_EXE_SHA256_APPROVED=$exe
+            RELEASE_APPROVAL_MANIFEST_B64=$check.ManifestBase64
+            RELEASE_APPROVAL_SIGNATURE_B64=$check.SignatureBase64
+            RELEASE_APPROVAL_REVIEWER_DER_B64=$check.ReviewerDerBase64
+            RELEASE_REVIEWER_CERT_SHA256_APPROVED=$reviewerHash
+            RELEASE_APPROVAL_MANIFEST_SHA256=$digest
+        }
+        foreach ($key in $synthetic.Keys) {
+            [Environment]::SetEnvironmentVariable($key,$synthetic[$key],'Process')
+        }
+        $fromWrapper=(& $entry -StartSigning)
+        if ($fromWrapper -cne $digest -or (& $entry -RequireOriginalDigest) -ne $true) {
+            throw 'N56 synthetic wrapper did not authenticate same signing scope.'
+        }
+        [Environment]::SetEnvironmentVariable('GITHUB_SHA',('f'*40),'Process')
+        $wrapperBlocked=$false
+        try { $null= & $entry -RequireOriginalDigest } catch {
+            $wrapperBlocked=($_.Exception.Message -ceq 'N56 reviewed production release authorization blocked.')
+        }
+        if (-not $wrapperBlocked) {
+            throw 'N56 actual wrapper accepted different Git SHA for approved release.'
+        }
+        [Environment]::SetEnvironmentVariable('GITHUB_SHA',$git,'Process')
+        [Environment]::SetEnvironmentVariable('GITHUB_EVENT_NAME','push','Process')
+        $wrapperBlocked=$false
+        try { $null= & $entry -StartSigning } catch {
+            $wrapperBlocked=($_.Exception.Message -ceq 'N56 reviewed production release authorization blocked.')
+        }
+        if (-not $wrapperBlocked) { throw 'N56 wrapper accepted non-manual signing.' }
+    } finally {
+        foreach ($key in $environmentNames) {
+            [Environment]::SetEnvironmentVariable($key,$previous[$key],'Process')
+        }
+    }
+
     Write-Host 'N56 PASS: reviewer RSA-2048 signed exact Git/version/revision/publisher/SQLite, expiry, identity rotation, signature and DER pin fail-closed offline.'
 } finally {
     if ($null -ne $hash) { $hash.Dispose() }

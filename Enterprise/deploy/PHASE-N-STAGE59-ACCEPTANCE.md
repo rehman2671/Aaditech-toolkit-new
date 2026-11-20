@@ -1,5 +1,7 @@
 # Phase N Stage 59 — Private draft staging and GitHub-hosted release asset attestation
 
+**N60 compatibility correction (2026-11-20):** N59's initial draft verifier expected a Git tag and tried REST `GET /releases/tags/<tag>` before publication; GitHub unpublished drafts can have **neither** a created tag nor REST by-tag access. The prior N59 implementation was **not** live-release ready. [N60 PR #55](https://github.com/rehman2671/Aaditech-toolkit-new/pull/55) corrected this: look up the private draft by immutable numeric release ID, require an absent Git tag until publish, and verify the created tag matches the reviewed source after publication. [N60 acceptance](PHASE-N-STAGE60-ACCEPTANCE.md) supersedes N59's prepublication ref assumptions. Protected real publisher signing/publication remains unexecuted.
+
 **Status: MERGED; PR CI 3/3 + SAFETY 2/2 SUCCESS; FRESH MAIN DIAGNOSTIC EXE/MSI 4/4 + SAFETY 2/2 SUCCESS; INDEX VERIFIED; PROTECTED SIGNED PRODUCTION RELEASE PENDING; CUSTOMER PRODUCTION NOT APPROVED (2026-11-20 IST).**
 
 ## Security gap and release trust boundary

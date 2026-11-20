@@ -52,6 +52,9 @@ def _reject_constant(_value):
 def _read_bounded_regular(path):
     # Open read-only and refuse symlinks, directories, special devices and
     # a path swap between lstat and the opened descriptor.
+    if not hasattr(os, "O_NOFOLLOW"):
+        # No cross-platform downgrade to an unsafe symlink-following open.
+        raise EvidenceRefused("Platform lacks safe evidence-file opening")
     try:
         before = os.lstat(path)
         if not stat.S_ISREG(before.st_mode) or before.st_nlink != 1:

@@ -1,10 +1,10 @@
 # Phase N — Production release acceptance and sign-off
 
-## Stage N55 — exact signed EXE/MSI revalidation immediately before release upload (MERGED; PR CI 3/3 + SAFETY 2/2 GREEN; MAIN MSI PENDING; PRODUCTION BLOCKED)
+## Stage N55 — exact signed EXE/MSI revalidation immediately before release upload (MERGED; PR CI 3/3 + SAFETY 2/2 GREEN; MAIN DIAGNOSTIC MSI 4/4 + SAFETY 2/2 VERIFIED; PRODUCTION BLOCKED)
 
 - [x] Protected manual `main` publication now revalidates exact version, both EXE/MSI hashes and canonical two-line SHA256SUMS, one MSI, OS-trusted timestamp and pinned publisher cert, actual SQLite embedded in fresh final signed MSI extraction, and **blank external and embedded setup configs**. Upload requires both `PUBLISH_SIGNED=true` and `PUBLICATION_VERIFIED=true`.
 - [x] Real Windows PowerShell 5.1/7 synthetic manifest tamper/reorder/duplicate/version tests and workflow upload order, prior N31–N54, Node/Vitest+MySQL and API/MySQL [PR CI 3/3](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44733275703) and [safety 2/2](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44733275562). [PR #50](https://github.com/rehman2671/Aaditech-toolkit-new/pull/50) merged at `0d39f773162bb32f00b47898903ddb0b89b460e3`.
-- [ ] Independently verify new **main** Windows EXE/MSI lifecycle **4/4** and deployment safety **2/2**; main push runs [CI](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44733652919) and [safety](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44733653033) in progress at initial evidence update.
+- [x] Independently verified fresh **main** diagnostic EXE/MSI build, MSI administrative extraction, installed setup/clean uninstall and major upgrade **4/4 SUCCESS** ([CI run 44733652919](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44733652919)), with [deployment safety 2/2 SUCCESS](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44733653033). Signed final verification and upload correctly skipped on automatic push, and protected production signing remains **PENDING**.
 - [ ] Actual protected manual signing/reviewer-controlled publisher custody, exact vetted SQLite ZIP/EXE fingerprints, customer Hostinger DNS/TLS, physical lost-ACK+MySQL receipts, offsite recovery and owner security sign-off remain **PENDING**. **Production NOT APPROVED.**
 
 See [N55 acceptance](PHASE-N-STAGE55-ACCEPTANCE.md) and [issue #29](https://github.com/rehman2671/Aaditech-toolkit-new/issues/29).

@@ -1,5 +1,14 @@
 # Phase N — Production release acceptance and sign-off
 
+## Stage N50 — independently approved exact Windows curl executable SHA-256 (CODE PROPOSED; PR CI PENDING; PRODUCTION BLOCKED)
+
+- [ ] Require separately operator-approved `-ApprovedCurlBinarySha256` for **every** live Windows HTTPS health diagnostic, independent of `-ApprovedCurlSignerSha256` for the Microsoft signing certificate. Invalid, missing or unapproved executable digest fails before customer DNS; no silent local auto-pin.
+- [ ] Validate complete OS `curl.exe` file bytes via bounded streaming SHA-256, reject reparse/empty/oversized/missing files, and recheck executable digest following native version and HTTPS transfer; use only signed OS curl/Schannel from earlier stages. N31 automatic network probe remains BLOCKED.
+- [ ] Windows PowerShell 7 and actual Windows PowerShell 5.1 offline file-tamper, digest mismatch, malformed, oversize and real local OS curl regression; N31–N49 + Node/Vitest+MySQL + API/MySQL + deployment safety; authorized PR merge and main EXE/MSI 4/4, safety 2/2.
+- [ ] Independent approval of BOTH exact signing-certificate DER SHA-256 and executable build SHA-256, customer Hostinger domain/TLS custody, publisher-signed release MSI, physical lost-ACK queue replay, encrypted offsite backup restore, integrations and human security review **PENDING**. **Production NOT APPROVED**.
+
+See [N50 acceptance](PHASE-N-STAGE50-ACCEPTANCE.md) and [Issue #29](https://github.com/rehman2671/Aaditech-toolkit-new/issues/29).
+
 ## Stage N49 — independently approved Windows curl signer certificate SHA-256 (MERGED; MAIN MSI CI 4/4 AND SAFETY 2/2 GREEN; PRODUCTION BLOCKED)
 
 - [x] Require per-live-invocation `-ApprovedCurlSignerSha256` in addition to exact approved origin and live operator confirmation; block missing, 40-character SHA-1, wrong, malformed or unapproved certificate pins **before customer DNS** without leaking certificate/fingerprint data. No pin or live option permitted for offline `-DryRun`.

@@ -9,14 +9,15 @@ param(
     [switch]$DryRun,
     [string]$ConfirmLive,
     [string]$ApprovedOrigin,
-    [string]$ApprovedCurlSignerSha256
+    [string]$ApprovedCurlSignerSha256,
+    [string]$ApprovedCurlBinarySha256
 )
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
 # Consent is checked before reading configuration, resolving DNS, invoking
 # the OS curl binary, or writing a report. Invalid combinations fail closed.
-if (($DryRun -and ($ConfirmLive -or $ApprovedOrigin -or $ApprovedCurlSignerSha256)) -or
+if (($DryRun -and ($ConfirmLive -or $ApprovedOrigin -or $ApprovedCurlSignerSha256 -or $ApprovedCurlBinarySha256)) -or
     (-not $DryRun -and
       ($ConfirmLive -cne 'PROBE_PUBLIC_HEALTH' -or
        [string]::IsNullOrWhiteSpace($ApprovedOrigin) -or
@@ -66,6 +67,13 @@ try {
         # Dry run is a syntax check only; zero DNS/HTTP and no curl invocation.
         $state = 'PENDING'
     } else {
+        # N50 independently approved exact system curl executable bytes,
+        # separate from N49's signing-certificate pin. Both are required
+        # for a live request; a missing/malformed digest never reaches DNS.
+        $phase = 'VALIDATE_BINARY_PIN'
+        if ($ApprovedCurlBinarySha256 -cnotmatch '\A[0-9A-Fa-f]{64}\z') {
+            throw 'Missing or malformed approved Windows curl executable hash.'
+        }
         $phase = 'LIVE_DNS'
         if ($env:OS -cne 'Windows_NT') { throw 'Windows host required.' }
         $dnsHost = $origin.Substring('https://'.Length)
@@ -89,7 +97,7 @@ try {
         # N49 requires an independently approved exact leaf signing
         # certificate SHA-256, not an automatically inferred local pin.
         $phase = 'VALIDATE_SIGNER_PIN'
-        $curl = Assert-PublicWindowsTrustedSystemCurl -ApprovedSignerSha256 $ApprovedCurlSignerSha256
+        $curl = Assert-PublicWindowsTrustedSystemCurl -ApprovedSignerSha256 $ApprovedCurlSignerSha256 -ApprovedBinarySha256 $ApprovedCurlBinarySha256
 
         $phase = 'LIVE_DNS'
         # OS resolver's returned set must be entirely public. OS lookup is not
@@ -104,6 +112,10 @@ try {
         $phase = 'HTTPS_TRANSFER'
         $httpStatus = @(& $curl @curlArguments 2>$null)
         $transportExit = $LASTEXITCODE
+        # Detect an OS binary changed during the transfer before accepting
+        # an otherwise healthy response. Privileged TOCTOU remains possible.
+        $phase = 'RECHECK_CURL_BINARY_PIN'
+        $null = Assert-PublicWindowsApprovedCurlBinaryPin -BinaryPath $curl -ApprovedBinarySha256 $ApprovedCurlBinarySha256
         # N43 shares one offline-tested fail-closed outcome state machine
         # across native DNS/TLS/timeout, HTTP redirect/errors, size and JSON
         # failures. It checks file.Length *before* allocating/reading bytes.

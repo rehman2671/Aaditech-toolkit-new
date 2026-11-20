@@ -86,9 +86,10 @@ foreach ($bad in @(
 # Enforce the pin on the *actual* system curl path: a wrong but
 # syntactically valid hash must fail even though local Microsoft
 # Authenticode is valid and its Schannel backend is supported.
+$ciBinaryHash = (Get-FileHash -LiteralPath $curlPath -Algorithm SHA256 -ErrorAction Stop).Hash
 $rejectWrong = $false
 try {
-    $null = Assert-PublicWindowsTrustedSystemCurl -ApprovedSignerSha256 $wrong
+    $null = Assert-PublicWindowsTrustedSystemCurl -ApprovedSignerSha256 $wrong -ApprovedBinarySha256 $ciBinaryHash
 } catch {
     $rejectWrong = $true
     if ($_.Exception.Message -cne 'Trusted Windows system curl preflight blocked.') {
@@ -98,7 +99,7 @@ try {
 if (-not $rejectWrong) {
     throw 'N49 OS curl preflight failed to enforce signer certificate pin.'
 }
-$verified = Assert-PublicWindowsTrustedSystemCurl -ApprovedSignerSha256 $localCiOnlySha256
+$verified = Assert-PublicWindowsTrustedSystemCurl -ApprovedSignerSha256 $localCiOnlySha256 -ApprovedBinarySha256 $ciBinaryHash
 if (-not [string]::Equals($verified,$curlPath,[StringComparison]::OrdinalIgnoreCase)) {
     throw 'N49 OS curl preflight used a different executable.'
 }

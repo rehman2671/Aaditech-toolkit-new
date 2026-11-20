@@ -104,7 +104,8 @@ try {
 } finally {
     $hasher.Dispose()
 }
-$path = Assert-PublicWindowsTrustedSystemCurl -ApprovedSignerSha256 $pin
+$approvedBinaryHash = (Get-FileHash -LiteralPath $localCurl -Algorithm SHA256 -ErrorAction Stop).Hash
+$path = Assert-PublicWindowsTrustedSystemCurl -ApprovedSignerSha256 $pin -ApprovedBinarySha256 $approvedBinaryHash
 $expected = [IO.Path]::Combine([Environment]::SystemDirectory,'curl.exe')
 if (-not [string]::Equals($path,$expected,[StringComparison]::OrdinalIgnoreCase)) {
     throw 'N48 resolved PATH-overridden or non-system curl.'

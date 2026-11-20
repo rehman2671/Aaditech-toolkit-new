@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-20T14:06:12+00:00",
-  "last_verified_commit": "e1ae55f714741c92e0ffbd03dbb19989bdab3979",
-  "last_verified_date": "2026-11-20T19:35:48+05:30",
+  "generated": "2026-11-20T14:35:33+00:00",
+  "last_verified_commit": "ff86c5517150461a1fd55b5fc96072f387756286",
+  "last_verified_date": "2026-11-20T20:05:23+05:30",
   "overall_progress_percent": 100.0,
   "progress_scope": "historic audit issue closure only; production acceptance pending",
   "production_ready": false,
@@ -14,27 +14,12 @@
     "percent": 100.0
   },
   "latest_delta": {
-    "added": 0,
+    "added": 4,
     "removed": 0,
-    "changed": 2,
-    "unchanged": 418
+    "changed": 4,
+    "unchanged": 416
   },
   "delta_history": [
-    {
-      "detected_at": "2026-11-19T23:26:18+00:00",
-      "added": [
-        "Enterprise/deploy/PHASE-N-STAGE41-ACCEPTANCE.md",
-        "Enterprise/deploy/ValidateWindowsHealthJson.psm1",
-        "Enterprise/tests/Test-Stage41WindowsHealthJson.ps1"
-      ],
-      "removed": [],
-      "changed": [
-        "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md",
-        "Enterprise/deploy/PHASE-N-STAGE40-ACCEPTANCE.md",
-        ".github/workflows/ci.yml"
-      ],
-      "unchanged_count": 365
-    },
     {
       "detected_at": "2026-11-20T00:07:16+00:00",
       "added": [
@@ -346,6 +331,23 @@
         "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md"
       ],
       "unchanged_count": 418
+    },
+    {
+      "detected_at": "2026-11-20T14:35:33+00:00",
+      "added": [
+        "Enterprise/agent/build/Assert-RemoteReleaseAssets.ps1",
+        "Enterprise/deploy/PHASE-N-STAGE59-ACCEPTANCE.md",
+        "Enterprise/tests/Test-Stage59DraftReleaseAttestation.ps1",
+        "Enterprise/agent/build/ReleaseAssetAttestation.psm1"
+      ],
+      "removed": [],
+      "changed": [
+        "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md",
+        ".github/workflows/ci.yml",
+        ".github/workflows/publish-signed-installer.yml",
+        "Enterprise/tests/Test-Stage58ReleasePublicationApproval.ps1"
+      ],
+      "unchanged_count": 416
     }
   ],
   "next_recommended_tasks": [

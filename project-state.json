@@ -1,25 +1,32 @@
 {
   "state_version": "1.0",
   "path": "project-state.json",
-  "generated": "2026-11-20T14:06:12+00:00",
+  "generated": "2026-11-20T14:35:33+00:00",
   "phase": "PHASE N STAGE 4 / PRODUCTION ACCEPTANCE IN PROGRESS",
-  "last_verified_commit": "e1ae55f714741c92e0ffbd03dbb19989bdab3979",
-  "last_verified_date": "2026-11-20T19:35:48+05:30",
+  "last_verified_commit": "ff86c5517150461a1fd55b5fc96072f387756286",
+  "last_verified_date": "2026-11-20T20:05:23+05:30",
   "git": {
     "branch": "main",
-    "commit_count": 921,
+    "commit_count": 931,
     "clean_working_tree": true,
-    "head": "e1ae55f714741c92e0ffbd03dbb19989bdab3979"
+    "head": "ff86c5517150461a1fd55b5fc96072f387756286"
   },
   "latest_delta": {
-    "detected_at": "2026-11-20T14:06:12+00:00",
-    "added": [],
+    "detected_at": "2026-11-20T14:35:33+00:00",
+    "added": [
+      "Enterprise/agent/build/Assert-RemoteReleaseAssets.ps1",
+      "Enterprise/deploy/PHASE-N-STAGE59-ACCEPTANCE.md",
+      "Enterprise/tests/Test-Stage59DraftReleaseAttestation.ps1",
+      "Enterprise/agent/build/ReleaseAssetAttestation.psm1"
+    ],
     "removed": [],
     "changed": [
-      "Enterprise/deploy/PHASE-N-STAGE58-ACCEPTANCE.md",
-      "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md"
+      "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md",
+      ".github/workflows/ci.yml",
+      ".github/workflows/publish-signed-installer.yml",
+      "Enterprise/tests/Test-Stage58ReleasePublicationApproval.ps1"
     ],
-    "unchanged_count": 418
+    "unchanged_count": 416
   },
   "production_ready": false,
   "acceptance_gates": [

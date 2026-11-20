@@ -1,27 +1,31 @@
 {
   "state_version": "1.0",
   "path": "project-state.json",
-  "generated": "2026-11-20T00:35:11+00:00",
+  "generated": "2026-11-20T00:40:06+00:00",
   "phase": "PHASE N STAGE 4 / PRODUCTION ACCEPTANCE IN PROGRESS",
-  "last_verified_commit": "e34d136835686e740b66022f11310715491991ff",
-  "last_verified_date": "2026-11-20T06:05:03+05:30",
+  "last_verified_commit": "d6a974d7c1fb24cd292051a98a3ba7824cf22069",
+  "last_verified_date": "2026-11-20T06:09:55+05:30",
   "git": {
     "branch": "main",
     "commit_count": 1,
     "clean_working_tree": true,
-    "head": "e34d136835686e740b66022f11310715491991ff"
+    "head": "d6a974d7c1fb24cd292051a98a3ba7824cf22069"
   },
   "latest_delta": {
-    "detected_at": "2026-11-20T00:35:11+00:00",
-    "added": [],
+    "detected_at": "2026-11-20T00:40:06+00:00",
+    "added": [
+      "Enterprise/tests/Test-Stage43WindowsPinnedHttpsFaults.ps1",
+      "Enterprise/deploy/PHASE-N-STAGE43-ACCEPTANCE.md"
+    ],
     "removed": [],
     "changed": [
-      "Enterprise/deploy/PHASE-N-STAGE38-ACCEPTANCE.md",
       "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md",
-      "Enterprise/deploy/PHASE-N-STAGE39-ACCEPTANCE.md",
-      "Enterprise/deploy/PHASE-N-STAGE42-ACCEPTANCE.md"
+      "Enterprise/deploy/PHASE-N-STAGE42-ACCEPTANCE.md",
+      "Enterprise/deploy/PublicWindowsPinnedTls.psm1",
+      ".github/workflows/ci.yml",
+      "Enterprise/deploy/Test-WindowsPinnedPublicHttps.ps1"
     ],
-    "unchanged_count": 371
+    "unchanged_count": 370
   },
   "production_ready": false,
   "acceptance_gates": [

@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-20T00:35:11+00:00",
-  "last_verified_commit": "e34d136835686e740b66022f11310715491991ff",
-  "last_verified_date": "2026-11-20T06:05:03+05:30",
+  "generated": "2026-11-20T00:40:06+00:00",
+  "last_verified_commit": "d6a974d7c1fb24cd292051a98a3ba7824cf22069",
+  "last_verified_date": "2026-11-20T06:09:55+05:30",
   "overall_progress_percent": 100.0,
   "progress_scope": "historic audit issue closure only; production acceptance pending",
   "production_ready": false,
@@ -14,38 +14,12 @@
     "percent": 100.0
   },
   "latest_delta": {
-    "added": 0,
+    "added": 2,
     "removed": 0,
-    "changed": 4,
-    "unchanged": 371
+    "changed": 5,
+    "unchanged": 370
   },
   "delta_history": [
-    {
-      "detected_at": "2026-11-17T10:29:26+00:00",
-      "added": [
-        "database/migrations/011_security_posture_provenance.sql",
-        "security-posture.js",
-        "tests/unit/security-posture-stage24.test.js",
-        "Enterprise/deploy/PHASE-N-STAGE24-ACCEPTANCE.md"
-      ],
-      "removed": [],
-      "changed": [
-        "docs/assessment/TEST-RESULTS.md",
-        "server.js",
-        "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md",
-        "db.js",
-        "database/migrations/README.md",
-        "CHANGELOG.md",
-        "validation.js",
-        "Enterprise/agent/Aaditech-Agent.ps1",
-        "docs/assessment/GAP-REGISTER.md",
-        "database/mysql/schema.sql",
-        "Enterprise/deploy/PHASE-N-STAGE23-ACCEPTANCE.md",
-        "test-migrations-runner.js",
-        "docs/assessment/RELEASE-READINESS.md"
-      ],
-      "unchanged_count": 293
-    },
     {
       "detected_at": "2026-11-17T10:51:05+00:00",
       "added": [
@@ -427,6 +401,22 @@
         "Enterprise/deploy/PHASE-N-STAGE42-ACCEPTANCE.md"
       ],
       "unchanged_count": 371
+    },
+    {
+      "detected_at": "2026-11-20T00:40:06+00:00",
+      "added": [
+        "Enterprise/tests/Test-Stage43WindowsPinnedHttpsFaults.ps1",
+        "Enterprise/deploy/PHASE-N-STAGE43-ACCEPTANCE.md"
+      ],
+      "removed": [],
+      "changed": [
+        "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md",
+        "Enterprise/deploy/PHASE-N-STAGE42-ACCEPTANCE.md",
+        "Enterprise/deploy/PublicWindowsPinnedTls.psm1",
+        ".github/workflows/ci.yml",
+        "Enterprise/deploy/Test-WindowsPinnedPublicHttps.ps1"
+      ],
+      "unchanged_count": 370
     }
   ],
   "next_recommended_tasks": [

@@ -1,5 +1,14 @@
 # Phase N — Production release acceptance and sign-off
 
+## Stage N61 — offline full remote-release bridge regression (CODE PROPOSED; PR CI PENDING; PRODUCTION BLOCKED)
+
+- [ ] Invoke the **actual** `Assert-RemoteReleaseAssets.ps1` in Windows PowerShell 5.1 and 7, using an in-process synthetic `gh api` stub that refuses all unapproved endpoints and performs **no network requests**. Use actual source agent version and N55 canonical checksums with disposable unsigned test bytes.
+- [ ] Verify untagged draft and exact tagged published release success, each with only two expected read-only calls; refuse missing/moved public Git tags, mismatched immutable release ID, wrong remote MSI SHA256, nonzero GitHub CLI error, malformed JSON, wrong source SHA, missing GH_TOKEN and unapproved auto-push context. All denials must be redacted.
+- [ ] PR Windows N31–N61, Node/Vitest+MySQL and API/MySQL CI **3/3**, offline/isolated database safety **2/2**, reviewed merge; fresh main Windows MSI install/uninstall/major upgrade **4/4**, safety **2/2**, project index success.
+- [ ] Real approved publisher/HSM certificate, independently scoped N56 short-lived RSA reviewer signature, SQLite ZIP/EXE pins, protected manual signed CI and real release draft/publication, customer Hostinger TLS/DNS, physical Windows lost-ACK/MySQL tenant evidence, offsite restore and security-owner signoff remain **PENDING**. **Production NOT APPROVED.**
+
+See [N61 acceptance](PHASE-N-STAGE61-ACCEPTANCE.md) and [release issue #29](https://github.com/rehman2671/Aaditech-toolkit-new/issues/29).
+
 ## Stage N60 — draft ID and Git tag lifecycle repair (MERGED; PR CI 3/3 + SAFETY 2/2, MAIN DIAGNOSTIC MSI 4/4 + SAFETY 2/2 AND INDEX SUCCESS; PRODUCTION BLOCKED)
 
 - [x] Corrected the N59 first-live-release blocker: **unpublished drafts have pending tag names but no Git refs**, and REST `/releases/tags/<tag>` cannot retrieve draft records. The workflow now resolves the private draft's exact `gh release view --json databaseId,isDraft,tagName,targetCommitish` after `gh release create --draft`, then pins the validated numeric ID across all **three** remote asset attestations.

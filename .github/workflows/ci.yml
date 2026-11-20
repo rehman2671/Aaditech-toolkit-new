@@ -216,6 +216,13 @@ jobs:
         shell: powershell
         run: ./Enterprise/tests/Test-Stage60DraftTagLifecycle.ps1
 
+      - name: N61 invoke actual protected release bridge with mock GitHub API (PowerShell 7)
+        run: pwsh -NoProfile -File ./Enterprise/tests/Test-Stage61RemoteReleaseBridge.ps1
+
+      - name: N61 reject remote draft, Git ref and immutable ID faults on Windows PowerShell 5.1
+        shell: powershell
+        run: ./Enterprise/tests/Test-Stage61RemoteReleaseBridge.ps1
+
 
       - name: N31 release publication requires independently approved source and MSI pins
         run: pwsh -NoProfile -File ./Enterprise/tests/Test-Stage31PublicationPins.ps1

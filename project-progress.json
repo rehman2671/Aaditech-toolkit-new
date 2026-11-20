@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-19T23:26:18+00:00",
-  "last_verified_commit": "dcf11a6aae4d33aa4325bb3a43c414debe5402a6",
-  "last_verified_date": "2026-11-20T04:56:01+05:30",
+  "generated": "2026-11-20T00:07:16+00:00",
+  "last_verified_commit": "ac904c6b98edd622ccd217c14edfce3e49108e69",
+  "last_verified_date": "2026-11-20T05:36:50+05:30",
   "overall_progress_percent": 100.0,
   "progress_scope": "historic audit issue closure only; production acceptance pending",
   "production_ready": false,
@@ -14,30 +14,12 @@
     "percent": 100.0
   },
   "latest_delta": {
-    "added": 3,
+    "added": 4,
     "removed": 0,
     "changed": 3,
-    "unchanged": 365
+    "unchanged": 368
   },
   "delta_history": [
-    {
-      "detected_at": "2026-11-17T08:03:41+00:00",
-      "added": [
-        "database/migrations/010_events_tenant_device_identity.sql",
-        "tests/unit/tenant-events-stage22.test.js",
-        "Enterprise/deploy/PHASE-N-STAGE22-ACCEPTANCE.md"
-      ],
-      "removed": [],
-      "changed": [
-        "tests/unit/tenant-read-boundaries.test.js",
-        "db.js",
-        "test-migrations-runner.js",
-        "database/migrations/README.md",
-        "database/mysql/schema.sql",
-        "server.js"
-      ],
-      "unchanged_count": 295
-    },
     {
       "detected_at": "2026-11-17T09:17:42+00:00",
       "added": [
@@ -439,6 +421,22 @@
         ".github/workflows/ci.yml"
       ],
       "unchanged_count": 365
+    },
+    {
+      "detected_at": "2026-11-20T00:07:16+00:00",
+      "added": [
+        "Enterprise/tests/Test-Stage42WindowsPinnedHttps.ps1",
+        "Enterprise/deploy/PHASE-N-STAGE42-ACCEPTANCE.md",
+        "Enterprise/deploy/PublicWindowsPinnedTls.psm1",
+        "Enterprise/deploy/Test-WindowsPinnedPublicHttps.ps1"
+      ],
+      "removed": [],
+      "changed": [
+        "Enterprise/deploy/PHASE-N-STAGE41-ACCEPTANCE.md",
+        "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md",
+        ".github/workflows/ci.yml"
+      ],
+      "unchanged_count": 368
     }
   ],
   "next_recommended_tasks": [

@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-20T13:27:52+00:00",
-  "last_verified_commit": "54c5ccb072d16af7b498b4b0382aa2bdf68aa14b",
-  "last_verified_date": "2026-11-20T18:57:29+05:30",
+  "generated": "2026-11-20T13:57:49+00:00",
+  "last_verified_commit": "c07a0560d573ca3095d91f7ccc363122049fd5e7",
+  "last_verified_date": "2026-11-20T19:27:36+05:30",
   "overall_progress_percent": 100.0,
   "progress_scope": "historic audit issue closure only; production acceptance pending",
   "production_ready": false,
@@ -14,26 +14,12 @@
     "percent": 100.0
   },
   "latest_delta": {
-    "added": 0,
+    "added": 5,
     "removed": 0,
-    "changed": 2,
-    "unchanged": 413
+    "changed": 7,
+    "unchanged": 408
   },
   "delta_history": [
-    {
-      "detected_at": "2026-11-19T17:18:06+00:00",
-      "added": [
-        "Enterprise/tests/Test-Stage39WindowsPublicAddressPolicy.ps1",
-        "Enterprise/deploy/PublicWindowsAddressPolicy.psm1",
-        "Enterprise/deploy/PHASE-N-STAGE39-ACCEPTANCE.md"
-      ],
-      "removed": [],
-      "changed": [
-        ".github/workflows/ci.yml",
-        "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md"
-      ],
-      "unchanged_count": 361
-    },
     {
       "detected_at": "2026-11-19T22:57:43+00:00",
       "added": [
@@ -345,6 +331,27 @@
         "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md"
       ],
       "unchanged_count": 413
+    },
+    {
+      "detected_at": "2026-11-20T13:57:49+00:00",
+      "added": [
+        "Enterprise/deploy/PHASE-N-STAGE58-ACCEPTANCE.md",
+        "Enterprise/agent/build/ReleasePublicationApproval.psm1",
+        "Enterprise/agent/build/Assert-PublicationReviewerApproval.ps1",
+        "Enterprise/agent/build/Write-SourceReleaseApprovalReceipt.ps1",
+        "Enterprise/tests/Test-Stage58ReleasePublicationApproval.ps1"
+      ],
+      "removed": [],
+      "changed": [
+        "Enterprise/agent/build/Verify-ReleaseArtifact.ps1",
+        "Enterprise/deploy/PHASE-N-STAGE56-ACCEPTANCE.md",
+        ".github/workflows/ci.yml",
+        ".github/workflows/publish-signed-installer.yml",
+        "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md",
+        "Enterprise/tests/Test-Stage31PublicationPins.ps1",
+        "Enterprise/tests/Test-Stage56ReviewedReleaseApproval.ps1"
+      ],
+      "unchanged_count": 408
     }
   ],
   "next_recommended_tasks": [

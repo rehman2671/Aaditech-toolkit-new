@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-20T11:49:06+00:00",
-  "last_verified_commit": "79915aec4afca14997a21f7b5c5f4143f8cc8ef2",
-  "last_verified_date": "2026-11-20T17:18:55+05:30",
+  "generated": "2026-11-20T12:11:15+00:00",
+  "last_verified_commit": "0d39f773162bb32f00b47898903ddb0b89b460e3",
+  "last_verified_date": "2026-11-20T17:41:01+05:30",
   "overall_progress_percent": 100.0,
   "progress_scope": "historic audit issue closure only; production acceptance pending",
   "production_ready": false,
@@ -14,34 +14,12 @@
     "percent": 100.0
   },
   "latest_delta": {
-    "added": 3,
+    "added": 4,
     "removed": 0,
-    "changed": 4,
-    "unchanged": 397
+    "changed": 5,
+    "unchanged": 399
   },
   "delta_history": [
-    {
-      "detected_at": "2026-11-18T22:33:50+00:00",
-      "added": [
-        "Enterprise/deploy/PHASE-N-STAGE36-ACCEPTANCE.md"
-      ],
-      "removed": [],
-      "changed": [
-        "Enterprise/tests/Test-Stage31WindowsPreflight.ps1",
-        "Enterprise/tests/Test-Stage14Preflight.sh",
-        "Enterprise/deploy/PHASE-N-STAGE35-ACCEPTANCE.md",
-        "Enterprise/tests/Test-CustomerWindowsAcceptance.ps1",
-        "docs/assessment/RELEASE-READINESS.md",
-        "Enterprise/tests/Test-Stage31Preflight.sh",
-        "docs/assessment/TEST-RESULTS.md",
-        "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md",
-        "Enterprise/deploy/preflight-stage31.sh",
-        "docs/assessment/GAP-REGISTER.md",
-        "Enterprise/deploy/preflight-stage14.sh",
-        "Enterprise/deploy/verify-hostinger-acceptance.sh"
-      ],
-      "unchanged_count": 342
-    },
     {
       "detected_at": "2026-11-19T11:41:53+00:00",
       "added": [
@@ -349,6 +327,24 @@
         "Enterprise/deploy/PHASE-N-STAGE53-ACCEPTANCE.md"
       ],
       "unchanged_count": 397
+    },
+    {
+      "detected_at": "2026-11-20T12:11:15+00:00",
+      "added": [
+        "Enterprise/agent/build/ReleaseArtifactManifest.psm1",
+        "Enterprise/deploy/PHASE-N-STAGE55-ACCEPTANCE.md",
+        "Enterprise/agent/build/Verify-SignedPublication.ps1",
+        "Enterprise/tests/Test-Stage55SignedArtifactPublication.ps1"
+      ],
+      "removed": [],
+      "changed": [
+        "Enterprise/deploy/PHASE-N-STAGE52-ACCEPTANCE.md",
+        "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md",
+        "Enterprise/deploy/PHASE-N-STAGE54-ACCEPTANCE.md",
+        "Enterprise/deploy/PHASE-N-STAGE53-ACCEPTANCE.md",
+        ".github/workflows/ci.yml"
+      ],
+      "unchanged_count": 399
     }
   ],
   "next_recommended_tasks": [

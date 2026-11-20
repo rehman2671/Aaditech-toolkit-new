@@ -99,3 +99,15 @@ remains OPEN. N31 automatic live `-NetworkProbe` stays BLOCKED.
 - [Main deployment safety #44708591086](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44708591086): **2/2 SUCCESS** (Bash/offline recovery and isolated real MySQL backup/restore data integrity).
 - `Verify pre-signed MSI payload and sign release MSI` succeeded in diagnostic mode only; **`Upload verified signed artifacts only` was SKIPPED**. No approved customer publisher-signed MSI was published.
 - No physical customer Windows live HTTPS/Hostinger DNS/CA ownership, independent Microsoft signing-chain approval, real lost-ACK/receipt, offsite restore, integration acceptance or human security sign-off was established. **Production NOT APPROVED**; issue #29 remains OPEN.
+
+## N49 trust pin amendment (mandatory on all separately authorized LIVE calls)
+
+The N42/N43 historical live example above now includes the later N49
+`-ApprovedCurlSignerSha256` parameter. This is the independent
+security-owner-approved SHA-256 of the **Windows system curl Authenticode
+leaf signing certificate DER**, NOT the curl EXE, HTTPS server certificate,
+or a locally self-derived production approval. Omit the parameter during
+`-DryRun`. A live request without an externally approved value is blocked
+before customer DNS. See [N49 acceptance](PHASE-N-STAGE49-ACCEPTANCE.md).
+No customer live request, independently authorized fingerprint or public
+signed MSI was supplied by N49.

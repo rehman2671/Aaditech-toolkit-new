@@ -9,6 +9,7 @@ function Assert-N59ReleaseAssetSet {
         [Parameter(Mandatory=$true)][string]$ArtifactDir,
         [Parameter(Mandatory=$true)][AllowEmptyString()][string]$ExpectedTag,
         [Parameter(Mandatory=$true)][AllowEmptyString()][string]$ExpectedSourceSha,
+        [Parameter(Mandatory=$true)][long]$ExpectedReleaseId,
         [Parameter(Mandatory=$true)][AllowEmptyString()][string]$ExpectedVersion,
         [Parameter(Mandatory=$true)][AllowEmptyString()][string]$ExpectedRevision,
         [Parameter(Mandatory=$true)][AllowEmptyString()][string]$ApprovedMsiSha256,
@@ -19,6 +20,7 @@ function Assert-N59ReleaseAssetSet {
     try {
         if ($env:OS -cne 'Windows_NT' -or
             ($RequireDraft.IsPresent -eq $RequirePublished.IsPresent) -or
+            $ExpectedReleaseId -le 0 -or
             $ExpectedSourceSha -cnotmatch '\A[0-9a-f]{40}\z' -or
             $ExpectedVersion -cnotmatch '\A(?:0|[1-9][0-9]{0,2})\.(?:0|[1-9][0-9]{0,2})\.(?:0|[1-9][0-9]{0,3})\z' -or
             $ExpectedRevision -cnotmatch '\A(?:[1-9]|[1-9][0-9]{1,2})\z' -or
@@ -33,7 +35,7 @@ function Assert-N59ReleaseAssetSet {
             [string]$release.tag_name -cne $ExpectedTag -or
             [string]$release.target_commitish -cne $ExpectedSourceSha -or
             $release.prerelease -ne $false -or
-            [long]$release.id -le 0) {
+            [long]$release.id -ne $ExpectedReleaseId) {
             throw 'Unexpected release source, tag or state.'
         }
         if ($RequireDraft) {

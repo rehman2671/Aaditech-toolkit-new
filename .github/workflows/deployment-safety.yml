@@ -17,6 +17,8 @@ on:
       - 'Enterprise/tests/Test-LegacyMsiMigration-Live.sh'
       - 'Enterprise/tests/Test-MySQL-Live-Rehearsal.sh'
       - '.github/workflows/deployment-safety.yml'
+      - '.github/workflows/project-index-maintenance.yml'
+      - 'Scripts/Index/**'
   pull_request:
     paths:
       - 'Enterprise/deploy/**'
@@ -32,6 +34,8 @@ on:
       - 'Enterprise/tests/Test-LegacyMsiMigration-Live.sh'
       - 'Enterprise/tests/Test-MySQL-Live-Rehearsal.sh'
       - '.github/workflows/deployment-safety.yml'
+      - '.github/workflows/project-index-maintenance.yml'
+      - 'Scripts/Index/**'
   workflow_dispatch:
 
 jobs:
@@ -42,6 +46,13 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v4
+      - name: N57 verify latest-main project index retries without force-push (isolated local Git)
+        shell: bash
+        run: |
+          bash -n Scripts/Index/Publish-ProjectIndex.sh
+          bash -n Scripts/Index/Test-Stage57ProjectIndexPublish.sh
+          bash Scripts/Index/Test-Stage57ProjectIndexPublish.sh
+
       - name: Validate deployment script syntax
         shell: bash
         run: |

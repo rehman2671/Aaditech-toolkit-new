@@ -1,6 +1,6 @@
 # Phase N Stage 49 — Per-invocation approval of the OS curl signing certificate
 
-**Status: MERGED; PR CI AND DEPLOYMENT SAFETY GREEN; POST-MERGE MAIN CI/MSI RUNNING; CUSTOMER PRODUCTION NOT APPROVED (2026-11-20 IST).**
+**Status: MERGED; MAIN CI/MSI 4/4 AND DEPLOYMENT SAFETY 2/2 GREEN; CUSTOMER PRODUCTION NOT APPROVED (verified 2026-11-20 IST).**
 
 ## Finding and remediation
 
@@ -92,7 +92,7 @@ the assurance boundary.
   local Windows-signed curl checks pass; N31–N48 previous safety tests
   remain green with no valid live customer consent.
 - [x] PR Node/Vitest+MySQL, API/MySQL and deployment-safety green.
-- [ ] Authorized merge and post-main Windows EXE/MSI build, extraction,
+- [x] Authorized merge and post-main Windows EXE/MSI build, extraction,
   clean install/uninstall, tenant-preserving major upgrade **4/4**,
   deployment safety **2/2**, signed public artifact upload **SKIPPED**.
 - [ ] Independent physical customer Windows signer approval, TLS, Hostinger
@@ -107,5 +107,5 @@ stays OPEN. **Production NOT APPROVED.**
 - [PR #44](https://github.com/rehman2671/Aaditech-toolkit-new/pull/44) merged verified head `ec201f86461d39f8cefc0679a5384904a699632c` as `bef167c5304b92a3cf964c597b60fa34f4d4b1a2`.
 - [PR CI #44711587502](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44711587502): PowerShell 7 and real 5.1 N49, prior N31–N48, Node/Vitest+MySQL, API/MySQL **3/3 SUCCESS** (MSI skipped on PR).
 - [PR deployment safety #44711587550](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44711587550): **2/2 SUCCESS** (Bash/recovery and isolated MySQL backup/restore).
-- [Main CI #44712168071](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44712168071) and [main deployment safety #44712168110](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44712168110) are the independent post-merge checks. **Do not mark the MSI lifecycle green until this main CI run finishes.**
+- [Main CI #44712168071](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44712168071) **4/4 SUCCESS** (PowerShell 5.1/7, Node/Vitest+MySQL, API/MySQL, Windows EXE/MSI build, administrative extraction, install/uninstall, tenant-preserving major upgrade); [main safety #44712168110](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44712168110) **2/2 SUCCESS** (offline recovery + isolated MySQL backup/restore). `Upload verified signed artifacts only` SKIPPED.
 - CI derives a signer hash from its own local system curl solely for unit/regression testing. This is not an independently approved customer signing certificate pin, physical TLS acceptance or authority to publish an MSI. **Production NOT APPROVED.**

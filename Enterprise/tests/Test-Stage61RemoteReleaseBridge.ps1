@@ -116,7 +116,16 @@ try {
 
     # Tests the ACTUAL production bridge, not merely its imported helpers.
     $script:calls.Clear()
-    & $bridge -ArtifactDir $dir -ReleaseId $releaseId -RequireDraft
+    try {
+        & $bridge -ArtifactDir $dir -ReleaseId $releaseId -RequireDraft
+    } catch {
+        # Offline-only diagnosis: all fixture endpoints, files, digests and
+        # credentials are synthetic. Never dump real protected API responses.
+        $inner=@($Error | Select-Object -Skip 1 -First 3 |
+            ForEach-Object { $_.Exception.GetType().Name+': '+$_.Exception.Message })
+        throw ('N61 fake-gh draft bridge failure; API calls='+
+            ($script:calls -join ',')+'; causes='+($inner -join ' / '))
+    }
     if ($script:calls.Count -ne 2 -or
         $script:calls[0] -cne $refsEndpoint -or
         $script:calls[1] -cne $releaseEndpoint) {

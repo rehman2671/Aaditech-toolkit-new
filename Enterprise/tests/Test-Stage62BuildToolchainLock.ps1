@@ -19,16 +19,6 @@ if ((Assert-N62BuildToolchainVersion -Kind ps2exe -ObservedVersion '1.0.18') -ne
     (Assert-N62BuildToolchainVersion -Kind wix -ObservedVersion '5.0.2+validatedbuildsha') -ne $true) {
     throw 'N62 refuses correct reviewed exact Windows toolchain versions.'
 }
-function Assert-N62VersionDenied([scriptblock]$Action,[string]$Case) {
-    $denied=$false
-    try { $null=& $Action } catch {
-        $denied=$true
-        if ($_.Exception.Message -cne 'N62 build toolchain version check blocked.') {
-            throw ('N62 leaked unreviewed toolchain details for '+$Case)
-        }
-    }
-    if (-not $denied) { throw ('N62 accepted unapproved toolchain: '+$Case) }
-}
 foreach($case in @(
     @{Kind='ps2exe';Version='1.0.17'},
     @{Kind='ps2exe';Version='1.0.19'},
@@ -46,9 +36,18 @@ foreach($case in @(
     @{Kind='wix';Version=('5.0.2'+[char]10+'6.0.2')},
     @{Kind='wix';Version=''}
 )) {
-    Assert-N62VersionDenied -Case ($case.Kind+': '+$case.Version) -Action {
-        Assert-N62BuildToolchainVersion -Kind $case.Kind -ObservedVersion $case.Version
+    # Invoke directly in this loop scope: a helper parameter named
+    # $Case would mask the loop fixture under PowerShell dynamic scoping.
+    $denied=$false
+    try {
+        $null=Assert-N62BuildToolchainVersion -Kind $case.Kind -ObservedVersion $case.Version
+    } catch {
+        $denied=$true
+        if ($_.Exception.Message -cne 'N62 build toolchain version check blocked.') {
+            throw ('N62 leaked unexpected error type for '+$case.Kind)
+        }
     }
+    if (-not $denied) { throw ('N62 accepted unapproved toolchain: '+$case.Kind) }
 }
 $ci=[IO.File]::ReadAllText($workflow)
 $psSource=[IO.File]::ReadAllText($exeBuilder)

@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-20T03:56:09+00:00",
-  "last_verified_commit": "d70bc960d511288be81fee236663c6096f9da8c5",
-  "last_verified_date": "2026-11-20T09:25:58+05:30",
+  "generated": "2026-11-20T09:11:27+00:00",
+  "last_verified_commit": "a9f407b3082c01b3ece94ea62c307d639dfdd0fc",
+  "last_verified_date": "2026-11-20T14:41:19+05:30",
   "overall_progress_percent": 100.0,
   "progress_scope": "historic audit issue closure only; production acceptance pending",
   "production_ready": false,
@@ -14,39 +14,12 @@
     "percent": 100.0
   },
   "latest_delta": {
-    "added": 2,
+    "added": 3,
     "removed": 0,
-    "changed": 5,
-    "unchanged": 380
+    "changed": 4,
+    "unchanged": 383
   },
   "delta_history": [
-    {
-      "detected_at": "2026-11-17T22:05:33+00:00",
-      "added": [
-        "test-atomic-telemetry-batch-mysql.js",
-        "Enterprise/deploy/PHASE-N-STAGE29-ACCEPTANCE.md",
-        "tests/unit/atomic-telemetry-stage29.test.js",
-        "database/migrations/014_telemetry_batches.sql"
-      ],
-      "removed": [],
-      "changed": [
-        "docs/assessment/TEST-RESULTS.md",
-        "server.js",
-        "docs/assessment/GAP-REGISTER.md",
-        "Enterprise/tests/Test-CanonicalAgent-AckCadence.ps1",
-        "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md",
-        "Enterprise/deploy/PHASE-N-STAGE28-ACCEPTANCE.md",
-        "Enterprise/agent/Agent-Collect.ps1",
-        "validation.js",
-        "database/migrations/README.md",
-        ".github/workflows/ci.yml",
-        "docs/assessment/RELEASE-READINESS.md",
-        "test-migrations-runner.js",
-        "database/mysql/schema.sql",
-        "db.js"
-      ],
-      "unchanged_count": 308
-    },
     {
       "detected_at": "2026-11-17T22:27:50+00:00",
       "added": [
@@ -386,6 +359,22 @@
         "Enterprise/deploy/Test-WindowsPinnedPublicHttps.ps1"
       ],
       "unchanged_count": 380
+    },
+    {
+      "detected_at": "2026-11-20T09:11:27+00:00",
+      "added": [
+        "Enterprise/deploy/PHASE-N-STAGE48-ACCEPTANCE.md",
+        "Enterprise/deploy/TrustedWindowsSystemCurl.psm1",
+        "Enterprise/tests/Test-Stage48WindowsSystemCurlTrust.ps1"
+      ],
+      "removed": [],
+      "changed": [
+        "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md",
+        ".github/workflows/ci.yml",
+        "Enterprise/deploy/Test-WindowsPinnedPublicHttps.ps1",
+        "Enterprise/deploy/PHASE-N-STAGE47-ACCEPTANCE.md"
+      ],
+      "unchanged_count": 383
     }
   ],
   "next_recommended_tasks": [

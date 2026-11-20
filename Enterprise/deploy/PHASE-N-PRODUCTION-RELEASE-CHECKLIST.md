@@ -1,5 +1,14 @@
 # Phase N — Production release acceptance and sign-off
 
+## Stage N56 — reviewer-signed exact source/version/dependency release authorization (CODE PROPOSED; PR CI PENDING; PRODUCTION BLOCKED)
+
+- [ ] An approved publisher PFX and manual GitHub environment are **not** a release scope grant. Require separate RSA-SHA256 reviewer-signed ASCII/LF manifest pinning exact `main` Git SHA, `agent_version`, positive `msi_revision`, publisher thumbprint, independently approved SQLite ZIP/EXE hashes and short UTC window <=24h. Pin reviewer public DER SHA-256 independently. Never store reviewer private keys in CI/repo.
+- [ ] PrePackage must verify this record **before** loading PFX or invoking signtool; Finalize and N55 preupload must verify its **same exact authenticated digest**, not only a replacement valid signature. Missing, malformed, rotated or expired approval blocks publication with redacted errors. Reviewer secrets are manual protected-environment only.
+- [ ] Windows PowerShell 5.1/7 synthetic reviewer RSA, changed commit/version/revision/publisher/SQLite, approval rotation/expiry and signature-fault regression, N31–N55, Node/Vitest+MySQL, API/MySQL, safety CI; review/merge and fresh main MSI lifecycle **4/4** + safety **2/2**.
+- [ ] Real separately signed reviewer scope, reviewed actual SQLite and publisher fingerprints, protected production signing and final signed MSI publication, Hostinger DNS/TLS, physical queue ACK-loss/MySQL receipts, offsite restore and human security sign-off **PENDING**. **Production NOT APPROVED.**
+
+See [N56 acceptance](PHASE-N-STAGE56-ACCEPTANCE.md) and [issue #29](https://github.com/rehman2671/Aaditech-toolkit-new/issues/29).
+
 ## Stage N55 — exact signed EXE/MSI revalidation immediately before release upload (MERGED; PR CI 3/3 + SAFETY 2/2 GREEN; MAIN DIAGNOSTIC MSI 4/4 + SAFETY 2/2 VERIFIED; PRODUCTION BLOCKED)
 
 - [x] Protected manual `main` publication now revalidates exact version, both EXE/MSI hashes and canonical two-line SHA256SUMS, one MSI, OS-trusted timestamp and pinned publisher cert, actual SQLite embedded in fresh final signed MSI extraction, and **blank external and embedded setup configs**. Upload requires both `PUBLISH_SIGNED=true` and `PUBLICATION_VERIFIED=true`.

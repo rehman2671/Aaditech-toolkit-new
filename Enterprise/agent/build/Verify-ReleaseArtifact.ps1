@@ -2,7 +2,8 @@
 [CmdletBinding()]
 param([Parameter(Mandatory=$true)][string]$ArtifactDir,
       [Parameter(Mandatory=$true)][string]$ApprovedThumbprint,
-      [Parameter(Mandatory=$true)][string]$ApprovedMsiSha256)
+      [Parameter(Mandatory=$true)][string]$ApprovedMsiSha256,
+      [Parameter(Mandatory=$true)][string]$ApprovedSqliteExeSha256)
 $ErrorActionPreference = 'Stop'
 $root = (Resolve-Path -LiteralPath $ArtifactDir).Path
 $pin = ($ApprovedThumbprint -replace '\s','').ToUpperInvariant()
@@ -11,6 +12,14 @@ $approvedMsiHash = $ApprovedMsiSha256.Trim().ToLowerInvariant()
 if ($approvedMsiHash -cnotmatch '^[a-f0-9]{64}$') {
   throw 'Independent approved MSI SHA256 must contain exactly 64 hex characters.'
 }
+if ($ApprovedSqliteExeSha256 -cnotmatch '\A[0-9A-Fa-f]{64}\z') {
+  throw 'Independent approved SQLite executable SHA256 is required.'
+}
+$versionFile = Join-Path $PSScriptRoot '..\agent-version.json'
+$expectedVersion = [string]((Get-Content -LiteralPath $versionFile -Raw | ConvertFrom-Json).agent_version)
+Import-Module -Name (Join-Path $PSScriptRoot 'ReleaseArtifactManifest.psm1') -Force -ErrorAction Stop
+Import-Module -Name (Join-Path $PSScriptRoot '..\wix\SqliteBundleApproval.psm1') -Force -ErrorAction Stop
+$null = Assert-N55SignedPublicationManifest -OutputDirectory $root -ExpectedAgentVersion $expectedVersion
 $exe = Join-Path $root 'IT-Toolkit-Agent.exe'
 $msis = @(Get-ChildItem -LiteralPath $root -File -Filter 'IT-Toolkit-Agent-*.msi')
 $manifest = Join-Path $root 'SHA256SUMS.txt'
@@ -61,11 +70,27 @@ try {
   $arguments = '/a "' + $msis[0].FullName + '" /qn TARGETDIR="' + $tempDir + '"'
   $proc = Start-Process -FilePath msiexec.exe -ArgumentList $arguments -PassThru -Wait
   if ($proc.ExitCode -ne 0) { throw 'MSI administrative extraction failed.' }
-  $inside = Get-ChildItem -LiteralPath $tempDir -Recurse -File -Filter 'IT-Toolkit-Agent.exe' |
-    Select-Object -First 1
-  if (-not $inside -or (Get-FileHash -LiteralPath $inside.FullName -Algorithm SHA256).Hash -ne
+  $embedded = @(Get-ChildItem -LiteralPath $tempDir -Recurse -File -Filter 'IT-Toolkit-Agent.exe')
+  $sqlite = @(Get-ChildItem -LiteralPath $tempDir -Recurse -File -Filter 'sqlite3.exe')
+  $configs = @(Get-ChildItem -LiteralPath $tempDir -Recurse -File -Filter 'agent.json')
+  if ($embedded.Count -ne 1 -or $sqlite.Count -ne 1 -or $configs.Count -lt 1) {
+    throw 'MSI must contain one signed EXE, one SQLite executable and setup configuration.'
+  }
+  if ((Get-FileHash -LiteralPath $embedded[0].FullName -Algorithm SHA256).Hash -ne
       (Get-FileHash -LiteralPath $exe -Algorithm SHA256).Hash) {
     throw 'MSI embedded executable does not match verified signed EXE.'
+  }
+  $null = Assert-N54ApprovedSqliteFile -Path $sqlite[0].FullName -Kind Executable -ApprovedSha256 $ApprovedSqliteExeSha256
+  foreach ($configEntry in $configs) {
+    $embeddedConfig = Get-Content -LiteralPath $configEntry.FullName -Raw |
+      ConvertFrom-Json -ErrorAction Stop
+    if ($embeddedConfig.needs_setup -ne $true -or
+        -not [string]::IsNullOrEmpty([string]$embeddedConfig.endpoint) -or
+        -not [string]::IsNullOrEmpty([string]$embeddedConfig.enroll_url) -or
+        -not [string]::IsNullOrEmpty([string]$embeddedConfig.token) -or
+        -not [string]::IsNullOrEmpty([string]$embeddedConfig.bootstrap_token)) {
+      throw 'MSI payload contains provisioned customer identity.'
+    }
   }
 } finally {
   if (Test-Path $tempDir) { Remove-Item -LiteralPath $tempDir -Recurse -Force -ErrorAction SilentlyContinue }

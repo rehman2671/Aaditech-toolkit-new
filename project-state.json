@@ -1,35 +1,30 @@
 {
   "state_version": "1.0",
   "path": "project-state.json",
-  "generated": "2026-11-20T10:55:10+00:00",
+  "generated": "2026-11-20T11:10:05+00:00",
   "phase": "PHASE N STAGE 4 / PRODUCTION ACCEPTANCE IN PROGRESS",
-  "last_verified_commit": "2d6cc525b140a4e8768f931d9176861db9e2e44d",
-  "last_verified_date": "2026-11-20T16:24:55+05:30",
+  "last_verified_commit": "80ce1e7b5327cfc49806db5f38d982b920118b9b",
+  "last_verified_date": "2026-11-20T16:39:55+05:30",
   "git": {
     "branch": "main",
     "commit_count": 1,
     "clean_working_tree": true,
-    "head": "2d6cc525b140a4e8768f931d9176861db9e2e44d"
+    "head": "80ce1e7b5327cfc49806db5f38d982b920118b9b"
   },
   "latest_delta": {
-    "detected_at": "2026-11-20T10:55:10+00:00",
+    "detected_at": "2026-11-20T11:10:05+00:00",
     "added": [
-      "Enterprise/deploy/WindowsCurlSignedApproval.psm1",
-      "Enterprise/deploy/PHASE-N-STAGE51-ACCEPTANCE.md",
-      "Enterprise/tests/Test-Stage51WindowsCurlSignedApproval.ps1"
+      "Enterprise/tests/Test-Stage52WindowsApprovalRecheck.ps1",
+      "Enterprise/deploy/PHASE-N-STAGE52-ACCEPTANCE.md"
     ],
     "removed": [],
     "changed": [
-      ".github/workflows/ci.yml",
-      "Enterprise/deploy/Test-WindowsPinnedPublicHttps.ps1",
-      "Enterprise/deploy/PHASE-N-STAGE48-ACCEPTANCE.md",
       "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md",
-      "Enterprise/deploy/PHASE-N-STAGE49-ACCEPTANCE.md",
-      "Enterprise/deploy/PHASE-N-STAGE50-ACCEPTANCE.md",
-      "Enterprise/deploy/PHASE-N-STAGE43-ACCEPTANCE.md",
-      "Enterprise/deploy/PHASE-N-STAGE42-ACCEPTANCE.md"
+      "Enterprise/deploy/Test-WindowsPinnedPublicHttps.ps1",
+      ".github/workflows/ci.yml",
+      "Enterprise/deploy/PHASE-N-STAGE51-ACCEPTANCE.md"
     ],
-    "unchanged_count": 386
+    "unchanged_count": 393
   },
   "production_ready": false,
   "acceptance_gates": [

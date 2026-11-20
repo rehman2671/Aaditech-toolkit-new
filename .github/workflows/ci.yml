@@ -188,6 +188,13 @@ jobs:
         shell: powershell
         run: ./Enterprise/tests/Test-Stage55SignedArtifactPublication.ps1
 
+      - name: N56 reviewer-signed release scope and original approval continuity (PowerShell 7)
+        run: pwsh -NoProfile -File ./Enterprise/tests/Test-Stage56ReviewedReleaseApproval.ps1
+
+      - name: N56 reject different valid release record and pins on Windows PowerShell 5.1
+        shell: powershell
+        run: ./Enterprise/tests/Test-Stage56ReviewedReleaseApproval.ps1
+
 
       - name: N31 release publication requires independently approved source and MSI pins
         run: pwsh -NoProfile -File ./Enterprise/tests/Test-Stage31PublicationPins.ps1

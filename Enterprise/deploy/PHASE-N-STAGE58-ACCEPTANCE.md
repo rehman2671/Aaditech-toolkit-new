@@ -156,3 +156,36 @@ and [security issue #29](https://github.com/rehman2671/Aaditech-toolkit-new/issu
   non-publishable behavior. No real protected N56 reviewer-signed CI
   source run, publisher HSM signing or GitHub Release creation was
   executed. **Customer production NOT APPROVED.**
+
+## Release-owner execution handoff — NOT PERFORMED
+
+After a separate human security/release reviewer has independently
+confirmed the exact main source SHA, version, MSI revision, publisher
+certificate thumbprint, SQLite archive hash and sqlite3.exe hash, and
+has signed the canonical short-lived N56 manifest with a privately held
+RSA key, use this two-stage production flow:
+
+1. Authorize protected manual `CI` `workflow_dispatch` on the exact
+   reviewed `main` source. The protected `production-installer`
+   environment must contain the vetted publisher signing credentials,
+   approved SQLite fingerprints, signed reviewer manifest, signature,
+   public DER and independently reviewed DER SHA256 fingerprint. The
+   source job must pass N54–N56 signing/payload verification, N55 final
+   artifact check and N58 original approval receipt stage. Observe
+   `it-toolkit-agent` artifact upload; an ordinary `push` diagnostic
+   run is **not** an accepted signing source.
+2. Independently review the successful source **run ID**, the **exact
+   40-hex source SHA** and the **64-hex signed MSI SHA256** without
+   deriving the approval directly from a just-downloaded artifact.
+   Then explicitly authorize `Publish approved signed Windows installer`
+   from `main` with `source_run_id`, `approved_source_sha`,
+   `approved_msi_sha256`, source version/revision `release_tag`, and
+   exact `PUBLISH_SIGNED_AGENT` confirmation. The same original
+   N56 reviewer record must still be valid within its 24-hour window.
+   Review the result; N58 will prevent publication on any identity or
+   checksum mismatch.
+
+**Neither protected step was executed as part of this stage.** The
+GitHub runner evidence above is diagnostic only. Human approval,
+customer Hostinger, physical Windows and separate MySQL receipts are
+independent outstanding production gates.

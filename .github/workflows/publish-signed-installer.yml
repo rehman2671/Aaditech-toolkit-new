@@ -28,6 +28,12 @@ permissions:
   contents: write
   actions: read
 
+# One protected publisher per release tag: never cancel a draft-in-progress
+# mid-upload. The exact tag/source checks still reject duplicate releases.
+concurrency:
+  group: signed-windows-installer-${{ inputs.release_tag }}
+  cancel-in-progress: false
+
 jobs:
   publish:
     name: Publish only independently verified signed installer
@@ -107,7 +113,7 @@ jobs:
           }
           ./Enterprise/agent/build/Verify-ReleaseArtifact.ps1 -ArtifactDir release -ApprovedThumbprint $env:CODESIGN_APPROVED_THUMBPRINT -ApprovedMsiSha256 $env:APPROVED_MSI_SHA256 -ApprovedSqliteExeSha256 $env:SQLITE3_EXE_SHA256_APPROVED
 
-      - name: Create GitHub release only for a new tag
+      - name: Stage draft, attest hosted SHA256 digests, then publish verified GitHub Release
         shell: pwsh
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -137,5 +143,20 @@ jobs:
             $_.Name -match '\.(msi|exe)$' -or $_.Name -eq 'SHA256SUMS.txt'
           } | ForEach-Object { $_.FullName })
           if ($assets.Count -ne 3) { throw 'Expected EXE, MSI and SHA256SUMS.txt only.' }
-          & gh release create $env:RELEASE_TAG @assets --target $env:SOURCE_SHA --title "Aaditech agent $env:RELEASE_TAG" --notes 'Trusted, timestamped Authenticode-signed agent; verify SHA256SUMS.txt and publisher before install.' --latest=false
-          if ($LASTEXITCODE -ne 0) { throw 'GitHub Release creation failed.' }
+          # Stage assets as a NON-PUBLIC draft. gh release create otherwise
+          # publishes immediately after upload, without independent checks
+          # against GitHub's hosted digests. A failed attestation leaves the
+          # draft hidden for security-owner review, never auto-deletes tags.
+          & gh release create $env:RELEASE_TAG @assets --draft --target $env:SOURCE_SHA --title "Aaditech agent $env:RELEASE_TAG" --notes 'Trusted, timestamped Authenticode-signed agent; verify SHA256SUMS.txt and publisher before install.' --latest=false
+          if ($LASTEXITCODE -ne 0) { throw 'GitHub draft release staging failed; inspect drafts before retry.' }
+          ./Enterprise/agent/build/Assert-RemoteReleaseAssets.ps1 -ArtifactDir release -RequireDraft
+          # A release approval may expire while uploading. Recheck independent
+          # original reviewer record and signed MSI contents immediately
+          # before making the draft publicly accessible.
+          ./Enterprise/agent/build/Assert-PublicationReviewerApproval.ps1 -ArtifactDir release -ApprovedSourceSha $env:APPROVED_SOURCE_SHA -ReleaseTag $env:RELEASE_TAG
+          ./Enterprise/agent/build/Verify-ReleaseArtifact.ps1 -ArtifactDir release -ApprovedThumbprint $env:CODESIGN_APPROVED_THUMBPRINT -ApprovedMsiSha256 $env:APPROVED_MSI_SHA256 -ApprovedSqliteExeSha256 $env:SQLITE3_EXE_SHA256_APPROVED
+          ./Enterprise/agent/build/Assert-RemoteReleaseAssets.ps1 -ArtifactDir release -RequireDraft
+          & gh release edit $env:RELEASE_TAG --draft=false --latest=false
+          if ($LASTEXITCODE -ne 0) { throw 'N59 cannot publish verified draft; manual security review required.' }
+          # A successful edit response alone does not establish integrity.
+          ./Enterprise/agent/build/Assert-RemoteReleaseAssets.ps1 -ArtifactDir release -RequirePublished

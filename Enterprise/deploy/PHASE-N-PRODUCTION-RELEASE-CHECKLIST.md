@@ -1,5 +1,15 @@
 # Phase N — Production release acceptance and sign-off
 
+## Stage N59 — unpublished draft + SHA256-verified GitHub Release assets (CODE PROPOSED; CI PENDING; PRODUCTION BLOCKED)
+
+- [ ] Stage approved signed EXE/MSI/SHA256SUMS as a **non-public draft release** on protected manual `main`. Serial release-tag publication with `cancel-in-progress: false`; refuse pre-existing tags, never force-push or delete failed drafts automatically.
+- [ ] Authenticate actual remote lightweight tag to the exact approved Git SHA; require three and only three completed GitHub asset uploads with canonical names, exact byte lengths and **GitHub API `sha256:<digest>`** matching independently verified local EXE/MSI/checksum bytes. Missing digest, extra asset, wrong source, draft/published state, incorrect MSI pin or corrupted SHA256SUMS blocks publication.
+- [ ] After draft upload, recheck original N56 reviewer approval and signed MSI/pinned SQLite, then repeat GitHub hosted digest attestation immediately before `gh release edit --draft=false`; verify public state and hosted asset digests again after publication. On failure, leave draft for security-owner review; a post-publish failure is a release incident, not automatic rollback.
+- [ ] Windows PowerShell 5.1/7 offline synthetic draft/hosted SHA asset regressions, prior N31–N58, PR CI 3/3 and safety 2/2; reviewed merge, fresh main MSI 4/4 and safety 2/2. Prefer GitHub repository immutable-release setting enabled by authorized owner; cannot infer this setting from CI.
+- [ ] Genuine publisher/HSM credentials and reviewer-approved SQLite fingerprints, protected short-lived per-source reviewer RSA signature, manual signed CI and real draft-to-public verification, Hostinger DNS/TLS, customer Windows device queue/ACK MySQL evidence and human security sign-off **PENDING**. **Production NOT APPROVED.**
+
+See [N59 acceptance](PHASE-N-STAGE59-ACCEPTANCE.md) and [security tracker #29](https://github.com/rehman2671/Aaditech-toolkit-new/issues/29).
+
 ## Stage N58 — same independently signed release approval across CI source and GitHub Release (MERGED; PR CI 3/3 + SAFETY 2/2, MAIN DIAGNOSTIC MSI 4/4 + SAFETY 2/2 VERIFIED; PRODUCTION BLOCKED)
 
 - [x] Protected manual N56 signing now reauthenticates the initial reviewer-approved manifest SHA256 receipt (64 uppercase hex + LF) **after** N55 final MSI/publisher inspection. CI upload requires `PUBLISH_SIGNED`, `PUBLICATION_VERIFIED` and `RELEASE_APPROVAL_RECEIPT_VERIFIED`. Automatic push/PR unsigned diagnostic artifacts correctly do not publish.

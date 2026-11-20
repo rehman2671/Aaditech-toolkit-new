@@ -202,6 +202,13 @@ jobs:
         shell: powershell
         run: ./Enterprise/tests/Test-Stage58ReleasePublicationApproval.ps1
 
+      - name: N59 attest hosted draft and published GitHub asset SHA digests (PowerShell 7)
+        run: pwsh -NoProfile -File ./Enterprise/tests/Test-Stage59DraftReleaseAttestation.ps1
+
+      - name: N59 reject wrong public release assets and SHA on Windows PowerShell 5.1
+        shell: powershell
+        run: ./Enterprise/tests/Test-Stage59DraftReleaseAttestation.ps1
+
 
       - name: N31 release publication requires independently approved source and MSI pins
         run: pwsh -NoProfile -File ./Enterprise/tests/Test-Stage31PublicationPins.ps1

@@ -132,6 +132,13 @@ jobs:
         shell: powershell
         run: ./Enterprise/tests/Test-Stage47WindowsProbeCleanup.ps1
 
+      - name: N48 verify Microsoft-signed system curl Schannel provenance on Windows PowerShell 7
+        run: pwsh -NoProfile -File ./Enterprise/tests/Test-Stage48WindowsSystemCurlTrust.ps1
+
+      - name: N48 verify signed system curl and TLS backend on actual Windows PowerShell 5.1
+        shell: powershell
+        run: ./Enterprise/tests/Test-Stage48WindowsSystemCurlTrust.ps1
+
 
       - name: N31 release publication requires independently approved source and MSI pins
         run: pwsh -NoProfile -File ./Enterprise/tests/Test-Stage31PublicationPins.ps1

@@ -14,10 +14,10 @@ $ci=[IO.File]::ReadAllText($workflow)
 $check=[IO.File]::ReadAllText($online)
 
 $create=$ci.IndexOf('& gh release create',[StringComparison]::Ordinal)
-$stage=$ci.IndexOf('Assert-RemoteReleaseAssets.ps1 -ArtifactDir release -RequireDraft',[StringComparison]::Ordinal)
-$lastStage=$ci.LastIndexOf('Assert-RemoteReleaseAssets.ps1 -ArtifactDir release -RequireDraft',[StringComparison]::Ordinal)
+$stage=$ci.IndexOf('Assert-RemoteReleaseAssets.ps1 -ArtifactDir release -ReleaseId $releaseId -RequireDraft',[StringComparison]::Ordinal)
+$lastStage=$ci.LastIndexOf('Assert-RemoteReleaseAssets.ps1 -ArtifactDir release -ReleaseId $releaseId -RequireDraft',[StringComparison]::Ordinal)
 $publish=$ci.IndexOf('& gh release edit',[StringComparison]::Ordinal)
-$published=$ci.IndexOf('Assert-RemoteReleaseAssets.ps1 -ArtifactDir release -RequirePublished',[StringComparison]::Ordinal)
+$published=$ci.IndexOf('Assert-RemoteReleaseAssets.ps1 -ArtifactDir release -ReleaseId $releaseId -RequirePublished',[StringComparison]::Ordinal)
 $firstApproval=$ci.IndexOf('Assert-PublicationReviewerApproval.ps1',[StringComparison]::Ordinal)
 $lastApproval=$ci.LastIndexOf('Assert-PublicationReviewerApproval.ps1',[StringComparison]::Ordinal)
 if ($create -lt 0 -or $stage -le $create -or
@@ -29,10 +29,10 @@ if ($create -lt 0 -or $stage -le $create -or
     $ci.IndexOf('--draft=false --latest=false',[StringComparison]::Ordinal) -lt 0 -or
     $ci.IndexOf('cancel-in-progress: false',[StringComparison]::Ordinal) -lt 0 -or
     $ci.IndexOf('group: signed-windows-installer-',[StringComparison]::Ordinal) -lt 0 -or
-    [regex]::Matches($ci,[regex]::Escape('Assert-RemoteReleaseAssets.ps1 -ArtifactDir release -RequireDraft')).Count -ne 2) {
+    [regex]::Matches($ci,[regex]::Escape('Assert-RemoteReleaseAssets.ps1 -ArtifactDir release -ReleaseId $releaseId -RequireDraft')).Count -ne 2) {
     throw 'N59 unsigned/public release workflow ordering, staged SHA checks or concurrency missing.'
 }
-foreach ($marker in @('git/ref/tags/', 'releases/tags/', 'GITHUB_EVENT_NAME',
+foreach ($marker in @('matching-refs/tags/', "'/releases/'", 'GITHUB_EVENT_NAME',
     'GITHUB_REF','SOURCE_SHA', 'APPROVED_MSI_SHA256',
     '-RequireDraft','-RequirePublished','ReleaseAssetAttestation.psm1')) {
     if ($check.IndexOf($marker,[StringComparison]::Ordinal) -lt 0) {
@@ -95,6 +95,7 @@ try {
         ArtifactDir=$dir
         ExpectedTag=$tag
         ExpectedSourceSha=$source
+        ExpectedReleaseId=42
         ExpectedVersion=$version
         ExpectedRevision=$revision
         ApprovedMsiSha256=$msiHash.ToUpperInvariant()

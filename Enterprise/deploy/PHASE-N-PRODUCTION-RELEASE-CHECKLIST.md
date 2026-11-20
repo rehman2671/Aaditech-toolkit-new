@@ -1,5 +1,10 @@
 # Phase N — Production release acceptance and sign-off
 
+## Stage N64 — PS2EXE complete payload hash continuity (IMPLEMENTED FOR REVIEW; CI/INDEPENDENT REVIEW PENDING)
+
+- [ ] N64 full module-tree fingerprints from N63 SHA-approved extraction through copied WindowsPowerShell module files to pre-import compiler admission. Synthetic tamper/add/remove/symlink fault tests added for Windows PowerShell 5.1 and 7; **review and CI pending**.
+- [ ] Genuine independently reviewed N63 NUPKG hash secrets, N56 reviewer authorization, publisher/HSM signing, hosted release attestation and customer Hostinger/Windows acceptance remain **PENDING**. No protected release or customer production approval implied.
+
 ## Stage N63 — independently SHA-approved compiler archives before protected execution (MERGED; PR CI 3/3 + SAFETY 2/2; FRESH MAIN DIAGNOSTIC MSI 4/4 + SAFETY 2/2, INDEX VERIFIED; REAL PROTECTED RELEASE PENDING)
 
 - [x] The code requires **independent security-owner reviewed SHA256** of `ps2exe.1.0.18.nupkg` and `wix.5.0.2.nupkg` from separately protected `production-installer` environment secrets `PS2EXE_NUPKG_SHA256_APPROVED` and `WIX_NUPKG_SHA256_APPROVED`. No approved real hashes have been invented; owner provisioning and live protected acceptance **PENDING**.

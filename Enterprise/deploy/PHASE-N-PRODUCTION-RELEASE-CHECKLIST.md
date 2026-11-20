@@ -1,5 +1,14 @@
 # Phase N — Production release acceptance and sign-off
 
+## Stage N44 — offline Windows HTTPS diagnostic evidence format audit (PR CI PENDING; PRODUCTION BLOCKED)
+
+- [ ] Audit an existing **redacted** N42/N43 diagnostic as an ordinary single-link file via `audit-windows-health-evidence.py` on a host supporting no-follow opens; reject duplicate JSON keys, invalid UTF-8, malformed schema, impossible status/mode pairs, self-asserted external approvals and false `certified_for_production=true`.
+- [ ] A syntactically valid `https_health_probe=PASS` must still return exit **3**, `production_approved=false` and the complete fixed list of required independent customer/security evidence; malformed input must exit **1** without creating a misleading audit file.
+- [ ] Offline N44 negative tests, output 0600/exclusive publication and both PR GitHub CI/deployment-safety jobs green; after maintainer-authorized merge verify new main packaging CI.
+- [ ] This **format audit is NOT cryptographic attestation** of diagnostic freshness, origin, custody, physical execution or certificate provenance. Independently verify customer Hostinger DNS/TLS, physical Windows authenticated ACK, genuine publisher-signed MSI/operator key custody, offsite restore, integrations and human security sign-off. **Production NOT APPROVED.**
+
+See [N44 acceptance](PHASE-N-STAGE44-ACCEPTANCE.md) and [independent customer security evidence issue #29](https://github.com/rehman2671/Aaditech-toolkit-new/issues/29).
+
 ## Stage N43 — origin-bound Windows pinned HTTPS consent and offline failure injection (MERGED; MAIN MSI CI 4/4 AND SAFETY 2/2 GREEN; PRODUCTION BLOCKED)
 
 - [x] Operator-approved canonical `-ApprovedOrigin` required **alongside** exact live `-ConfirmLive PROBE_PUBLIC_HEALTH`; mismatch/invalid origin aborts *before* DNS, curl or network; N31 `-NetworkProbe` stays BLOCKED.

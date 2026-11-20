@@ -30,7 +30,7 @@ class Stage44EvidenceAudit(unittest.TestCase):
         self.evidence = self.root / "customer.json"
 
     def run_audit(self, content, *, out=None):
-        if isinstance(content, dict):
+        if isinstance(content, (dict, list)) or content is None:
             content = json.dumps(content).encode()
         elif isinstance(content, str):
             content = content.encode()

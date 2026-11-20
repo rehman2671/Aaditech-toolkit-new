@@ -10,14 +10,18 @@ param(
     [string]$ConfirmLive,
     [string]$ApprovedOrigin,
     [string]$ApprovedCurlSignerSha256,
-    [string]$ApprovedCurlBinarySha256
+    [string]$ApprovedCurlBinarySha256,
+    [string]$ApprovalManifestPath,
+    [string]$ApprovalSignaturePath,
+    [string]$ReviewerCertificatePath,
+    [string]$ApprovedReviewerCertificateSha256
 )
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
 # Consent is checked before reading configuration, resolving DNS, invoking
 # the OS curl binary, or writing a report. Invalid combinations fail closed.
-if (($DryRun -and ($ConfirmLive -or $ApprovedOrigin -or $ApprovedCurlSignerSha256 -or $ApprovedCurlBinarySha256)) -or
+if (($DryRun -and ($ConfirmLive -or $ApprovedOrigin -or $ApprovedCurlSignerSha256 -or $ApprovedCurlBinarySha256 -or $ApprovalManifestPath -or $ApprovalSignaturePath -or $ReviewerCertificatePath -or $ApprovedReviewerCertificateSha256)) -or
     (-not $DryRun -and
       ($ConfirmLive -cne 'PROBE_PUBLIC_HEALTH' -or
        [string]::IsNullOrWhiteSpace($ApprovedOrigin) -or
@@ -36,6 +40,7 @@ Import-Module -Name (Join-Path $PSScriptRoot 'PublicWindowsAddressPolicy.psm1') 
 Import-Module -Name (Join-Path $PSScriptRoot 'ValidateWindowsHealthJson.psm1') -Force -ErrorAction Stop
 Import-Module -Name (Join-Path $PSScriptRoot 'PrivateWindowsProbeWorkspace.psm1') -Force -ErrorAction Stop
 Import-Module -Name (Join-Path $PSScriptRoot 'TrustedWindowsSystemCurl.psm1') -Force -ErrorAction Stop
+Import-Module -Name (Join-Path $PSScriptRoot 'WindowsCurlSignedApproval.psm1') -Force -ErrorAction Stop
 
 $mode = if ($DryRun) { 'OFFLINE_DRY_RUN' } else { 'OPERATOR_CONFIRMED_LIVE' }
 $state = 'BLOCKED'
@@ -67,6 +72,18 @@ try {
         # Dry run is a syntax check only; zero DNS/HTTP and no curl invocation.
         $state = 'PENDING'
     } else {
+        # N51: signed reviewer record cryptographically binds exact origin,
+        # N49 signer cert and N50 executable bytes for at most 24 hours.
+        # Must complete before workspace allocation, OS curl or customer DNS.
+        # No local/generated self-approval or implicit reviewer key.
+        $phase = 'VERIFY_SIGNED_APPROVAL'
+        if ([string]::IsNullOrWhiteSpace($ApprovalManifestPath) -or
+            [string]::IsNullOrWhiteSpace($ApprovalSignaturePath) -or
+            [string]::IsNullOrWhiteSpace($ReviewerCertificatePath) -or
+            $ApprovedReviewerCertificateSha256 -cnotmatch '\A[0-9A-Fa-f]{64}\z') {
+            throw 'Security-reviewer signed approval is required for live HTTPS.'
+        }
+        $null = Assert-PublicWindowsCurlSignedApproval -ManifestPath $ApprovalManifestPath -SignaturePath $ApprovalSignaturePath -ReviewerCertificatePath $ReviewerCertificatePath -ApprovedReviewerCertificateSha256 $ApprovedReviewerCertificateSha256 -ExpectedOrigin $origin -ExpectedSignerSha256 $ApprovedCurlSignerSha256 -ExpectedBinarySha256 $ApprovedCurlBinarySha256
         # N50 independently approved exact system curl executable bytes,
         # separate from N49's signing-certificate pin. Both are required
         # for a live request; a missing/malformed digest never reaches DNS.

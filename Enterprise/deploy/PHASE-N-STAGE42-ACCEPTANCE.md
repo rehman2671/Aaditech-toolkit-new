@@ -63,7 +63,7 @@ After **independent approval of the actual customer hostname and live probe**,
 an operator may invoke the explicitly consented read-only check:
 
 ```powershell
-powershell.exe -NoProfile -File .\Enterprise\deploy\Test-WindowsPinnedPublicHttps.ps1 -ConfigPath "C:\ProgramData\ITToolkit-Agent\agent.json" -ReportPath "C:\acceptance\n42-live.json" -ConfirmLive PROBE_PUBLIC_HEALTH -ApprovedOrigin "https://YOUR-ACTUAL-APPROVED-PUBLIC-HOST" -ApprovedCurlSignerSha256 "YOUR-INDEPENDENTLY-APPROVED-64-HEX-SIGNING-CERT-SHA256" -ApprovedCurlBinarySha256 "SECURITY-APPROVED-CURL-EXE-SHA256-64-HEX"
+powershell.exe -NoProfile -File .\Enterprise\deploy\Test-WindowsPinnedPublicHttps.ps1 -ConfigPath "C:\ProgramData\ITToolkit-Agent\agent.json" -ReportPath "C:\acceptance\n42-live.json" -ConfirmLive PROBE_PUBLIC_HEALTH -ApprovedOrigin "https://YOUR-ACTUAL-APPROVED-PUBLIC-HOST" -ApprovedCurlSignerSha256 "YOUR-INDEPENDENTLY-APPROVED-64-HEX-SIGNING-CERT-SHA256" -ApprovedCurlBinarySha256 "SECURITY-APPROVED-CURL-EXE-SHA256-64-HEX" -ApprovalManifestPath "C:\secure-review\curl-approval.txt" -ApprovalSignaturePath "C:\secure-review\curl-approval.sig" -ReviewerCertificatePath "C:\secure-review\reviewer.der" -ApprovedReviewerCertificateSha256 "INDEPENDENTLY-APPROVED-REVIEWER-DER-SHA256-64-HEX"
 ```
 
 **Stage N43 amendment:** The CLI above now requires an independently typed,
@@ -128,3 +128,16 @@ The binary is checked before customer DNS and again after the optional HTTPS
 transfer; even a healthy response remains non-production-certified. See
 [N50 acceptance](PHASE-N-STAGE50-ACCEPTANCE.md). Physical customer trust,
 Hostinger and publisher signing acceptance remain PENDING.
+
+## N51 mandatory signed reviewer approval amendment
+
+Historical operator commands in this document are superseded by the **N51**
+live-only requirement for `-ApprovalManifestPath`, `-ApprovalSignaturePath`,
+`-ReviewerCertificatePath` and
+`-ApprovedReviewerCertificateSha256`. An RSA-SHA256 signed canonical
+approval must bind the exact HTTPS origin and both N49/N50 curl digests,
+expire within 24 hours and be verified using a separately approved
+reviewer public certificate DER SHA-256 **before customer DNS**. No
+reviewer hash or signed manifest has been independently approved here.
+Do not infer approval from a CI-only test certificate or local key.
+See [N51 acceptance](PHASE-N-STAGE51-ACCEPTANCE.md); production stays BLOCKED.

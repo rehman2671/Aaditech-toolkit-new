@@ -1,5 +1,14 @@
 # Phase N — Production release acceptance and sign-off
 
+## Stage N51 — signed, expiring independent reviewer curl approval (CODE PROPOSED; PR CI PENDING; PRODUCTION BLOCKED)
+
+- [ ] Require signed reviewer approval of exact HTTPS origin, approved Microsoft curl signing-certificate DER SHA-256 **and** exact curl.exe file SHA-256, plus separately pinned reviewer public X.509 DER SHA-256. No locally generated key or signer cert automatically becomes approved.
+- [ ] Verify canonical raw ASCII-LF payload, distinct seven ordered fields, RSA-2048/4096 PKCS#1/SHA-256 signature, 24-hour maximum approval window, certificate validity, strict 64-hex pinned reviewer, bounded fixed-disk ordinary files without reparse/UNC. Fail `BLOCKED` before workspace/customer DNS/HTTPS, preserve existing consent and N31 automatic network BLOCKED.
+- [ ] Actual Windows PowerShell 5.1 + 7 local-only throwaway RSA reviewer signing tests: origin/cert/binary mismatch, expired/future approval, tampered signature/approval, BOM/CRLF/duplicates, reviewer hash mismatch; prior N31–N50, Node/Vitest+MySQL, API/MySQL, deployment safety; authorized PR merge and main Windows EXE/MSI 4/4 plus safety 2/2.
+- [ ] Independently reviewed physical reviewer public key custody, approved customer Windows origin and exact signing/binary pins, Hostinger DNS/TLS/CA, signed production publisher MSI and HSM, physical lost-ACK queue evidence, encrypted offsite restore and security owner sign-off **PENDING**. **Production NOT APPROVED**.
+
+See [N51 acceptance](PHASE-N-STAGE51-ACCEPTANCE.md) and [Issue #29](https://github.com/rehman2671/Aaditech-toolkit-new/issues/29).
+
 ## Stage N50 — independently approved exact Windows curl executable SHA-256 (MERGED; MAIN MSI CI 4/4 AND SAFETY 2/2 GREEN; PRODUCTION BLOCKED)
 
 - [x] Require separately operator-approved `-ApprovedCurlBinarySha256` for **every** live Windows HTTPS health diagnostic, independent of `-ApprovedCurlSignerSha256` for the Microsoft signing certificate. Invalid, missing or unapproved executable digest fails before customer DNS; no silent local auto-pin.

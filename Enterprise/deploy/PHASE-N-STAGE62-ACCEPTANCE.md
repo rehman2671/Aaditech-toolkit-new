@@ -123,3 +123,21 @@ also completed **4/4 SUCCESS**. All these results precede N62.
   protected signing credentials, human reviewer manifest, real
   signed GitHub Release or customer Hostinger/physical Windows
   acceptance was executed. **Customer production NOT APPROVED.**
+
+## Release-owner compiler change control (NOT executed on customer systems)
+
+The next legitimate toolchain upgrade must be a reviewed source change
+to **all** of `toolchain-lock.json`, the exact PSGallery/NuGet installer
+commands in `.github/workflows/ci.yml`, and the N62 negative test pins.
+Do not change only an installed package or disable the runtime version
+gate to make a CI job pass. Re-run the PowerShell 5.1/7 toolchain tests,
+real Windows EXE/MSI extraction, actual MSI install/uninstall and
+major upgrade with preserved tenant configuration, followed by a new
+independently approved, source-scoped N56 reviewer manifest and signed
+artifact publication review.
+
+Before **production** publication, the security owner should also
+independently record exact downloaded compiler/package SHA256 and
+published package provenance; N62's semver lock alone is not that
+cryptographic evidence. Human publisher signing and protected GitHub
+draft/public release remain entirely separate approvals.

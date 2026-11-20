@@ -1,6 +1,6 @@
 # Phase N Stage 60 — Private draft release identity and Git tag lifecycle
 
-**Status: CODE PROPOSED; PR CI / POST-MERGE MAIN ACCEPTANCE PENDING; CUSTOMER PRODUCTION NOT APPROVED (2026-11-20 IST).**
+**Status: MERGED; PR CI 3/3 + SAFETY 2/2 SUCCESS; FRESH MAIN DIAGNOSTIC MSI 4/4 + SAFETY 2/2 SUCCESS; INDEX SUCCESS; PROTECTED CUSTOMER PRODUCTION RELEASE NOT APPROVED (2026-11-20 IST).**
 
 ## Confirmed release-blocking N59 gap
 
@@ -91,13 +91,16 @@ reviewer signatures.
 
 ## Acceptance and remaining blockers
 
-- [ ] PR N60/N59 tests on Windows PowerShell 5.1/7 plus earlier
-  security regressions, Node/Vitest+MySQL and API/MySQL **3/3**;
-  deployment safety **2/2**.
-- [ ] Reviewed PR merged; independent fresh `main` Windows EXE/MSI
-  build, extraction, install/clean uninstall and configuration-preserving
-  major upgrade **4/4**, deployment safety **2/2**, index refresh
-  successful.
+- [x] [PR #55](https://github.com/rehman2671/Aaditech-toolkit-new/pull/55)
+  N60/N59 Windows PowerShell 5.1/7 and previous security regressions,
+  Node/Vitest+MySQL and API/MySQL **3/3 SUCCESS**, deployment safety
+  **2/2 SUCCESS**.
+- [x] Reviewed PR #55 merged as
+  `be03575d8b0a42d562c5ffdefbdd511b8b02e067`;
+  independent fresh `main` diagnostic Windows EXE/MSI build, administrative
+  extraction, installed first-run setup/clean uninstall and major upgrade
+  preserving tenant configuration **4/4 SUCCESS**; deployment safety
+  **2/2 SUCCESS**; index maintenance successful.
 - [ ] Real independently vetted SQLite ZIP/EXE fingerprints, approved
   publisher certificate/HSM, exact short-lived N56 reviewer-signed
   source manifest, protected manual signing run and actual private
@@ -121,3 +124,27 @@ N59 [post-merge `main` CI 44754917612](https://github.com/rehman2671/Aaditech-to
 **2/2 SUCCESS**, [index 44756044118](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44756044118)
 **SUCCESS**. These are pre-N60 checks and do not establish
 a protected live customer signing release.
+
+## Independently verified N60 GitHub evidence
+
+- [PR #55](https://github.com/rehman2671/Aaditech-toolkit-new/pull/55)
+  final reviewed head `8417d059b35489b8d51fcc9631b00bc5af7e6186`,
+  merge `be03575d8b0a42d562c5ffdefbdd511b8b02e067`.
+- [PR CI 44781529149](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44781529149):
+  **3/3 SUCCESS** — real Windows PS 5.1/7 including untagged draft,
+  published commit SHA validation, stable ID and prior N31–N59, plus
+  Node/Vitest+MySQL and API/MySQL. The PR MSI build correctly skipped.
+- [PR safety 44781528748](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44781528748):
+  **2/2 SUCCESS** isolated MySQL backup/restore and offline deployment.
+- [Post-merge main CI 44782117865](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44782117865):
+  **4/4 SUCCESS**; Windows EXE+MSI packaging, MSI administrative extraction,
+  actual Windows setup/clean uninstall, and major upgrade preserving
+  tenant configuration each passed.
+- [Main safety 44782117884](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44782117884):
+  **2/2 SUCCESS**. [Main project index 44782117869](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44782117869):
+  **SUCCESS**.
+- `Verify final signed artifact publication` and
+  `Upload verified signed artifacts only` correctly **SKIPPED** on
+  unsigned diagnostic `push`. No genuine protected reviewer-signed
+  MSI, draft release upload or public publication was executed.
+  **Customer production NOT APPROVED.**

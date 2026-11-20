@@ -11,6 +11,7 @@ on:
       - 'Enterprise/tests/Test-Stage37PinnedPublicDns.sh'
       - 'Enterprise/tests/test_public_dns_resolution.py'
       - 'Enterprise/tests/test_public_health_json.py'
+      - 'Enterprise/tests/test_stage44_windows_health_evidence.py'
       - 'Enterprise/tests/Test-DeployMySQL.sh'
       - 'Enterprise/tests/Test-LegacyMsiMigration.sh'
       - 'Enterprise/tests/Test-LegacyMsiMigration-Live.sh'
@@ -25,6 +26,7 @@ on:
       - 'Enterprise/tests/Test-Stage37PinnedPublicDns.sh'
       - 'Enterprise/tests/test_public_dns_resolution.py'
       - 'Enterprise/tests/test_public_health_json.py'
+      - 'Enterprise/tests/test_stage44_windows_health_evidence.py'
       - 'Enterprise/tests/Test-DeployMySQL.sh'
       - 'Enterprise/tests/Test-LegacyMsiMigration.sh'
       - 'Enterprise/tests/Test-LegacyMsiMigration-Live.sh'
@@ -61,6 +63,9 @@ jobs:
           python3 -m unittest discover -s Enterprise/tests -p 'test_public_dns_resolution.py' -v
           python3 -m unittest discover -s Enterprise/tests -p 'test_public_health_json.py' -v
           bash Enterprise/tests/Test-Stage37PinnedPublicDns.sh
+      - name: N44 audit Windows diagnostic evidence offline; never certify production
+        shell: bash
+        run: python3 -m unittest discover -s Enterprise/tests -p 'test_stage44_windows_health_evidence.py' -v
       - name: Verify VPS public HTTPS acceptance CLI is safe in offline dry-run
         shell: bash
         run: bash Enterprise/deploy/verify-hostinger-acceptance.sh --host toolkit.aaditech.net --dry-run

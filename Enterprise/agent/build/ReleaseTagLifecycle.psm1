@@ -25,7 +25,7 @@ function Assert-N60ReleaseTagState {
         }
         $parsed=ConvertFrom-Json -InputObject $TagRefsJson -ErrorAction Stop
         $refs=@($parsed | Where-Object { $null -ne $_ })
-        $matches=@($refs | Where-Object {
+        $exactRefs=@($refs | Where-Object {
             [string]$_.ref -ceq ('refs/tags/'+$ExpectedTag)
         })
         foreach ($entry in $refs) {
@@ -37,13 +37,13 @@ function Assert-N60ReleaseTagState {
         if ($RequireDraft) {
             # A draft has a pending *tag name* in its Release metadata but
             # must not have a publicly reachable Git ref yet.
-            if ($matches.Count -ne 0) { throw 'Draft tag exists before approved publication.' }
+            if ($exactRefs.Count -ne 0) { throw 'Draft tag exists before approved publication.' }
         } else {
             # Once published, GitHub creates the tag (when absent at draft
             # stage). Require EXACT approved source: never trust name alone.
-            if ($matches.Count -ne 1 -or
-                [string]$matches[0].object.type -cne 'commit' -or
-                [string]$matches[0].object.sha -cne $ExpectedSourceSha) {
+            if ($exactRefs.Count -ne 1 -or
+                [string]$exactRefs[0].object.type -cne 'commit' -or
+                [string]$exactRefs[0].object.sha -cne $ExpectedSourceSha) {
                 throw 'Published tag does not point at approved source commit.'
             }
         }

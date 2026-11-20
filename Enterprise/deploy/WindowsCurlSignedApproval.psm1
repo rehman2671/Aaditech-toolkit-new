@@ -179,7 +179,7 @@ function Assert-PublicWindowsCurlSignedApproval {
         # Compute only after the reviewer signature is authenticated.
         $manifestDigest = $sha.ComputeHash($manifest)
         if ($PSBoundParameters.ContainsKey('ExpectedManifestSha256')) {
-            if ($ExpectedManifestSha256 -cnotmatch '\\A[0-9A-Fa-f]{64}\\z') {
+            if ($ExpectedManifestSha256 -cnotmatch '\A[0-9A-Fa-f]{64}\z') {
                 throw 'Initial approved manifest digest required.'
             }
             $different = 0

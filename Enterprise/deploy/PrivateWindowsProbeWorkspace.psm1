@@ -9,6 +9,7 @@ function New-PrivateWindowsProbeWorkspace {
     param()
 
     $directory = $null
+    $createdDirectory = $false
     try {
         if ($env:OS -cne 'Windows_NT') { throw 'Windows platform required.' }
 
@@ -44,17 +45,11 @@ function New-PrivateWindowsProbeWorkspace {
             $cursor = $above
         }
 
-        $directory = [IO.Path]::Combine($base,
-            ('aaditech-private-health-' + [guid]::NewGuid().ToString('N')))
-        if (Test-Path -LiteralPath $directory) {
-            throw 'Refusing preexisting health workspace.'
-        }
-        $null = [IO.Directory]::CreateDirectory($directory)
-
-        # Prevent cross-user TEMP responders and inherited Users/Everyone
-        # grants. The path is randomized; the ACL is set/verified BEFORE curl
-        # could write even a byte. Administrators still have OS take-ownership
-        # powers; this is not defense against SYSTEM or a compromised operator.
+        # N46: prepare a protected owner/SYSTEM-only ACL *before* creating
+        # the directory. N45 used Directory.CreateDirectory(path) followed by
+        # Set-Acl, briefly inheriting permissions from the parent. That
+        # pre-ACL interval is forbidden even in an account-local profile.
+        # No non-atomic fallback is allowed on unsupported Windows runtimes.
         $acl = [System.Security.AccessControl.DirectorySecurity]::new()
         $acl.SetAccessRuleProtection($true, $false)
         $acl.SetOwner($sid)
@@ -69,7 +64,23 @@ function New-PrivateWindowsProbeWorkspace {
                 [System.Security.AccessControl.AccessControlType]::Allow)
             $acl.AddAccessRule($rule)
         }
-        Set-Acl -LiteralPath $directory -AclObject $acl -ErrorAction Stop
+
+        $directory = [IO.Path]::Combine($base,
+            ('aaditech-private-health-' + [guid]::NewGuid().ToString('N')))
+        if (Test-Path -LiteralPath $directory) {
+            throw 'Refusing preexisting health workspace.'
+        }
+        # Windows PowerShell 5.1 runs on .NET Framework, which exposes the
+        # DirectorySecurity overload directly. PowerShell 7 runs on .NET,
+        # where FileSystemAclExtensions provides atomic ACL-aware creation.
+        # Both must apply the security descriptor in the CREATE operation.
+        if ($PSVersionTable.PSVersion.Major -le 5) {
+            $null = [IO.Directory]::CreateDirectory($directory, $acl)
+        } else {
+            $null = [System.IO.FileSystemAclExtensions]::CreateDirectory(
+                $acl, $directory)
+        }
+        $createdDirectory = $true
 
         $actual = Get-Acl -LiteralPath $directory -ErrorAction Stop
         if (-not $actual.AreAccessRulesProtected -or
@@ -115,7 +126,10 @@ function New-PrivateWindowsProbeWorkspace {
             ResponsePath = $responsePath
         }
     } catch {
-        if ($null -ne $directory -and (Test-Path -LiteralPath $directory)) {
+        # Never delete a directory that was already present or whose atomic
+        # creation failed. Only clean up a workspace this process created.
+        if ($createdDirectory -and $null -ne $directory -and
+            (Test-Path -LiteralPath $directory)) {
             Remove-Item -LiteralPath $directory -Force -Recurse -ErrorAction SilentlyContinue
         }
         # No local paths, owner/tenant identity, ACL details or tokens in

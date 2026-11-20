@@ -83,3 +83,14 @@ stays OPEN; N31 live `-NetworkProbe` stays disabled.
 - [Main safety #44652441192](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44652441192) **2/2 SUCCESS**, including offline recovery and real isolated MySQL backup/restore.
 - Diagnostic signing-related build step passed but **`Upload verified signed artifacts only` was SKIPPED**. No customer-publisher-signed public MSI was published or externally approved.
 - These tests do **not** replace independent Windows security review or physical live customer TLS, public DNS/Hostinger ownership, lost-ACK receipts, offsite restore or integration acceptance. Production remains **NOT APPROVED**.
+
+## N46 security amendment (atomic directory ACL creation)
+
+The N45 create-then-ACL sequence contained a brief inherited-permission
+window. N46 replaces the non-atomic `CreateDirectory(path)` + `Set-Acl`
+sequence with an ACL-bearing directory create on both Windows PowerShell
+5.1/.NET Framework and PowerShell 7/.NET. Unsupported operations fail
+closed. The current code contract and fresh CI results belong to
+[N46 acceptance](PHASE-N-STAGE46-ACCEPTANCE.md); N45's original success
+alone is not proof that this race was eliminated. External customer
+security review and all production release gates remain PENDING.

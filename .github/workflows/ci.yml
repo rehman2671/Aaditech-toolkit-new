@@ -118,6 +118,13 @@ jobs:
         shell: powershell
         run: ./Enterprise/tests/Test-Stage45WindowsPrivateProbeWorkspace.ps1
 
+      - name: N46 atomic Windows ACL at directory creation and response-file access (PowerShell 7)
+        run: pwsh -NoProfile -File ./Enterprise/tests/Test-Stage46AtomicWindowsProbeAcl.ps1
+
+      - name: N46 verify .NET Framework atomic directory ACL on actual Windows PowerShell 5.1
+        shell: powershell
+        run: ./Enterprise/tests/Test-Stage46AtomicWindowsProbeAcl.ps1
+
 
       - name: N31 release publication requires independently approved source and MSI pins
         run: pwsh -NoProfile -File ./Enterprise/tests/Test-Stage31PublicationPins.ps1

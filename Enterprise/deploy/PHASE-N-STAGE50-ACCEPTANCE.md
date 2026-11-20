@@ -57,7 +57,7 @@ fingerprints are embedded, supplied or approved by this stage.
 An *illustrative only, not authorized to execute* command is:
 
 ```powershell
-powershell.exe -NoProfile -File .\Enterprise\deploy\Test-WindowsPinnedPublicHttps.ps1 -ConfigPath "C:\ProgramData\ITToolkit-Agent\agent.json" -ReportPath "C:\acceptance\n50-live.json" -ConfirmLive PROBE_PUBLIC_HEALTH -ApprovedOrigin "https://YOUR-REVIEWED-PUBLIC-HOST" -ApprovedCurlSignerSha256 "SECURITY-APPROVED-SIGNER-CERT-DER-SHA256-64-HEX" -ApprovedCurlBinarySha256 "SECURITY-APPROVED-CURL-EXE-SHA256-64-HEX"
+powershell.exe -NoProfile -File .\Enterprise\deploy\Test-WindowsPinnedPublicHttps.ps1 -ConfigPath "C:\ProgramData\ITToolkit-Agent\agent.json" -ReportPath "C:\acceptance\n50-live.json" -ConfirmLive PROBE_PUBLIC_HEALTH -ApprovedOrigin "https://YOUR-REVIEWED-PUBLIC-HOST" -ApprovedCurlSignerSha256 "SECURITY-APPROVED-SIGNER-CERT-DER-SHA256-64-HEX" -ApprovedCurlBinarySha256 "SECURITY-APPROVED-CURL-EXE-SHA256-64-HEX" -ApprovalManifestPath "C:\secure-review\curl-approval.txt" -ApprovalSignaturePath "C:\secure-review\curl-approval.sig" -ReviewerCertificatePath "C:\secure-review\reviewer.der" -ApprovedReviewerCertificateSha256 "INDEPENDENTLY-APPROVED-REVIEWER-DER-SHA256-64-HEX"
 ```
 
 The example includes placeholders and cannot pass admission as shown.
@@ -110,3 +110,16 @@ See [Issue #29](https://github.com/rehman2671/Aaditech-toolkit-new/issues/29).
 - [Main CI #44717519494](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44717519494) **4/4 SUCCESS**: actual Windows PowerShell 5.1/7, Node/Vitest+MySQL, API/MySQL, Windows EXE/MSI build, administrative extraction, clean install/uninstall, tenant-preserving major upgrade. [Main safety #44717519536](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44717519536) **2/2 SUCCESS**: offline recovery and disposable MySQL backup/restore.
 - MSI steps `Build agent exe`, `Build MSI`, `Validate MSI payload by Windows Installer administrative extraction`, `Verify pre-signed MSI payload and sign release MSI`, clean install/uninstall and major upgrade all SUCCESS. **`Upload verified signed artifacts only` SKIPPED**. The signing-related step does not imply that any public customer publisher-signed MSI was issued.
 - CI hashes self-derived from its own synthetic and local Windows file demonstrate code, not independent Microsoft certificate/binary approval; no customer Hostinger or physical security evidence exists. **Production NOT APPROVED.**
+
+## N51 mandatory signed reviewer approval amendment
+
+Historical operator commands in this document are superseded by the **N51**
+live-only requirement for `-ApprovalManifestPath`, `-ApprovalSignaturePath`,
+`-ReviewerCertificatePath` and
+`-ApprovedReviewerCertificateSha256`. An RSA-SHA256 signed canonical
+approval must bind the exact HTTPS origin and both N49/N50 curl digests,
+expire within 24 hours and be verified using a separately approved
+reviewer public certificate DER SHA-256 **before customer DNS**. No
+reviewer hash or signed manifest has been independently approved here.
+Do not infer approval from a CI-only test certificate or local key.
+See [N51 acceptance](PHASE-N-STAGE51-ACCEPTANCE.md); production stays BLOCKED.

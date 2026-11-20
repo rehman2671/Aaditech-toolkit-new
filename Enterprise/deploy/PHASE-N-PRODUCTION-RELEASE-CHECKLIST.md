@@ -1,5 +1,15 @@
 # Phase N — Production release acceptance and sign-off
 
+## Stage N58 — same independently signed release approval across CI source and GitHub Release (CODE PROPOSED; CI PENDING; PRODUCTION BLOCKED)
+
+- [ ] After N56 source signing and N55 final MSI/publisher verification on protected manual `main`, stage **the initial reviewer-approved manifest SHA256 receipt** (64 uppercase hex + LF). Gate manual CI artifact upload on `RELEASE_SIGNING_ENABLED`, `PUBLISH_SIGNED`, `PUBLICATION_VERIFIED` and `RELEASE_APPROVAL_RECEIPT_VERIFIED`; no unsigned PR/push artifacts published.
+- [ ] Protected, separately dispatched GitHub Release must verify successful **manual main CI run source SHA**, pinned checkout, exact version/revision tag and N56 RSA reviewer signature against the same original signed manifest digest in the downloaded receipt. Recheck before irreversible `gh release create`. Changed reviewer record—even another valid signature—must fail.
+- [ ] Independently recheck exact canonical EXE/MSI hashes, OS-trusted timestamped Authenticode publisher, MSI embedded signed EXE, approved SQLite executable SHA256 and all blank MSI/customer configuration. Public assets remain **only signed EXE, signed MSI and SHA256SUMS**; do not publish the approval receipt or secret.
+- [ ] PowerShell 5.1/7 offline synthetic source SHA/reviewer signature rotation, dependency pins, receipt mutation, duplicate SHA256SUMS, provisioned config and release ordering regression; PR CI 3/3, safety 2/2, reviewed merge, fresh main Windows MSI 4/4 plus safety 2/2.
+- [ ] Independently vetted publisher/HSM signing material, real vetted SQLite ZIP/EXE bytes, reviewer private-key custody, actual manual protected signing+release publication, customer Hostinger DNS/TLS, physical Windows lost-ACK/tenant/MySQL receipts, offsite restore and security owner sign-off **PENDING**. **Production NOT APPROVED.**
+
+See [N58 acceptance](PHASE-N-STAGE58-ACCEPTANCE.md) and [issue #29](https://github.com/rehman2671/Aaditech-toolkit-new/issues/29).
+
 ## Stage N57 — race-safe main project index maintenance (MERGED; PR CI 3/3 + SAFETY 2/2, MAIN MSI 4/4 + SAFETY 2/2 AND INDEX PUBLISH SUCCESS; PRODUCTION BLOCKED)
 
 - [x] `Publish-ProjectIndex.sh` now regenerates `project-index.json`, `project-state.json` and `project-progress.json` from the latest `main` source. On a genuine non-fast-forward advance, re-fetch/reset **ephemeral CI checkout** and regenerate rather than rebasing stale reports; no force-push, bounded four attempts, semantic `-Check` no-op and fail-closed denied-push behavior.

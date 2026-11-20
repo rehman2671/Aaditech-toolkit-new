@@ -1,5 +1,14 @@
 # Phase N — Production release acceptance and sign-off
 
+## Stage N62 — exact Windows compiler toolchain versions (CODE PROPOSED; CI PENDING; PRODUCTION BLOCKED)
+
+- [ ] Replace floating `Install-Module ps2exe` and `dotnet tool install wix --version "5.*"` with **exact** PS2EXE **1.0.18** (PSGallery) and WiX **5.0.2** (NuGet). Keep two reviewed versions in the repository toolchain lock. Never fall back to latest on protected or diagnostic builds.
+- [ ] Before PS2EXE compilation or WiX packaging, verify the actual imported PS2EXE compiler command and the actual WiX CLI-reported version match the checked-in lock. Direct local builds and protected manual CI must fail closed on mismatches. Tool version pins **do not independently certify remote package SHA/signature**; do not claim supply-chain cryptographic attestation solely from version numbers.
+- [ ] Run real Windows PowerShell 5.1 and 7 N62 version downgrade/upgrade/floating/injection and build-step-order tests plus N31–N61, Node/Vitest+MySQL and API/MySQL PR CI **3/3**, MySQL safety **2/2**; merge, fresh main EXE/MSI packaging, administrative extraction, install/uninstall/major upgrade **4/4**, safety **2/2**, project index.
+- [ ] Authentic approved publisher/HSM credentials, RSA N56 reviewer manifest, SQLite ZIP+EXE hash approvals, real protected signed source/release, package digest/SBOM owner review, customer Hostinger and physical Windows/MySQL evidence, offsite restore and security-owner approval **PENDING**. **Production NOT APPROVED.**
+
+See [N62 acceptance](PHASE-N-STAGE62-ACCEPTANCE.md) and [issue #29](https://github.com/rehman2671/Aaditech-toolkit-new/issues/29).
+
 ## Stage N61 — offline full remote-release bridge regression (MERGED; PR CI 3/3 + SAFETY 2/2, MAIN DIAGNOSTIC MSI 4/4 + SAFETY 2/2 AND INDEX VERIFIED; PRODUCTION BLOCKED)
 
 - [x] The **actual** `Assert-RemoteReleaseAssets.ps1` executes under Windows PowerShell 5.1 and 7 with an isolated synthetic in-process `gh api` shim that rejects unapproved endpoints, performs **no network requests** and uses N55 canonical disposable EXE/MSI checksums and actual source version.

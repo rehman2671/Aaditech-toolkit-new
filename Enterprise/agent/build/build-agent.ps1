@@ -18,11 +18,10 @@ if (-not (Test-Path -LiteralPath $SourceScript -PathType Leaf)) {
     throw "Canonical agent source script missing: $SourceScript"
 }
 
-# 2. Require real installed ps2exe compiler
-$compiler = Get-Command ps2exe -ErrorAction SilentlyContinue
-if (-not $compiler) {
-    throw "ps2exe compiler command not found in PowerShell environment. Install via: Install-Module ps2exe -Force -Scope CurrentUser"
-}
+# 2. N62: refuse an unpinned compiler even for unsigned CI builds.
+# Import and authenticate the installed PS2EXE module, not a shadow alias.
+Import-Module -Name (Join-Path $PSScriptRoot 'BuildToolchainLock.psm1') -Force -ErrorAction Stop
+$null=Assert-N62InstalledPs2Exe
 
 # 3. Read metadata from agent-version.json if available
 $versionFile = Join-Path $PSScriptRoot '..\agent-version.json'

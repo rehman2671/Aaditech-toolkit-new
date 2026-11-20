@@ -223,6 +223,13 @@ jobs:
         shell: powershell
         run: ./Enterprise/tests/Test-Stage61RemoteReleaseBridge.ps1
 
+      - name: N62 verify exact approved compiler and MSI toolchain pins (PowerShell 7)
+        run: pwsh -NoProfile -File ./Enterprise/tests/Test-Stage62BuildToolchainLock.ps1
+
+      - name: N62 reject unpinned compiler versions under Windows PowerShell 5.1
+        shell: powershell
+        run: ./Enterprise/tests/Test-Stage62BuildToolchainLock.ps1
+
 
       - name: N31 release publication requires independently approved source and MSI pins
         run: pwsh -NoProfile -File ./Enterprise/tests/Test-Stage31PublicationPins.ps1
@@ -628,7 +635,7 @@ jobs:
         # MScholtes/PS2EXE requires Windows PowerShell 5.1 (uses the .NET
         # Framework compiler); it fails under pwsh (PowerShell 7).
         shell: powershell
-        run: Install-Module ps2exe -Force -Scope CurrentUser
+        run: Install-Module -Name ps2exe -RequiredVersion 1.0.18 -Repository PSGallery -Force -Scope CurrentUser
 
       - name: Build agent exe
         shell: powershell
@@ -649,7 +656,7 @@ jobs:
         run: ./Enterprise/agent/build/Release-Sign.ps1 -Stage PrePackage
 
       - name: Install WiX toolset
-        run: dotnet tool install --global wix --version "5.*"
+        run: dotnet tool install --global wix --version 5.0.2
 
       - name: Build MSI
         env:

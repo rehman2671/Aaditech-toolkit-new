@@ -122,7 +122,7 @@ function Assert-PublicWindowsCurlSignedApproval {
         [Parameter(Mandatory=$true)][string]$ManifestPath,
         [Parameter(Mandatory=$true)][string]$SignaturePath,
         [Parameter(Mandatory=$true)][string]$ReviewerCertificatePath,
-        [Parameter(Mandatory=$true)][string]$ApprovedReviewerCertificateSha256,
+        [Parameter(Mandatory=$true)][AllowEmptyString()][string]$ApprovedReviewerCertificateSha256,
         [Parameter(Mandatory=$true)][string]$ExpectedOrigin,
         [Parameter(Mandatory=$true)][string]$ExpectedSignerSha256,
         [Parameter(Mandatory=$true)][string]$ExpectedBinarySha256

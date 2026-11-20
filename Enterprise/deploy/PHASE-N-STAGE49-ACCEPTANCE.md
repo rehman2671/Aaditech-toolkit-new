@@ -57,7 +57,7 @@ values. Do **not** run this command with illustrative placeholders or an
 unreviewed local hash:
 
 ```powershell
-powershell.exe -NoProfile -File .\Enterprise\deploy\Test-WindowsPinnedPublicHttps.ps1 -ConfigPath "C:\ProgramData\ITToolkit-Agent\agent.json" -ReportPath "C:\acceptance\n49-live.json" -ConfirmLive PROBE_PUBLIC_HEALTH -ApprovedOrigin "https://YOUR-ACTUAL-APPROVED-PUBLIC-HOST" -ApprovedCurlSignerSha256 "YOUR-INDEPENDENTLY-APPROVED-64-HEX-SIGNING-CERT-SHA256"
+powershell.exe -NoProfile -File .\Enterprise\deploy\Test-WindowsPinnedPublicHttps.ps1 -ConfigPath "C:\ProgramData\ITToolkit-Agent\agent.json" -ReportPath "C:\acceptance\n49-live.json" -ConfirmLive PROBE_PUBLIC_HEALTH -ApprovedOrigin "https://YOUR-ACTUAL-APPROVED-PUBLIC-HOST" -ApprovedCurlSignerSha256 "YOUR-INDEPENDENTLY-APPROVED-64-HEX-SIGNING-CERT-SHA256" -ApprovedCurlBinarySha256 "SECURITY-APPROVED-CURL-EXE-SHA256-64-HEX"
 ```
 
 Dry-run stays offline and deliberately **does not** accept signer pin or
@@ -109,3 +109,15 @@ stays OPEN. **Production NOT APPROVED.**
 - [PR deployment safety #44711587550](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44711587550): **2/2 SUCCESS** (Bash/recovery and isolated MySQL backup/restore).
 - [Main CI #44712168071](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44712168071) **4/4 SUCCESS** (PowerShell 5.1/7, Node/Vitest+MySQL, API/MySQL, Windows EXE/MSI build, administrative extraction, install/uninstall, tenant-preserving major upgrade); [main safety #44712168110](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44712168110) **2/2 SUCCESS** (offline recovery + isolated MySQL backup/restore). `Upload verified signed artifacts only` SKIPPED.
 - CI derives a signer hash from its own local system curl solely for unit/regression testing. This is not an independently approved customer signing certificate pin, physical TLS acceptance or authority to publish an MSI. **Production NOT APPROVED.**
+
+## N50 executable release digest amendment
+
+The optional *live* Windows `/healthz` command now also **requires**
+`-ApprovedCurlBinarySha256`: a separate independently security-approved
+64-hex SHA-256 over the exact OS `curl.exe` file bytes, distinct from N49's
+signer-certificate DER hash. Historical live examples above have been amended
+where present. No such hash is automatically inferred as production approval.
+The binary is checked before customer DNS and again after the optional HTTPS
+transfer; even a healthy response remains non-production-certified. See
+[N50 acceptance](PHASE-N-STAGE50-ACCEPTANCE.md). Physical customer trust,
+Hostinger and publisher signing acceptance remain PENDING.

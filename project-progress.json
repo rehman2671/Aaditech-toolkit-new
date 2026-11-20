@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-20T00:57:54+00:00",
-  "last_verified_commit": "004ad08ca02eef0e1503ba1a22f36a01668b2d18",
-  "last_verified_date": "2026-11-20T06:27:43+05:30",
+  "generated": "2026-11-20T01:17:01+00:00",
+  "last_verified_commit": "43a1561dfc4b3c9d85dfa7b29f4e1b0b4afef7b2",
+  "last_verified_date": "2026-11-20T06:46:51+05:30",
   "overall_progress_percent": 100.0,
   "progress_scope": "historic audit issue closure only; production acceptance pending",
   "production_ready": false,
@@ -16,32 +16,10 @@
   "latest_delta": {
     "added": 3,
     "removed": 0,
-    "changed": 3,
-    "unchanged": 374
+    "changed": 4,
+    "unchanged": 376
   },
   "delta_history": [
-    {
-      "detected_at": "2026-11-17T18:29:11+00:00",
-      "added": [
-        "tests/unit/canonical-agent-snapshot-stage26.test.js",
-        "Enterprise/deploy/PHASE-N-STAGE26-ACCEPTANCE.md"
-      ],
-      "removed": [],
-      "changed": [
-        "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md",
-        "docs/assessment/GAP-REGISTER.md",
-        "Enterprise/deploy/PHASE-N-STAGE25-ACCEPTANCE.md",
-        "CHANGELOG.md",
-        "Enterprise/agent/collectors/Get-DiskHealth.ps1",
-        "server.js",
-        "Enterprise/agent/collectors/Get-SystemHealth.ps1",
-        "device-metrics.js",
-        "docs/assessment/TEST-RESULTS.md",
-        "docs/assessment/RELEASE-READINESS.md",
-        "Enterprise/agent/Agent-Collect.ps1"
-      ],
-      "unchanged_count": 303
-    },
     {
       "detected_at": "2026-11-17T20:51:17+00:00",
       "added": [
@@ -406,6 +384,22 @@
         ".github/workflows/deployment-safety.yml"
       ],
       "unchanged_count": 374
+    },
+    {
+      "detected_at": "2026-11-20T01:17:01+00:00",
+      "added": [
+        "Enterprise/tests/Test-Stage45WindowsPrivateProbeWorkspace.ps1",
+        "Enterprise/deploy/PHASE-N-STAGE45-ACCEPTANCE.md",
+        "Enterprise/deploy/PrivateWindowsProbeWorkspace.psm1"
+      ],
+      "removed": [],
+      "changed": [
+        "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md",
+        "Enterprise/deploy/Test-WindowsPinnedPublicHttps.ps1",
+        "Enterprise/deploy/PHASE-N-STAGE44-ACCEPTANCE.md",
+        ".github/workflows/ci.yml"
+      ],
+      "unchanged_count": 376
     }
   ],
   "next_recommended_tasks": [

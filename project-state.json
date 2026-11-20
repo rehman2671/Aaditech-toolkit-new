@@ -1,30 +1,31 @@
 {
   "state_version": "1.0",
   "path": "project-state.json",
-  "generated": "2026-11-20T00:57:54+00:00",
+  "generated": "2026-11-20T01:17:01+00:00",
   "phase": "PHASE N STAGE 4 / PRODUCTION ACCEPTANCE IN PROGRESS",
-  "last_verified_commit": "004ad08ca02eef0e1503ba1a22f36a01668b2d18",
-  "last_verified_date": "2026-11-20T06:27:43+05:30",
+  "last_verified_commit": "43a1561dfc4b3c9d85dfa7b29f4e1b0b4afef7b2",
+  "last_verified_date": "2026-11-20T06:46:51+05:30",
   "git": {
     "branch": "main",
     "commit_count": 1,
     "clean_working_tree": true,
-    "head": "004ad08ca02eef0e1503ba1a22f36a01668b2d18"
+    "head": "43a1561dfc4b3c9d85dfa7b29f4e1b0b4afef7b2"
   },
   "latest_delta": {
-    "detected_at": "2026-11-20T00:57:54+00:00",
+    "detected_at": "2026-11-20T01:17:01+00:00",
     "added": [
-      "Enterprise/tests/test_stage44_windows_health_evidence.py",
-      "Enterprise/deploy/PHASE-N-STAGE44-ACCEPTANCE.md",
-      "Enterprise/deploy/audit-windows-health-evidence.py"
+      "Enterprise/tests/Test-Stage45WindowsPrivateProbeWorkspace.ps1",
+      "Enterprise/deploy/PHASE-N-STAGE45-ACCEPTANCE.md",
+      "Enterprise/deploy/PrivateWindowsProbeWorkspace.psm1"
     ],
     "removed": [],
     "changed": [
-      "Enterprise/deploy/PHASE-N-STAGE43-ACCEPTANCE.md",
       "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md",
-      ".github/workflows/deployment-safety.yml"
+      "Enterprise/deploy/Test-WindowsPinnedPublicHttps.ps1",
+      "Enterprise/deploy/PHASE-N-STAGE44-ACCEPTANCE.md",
+      ".github/workflows/ci.yml"
     ],
-    "unchanged_count": 374
+    "unchanged_count": 376
   },
   "production_ready": false,
   "acceptance_gates": [

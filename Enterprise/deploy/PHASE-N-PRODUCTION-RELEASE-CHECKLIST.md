@@ -1,5 +1,14 @@
 # Phase N — Production release acceptance and sign-off
 
+## Stage N60 — draft ID and Git tag lifecycle repair (CODE PROPOSED; CI PENDING; PRODUCTION BLOCKED)
+
+- [ ] Correct N59 first-live-release blocker: **unpublished drafts have pending tag names but no Git tag refs**, and REST `/releases/tags/<tag>` cannot retrieve drafts. After protected `gh release create --draft`, resolve `gh release view --json databaseId,isDraft,tagName,targetCommitish`, validate exact pending source and pin the positive numeric ID across **all three** N59 hosted-asset attestations.
+- [ ] Fetch draft and published release by `GET /releases/<numeric ID>` with exact ID matching. Draft must have **no exact Git ref** (authenticated matching-refs returns `[]`); after `gh release edit --draft=false` the lightweight tag must point to the original independently reviewed signed-source commit. API failure is not interpreted as an absent tag; wrong/annotated/moved tag or other release ID fails closed.
+- [ ] Windows PowerShell 5.1/7 synthetic tests for absent draft Git tag, exact public ref, wrong commit or annotated tag, duplicate/nonarray Git ref results, immutable ID and N56 signed source + MSI approval gate order; PR CI 3/3, deployment safety 2/2, reviewed merge, post-merge Windows diagnostic MSI 4/4 and safety 2/2.
+- [ ] Genuine publisher/HSM credentials, vetted SQLite hashes, independent RSA reviewer-signed approval, protected manual signing and signed draft/public release **not yet performed**; Hostinger customer DNS/TLS, physical Windows tenant/ACK evidence, MySQL replay and authorized security sign-off **PENDING**. **Production NOT APPROVED.**
+
+See [N60 acceptance](PHASE-N-STAGE60-ACCEPTANCE.md) and [issue #29](https://github.com/rehman2671/Aaditech-toolkit-new/issues/29).
+
 ## Stage N59 — unpublished draft + SHA256-verified GitHub Release assets (MERGED; PR CI 3/3 + SAFETY 2/2, MAIN MSI 4/4 + SAFETY 2/2 AND INDEX VERIFIED; PRODUCTION BLOCKED)
 
 - [x] Protected publication code stages approved signed EXE/MSI/SHA256SUMS as a **non-public draft**. Serial release-tag publication with `cancel-in-progress: false`, reject pre-existing tags, no force-push or auto-delete of failed drafts. Live production path remains unexecuted.

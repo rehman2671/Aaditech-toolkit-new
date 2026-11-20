@@ -1,5 +1,14 @@
 # Phase N — Production release acceptance and sign-off
 
+## Stage N48 — actual Windows system curl signer and Schannel provenance preflight (CODE PROPOSED; PR CI PENDING; PRODUCTION BLOCKED)
+
+- [ ] Independently execute local `[Environment]::SystemDirectory\curl.exe` Authenticode signer validation and Schannel backend inspection in actual Windows PowerShell 7 and 5.1 CI. Reject reparse sources, invalid vendor signature, spoofed second-line `Schannel`, OpenSSL, native exit errors and unbounded output; never use PATH-provided curl.
+- [ ] Reuse the trusted OS binary for the separately operator-consented live `/healthz` check; clear CA/backend/proxy/keylogging process overrides before preflight, verify system binary **before customer DNS**, restore overrides on exit, keep N31 automatic live probe BLOCKED.
+- [ ] PR Windows 5.1/7, Node/Vitest+MySQL, API/MySQL and deployment safety pass; authorized merge then new main Windows EXE/MSI build/extraction/install/uninstall/major upgrade **4/4** plus deployment safety **2/2**.
+- [ ] Independent external Windows trust-store/certificate-chain audit, approved Hostinger DNS/TLS and physical operator-run acceptance, customer publisher-signed MSI/keys, lost-ACK replay, offsite restore, real integrations and human security review remain **PENDING**. No production release authorization.
+
+See [N48 acceptance](PHASE-N-STAGE48-ACCEPTANCE.md) and [Issue #29](https://github.com/rehman2671/Aaditech-toolkit-new/issues/29). **Production NOT APPROVED.**
+
 ## Stage N47 — fail-closed private Windows HTTPS response cleanup (MERGED; MAIN MSI CI 4/4 AND SAFETY 2/2 GREEN; PRODUCTION BLOCKED)
 
 - [x] Fix N42–N46 silent `Remove-Item -ErrorAction SilentlyContinue` outcome: only report `PASS` after the exact private response file and workspace directory are **verified deleted**; cleanup failure forces redacted `BLOCKED/PRIVATE_WORKSPACE_CLEANUP` before report creation.

@@ -16,6 +16,12 @@ if ($env:GITHUB_ACTIONS -cne 'true' -or
     [string]::IsNullOrWhiteSpace($env:RUNNER_TEMP)) {
     throw 'N55 final publication requires reviewed manual main signing context.'
 }
+# N56: re-verify the exact independently reviewer-signed source/release
+# scope before opening release artifacts. Recheck its current validity once
+# more after final extraction/Authenticode, before authorizing upload.
+$releaseAuthorization = Join-Path $PSScriptRoot 'Assert-ReleaseAuthorization.ps1'
+$null = & $releaseAuthorization -RequireOriginalDigest
+
 # No signing certificate or private key is inferred or loaded locally.
 $approved = [string]$env:CODESIGN_APPROVED_THUMBPRINT
 if ($approved -cnotmatch '\A[A-Fa-f0-9]{40}\z' -or
@@ -103,6 +109,7 @@ try {
     $null = Assert-N55SignedPublicationManifest -OutputDirectory $out -ExpectedAgentVersion $version
     Assert-N55Authenticode -File $exe
     Assert-N55Authenticode -File $msi
+    $null = & $releaseAuthorization -RequireOriginalDigest
     'PUBLICATION_VERIFIED=true' | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
     Write-Host 'N55 final signed publication gate PASS. Protected upload may proceed.'
 } finally {

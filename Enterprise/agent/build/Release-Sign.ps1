@@ -33,6 +33,20 @@ if ($Stage -eq 'Finalize' -and $env:RELEASE_SIGNING_ENABLED -ne 'true') {
 }
 $expected = ($env:CODESIGN_APPROVED_THUMBPRINT -replace '\s','').ToUpperInvariant()
 if ($expected -cnotmatch '^[A-F0-9]{40}$') { throw 'Approved thumbprint must be exactly 40 hex characters.' }
+# N56: after basic publisher thumbprint admission, independently authenticate
+# the reviewer RSA-signed exact Git SHA, semver, MSI revision, publisher and
+# both SQLite digests BEFORE allocating a private signing key or using signtool.
+$releaseAuthorization = Join-Path $PSScriptRoot 'Assert-ReleaseAuthorization.ps1'
+$approvedReleaseDigest = ''
+if ($Stage -eq 'PrePackage') {
+  $approvedReleaseDigest = & $releaseAuthorization -StartSigning
+  if ($approvedReleaseDigest -cnotmatch '\A[0-9A-F]{64}\z') {
+    throw 'N56 reviewer-signed release identity missing.'
+  }
+} else {
+  # Reauthenticate the same original signed approval, including expiry.
+  $null = & $releaseAuthorization -RequireOriginalDigest
+}
 $sdk = Join-Path ([Environment]::GetFolderPath('ProgramFilesX86')) 'Windows Kits\10\bin'
 $tool = Get-ChildItem $sdk -Recurse -Filter signtool.exe -ErrorAction SilentlyContinue |
   Where-Object { $_.FullName -match '\d+\.\d+\.\d+\.\d+\\x64' } |
@@ -80,6 +94,8 @@ try {
     Confirm-Signature $target
   }
   if ($Stage -eq 'PrePackage') {
+    # Set scope identity only after successful timestamped EXE signature.
+    Flag 'RELEASE_APPROVAL_MANIFEST_SHA256' $approvedReleaseDigest
     Flag 'RELEASE_SIGNING_ENABLED' 'true'
   } else {
     @($exe, $msis[0].FullName) | ForEach-Object {

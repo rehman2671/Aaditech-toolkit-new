@@ -188,6 +188,13 @@ jobs:
         shell: powershell
         run: ./Enterprise/tests/Test-Stage55SignedArtifactPublication.ps1
 
+      - name: N56 reviewer-signed release scope and original approval continuity (PowerShell 7)
+        run: pwsh -NoProfile -File ./Enterprise/tests/Test-Stage56ReviewedReleaseApproval.ps1
+
+      - name: N56 reject different valid release record and pins on Windows PowerShell 5.1
+        shell: powershell
+        run: ./Enterprise/tests/Test-Stage56ReviewedReleaseApproval.ps1
+
 
       - name: N31 release publication requires independently approved source and MSI pins
         run: pwsh -NoProfile -File ./Enterprise/tests/Test-Stage31PublicationPins.ps1
@@ -605,6 +612,12 @@ jobs:
           CODESIGN_PFX_B64: ${{ github.event_name == 'workflow_dispatch' && secrets.CODESIGN_PFX_B64 || '' }}
           CODESIGN_PFX_PASSWORD: ${{ github.event_name == 'workflow_dispatch' && secrets.CODESIGN_PFX_PASSWORD || '' }}
           CODESIGN_APPROVED_THUMBPRINT: ${{ github.event_name == 'workflow_dispatch' && secrets.CODESIGN_APPROVED_THUMBPRINT || '' }}
+          SQLITE_TOOLS_ARCHIVE_SHA256_APPROVED: ${{ github.event_name == 'workflow_dispatch' && secrets.SQLITE_TOOLS_ARCHIVE_SHA256_APPROVED || '' }}
+          SQLITE3_EXE_SHA256_APPROVED: ${{ github.event_name == 'workflow_dispatch' && secrets.SQLITE3_EXE_SHA256_APPROVED || '' }}
+          RELEASE_APPROVAL_MANIFEST_B64: ${{ github.event_name == 'workflow_dispatch' && secrets.RELEASE_APPROVAL_MANIFEST_B64 || '' }}
+          RELEASE_APPROVAL_SIGNATURE_B64: ${{ github.event_name == 'workflow_dispatch' && secrets.RELEASE_APPROVAL_SIGNATURE_B64 || '' }}
+          RELEASE_APPROVAL_REVIEWER_DER_B64: ${{ github.event_name == 'workflow_dispatch' && secrets.RELEASE_APPROVAL_REVIEWER_DER_B64 || '' }}
+          RELEASE_REVIEWER_CERT_SHA256_APPROVED: ${{ github.event_name == 'workflow_dispatch' && secrets.RELEASE_REVIEWER_CERT_SHA256_APPROVED || '' }}
         run: ./Enterprise/agent/build/Release-Sign.ps1 -Stage PrePackage
 
       - name: Install WiX toolset
@@ -653,6 +666,11 @@ jobs:
           CODESIGN_PFX_PASSWORD: ${{ github.event_name == 'workflow_dispatch' && secrets.CODESIGN_PFX_PASSWORD || '' }}
           CODESIGN_APPROVED_THUMBPRINT: ${{ github.event_name == 'workflow_dispatch' && secrets.CODESIGN_APPROVED_THUMBPRINT || '' }}
           SQLITE3_EXE_SHA256_APPROVED: ${{ github.event_name == 'workflow_dispatch' && secrets.SQLITE3_EXE_SHA256_APPROVED || '' }}
+          SQLITE_TOOLS_ARCHIVE_SHA256_APPROVED: ${{ github.event_name == 'workflow_dispatch' && secrets.SQLITE_TOOLS_ARCHIVE_SHA256_APPROVED || '' }}
+          RELEASE_APPROVAL_MANIFEST_B64: ${{ github.event_name == 'workflow_dispatch' && secrets.RELEASE_APPROVAL_MANIFEST_B64 || '' }}
+          RELEASE_APPROVAL_SIGNATURE_B64: ${{ github.event_name == 'workflow_dispatch' && secrets.RELEASE_APPROVAL_SIGNATURE_B64 || '' }}
+          RELEASE_APPROVAL_REVIEWER_DER_B64: ${{ github.event_name == 'workflow_dispatch' && secrets.RELEASE_APPROVAL_REVIEWER_DER_B64 || '' }}
+          RELEASE_REVIEWER_CERT_SHA256_APPROVED: ${{ github.event_name == 'workflow_dispatch' && secrets.RELEASE_REVIEWER_CERT_SHA256_APPROVED || '' }}
         run: |
           if ($env:RELEASE_SIGNING_ENABLED -eq 'true') {
             # N54 verify the *embedded* executable after administrative MSI
@@ -710,6 +728,11 @@ jobs:
         env:
           CODESIGN_APPROVED_THUMBPRINT: ${{ secrets.CODESIGN_APPROVED_THUMBPRINT }}
           SQLITE3_EXE_SHA256_APPROVED: ${{ secrets.SQLITE3_EXE_SHA256_APPROVED }}
+          SQLITE_TOOLS_ARCHIVE_SHA256_APPROVED: ${{ secrets.SQLITE_TOOLS_ARCHIVE_SHA256_APPROVED }}
+          RELEASE_APPROVAL_MANIFEST_B64: ${{ secrets.RELEASE_APPROVAL_MANIFEST_B64 }}
+          RELEASE_APPROVAL_SIGNATURE_B64: ${{ secrets.RELEASE_APPROVAL_SIGNATURE_B64 }}
+          RELEASE_APPROVAL_REVIEWER_DER_B64: ${{ secrets.RELEASE_APPROVAL_REVIEWER_DER_B64 }}
+          RELEASE_REVIEWER_CERT_SHA256_APPROVED: ${{ secrets.RELEASE_REVIEWER_CERT_SHA256_APPROVED }}
         run: ./Enterprise/agent/build/Verify-SignedPublication.ps1
 
       - name: Upload verified signed artifacts only

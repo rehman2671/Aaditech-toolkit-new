@@ -108,6 +108,16 @@ try {
         throw 'N47 cleanup could not recover from transient file lock.'
     }
 
+    # Simulate failure after File.Delete but before Directory.Delete.
+    # A second attempt may safely remove an empty registered directory.
+    $partial = New-PrivateWindowsProbeWorkspace
+    $created.Add($partial.Directory)
+    [IO.File]::Delete($partial.ResponsePath)
+    if ((Remove-PrivateWindowsProbeWorkspace -Workspace $partial) -ne $true -or
+        (Test-Path -LiteralPath $partial.Directory)) {
+        throw 'N47 partial cleanup retry did not remove empty owned workspace.'
+    }
+
     $forged = New-PrivateWindowsProbeWorkspace
     $created.Add($forged.Directory)
     $fake = [pscustomobject]@{

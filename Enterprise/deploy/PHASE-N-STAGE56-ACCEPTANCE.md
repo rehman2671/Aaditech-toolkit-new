@@ -84,9 +84,12 @@ signing run requires independent human key custody and release approval.
   record both before and after N55 final signed artifact/SQLite inspection,
   immediately before authorizing protected upload.
 - `.github/workflows/ci.yml` passes independently protected reviewer
-  records to **only** the three manually dispatched production-signing/
-  publication steps, not PR, automatic push, diagnostic MSI, Node/MySQL or
-  general test stages. Existing unsigned push and PR behavior is unchanged.
+  records to **only** the protected manual production-signing/publication
+  gates: N56 PrePackage, Finalize, N55 final verification, and N58 source
+  approval receipt attestation. The N58 addition requires the already
+  authenticated original reviewer record and does not publish an artifact
+  until the receipt check succeeds. PR, automatic push, diagnostic MSI,
+  Node/MySQL and ordinary test stages have no reviewer signing secrets.
 
 Failures reveal neither exact keys, requested fingerprints, customer
 server endpoints nor raw manifest contents. A changed source SHA, version,
@@ -107,9 +110,10 @@ throwaway RSA-2048 certificate and self-signed fixture on Windows PowerShell
    publisher certificate or SQLite ZIP/EXE pin **rejected**.
 4. Authentic expired approval, CRLF/noncanonical syntax, tampered
    signature, wrong reviewer public-DER hash and bad base64 **rejected**.
-5. Signing cannot start before the reviewer gate; both signing stages and
-   final preupload revalidation bind same original digest; protected secrets
-   are supplied only to three intended manual signing/publication steps.
+5. Signing cannot start before the reviewer gate; both signing stages,
+   final preupload revalidation and the N58 source approval receipt bind the
+   same original digest. Protected secrets are scoped to four intended
+   manual signing/approval-attestation steps, not diagnostic builds.
 
 - [x] PR Windows PowerShell 5.1 and 7 N56 tests plus N31–N55 baseline,
   Node/Vitest+MySQL, API/MySQL and deployment safety successful.
@@ -161,3 +165,7 @@ throwaway RSA-2048 certificate and self-signed fixture on Windows PowerShell
   artifacts only** steps both **SKIPPED**. Actual production publisher/HSM
   signing, independent reviewer secret custody and N55 signed upload remain
   unexecuted. **Customer production NOT APPROVED.**
+
+## N58 publication continuity addition
+
+The separately dispatched GitHub Release workflow now independently verifies the original N56 reviewed approval identity carried in a non-secret CI receipt. The N56 original reviewer signing/private-key custody contract is unchanged. See [N58 acceptance](PHASE-N-STAGE58-ACCEPTANCE.md). No customer production signing was performed.

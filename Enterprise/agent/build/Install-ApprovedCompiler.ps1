@@ -60,7 +60,20 @@ try {
         foreach ($entry in @(Get-ChildItem -LiteralPath $manifests[0].Directory.FullName -Force -ErrorAction Stop)) {
             Copy-Item -LiteralPath $entry.FullName -Destination $destination -Force -Recurse -ErrorAction Stop
         }
+        $trustedManifest=Join-Path $destination 'ps2exe.psd1'
+        if ((Get-FileHash -LiteralPath $manifests[0].FullName -Algorithm SHA256).Hash -cne
+            (Get-FileHash -LiteralPath $trustedManifest -Algorithm SHA256).Hash) {
+            throw 'Approved compiler copy differs from vetted archive.'
+        }
+        # Scope the next build-agent step to the explicitly vetted PS2EXE
+        # module path; a different same-version module cannot win discovery.
+        $env:N63_PS2EXE_MANIFEST_PATH=$trustedManifest
         $null=Assert-N62InstalledPs2Exe
+        if ([string]::IsNullOrWhiteSpace($env:GITHUB_ENV)) {
+            throw 'Cannot bind approved module path to subsequent build step.'
+        }
+        'N63_PS2EXE_MANIFEST_PATH='+$trustedManifest |
+            Out-File -LiteralPath $env:GITHUB_ENV -Append -Encoding utf8
     } else {
         # NuGet source isolation is mandatory. --add-source alone is NOT
         # secure: an upstream feed may win package resolution races.

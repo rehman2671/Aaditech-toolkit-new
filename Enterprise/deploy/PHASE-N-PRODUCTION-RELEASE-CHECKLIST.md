@@ -1,10 +1,10 @@
 # Phase N — Production release acceptance and sign-off
 
-## Stage N45 — private Windows pinned HTTPS response workspace (CODE PROPOSED; PR CI PENDING; PRODUCTION BLOCKED)
+## Stage N45 — private Windows pinned HTTPS response workspace (MERGED; MAIN MSI CI 4/4 AND SAFETY 2/2 GREEN; PRODUCTION BLOCKED)
 
-- [ ] Native Windows LocalApplicationData workspace with unique per-run directory, explicit current-user and SYSTEM-only protected ACL, owner verification and no redirected/reparse ancestors; **no inherited TEMP/TMP permissions**.
-- [ ] Create fixed response file with exclusive `FileMode.CreateNew` before DNS/curl. Fail closed if private ACL/profile unavailable, do not enable N31 `-NetworkProbe`, and retain redacted `certified_for_production=false` evidence.
-- [ ] Windows PowerShell 7 and actual 5.1 no-network ACL/TEMP-isolation regression green; Node/Vitest+MySQL, API/MySQL, deployment safety, authorized PR merge and subsequent main Windows MSI diagnostic 4/4 and safety 2/2.
+- [x] Native Windows LocalApplicationData workspace with unique per-run directory, explicit current-user and SYSTEM-only protected ACL, owner verification and no redirected/reparse ancestors; **no inherited TEMP/TMP permissions**.
+- [x] Create fixed response file with exclusive `FileMode.CreateNew` before DNS/curl. Fail closed if private ACL/profile unavailable, do not enable N31 `-NetworkProbe`, and retain redacted `certified_for_production=false` evidence.
+- [x] Windows PowerShell 7 and actual 5.1 no-network ACL/TEMP isolation, Node/Vitest+MySQL, API/MySQL and deployment safety passed; PR #40 merged as `43a1561dfc4b3c9d85dfa7b29f4e1b0b4afef7b2`. [Main CI #44652441152](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44652441152) **4/4** (EXE/MSI build, extraction, install/uninstall and major upgrade) and [main safety #44652441192](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44652441192) **2/2** passed. Public signed-artifact upload SKIPPED.
 - [ ] Independent host ACL/profile-security review, customer-approved physical Windows HTTPS test, Hostinger DNS/TLS, real signed MSI publisher custody, lost-ACK queue replay and offsite restore still PENDING. **Production NOT APPROVED**.
 
 See [N45 acceptance](PHASE-N-STAGE45-ACCEPTANCE.md) and [Issue #29](https://github.com/rehman2671/Aaditech-toolkit-new/issues/29).

@@ -85,7 +85,7 @@ try {
     $copy=$installer.IndexOf('Copy-Item -LiteralPath $entry.FullName -Destination $destination',[StringComparison]::Ordinal)
     $copyGate=$installer.IndexOf('Assert-N64ApprovedPs2ExePayload -Directory $destination',[StringComparison]::Ordinal)
     $installImport=$installer.IndexOf('Assert-N62InstalledPs2Exe',[StringComparison]::Ordinal)
-    $bridge=$installer.IndexOf("'N64_PS2EXE_PAYLOAD_SHA256='+$payloadDigest",[StringComparison]::Ordinal)
+    $bridge=$installer.IndexOf('N64_PS2EXE_PAYLOAD_SHA256=''+$payloadDigest',[StringComparison]::Ordinal)
     $admitHash=$admission.IndexOf('Assert-N64ApprovedPs2ExePayload -Directory $moduleBase',[StringComparison]::Ordinal)
     $moduleImport=$admission.IndexOf('Import-Module -Name $approvedManifest',[StringComparison]::Ordinal)
     if ($extract -lt 0 -or $sourceDigest -le $extract -or

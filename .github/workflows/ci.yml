@@ -230,6 +230,13 @@ jobs:
         shell: powershell
         run: ./Enterprise/tests/Test-Stage62BuildToolchainLock.ps1
 
+      - name: N63 verify independently approved compiler archive SHA and offline install gates (PowerShell 7)
+        run: pwsh -NoProfile -File ./Enterprise/tests/Test-Stage63ApprovedCompilerPackages.ps1
+
+      - name: N63 reject tampered toolchain packages and automatic signing on Windows PowerShell 5.1
+        shell: powershell
+        run: ./Enterprise/tests/Test-Stage63ApprovedCompilerPackages.ps1
+
 
       - name: N31 release publication requires independently approved source and MSI pins
         run: pwsh -NoProfile -File ./Enterprise/tests/Test-Stage31PublicationPins.ps1

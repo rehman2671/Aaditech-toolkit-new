@@ -1,6 +1,6 @@
 # Phase N Stage 45 — Windows private response workspace for pinned HTTPS diagnostics
 
-**Status: CODE PROPOSED; PR CI PENDING; CUSTOMER PRODUCTION NOT APPROVED (2026-11-20 IST).**
+**Status: MERGED; MAIN CI/MSI 4/4 AND DEPLOYMENT-SAFETY 2/2 GREEN; CUSTOMER PRODUCTION NOT APPROVED (verified 2026-11-20 IST).**
 
 ## Finding and objective
 
@@ -62,9 +62,9 @@ auditor always outputs `production_approved=false`.
 
 ## Acceptance checklist
 
-- [ ] N45 actual Windows PowerShell 7 and 5.1 private-workspace regression green.
-- [ ] Node/Vitest+MySQL and API/MySQL PR CI and deployment safety green.
-- [ ] Authorized merge and new main Windows EXE/MSI build, administrative
+- [x] N45 actual Windows PowerShell 7 and 5.1 private-workspace regression passed.
+- [x] Node/Vitest+MySQL and API/MySQL PR CI and deployment safety passed.
+- [x] Authorized merge PR #40 and new main Windows EXE/MSI build, administrative
       extraction, install/uninstall and major-upgrade regression **4/4**;
       deployment safety **2/2**.
 - [ ] Independent security review of file ACL semantics, current profile
@@ -75,3 +75,11 @@ auditor always outputs `production_approved=false`.
 
 **Production NOT APPROVED.** [Issue #29](https://github.com/rehman2671/Aaditech-toolkit-new/issues/29)
 stays OPEN; N31 live `-NetworkProbe` stays disabled.
+
+## Verified GitHub source and diagnostic CI (not production authorization)
+
+- [PR #40](https://github.com/rehman2671/Aaditech-toolkit-new/pull/40) merged verified head `b16de636e55c3b6a162c800fd690b0eca76e8f2a` as `43a1561dfc4b3c9d85dfa7b29f4e1b0b4afef7b2` after Windows PowerShell 5.1/7 N45 ACL/TEMP isolation, Node/Vitest/MySQL, API/MySQL and deployment-safety checks passed.
+- [Main CI #44652441152](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44652441152) **4/4 SUCCESS**, including actual Windows EXE/MSI build, Windows Installer administrative extraction, clean install/uninstall and major-upgrade rehearsal.
+- [Main safety #44652441192](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44652441192) **2/2 SUCCESS**, including offline recovery and real isolated MySQL backup/restore.
+- Diagnostic signing-related build step passed but **`Upload verified signed artifacts only` was SKIPPED**. No customer-publisher-signed public MSI was published or externally approved.
+- These tests do **not** replace independent Windows security review or physical live customer TLS, public DNS/Hostinger ownership, lost-ACK receipts, offsite restore or integration acceptance. Production remains **NOT APPROVED**.

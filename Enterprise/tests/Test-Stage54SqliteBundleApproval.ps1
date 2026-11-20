@@ -17,7 +17,7 @@ foreach ($unsafe in @('Invoke-WebRequest','Invoke-RestMethod','Start-Process','D
 # Static fail-closed sequencing: only protected release secret hashes
 # may authorize shipping SQLite; reject *before* any archive decompression.
 $ordered=@(
-    "if ($" + 'releasePackage -and',
+    'if ($releasePackage -and',
     'Invoke-WebRequest -Uri $sqliteUrl',
     'Assert-N54ApprovedSqliteFile -Path $sqliteZip -Kind Archive',
     'Expand-Archive -LiteralPath $sqliteZip',
@@ -72,7 +72,7 @@ try {
         (Assert-N54ApprovedSqliteFile -Path $exe -Kind Executable -ApprovedSha256 $exeHash.ToLowerInvariant()) -ne $true) {
         throw 'N54 valid synthetic byte digest was refused.'
     }
-    foreach ($pin in @('', 'x'*64, ('A'*63), ('0'*64), " $exeHash", "0x$exeHash")) {
+    foreach ($pin in @('', ('x'*64), ('A'*63), ('0'*64), " $exeHash", "0x$exeHash")) {
         $bad=[string]$pin
         Assert-N54Reject -Case 'unapproved or malformed digest' -Action {
             Assert-N54ApprovedSqliteFile -Path $exe -Kind Executable -ApprovedSha256 $bad

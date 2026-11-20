@@ -1,6 +1,6 @@
 # Phase N Stage 53 — Pin exact signed Windows HTTPS approval for one diagnostic
 
-**Status: MERGED; PR CI 3/3 AND DEPLOYMENT SAFETY 2/2 GREEN; FRESH MAIN EXE/MSI ACCEPTANCE UNVERIFIED; CUSTOMER PRODUCTION NOT APPROVED (2026-11-20 IST).**
+**Status: MERGED; PR CI 3/3 AND DEPLOYMENT SAFETY 2/2 GREEN; FRESH MAIN DIAGNOSTIC EXE/MSI 4/4 + SAFETY 2/2 VERIFIED; CUSTOMER PRODUCTION NOT APPROVED (2026-11-20 IST).**
 
 ## Finding
 
@@ -75,7 +75,7 @@ customer hostname ownership or real HSM publisher signing.
 - [x] PR Windows PS5.1/7 N53+N31–N52 regression, Node/Vitest+MySQL,
   API/MySQL and deployment-safety workflows green.
 - [x] PR #48 merged at verified head into main.
-- [ ] Fresh main Windows EXE/MSI lifecycle **4/4** plus safety **2/2** independently confirmed.
+- [x] Fresh main diagnostic Windows EXE/MSI lifecycle **4/4** plus safety **2/2** independently confirmed.
 - [ ] Production gates: approved reviewer public-key custody and signed
   customer record, genuine Hostinger DNS/TLS, publisher/HSM-signed MSI,
   physical lost-ACK and MySQL queue receipts, offsite restore and external
@@ -96,6 +96,12 @@ Security tracker: [issue #29](https://github.com/rehman2671/Aaditech-toolkit-new
 - [PR deployment-safety run 44728229430](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44728229430):
   offline Bash/database recovery and real isolated MySQL backup/restore,
   **2/2 SUCCESS**.
-- Fresh post-merge **main** build/EXE/MSI install/uninstall/upgrade
-  **4/4** and safety **2/2** remain **UNVERIFIED** in this record, even if
-  earlier N51 main runs were green. No live customer probe was performed.
+- Fresh post-merge **main** diagnostic build/EXE/MSI install/uninstall/
+  upgrade **4/4** and safety **2/2** are independently verified in the push
+  workflows below. No live customer probe was performed.
+
+## Verified post-merge main Windows acceptance — 2026-11-20 UTC
+
+- Merge SHA `bcbd9860b9f138e9e72fc61a1d066d8645a80df3` independently correlated to [push CI run 44728607987](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44728607987): **4/4 SUCCESS**, with Windows PowerShell validation, Node/Vitest+MySQL, API/MySQL, and **Build agent EXE + MSI SUCCESS**. MSI job steps explicitly passed EXE build, WiX MSI build, administrative MSI payload extraction, real Windows installation/setup and clean uninstall, and major upgrade retaining tenant/device configuration.
+- Same merge SHA [push deployment-safety run 44728608211](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44728608211): **2/2 SUCCESS**, isolated MySQL backup/restore integrity and offline Bash/database recovery.
+- The runner did **NOT** publish a signed artifact (signed upload step skipped). No production SQLite reviewer hashes, real publisher keys, live Hostinger/customer checks, physical machine evidence or independent production security sign-off were established. **Customer production remains NOT APPROVED.**

@@ -25,12 +25,12 @@ try {
     $entries | Set-Content -LiteralPath $sumFile -Encoding ascii
     $blocked = $false
     try {
-        & $verify -ArtifactDir $tmp -ApprovedThumbprint ('A' * 40) -ApprovedMsiSha256 'not-a-hash'
+        & $verify -ArtifactDir $tmp -ApprovedThumbprint ('A' * 40) -ApprovedMsiSha256 'not-a-hash' -ApprovedSqliteExeSha256 ('C' * 64)
     } catch { $blocked = $_.Exception.Message -match 'Independent approved MSI SHA256' }
     if (-not $blocked) { throw 'Malformed independent MSI SHA256 was not denied.' }
     $blocked = $false
     try {
-        & $verify -ArtifactDir $tmp -ApprovedThumbprint ('A' * 40) -ApprovedMsiSha256 ('B' * 64)
+        & $verify -ArtifactDir $tmp -ApprovedThumbprint ('A' * 40) -ApprovedMsiSha256 ('B' * 64) -ApprovedSqliteExeSha256 ('C' * 64)
     } catch { $blocked = $_.Exception.Message -match 'independently approved SHA256' }
     if (-not $blocked) { throw 'Correct manifest but mismatched external MSI hash was accepted.' }
     Write-Host 'N31 PASS: malformed/mismatched operator pin cannot publish an otherwise consistent unsigned fixture.'

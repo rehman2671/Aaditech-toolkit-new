@@ -24,6 +24,11 @@ foreach ($marker in @(
     'Get-AuthenticodeSignature',
     'TimeStamperCertificate',
     'Assert-N54ApprovedSqliteFile',
+    "Join-Path $out 'agent-config.json'",
+    "Get-ChildItem -LiteralPath $extract -Recurse -File -Filter 'agent.json'",
+    'cfg.needs_setup -ne $true',
+    'cfg.bootstrap_token',
+    'cfg.enroll_url',
     "'PUBLICATION_VERIFIED=true'"
 )) {
     if ($operator.IndexOf($marker,[StringComparison]::Ordinal) -lt 0) {

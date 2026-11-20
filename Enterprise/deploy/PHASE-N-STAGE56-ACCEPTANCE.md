@@ -1,6 +1,6 @@
 # Phase N Stage 56 — Independent reviewer-signed exact release authorization
 
-**Status: MERGED; PR CI 3/3 + SAFETY 2/2 SUCCESS; FRESH MAIN DIAGNOSTIC EXE/MSI ACCEPTANCE IN PROGRESS; CUSTOMER PRODUCTION NOT APPROVED (2026-11-20 IST).**
+**Status: MERGED; PR CI 3/3 + SAFETY 2/2 SUCCESS; FRESH MAIN DIAGNOSTIC EXE/MSI 4/4 + SAFETY 2/2 VERIFIED; CUSTOMER PRODUCTION NOT APPROVED (2026-11-20 IST).**
 
 ## Security finding
 
@@ -114,8 +114,8 @@ throwaway RSA-2048 certificate and self-signed fixture on Windows PowerShell
 - [x] PR Windows PowerShell 5.1 and 7 N56 tests plus N31–N55 baseline,
   Node/Vitest+MySQL, API/MySQL and deployment safety successful.
 - [x] Reviewed PR #51 merged at verified head into `main`.
-- [ ] Independently confirm fresh `main` diagnostic EXE/MSI build,
-  setup/uninstall/upgrade **4/4** and safety **2/2**.
+- [x] Independently verified fresh `main` diagnostic EXE/MSI build,
+  setup/uninstall/upgrade **4/4 SUCCESS** and safety **2/2 SUCCESS**.
 - [ ] Independent reviewer public DER pin/key custody, real signed
   per-release manifest, production publisher/HSM signing, actual protected
   N56 signing flow and timestamped public MSI upload **PENDING**.
@@ -147,10 +147,17 @@ throwaway RSA-2048 certificate and self-signed fixture on Windows PowerShell
 - [PR safety 44737871073](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44737871073):
   offline Bash/database recovery and isolated real MySQL backup/restore
   **2/2 SUCCESS**.
-- Fresh post-merge `main` Windows diagnostic MSI
-  [CI run 44738371422](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44738371422)
-  and deployment
-  [safety run 44738371382](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44738371382)
-  are **NOT YET independently verified** in this acceptance update.
-  Actual protected reviewer-signed production signing and N55 upload remain
-  unexecuted. **Production NOT APPROVED.**
+- Fresh post-merge `main` [CI run 44738371422](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44738371422):
+  **4/4 SUCCESS**, including Windows PowerShell 5.1/7 N56 scope regressions,
+  Node/Vitest+MySQL, API/MySQL and the actual Windows EXE/MSI job. Installer
+  steps specifically passed WiX packaging, administrative MSI extraction,
+  real Windows installation/clean uninstall, and major upgrade retaining
+  tenant configuration.
+- Fresh post-merge `main` [deployment safety run 44738371382](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44738371382):
+  **2/2 SUCCESS**, including real isolated MySQL backup/restore and offline
+  Bash/database recovery.
+- As required for unsigned automatic push diagnostics, the protected
+  **Verify final signed artifact publication** and **Upload verified signed
+  artifacts only** steps both **SKIPPED**. Actual production publisher/HSM
+  signing, independent reviewer secret custody and N55 signed upload remain
+  unexecuted. **Customer production NOT APPROVED.**

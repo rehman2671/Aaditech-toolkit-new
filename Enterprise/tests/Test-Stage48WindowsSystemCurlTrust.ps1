@@ -90,7 +90,21 @@ foreach ($fake in @(
 
 # Actually exercise local Authenticode and the OS curl backend on both
 # Windows PowerShell runtimes, no valid operator live invocation.
-$path = Assert-PublicWindowsTrustedSystemCurl
+# CI pin is self-derived solely to verify pin enforcement mechanics.
+# It must NEVER be treated as independent customer publisher approval.
+$localCurl = [IO.Path]::Combine([Environment]::SystemDirectory,'curl.exe')
+$signature = Get-AuthenticodeSignature -LiteralPath $localCurl -ErrorAction Stop
+if ($signature.Status -ne 'Valid' -or $null -eq $signature.SignerCertificate) {
+    throw 'Windows system curl signer was unavailable for regression.'
+}
+$hasher = [System.Security.Cryptography.SHA256]::Create()
+try {
+    $digest = $hasher.ComputeHash($signature.SignerCertificate.RawData)
+    $pin = [BitConverter]::ToString($digest).Replace('-','')
+} finally {
+    $hasher.Dispose()
+}
+$path = Assert-PublicWindowsTrustedSystemCurl -ApprovedSignerSha256 $pin
 $expected = [IO.Path]::Combine([Environment]::SystemDirectory,'curl.exe')
 if (-not [string]::Equals($path,$expected,[StringComparison]::OrdinalIgnoreCase)) {
     throw 'N48 resolved PATH-overridden or non-system curl.'

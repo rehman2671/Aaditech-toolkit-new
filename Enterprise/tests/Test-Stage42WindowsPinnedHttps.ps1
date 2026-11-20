@@ -72,12 +72,28 @@ try {
     $runner = if ($PSVersionTable.PSVersion.Major -le 5) { 'powershell.exe' } else { 'pwsh.exe' }
     $baseArgs = @('-NoProfile','-NonInteractive','-File',$operatorScript,
         '-ConfigPath',$config,'-ReportPath',$report)
+    # Windows PowerShell 5.1 surfaces native stderr as NativeCommandError
+    # under ErrorActionPreference=Stop. Refusal stderr is *expected* in these
+    # child-process cases; preserve and assert exit codes without masking it.
+    function Invoke-OfflineChild {
+        param([Parameter(Mandatory=$true)][string[]]$ArgumentList)
+        $previous = $ErrorActionPreference
+        try {
+            $ErrorActionPreference = 'Continue'
+            $captured = @(& $runner @ArgumentList 2>&1 | Out-String)
+            $status = $LASTEXITCODE
+        } finally {
+            $ErrorActionPreference = $previous
+        }
+        return [pscustomobject]@{ status=$status; output=($captured -join '') }
+    }
     foreach ($scenario in @('missing-consent','wrong-consent','dryrun-with-consent')) {
         $extra = @()
         if ($scenario -eq 'wrong-consent') { $extra = @('-ConfirmLive','INVALID') }
         if ($scenario -eq 'dryrun-with-consent') { $extra = @('-DryRun','-ConfirmLive','PROBE_PUBLIC_HEALTH') }
-        $output = @(& $runner @baseArgs @extra 2>&1 | Out-String)
-        if ($LASTEXITCODE -eq 0 -or (Test-Path -LiteralPath $report)) {
+        $child = Invoke-OfflineChild -ArgumentList @($baseArgs + $extra)
+        $output = @($child.output)
+        if ($child.status -eq 0 -or (Test-Path -LiteralPath $report)) {
             throw 'Refused N42 invocation started a probe or created evidence.'
         }
         if (($output -join '').Contains($secret) -or
@@ -86,8 +102,9 @@ try {
         }
     }
 
-    $output = @(& $runner @baseArgs '-DryRun' 2>&1 | Out-String)
-    if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $report -PathType Leaf)) {
+    $child = Invoke-OfflineChild -ArgumentList @($baseArgs + @('-DryRun'))
+    $output = @($child.output)
+    if ($child.status -ne 0 -or -not (Test-Path -LiteralPath $report -PathType Leaf)) {
         $diagnostic = ($output -join '')
         if ($diagnostic.Contains($secret) -or $diagnostic.Contains($hostname)) {
             throw 'N42 dry run leaked configured URL or token to process output.'
@@ -103,7 +120,7 @@ try {
         $reportedPhase = if (Test-Path -LiteralPath $report -PathType Leaf) {
             (Get-Content -LiteralPath $report -Raw | ConvertFrom-Json).diagnostic_phase
         } else { 'NO_REPORT' }
-        throw "Offline N42 operator dry run failed; exit=$LASTEXITCODE; phase=$reportedPhase; category=$safeCategory."
+        throw "Offline N42 operator dry run failed; exit=$($child.status); phase=$reportedPhase; category=$safeCategory."
     }
     $raw = [IO.File]::ReadAllText($report)
     $obj = $raw | ConvertFrom-Json -ErrorAction Stop
@@ -115,8 +132,8 @@ try {
         throw 'Offline report leaked sensitive data or falsely certified HTTPS.'
     }
     $oldBytes = [IO.File]::ReadAllBytes($report)
-    $null = @(& $runner @baseArgs '-DryRun' 2>&1 | Out-String)
-    if ($LASTEXITCODE -eq 0 -or
+    $child = Invoke-OfflineChild -ArgumentList @($baseArgs + @('-DryRun'))
+    if ($child.status -eq 0 -or
         [Convert]::ToBase64String($oldBytes) -cne
         [Convert]::ToBase64String([IO.File]::ReadAllBytes($report))) {
         throw 'N42 report was overwritten on a repeated invocation.'

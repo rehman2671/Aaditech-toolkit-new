@@ -63,9 +63,29 @@ function Assert-N62InstalledPs2Exe {
     try {
         if ($env:OS -cne 'Windows_NT') { throw 'Windows PowerShell is required.' }
         $lock=Get-N62BuildToolchainLock
-        Import-Module -Name ps2exe -RequiredVersion ([version]$lock.ps2exe) -Force -ErrorAction Stop
+        $protected=($env:GITHUB_ACTIONS -ceq 'true' -and
+                    $env:GITHUB_EVENT_NAME -ceq 'workflow_dispatch')
+        if ($protected) {
+            # N63 never import a same-version module found earlier in
+            # PSModulePath. The archived source was SHA-approved and copied
+            # into this explicit path by Install-ApprovedCompiler.ps1.
+            $moduleBase=Join-Path ([Environment]::GetFolderPath('MyDocuments')) ('WindowsPowerShell\Modules\ps2exe\'+$lock.ps2exe)
+            $approvedManifest=Join-Path $moduleBase 'ps2exe.psd1'
+            if ([string]::IsNullOrWhiteSpace($env:N63_PS2EXE_MANIFEST_PATH) -or
+                $env:N63_PS2EXE_MANIFEST_PATH -cne $approvedManifest -or
+                -not (Test-Path -LiteralPath $approvedManifest -PathType Leaf)) {
+                throw 'Protected build must load the exact approved package module.'
+            }
+            Import-Module -Name $approvedManifest -RequiredVersion ([version]$lock.ps2exe) -Force -ErrorAction Stop
+        } else {
+            Import-Module -Name ps2exe -RequiredVersion ([version]$lock.ps2exe) -Force -ErrorAction Stop
+        }
         $loaded=@(Get-Module -Name ps2exe)
         $command=Get-Command -Name ps2exe -ErrorAction Stop
+        if ($protected -and ($loaded.Count -ne 1 -or
+            [IO.Path]::GetFullPath($loaded[0].ModuleBase) -cne [IO.Path]::GetFullPath($moduleBase))) {
+            throw 'Loaded PS2EXE module does not come from reviewed package path.'
+        }
         if ($loaded.Count -ne 1 -or
             $command.ModuleName -cne 'ps2exe' -or
             $command.CommandType -ne [Management.Automation.CommandTypes]::Alias) {

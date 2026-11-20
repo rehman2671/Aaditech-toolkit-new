@@ -1,6 +1,6 @@
 # Phase N Stage 44 — Fail-Closed Offline Windows Diagnostic Evidence Audit
 
-**Status: CODE PROPOSED / PR CI PENDING / PRODUCTION NOT APPROVED (2026-11-20 IST).**
+**Status: MERGED; MAIN CI/MSI 4/4 AND DEPLOYMENT-SAFETY 2/2 GREEN; CUSTOMER PRODUCTION NOT APPROVED (2026-11-20 IST).**
 
 ## Why
 
@@ -48,14 +48,14 @@ status of `1` means malformed or unsafe input.
 
 ## Acceptance
 
-- [ ] N44 Python regression rejects malformed, duplicate-key, BOM,
+- [x] N44 Python regression rejects malformed, duplicate-key, BOM,
   oversized, invalid UTF-8, symlinked, wrong-schema and self-certified input.
-- [ ] Valid live `PASS`, live `BLOCKED`, offline `PENDING` all return
+- [x] Valid live `PASS`, live `BLOCKED`, offline `PENDING` all return
   a machine-readable, redacted `production_approved=false`, with exit 3.
-- [ ] Audit output is 0600, exclusive and nonoverwriting; no user paths,
+- [x] Audit output is 0600, exclusive and nonoverwriting; no user paths,
   endpoints, tokens, tenant identifiers or customer body content logged.
-- [ ] PR PowerShell, Node/Vitest, isolated API/MySQL and deployment safety
-  green; authorized merge then main Windows MSI CI separately verified.
+- [x] PR PowerShell, Node/Vitest, isolated API/MySQL and deployment safety
+  green; PR #39 merged. Main Windows MSI CI independently verified.
 - [ ] Independently approved customer Hostinger DNS/TLS, physical Windows
   ACK replay, publisher-signed MSI, HSM/KMS custody, offsite restore,
   actual integrations and human security audit completed *outside* CI.
@@ -66,3 +66,10 @@ endpoint execution or grant production authorization.
 
 **Production: NOT APPROVED.** [Issue #29](https://github.com/rehman2671/Aaditech-toolkit-new/issues/29)
 remains open for customer-side external evidence.
+
+## Verified N44 CI and merge (not release approval)
+
+- [PR #39](https://github.com/rehman2671/Aaditech-toolkit-new/pull/39) merged to `main` as `004ad08ca02eef0e1503ba1a22f36a01668b2d18`.
+- [Main CI #44649979210](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44649979210) **4/4 SUCCESS**, including actual Windows diagnostic EXE/MSI build, Windows Installer extraction, fresh install/uninstall and major upgrade rehearsals.
+- [Main deployment safety #44649979330](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44649979330) **2/2 SUCCESS**, including N44 fail-closed audit fixtures and isolated MySQL backup/restore checks.
+- No publicly signed MSI upload, independently witnessed customer Windows TLS or lost-ACK, verified Hostinger origin/chain, offsite restore or human release approval was provided. This auditor **only checks report format**; it cannot authenticate authorship or certify production.

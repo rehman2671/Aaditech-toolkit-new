@@ -3,7 +3,7 @@
 # Stages the built agent exe, its config, and the toolkit files it wraps into
 # wix\stage\ (the WXS references stage\...), then invokes WiX.
 #
-# Prereqs: WiX v5 toolset (`dotnet tool install --global wix --version "5.*"`).
+# Prereqs: reviewed WiX v5.0.2 (`dotnet tool install --global wix --version 5.0.2`).
 # (WiX v7 requires accepting the OSMF EULA; v5 is MIT and uses the same v4 WXS schema.)
 # Steps:
 #   1. run Enterprise/agent/build/build-agent.ps1  (produces build/out/)
@@ -136,8 +136,11 @@ if (Test-Path $collectors) {
     Copy-Item (Join-Path $collectors '*.ps1') $stageCollectors -Force
 }
 
-$wix = Get-Command wix -ErrorAction SilentlyContinue
-if (-not $wix) { throw "WiX toolset not found. Install: dotnet tool install --global wix" }
+# N62: verify exact installed WiX command version before invoking any
+# packaging operation; never rely on a floating 5.* tool selection.
+Import-Module -Name (Join-Path $RepoRoot 'Enterprise\agent\build\BuildToolchainLock.psm1') -Force -ErrorAction Stop
+$null=Assert-N62InstalledWix
+$wix = Get-Command wix -CommandType Application -ErrorAction Stop
 
 # Agent version + interval come from agent/agent-version.json (single source of
 # truth, A2). WiX preprocessor vars are injected here so the MSI product code

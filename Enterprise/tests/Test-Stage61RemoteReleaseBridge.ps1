@@ -26,10 +26,10 @@ $keys=@('GITHUB_ACTIONS','GITHUB_EVENT_NAME','GITHUB_REF',
 foreach ($name in $keys) {
     $oldEnvironment[$name]=[Environment]::GetEnvironmentVariable($name)
 }
-$script:refsJson='[]'
-$script:releaseJson='{}'
-$script:failApi=''
-$script:calls=New-Object 'System.Collections.Generic.List[string]'
+$global:N61MockRefsJson='[]'
+$global:N61MockReleaseJson='{}'
+$global:N61MockFailApi=''
+$global:N61MockCalls=New-Object 'System.Collections.Generic.List[string]'
 
 function gh {
     [CmdletBinding()]
@@ -41,16 +41,16 @@ function gh {
         ($Endpoint -cne $refsEndpoint -and $Endpoint -cne $releaseEndpoint)) {
         throw 'N61 test blocked an unexpected command or network endpoint.'
     }
-    $script:calls.Add($Endpoint)
-    if ($script:failApi -ceq $Endpoint) {
+    $global:N61MockCalls.Add($Endpoint)
+    if ($global:N61MockFailApi -ceq $Endpoint) {
         $global:LASTEXITCODE=1
         return
     }
     $global:LASTEXITCODE=0
     if ($Endpoint -ceq $refsEndpoint) {
-        Write-Output $script:refsJson
+        Write-Output $global:N61MockRefsJson
     } else {
-        Write-Output $script:releaseJson
+        Write-Output $global:N61MockReleaseJson
     }
 }
 
@@ -112,10 +112,10 @@ try {
         published_at=$null
         assets=$assets
     }
-    $script:releaseJson=ConvertTo-Json -InputObject $draft -Depth 15 -Compress
+    $global:N61MockReleaseJson=ConvertTo-Json -InputObject $draft -Depth 15 -Compress
 
     # Tests the ACTUAL production bridge, not merely its imported helpers.
-    $script:calls.Clear()
+    $global:N61MockCalls.Clear()
     try {
         & $bridge -ArtifactDir $dir -ReleaseId $releaseId -RequireDraft
     } catch {
@@ -124,75 +124,75 @@ try {
         $inner=@($Error | Select-Object -Skip 1 -First 3 |
             ForEach-Object { $_.Exception.GetType().Name+': '+$_.Exception.Message })
         throw ('N61 fake-gh draft bridge failure; API calls='+
-            ($script:calls -join ',')+'; causes='+($inner -join ' / '))
+            ($global:N61MockCalls -join ',')+'; causes='+($inner -join ' / '))
     }
-    if ($script:calls.Count -ne 2 -or
-        $script:calls[0] -cne $refsEndpoint -or
-        $script:calls[1] -cne $releaseEndpoint) {
+    if ($global:N61MockCalls.Count -ne 2 -or
+        $global:N61MockCalls[0] -cne $refsEndpoint -or
+        $global:N61MockCalls[1] -cne $releaseEndpoint) {
         throw 'N61 bridge did not query exclusively the expected two read-only API endpoints.'
     }
     Assert-N61RemoteDenied -Case 'draft must not pass published state' -Action {
         & $bridge -ArtifactDir $dir -ReleaseId $releaseId -RequirePublished
     }
 
-    $script:refsJson='[{"ref":"refs/tags/'+$tag+'","object":{"type":"commit","sha":"'+$sourceSha+'"}}]'
+    $global:N61MockRefsJson='[{"ref":"refs/tags/'+$tag+'","object":{"type":"commit","sha":"'+$sourceSha+'"}}]'
     $public=$draft.Clone()
     $public.draft=$false
     $public.published_at='2026-11-21T00:00:00Z'
-    $script:releaseJson=ConvertTo-Json -InputObject $public -Depth 15 -Compress
-    $script:calls.Clear()
+    $global:N61MockReleaseJson=ConvertTo-Json -InputObject $public -Depth 15 -Compress
+    $global:N61MockCalls.Clear()
     & $bridge -ArtifactDir $dir -ReleaseId $releaseId -RequirePublished
-    if ($script:calls.Count -ne 2 -or
-        $script:calls[0] -cne $refsEndpoint -or
-        $script:calls[1] -cne $releaseEndpoint) {
+    if ($global:N61MockCalls.Count -ne 2 -or
+        $global:N61MockCalls[0] -cne $refsEndpoint -or
+        $global:N61MockCalls[1] -cne $releaseEndpoint) {
         throw 'N61 public bridge did not query exact read-only API endpoints.'
     }
 
     Assert-N61RemoteDenied -Case 'public ref exists while requested draft' -Action {
         & $bridge -ArtifactDir $dir -ReleaseId $releaseId -RequireDraft
     }
-    $script:refsJson='[]'
+    $global:N61MockRefsJson='[]'
     Assert-N61RemoteDenied -Case 'published record lacks actual Git tag' -Action {
         & $bridge -ArtifactDir $dir -ReleaseId $releaseId -RequirePublished
     }
-    $script:refsJson='[{"ref":"refs/tags/'+$tag+'","object":{"type":"commit","sha":"'+('b'*40)+'"}}]'
+    $global:N61MockRefsJson='[{"ref":"refs/tags/'+$tag+'","object":{"type":"commit","sha":"'+('b'*40)+'"}}]'
     Assert-N61RemoteDenied -Case 'published tag points to unauthorized source' -Action {
         & $bridge -ArtifactDir $dir -ReleaseId $releaseId -RequirePublished
     }
-    $script:refsJson='[{"ref":"refs/tags/'+$tag+'","object":{"type":"commit","sha":"'+$sourceSha+'"}}]'
+    $global:N61MockRefsJson='[{"ref":"refs/tags/'+$tag+'","object":{"type":"commit","sha":"'+$sourceSha+'"}}]'
     $wrong=$public.Clone()
     $wrong.id=[long]($releaseId+1)
-    $script:releaseJson=ConvertTo-Json -InputObject $wrong -Depth 15 -Compress
+    $global:N61MockReleaseJson=ConvertTo-Json -InputObject $wrong -Depth 15 -Compress
     Assert-N61RemoteDenied -Case 'API response different immutable release database ID' -Action {
         & $bridge -ArtifactDir $dir -ReleaseId $releaseId -RequirePublished
     }
     $corrupt=$public.Clone()
     $corrupt.assets=@($assets | ForEach-Object { $_.Clone() })
     $corrupt.assets[1].digest='sha256:'+('0'*64)
-    $script:releaseJson=ConvertTo-Json -InputObject $corrupt -Depth 15 -Compress
+    $global:N61MockReleaseJson=ConvertTo-Json -InputObject $corrupt -Depth 15 -Compress
     Assert-N61RemoteDenied -Case 'hosted release MSI digest mutation' -Action {
         & $bridge -ArtifactDir $dir -ReleaseId $releaseId -RequirePublished
     }
-    $script:releaseJson=ConvertTo-Json -InputObject $public -Depth 15 -Compress
-    $script:failApi=$releaseEndpoint
+    $global:N61MockReleaseJson=ConvertTo-Json -InputObject $public -Depth 15 -Compress
+    $global:N61MockFailApi=$releaseEndpoint
     Assert-N61RemoteDenied -Case 'GitHub API returned error instead of release ID response' -Action {
         & $bridge -ArtifactDir $dir -ReleaseId $releaseId -RequirePublished
     }
-    $script:failApi=''
-    $script:refsJson='not-json'
+    $global:N61MockFailApi=''
+    $global:N61MockRefsJson='not-json'
     Assert-N61RemoteDenied -Case 'malformed remote tag refs JSON' -Action {
         & $bridge -ArtifactDir $dir -ReleaseId $releaseId -RequirePublished
     }
-    $script:refsJson='[{"ref":"refs/tags/'+$tag+'","object":{"type":"commit","sha":"'+$sourceSha+'"}}]'
+    $global:N61MockRefsJson='[{"ref":"refs/tags/'+$tag+'","object":{"type":"commit","sha":"'+$sourceSha+'"}}]'
     [Environment]::SetEnvironmentVariable('GITHUB_EVENT_NAME','push')
-    $script:calls.Clear()
+    $global:N61MockCalls.Clear()
     Assert-N61RemoteDenied -Case 'automatic CI cannot access manually protected publisher bridge' -Action {
         & $bridge -ArtifactDir $dir -ReleaseId $releaseId -RequirePublished
     }
-    if ($script:calls.Count -ne 0) { throw 'N61 auto-push guard consulted GitHub before refusing.' }
+    if ($global:N61MockCalls.Count -ne 0) { throw 'N61 auto-push guard consulted GitHub before refusing.' }
     [Environment]::SetEnvironmentVariable('GITHUB_EVENT_NAME','workflow_dispatch')
     [Environment]::SetEnvironmentVariable('SOURCE_SHA','b'*40)
-    $script:calls.Clear()
+    $global:N61MockCalls.Clear()
     Assert-N61RemoteDenied -Case 'different approved source cannot pass tagged release' -Action {
         & $bridge -ArtifactDir $dir -ReleaseId $releaseId -RequirePublished
     }
@@ -207,6 +207,10 @@ try {
         [Environment]::SetEnvironmentVariable($key,$oldEnvironment[$key])
     }
     Remove-Item -LiteralPath Function:\gh -Force -ErrorAction SilentlyContinue
+    foreach ($mockName in @('N61MockRefsJson','N61MockReleaseJson',
+                           'N61MockFailApi','N61MockCalls')) {
+        Remove-Variable -Scope Global -Name $mockName -Force -ErrorAction SilentlyContinue
+    }
     Remove-Item -LiteralPath $dir -Recurse -Force -ErrorAction SilentlyContinue
 }
 exit 0

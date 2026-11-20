@@ -181,6 +181,13 @@ jobs:
         shell: powershell
         run: ./Enterprise/tests/Test-Stage54SqliteBundleApproval.ps1
 
+      - name: N55 verify canonical signed release manifest and upload gate on PowerShell 7
+        run: pwsh -NoProfile -File ./Enterprise/tests/Test-Stage55SignedArtifactPublication.ps1
+
+      - name: N55 reject post-signing release mutation on Windows PowerShell 5.1
+        shell: powershell
+        run: ./Enterprise/tests/Test-Stage55SignedArtifactPublication.ps1
+
 
       - name: N31 release publication requires independently approved source and MSI pins
         run: pwsh -NoProfile -File ./Enterprise/tests/Test-Stage31PublicationPins.ps1
@@ -697,8 +704,16 @@ jobs:
             throw
           }
 
+      - name: Verify final signed artifact publication
+        if: env.PUBLISH_SIGNED == 'true' && github.event_name == 'workflow_dispatch'
+        shell: pwsh
+        env:
+          CODESIGN_APPROVED_THUMBPRINT: ${{ secrets.CODESIGN_APPROVED_THUMBPRINT }}
+          SQLITE3_EXE_SHA256_APPROVED: ${{ secrets.SQLITE3_EXE_SHA256_APPROVED }}
+        run: ./Enterprise/agent/build/Verify-SignedPublication.ps1
+
       - name: Upload verified signed artifacts only
-        if: env.PUBLISH_SIGNED == 'true'
+        if: env.PUBLISH_SIGNED == 'true' && env.PUBLICATION_VERIFIED == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: it-toolkit-agent

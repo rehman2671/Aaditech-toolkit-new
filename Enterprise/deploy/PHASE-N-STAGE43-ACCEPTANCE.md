@@ -1,0 +1,93 @@
+# Phase N Stage 43 — Exact-origin consent & offline Windows HTTPS fault injection
+
+**Status: CODE PROPOSED; NEW CI EVIDENCE PENDING; CUSTOMER PRODUCTION NOT APPROVED (2026-11-20 IST).**
+
+## Security objective
+
+N42 introduced a separately operator-consented, public-IP-pinned Windows
+`/healthz` diagnostic. Its generic consent token was not cryptographically
+or explicitly bound to the *configured hostname*: an operator could approve a
+probe before a mutable configuration changed. N43 makes an independent,
+explicitly typed **canonical HTTPS origin** mandatory for every live call, and
+adds an offline, testable response/outcome decision function with a hard
+response-file length bound **before** payload allocation.
+
+The original N31/N38 `-NetworkProbe` path stays **BLOCKED**. N43 does not
+activate any agent/MSI automatic network activity, real customer probe or
+signed public MSI publication.
+
+## Changes
+
+1. `Enterprise/deploy/Test-WindowsPinnedPublicHttps.ps1` accepts
+   `-ApprovedOrigin` on **live** calls. Live is refused before configuration
+   read unless **both** `-ConfirmLive PROBE_PUBLIC_HEALTH` and a nonempty
+   `-ApprovedOrigin` are present. After N40 validates the configured
+   endpoint, the supplied approved origin must be **exactly, case-sensitively**
+   equal to the derived canonical origin (`https://public.example.tld`),
+   with **no port, path, userinfo, query, fragment or normalization**.
+   Mismatch produces only redacted `BLOCKED` evidence and aborts **before**
+   calling the resolver, curl or an HTTP client. Dry run cannot be combined
+   with either live consent field.
+2. `Enterprise/deploy/PublicWindowsPinnedTls.psm1` exports
+   `Assert-PublicWindowsPinnedHealthResult`, a **pure offline** final
+   health-result policy. It rejects any nonzero native curl exit code,
+   missing/multiple/nonexact `200` status lines, absent/empty/directory/
+   reparse-point/oversized response files, malformed or degraded N41 JSON.
+   It checks file metadata before opening, and rechecks the opened handle's
+   size (1–65,536 bytes) before allocating a bounded buffer. An exclusive
+   read avoids accepting a simultaneously rewritten response and checks
+   short reads. All exceptions have a single non-sensitive message.
+3. `Enterprise/tests/Test-Stage43WindowsPinnedHttpsFaults.ps1` injects
+   synthetic outcome tuples without sockets: DNS failure, connect failure,
+   timeout, TLS/cert failure, curl-size-limit, 3xx redirects, 4xx/5xx,
+   status-line spoofing, body missing/too large, malformed/bogus/degraded
+   JSON, invalid UTF-8/BOM, and a valid exactly-64-KiB response.
+   It also starts the **actual operator script only in offline dry-run or
+   declined/host-mismatched consent modes**, proving no live endpoint is
+   contacted and that reports remain redacted/unapproved. A source-order
+   assertion keeps the origin check before the DNS lookup.
+4. GitHub Windows CI executes those tests on both PowerShell 7 and **actual
+   Windows PowerShell 5.1**, alongside existing N31–N42, Node/Vitest/MySQL,
+   API/MySQL, and deployment-safety suites. No CI test supplies a matching
+   live origin and live confirmation together.
+
+## Updated operator usage
+
+Dry run remains **strictly offline**:
+
+```powershell
+powershell.exe -NoProfile -File .\Enterprise\deploy\Test-WindowsPinnedPublicHttps.ps1 -ConfigPath "C:\ProgramData\ITToolkit-Agent\agent.json" -ReportPath "C:\acceptance\n43-offline.json" -DryRun
+```
+
+Only after the operator has independently confirmed the **exact owned
+production DNS name** and received authorization for a read-only connection:
+
+```powershell
+powershell.exe -NoProfile -File .\Enterprise\deploy\Test-WindowsPinnedPublicHttps.ps1 -ConfigPath "C:\ProgramData\ITToolkit-Agent\agent.json" -ReportPath "C:\acceptance\n43-live.json" -ConfirmLive PROBE_PUBLIC_HEALTH -ApprovedOrigin "https://YOUR-ACTUAL-APPROVED-PUBLIC-HOST"
+```
+
+The illustrative `YOUR-ACTUAL-APPROVED-PUBLIC-HOST` is **not** a deployable
+value. It must match the canonical configured telemetry host **exactly**.
+A live `PASS` means one diagnostic passed local OS-curl/Schannel/health
+checks; it never certifies global DNS ownership, public CA custody, customer
+security approvals, production readiness or the physical ACK/outage path.
+Do not invoke the live form on a real customer endpoint without independent
+approval. New report filenames must not exist.
+
+## Verification gates
+
+- [ ] N43 Windows PowerShell 7 and **5.1** offline negative tests pass.
+- [ ] PR Node/Vitest+MySQL, API/MySQL and deployment-safety suites pass.
+- [ ] PR merged with verified head and new main Windows MSI diagnostic 4/4
+  (EXE/MSI build/extract/install/uninstall/upgrade) plus safety 2/2 pass.
+- [ ] Independent review of OS curl/Schannel, native exit handling, local
+  temp-file ownership/ACL, signed executable provenance, and DNS answer
+  completeness on approved physical Windows.
+- [ ] Approved external real Hostinger TLS/public authoritative DNS and
+  customer-owned hostname check, physical Windows timeout/redirect/cert
+  fault tests, signed publisher MSI and offsite restore proof.
+- [ ] Real auth-enrolled device queue lost-ACK replay/receipts and live
+  integrations independently witnessed.
+
+**Production: NOT APPROVED.** [Issue #29](https://github.com/rehman2671/Aaditech-toolkit-new/issues/29)
+remains OPEN until transport and customer acceptance are independently verified.

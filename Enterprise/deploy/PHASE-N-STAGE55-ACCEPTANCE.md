@@ -33,8 +33,11 @@ artifact compromise.
   both existing OS-trusted timestamped Authenticode signatures; then does a
   fresh MSI administrative extraction of the exact file intended for upload,
   verifies one actual embedded SQLite executable against N54's independent
-  digest and checks the embedded EXE matches the release EXE. Repeats manifest
-  and trusted-signature checks before writing `PUBLICATION_VERIFIED=true`
+  digest and checks the embedded EXE matches the release EXE. It separately
+  checks the unsigned `agent-config.json` upload template and every signed
+  MSI `agent.json`: all must still require first-run setup, with no endpoint,
+  enroll URL, token or bootstrap token, even after the privileged MSI tests.
+  Repeats manifest and trusted-signature checks before writing `PUBLICATION_VERIFIED=true`
   to the protected GitHub Actions environment.
 - `.github/workflows/ci.yml`: adds this check **after** real Windows
   MSI setup/uninstall and major upgrade; changes signed artifact upload to

@@ -54,7 +54,8 @@ jobs:
           if ($LASTEXITCODE -ne 0 -or -not $source) { throw 'Could not confirm CI provenance.' }
           # Signed artifacts now originate ONLY from a human-approved,
           # manually dispatched main-branch CI build, not a normal push.
-          if ($source.name -ne 'CI' -or $source.event -ne 'workflow_dispatch' -or
+          if ($source.name -ne 'CI' -or $source.path -cne '.github/workflows/ci.yml' -or
+              $source.event -ne 'workflow_dispatch' -or
               $source.conclusion -ne 'success' -or $source.head_branch -ne 'main' -or
               $source.head_repository.full_name -ne $env:GITHUB_REPOSITORY -or
               $source.head_sha -notmatch '^[0-9a-f]{40}$' -or
@@ -75,12 +76,28 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           path: release
 
+      - name: N58 verify same signed source reviewer approval and artifact receipt
+        shell: pwsh
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
+          APPROVED_SOURCE_SHA: ${{ inputs.approved_source_sha }}
+          CODESIGN_APPROVED_THUMBPRINT: ${{ secrets.CODESIGN_APPROVED_THUMBPRINT }}
+          SQLITE_TOOLS_ARCHIVE_SHA256_APPROVED: ${{ secrets.SQLITE_TOOLS_ARCHIVE_SHA256_APPROVED }}
+          SQLITE3_EXE_SHA256_APPROVED: ${{ secrets.SQLITE3_EXE_SHA256_APPROVED }}
+          RELEASE_APPROVAL_MANIFEST_B64: ${{ secrets.RELEASE_APPROVAL_MANIFEST_B64 }}
+          RELEASE_APPROVAL_SIGNATURE_B64: ${{ secrets.RELEASE_APPROVAL_SIGNATURE_B64 }}
+          RELEASE_APPROVAL_REVIEWER_DER_B64: ${{ secrets.RELEASE_APPROVAL_REVIEWER_DER_B64 }}
+          RELEASE_REVIEWER_CERT_SHA256_APPROVED: ${{ secrets.RELEASE_REVIEWER_CERT_SHA256_APPROVED }}
+        run: |
+          ./Enterprise/agent/build/Assert-PublicationReviewerApproval.ps1 -ArtifactDir release -ApprovedSourceSha $env:APPROVED_SOURCE_SHA -ReleaseTag $env:RELEASE_TAG
+
       - name: Verify version and exact trusted EXE/MSI publisher, timestamp and payload
         shell: pwsh
         env:
           RELEASE_TAG: ${{ inputs.release_tag }}
           CODESIGN_APPROVED_THUMBPRINT: ${{ secrets.CODESIGN_APPROVED_THUMBPRINT }}
           APPROVED_MSI_SHA256: ${{ inputs.approved_msi_sha256 }}
+          SQLITE3_EXE_SHA256_APPROVED: ${{ secrets.SQLITE3_EXE_SHA256_APPROVED }}
         run: |
           $metadata = Get-Content -LiteralPath Enterprise/agent/agent-version.json -Raw | ConvertFrom-Json
           $expected = "agent-v$($metadata.agent_version)-r$($metadata.msi_revision)"
@@ -88,13 +105,22 @@ jobs:
           if ([string]::IsNullOrWhiteSpace($env:CODESIGN_APPROVED_THUMBPRINT)) {
             throw 'Approved publisher certificate thumbprint secret missing.'
           }
-          ./Enterprise/agent/build/Verify-ReleaseArtifact.ps1 -ArtifactDir release -ApprovedThumbprint $env:CODESIGN_APPROVED_THUMBPRINT -ApprovedMsiSha256 $env:APPROVED_MSI_SHA256
+          ./Enterprise/agent/build/Verify-ReleaseArtifact.ps1 -ArtifactDir release -ApprovedThumbprint $env:CODESIGN_APPROVED_THUMBPRINT -ApprovedMsiSha256 $env:APPROVED_MSI_SHA256 -ApprovedSqliteExeSha256 $env:SQLITE3_EXE_SHA256_APPROVED
 
       - name: Create GitHub release only for a new tag
         shell: pwsh
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_TAG: ${{ inputs.release_tag }}
+          APPROVED_SOURCE_SHA: ${{ inputs.approved_source_sha }}
+          APPROVED_MSI_SHA256: ${{ inputs.approved_msi_sha256 }}
+          CODESIGN_APPROVED_THUMBPRINT: ${{ secrets.CODESIGN_APPROVED_THUMBPRINT }}
+          SQLITE_TOOLS_ARCHIVE_SHA256_APPROVED: ${{ secrets.SQLITE_TOOLS_ARCHIVE_SHA256_APPROVED }}
+          SQLITE3_EXE_SHA256_APPROVED: ${{ secrets.SQLITE3_EXE_SHA256_APPROVED }}
+          RELEASE_APPROVAL_MANIFEST_B64: ${{ secrets.RELEASE_APPROVAL_MANIFEST_B64 }}
+          RELEASE_APPROVAL_SIGNATURE_B64: ${{ secrets.RELEASE_APPROVAL_SIGNATURE_B64 }}
+          RELEASE_APPROVAL_REVIEWER_DER_B64: ${{ secrets.RELEASE_APPROVAL_REVIEWER_DER_B64 }}
+          RELEASE_REVIEWER_CERT_SHA256_APPROVED: ${{ secrets.RELEASE_REVIEWER_CERT_SHA256_APPROVED }}
         run: |
           # Use authenticated GitHub API instead of git ls-remote: the prior
           # SHA-pinned checkout intentionally has persist-credentials=false.
@@ -102,6 +128,11 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Cannot verify existing tag via authenticated API.' }
           $exact = @($refs | Where-Object { $_.ref -ceq "refs/tags/$env:RELEASE_TAG" })
           if ($exact.Count -gt 0) { throw 'Release tag already exists; refusing overwrite.' }
+          # Recheck the SAME N56 reviewer approval, exact downloaded source
+          # identity, canonical checksums, trusted publisher and embedded
+          # SQLite again immediately before creating an irreversible release.
+          ./Enterprise/agent/build/Assert-PublicationReviewerApproval.ps1 -ArtifactDir release -ApprovedSourceSha $env:APPROVED_SOURCE_SHA -ReleaseTag $env:RELEASE_TAG
+          ./Enterprise/agent/build/Verify-ReleaseArtifact.ps1 -ArtifactDir release -ApprovedThumbprint $env:CODESIGN_APPROVED_THUMBPRINT -ApprovedMsiSha256 $env:APPROVED_MSI_SHA256 -ApprovedSqliteExeSha256 $env:SQLITE3_EXE_SHA256_APPROVED
           $assets = @(Get-ChildItem -LiteralPath release -File | Where-Object {
             $_.Name -match '\.(msi|exe)$' -or $_.Name -eq 'SHA256SUMS.txt'
           } | ForEach-Object { $_.FullName })

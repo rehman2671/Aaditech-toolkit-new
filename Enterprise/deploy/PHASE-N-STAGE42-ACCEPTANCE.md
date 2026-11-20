@@ -63,8 +63,14 @@ After **independent approval of the actual customer hostname and live probe**,
 an operator may invoke the explicitly consented read-only check:
 
 ```powershell
-powershell.exe -NoProfile -File .\Enterprise\deploy\Test-WindowsPinnedPublicHttps.ps1 -ConfigPath "C:\ProgramData\ITToolkit-Agent\agent.json" -ReportPath "C:\acceptance\n42-live.json" -ConfirmLive PROBE_PUBLIC_HEALTH
+powershell.exe -NoProfile -File .\Enterprise\deploy\Test-WindowsPinnedPublicHttps.ps1 -ConfigPath "C:\ProgramData\ITToolkit-Agent\agent.json" -ReportPath "C:\acceptance\n42-live.json" -ConfirmLive PROBE_PUBLIC_HEALTH -ApprovedOrigin "https://YOUR-ACTUAL-APPROVED-PUBLIC-HOST"
 ```
+
+**Stage N43 amendment:** The CLI above now requires an independently typed,
+exact canonical `-ApprovedOrigin` matching the configured endpoint host; the
+example placeholder must be replaced with the customer-approved hostname.
+The N43 offline shared result validator also bounds response files *before*
+reading. See [N43 acceptance](PHASE-N-STAGE43-ACCEPTANCE.md).
 
 Use fresh, previously nonexistent report paths. This is a read-only health
 GET, **not** production acceptance or an agent installer activation.

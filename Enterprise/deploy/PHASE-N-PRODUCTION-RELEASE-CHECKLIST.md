@@ -1,8 +1,18 @@
 # Phase N — Production release acceptance and sign-off
 
+## Stage N43 — origin-bound Windows pinned HTTPS consent and offline failure injection (CODE PROPOSED; NEW CI PENDING; PRODUCTION BLOCKED)
+
+- [ ] Operator-approved canonical `-ApprovedOrigin` required **alongside** exact live `-ConfirmLive PROBE_PUBLIC_HEALTH`; mismatch/invalid origin aborts *before* DNS, curl or network; N31 `-NetworkProbe` stays BLOCKED.
+- [ ] Shared offline outcome policy rejects DNS/connect/TLS/cert/timeout native exit errors, every nonexact HTTP 200 (including 3xx/4xx/5xx), missing/oversized/reparse response file and non-healthy N41 JSON; file length bounded before allocation/read.
+- [ ] Synthetic fault matrix and refused/host-mismatched operator consent on Windows PowerShell 7 and actual 5.1 CI; zero live customer requests and redacted non-production-certified evidence.
+- [ ] PR CI (Windows/Node/API/MySQL) and deployment-safety green; merge, then main full Windows MSI diagnostic 4/4 and safety 2/2 green, document confirmed evidence.
+- [ ] Independent approved physical Windows DNS/TLS and failed-route rehearsal, real Hostinger public ownership, publisher signed MSI, physical queue ACK replay, offsite restore and human security review still **PENDING**. **Production NOT APPROVED**.
+
+See [N43 acceptance](PHASE-N-STAGE43-ACCEPTANCE.md) and [Issue #29](https://github.com/rehman2671/Aaditech-toolkit-new/issues/29).
+
 ## Stage N42 — separately approved, pinned Windows public HTTPS diagnostic (MERGED; MAIN MSI CI 4/4 AND SAFETY 2/2 GREEN; PRODUCTION BLOCKED)
 
-- [x] Optional `Test-WindowsPinnedPublicHttps.ps1` requires explicit `-ConfirmLive PROBE_PUBLIC_HEALTH` and denies absent/invalid/mixed dry-run consent **before** config/DNS/HTTP; default N31 `-NetworkProbe` remains **BLOCKED**.
+- [x] Optional `Test-WindowsPinnedPublicHttps.ps1` requires explicit `-ConfirmLive PROBE_PUBLIC_HEALTH` (N43 additionally binds live consent to exact canonical `-ApprovedOrigin`) and denies absent/invalid/mixed dry-run consent **before** config/DNS/HTTP; default N31 `-NetworkProbe` remains **BLOCKED**.
 - [x] Strict N39/N40 all-returned-A/AAAA public address admission, connection-time IP pin via curl `--resolve`, `-q` first, `--noproxy '*'`, no redirects, HTTPS-only, hostname-verifying Schannel TLS, verified OS curl signature and cleared caller CA/backend/proxy overrides.
 - [x] HTTP 200 plus bounded N41 JSON `status=ok`, `components.database=HEALTHY`; exclusive redacted and non-production-certified report; no credentials/tokens/tenant/device data in request or report.
 - [x] Windows PowerShell 7/5.1 N42 offline tests, Node/Vitest+MySQL, isolated API/MySQL, PR deployment safety passed; PR #36 merged as `ac904c6b98edd622ccd217c14edfce3e49108e69`. [Main CI #44643192250](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44643192250) **4/4** (Windows EXE/MSI build/extraction/install/uninstall/major upgrade) and [main safety #44643192246](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44643192246) **2/2** passed. Signed public artifact upload was SKIPPED.

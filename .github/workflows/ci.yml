@@ -104,6 +104,13 @@ jobs:
         shell: powershell
         run: ./Enterprise/tests/Test-Stage42WindowsPinnedHttps.ps1
 
+      - name: N43 synthetic TLS/redirect/timeout/size fault injection and hostname-bound consent (PowerShell 7)
+        run: pwsh -NoProfile -File ./Enterprise/tests/Test-Stage43WindowsPinnedHttpsFaults.ps1
+
+      - name: N43 synthetic TLS/redirect/timeout/size fault injection on real Windows PowerShell 5.1
+        shell: powershell
+        run: ./Enterprise/tests/Test-Stage43WindowsPinnedHttpsFaults.ps1
+
 
       - name: N31 release publication requires independently approved source and MSI pins
         run: pwsh -NoProfile -File ./Enterprise/tests/Test-Stage31PublicationPins.ps1

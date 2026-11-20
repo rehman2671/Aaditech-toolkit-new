@@ -98,9 +98,9 @@ if [[ "$(git -C "$verify" rev-list --count main)" -ne 3 ]]; then
 fi
 parent="$(git -C "$verify" rev-parse HEAD^)"
 for report in project-index.json project-state.json project-progress.json; do
-  REPORT_FILE="$report" EXPECTED_PARENT="$parent" \
+  REPORT_FILE="$verify/$report" REPORT_NAME="$report" EXPECTED_PARENT="$parent" \
     pwsh -NoProfile -Command \
-      '$m = Get-Content -LiteralPath (Join-Path $PWD $env:REPORT_FILE) -Raw | ConvertFrom-Json; if ($m.source -cne "new source after competing push" -or $m.last_verified_commit -cne $env:EXPECTED_PARENT -or $m.production_ready -ne $false -or $m.path -cne $env:REPORT_FILE) { throw "N57 regenerated report did not use latest source." }' \
+      '$m = Get-Content -LiteralPath $env:REPORT_FILE -Raw | ConvertFrom-Json; if ($m.source -cne "new source after competing push" -or $m.last_verified_commit -cne $env:EXPECTED_PARENT -or $m.production_ready -ne $false -or $m.path -cne $env:REPORT_NAME) { throw "N57 regenerated report did not use latest source." }' \
     2>&1
 done
 head="$(git -C "$verify" rev-parse HEAD)"

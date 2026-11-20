@@ -180,13 +180,19 @@ function Remove-PrivateWindowsProbeWorkspace {
         # point. An unrecognized file means cleanup must fail closed and
         # remain subject to manual security investigation.
         $children = @(Get-ChildItem -LiteralPath $directory -Force -ErrorAction Stop)
-        if ($children.Count -ne 1 -or
-            $children[0] -isnot [IO.FileInfo] -or
-            $children[0].Name -cne 'response.json' -or
-            ($children[0].Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+        if ($children.Count -gt 1 -or
+            ($children.Count -eq 1 -and
+             ($children[0] -isnot [IO.FileInfo] -or
+              $children[0].Name -cne 'response.json' -or
+              ($children[0].Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0))) {
             throw 'Workspace contains unexpected files.'
         }
-        [IO.File]::Delete($responsePath)
+        if ($children.Count -eq 1) {
+            [IO.File]::Delete($responsePath)
+        }
+        # A retry after a partial cleanup (response removed, directory lock
+        # prevented deletion) may see an empty registered directory. Removing
+        # that empty directory is safe; no arbitrary recursive cleanup occurs.
         [IO.Directory]::Delete($directory, $false)
         if (Test-Path -LiteralPath $directory) {
             throw 'Workspace still exists after cleanup.'

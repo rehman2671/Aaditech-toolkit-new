@@ -83,7 +83,11 @@ try {
             $ApprovedReviewerCertificateSha256 -cnotmatch '\A[0-9A-Fa-f]{64}\z') {
             throw 'Security-reviewer signed approval is required for live HTTPS.'
         }
-        $null = Assert-PublicWindowsCurlSignedApproval -ManifestPath $ApprovalManifestPath -SignaturePath $ApprovalSignaturePath -ReviewerCertificatePath $ReviewerCertificatePath -ApprovedReviewerCertificateSha256 $ApprovedReviewerCertificateSha256 -ExpectedOrigin $origin -ExpectedSignerSha256 $ApprovedCurlSignerSha256 -ExpectedBinarySha256 $ApprovedCurlBinarySha256
+        $approvalManifestSha256 = Assert-PublicWindowsCurlSignedApproval -ManifestPath $ApprovalManifestPath -SignaturePath $ApprovalSignaturePath -ReviewerCertificatePath $ReviewerCertificatePath -ApprovedReviewerCertificateSha256 $ApprovedReviewerCertificateSha256 -ExpectedOrigin $origin -ExpectedSignerSha256 $ApprovedCurlSignerSha256 -ExpectedBinarySha256 $ApprovedCurlBinarySha256 -ReturnManifestSha256
+        # N53: preserve only the digest of the exact approved signed record
+        # in process memory. Later live phases must re-verify the same
+        # canonical manifest; replacement with another validly signed
+        # approval is still a refusal for this diagnostic invocation.
         # N50 independently approved exact system curl executable bytes,
         # separate from N49's signing-certificate pin. Both are required
         # for a live request; a missing/malformed digest never reaches DNS.
@@ -120,7 +124,7 @@ try {
         # preparation window. An approval removed, tampered or expired while
         # inspecting system curl must not authorize customer DNS.
         $phase = 'RECHECK_SIGNED_APPROVAL_PRE_DNS'
-        $null = Assert-PublicWindowsCurlSignedApproval -ManifestPath $ApprovalManifestPath -SignaturePath $ApprovalSignaturePath -ReviewerCertificatePath $ReviewerCertificatePath -ApprovedReviewerCertificateSha256 $ApprovedReviewerCertificateSha256 -ExpectedOrigin $origin -ExpectedSignerSha256 $ApprovedCurlSignerSha256 -ExpectedBinarySha256 $ApprovedCurlBinarySha256
+        $null = Assert-PublicWindowsCurlSignedApproval -ManifestPath $ApprovalManifestPath -SignaturePath $ApprovalSignaturePath -ReviewerCertificatePath $ReviewerCertificatePath -ApprovedReviewerCertificateSha256 $ApprovedReviewerCertificateSha256 -ExpectedOrigin $origin -ExpectedSignerSha256 $ApprovedCurlSignerSha256 -ExpectedBinarySha256 $ApprovedCurlBinarySha256 -ExpectedManifestSha256 $approvalManifestSha256
         $phase = 'LIVE_DNS'
         # OS resolver's returned set must be entirely public. OS lookup is not
         # proof of every globally published A/AAAA record; --resolve pins one
@@ -135,7 +139,7 @@ try {
         # approval; re-read and verify all three files immediately before the
         # first network transfer. No fail-open fallback on expiry or rotation.
         $phase = 'RECHECK_SIGNED_APPROVAL_PRE_TRANSFER'
-        $null = Assert-PublicWindowsCurlSignedApproval -ManifestPath $ApprovalManifestPath -SignaturePath $ApprovalSignaturePath -ReviewerCertificatePath $ReviewerCertificatePath -ApprovedReviewerCertificateSha256 $ApprovedReviewerCertificateSha256 -ExpectedOrigin $origin -ExpectedSignerSha256 $ApprovedCurlSignerSha256 -ExpectedBinarySha256 $ApprovedCurlBinarySha256
+        $null = Assert-PublicWindowsCurlSignedApproval -ManifestPath $ApprovalManifestPath -SignaturePath $ApprovalSignaturePath -ReviewerCertificatePath $ReviewerCertificatePath -ApprovedReviewerCertificateSha256 $ApprovedReviewerCertificateSha256 -ExpectedOrigin $origin -ExpectedSignerSha256 $ApprovedCurlSignerSha256 -ExpectedBinarySha256 $ApprovedCurlBinarySha256 -ExpectedManifestSha256 $approvalManifestSha256
         $phase = 'HTTPS_TRANSFER'
         $httpStatus = @(& $curl @curlArguments 2>$null)
         $transportExit = $LASTEXITCODE
@@ -149,7 +153,7 @@ try {
         # N52: don't publish PASS if the signed authorization expired or
         # changed during transfer. This does not revoke an already sent GET.
         $phase = 'RECHECK_SIGNED_APPROVAL_POST_TRANSFER'
-        $null = Assert-PublicWindowsCurlSignedApproval -ManifestPath $ApprovalManifestPath -SignaturePath $ApprovalSignaturePath -ReviewerCertificatePath $ReviewerCertificatePath -ApprovedReviewerCertificateSha256 $ApprovedReviewerCertificateSha256 -ExpectedOrigin $origin -ExpectedSignerSha256 $ApprovedCurlSignerSha256 -ExpectedBinarySha256 $ApprovedCurlBinarySha256
+        $null = Assert-PublicWindowsCurlSignedApproval -ManifestPath $ApprovalManifestPath -SignaturePath $ApprovalSignaturePath -ReviewerCertificatePath $ReviewerCertificatePath -ApprovedReviewerCertificateSha256 $ApprovedReviewerCertificateSha256 -ExpectedOrigin $origin -ExpectedSignerSha256 $ApprovedCurlSignerSha256 -ExpectedBinarySha256 $ApprovedCurlBinarySha256 -ExpectedManifestSha256 $approvalManifestSha256
         $phase = 'VALIDATE_HEALTH_RESULT'
         $null = Assert-PublicWindowsPinnedHealthResult -TransportExitCode $transportExit -StatusLines $httpStatus -ResponsePath $responseFile
         $state = 'PASS'

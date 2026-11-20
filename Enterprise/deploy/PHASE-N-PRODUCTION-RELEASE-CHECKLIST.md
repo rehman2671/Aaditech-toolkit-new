@@ -1,5 +1,13 @@
 # Phase N — Production release acceptance and sign-off
 
+## Stage N54 — independent SQLite source and MSI payload SHA-256 pins (CODE PROPOSED; PR CI PENDING; PRODUCTION BLOCKED)
+
+- [ ] Release-signable MSI packaging must fail before network/extraction unless both the exact versioned official SQLite ZIP SHA-256 and extracted `sqlite3.exe` SHA-256 are independently approved through protected `production-installer` controls. Check ZIP before extraction, binary before/after staging and embedded MSI executable again before signing. Never infer pins from downloaded artifacts.
+- [ ] Diagnostic build remains unsigned/non-publishable. Actual Windows PowerShell 5.1/7 local synthetic digest mutation, wrong pin, type/size/UNC and gate-order tests plus N31–N53, Node/Vitest+MySQL, API/MySQL, deployment safety; reviewed PR and fresh main EXE/MSI lifecycle **4/4** plus safety **2/2** required.
+- [ ] Exact physically independently reviewed SQLite release fingerprints, customer Hostinger DNS/TLS, reviewer/HSM publisher custody, physical queue ACK-loss+MySQL receipts, encrypted offsite restore and owner security approval **PENDING**. **Production NOT APPROVED**.
+
+See [N54 acceptance](PHASE-N-STAGE54-ACCEPTANCE.md) and [issue #29](https://github.com/rehman2671/Aaditech-toolkit-new/issues/29).
+
 ## Stage N53 — bind complete live HTTPS diagnostic to its originally signed approval (MERGED; PR CI 3/3 + SAFETY 2/2 GREEN; MAIN MSI UNVERIFIED; PRODUCTION BLOCKED)
 
 - [x] N51 reviewer-signed canonical record verified at initial gate yields an in-memory SHA-256; N52 pre-DNS, pre-transfer and post-transfer gates must authenticate **the exact same** manifest bytes. New validly signed `approval_id` replacement is refused until a fresh operator-approved invocation. Redacted `BLOCKED` remains fail-closed.

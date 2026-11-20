@@ -1,9 +1,10 @@
 # Phase N — Production release acceptance and sign-off
 
-## Stage N53 — bind complete live HTTPS diagnostic to its originally signed approval (CODE PROPOSED; CI PENDING; PRODUCTION BLOCKED)
+## Stage N53 — bind complete live HTTPS diagnostic to its originally signed approval (MERGED; PR CI 3/3 + SAFETY 2/2 GREEN; MAIN MSI UNVERIFIED; PRODUCTION BLOCKED)
 
-- [ ] N51 reviewer-signed canonical record verified at initial gate yields an in-memory SHA-256; N52 pre-DNS, pre-transfer and post-transfer gates must authenticate **the exact same** manifest bytes. New validly signed `approval_id` replacement is refused until a fresh operator-approved invocation. Redacted `BLOCKED` remains fail-closed.
-- [ ] Real Windows PowerShell 5.1+7 N53 original-record continuation and valid-RSA replacement fault regression, earlier N31–N52, Node/Vitest+MySQL, API/MySQL and deployment safety. Reviewed merge and independently verified main EXE/MSI lifecycle **4/4** and safety **2/2**.
+- [x] N51 reviewer-signed canonical record verified at initial gate yields an in-memory SHA-256; N52 pre-DNS, pre-transfer and post-transfer gates must authenticate **the exact same** manifest bytes. New validly signed `approval_id` replacement is refused until a fresh operator-approved invocation. Redacted `BLOCKED` remains fail-closed.
+- [x] PR Windows PowerShell 5.1+7 N53 original-record and valid RSA replacement regression, prior N31–N52, Node/Vitest+MySQL, API/MySQL and deployment safety green in [CI 3/3](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44728229481) and [safety 2/2](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44728229430). [PR #48](https://github.com/rehman2671/Aaditech-toolkit-new/pull/48) merged at `bcbd9860b9f138e9e72fc61a1d066d8645a80df3`.
+- [ ] Independently verify new **main** Windows EXE/MSI lifecycle **4/4** and deployment safety **2/2**. PR CI intentionally skipped MSI.
 - [ ] Real operator/reviewer key custody and customer Hostinger DNS/TLS, production Authenticode HSM MSI publication, physical device ACK-loss+MySQL receipts, encrypted offsite restore and final human security sign-off **PENDING**. **Production NOT APPROVED.**
 
 See [N53 acceptance](PHASE-N-STAGE53-ACCEPTANCE.md) and [issue #29](https://github.com/rehman2671/Aaditech-toolkit-new/issues/29).

@@ -1,6 +1,6 @@
 # Phase N Stage 57 — Race-safe project index refresh and metadata provenance
 
-**Status: CODE PROPOSED; CI/PR AND POST-MERGE MAIN ACCEPTANCE PENDING; CUSTOMER PRODUCTION NOT APPROVED (2026-11-20 IST).**
+**Status: MERGED; PR CI 3/3 + SAFETY 2/2 SUCCESS; FRESH MAIN DIAGNOSTIC EXE/MSI 4/4 + SAFETY 2/2 SUCCESS; MAIN PROJECT INDEX PUBLISH SUCCESS; CUSTOMER PRODUCTION NOT APPROVED (2026-11-20 IST).**
 
 ## Verified failure and scope
 
@@ -81,15 +81,16 @@ deployment-safety workflow. That workflow's trigger paths now include
 
 ## Acceptance and limitations
 
-- [ ] PR isolated Git race/denied-push/no-op regression plus existing
-  deployment-safety **2/2** successful; application PR CI **3/3**.
-- [ ] Reviewed PR merged, then independently inspected fresh `main`
-  index maintenance, diagnostic Windows EXE/MSI **4/4** and deployment
-  safety **2/2**.
-- [ ] Regenerated project reports on main correspond to the actual newest
-  source commit. An index-bot commit will contain only the three
-  generated JSON files; never overwrite another commit or imply production
-  certification.
+- [x] PR isolated Git race/denied-push/no-op regression plus existing
+  deployment-safety **2/2 SUCCESS**; application PR CI **3/3 SUCCESS**.
+- [x] Reviewed PR #52 merged, then independently inspected fresh `main`
+  index maintenance, diagnostic Windows EXE/MSI **4/4 SUCCESS** and deployment
+  safety **2/2 SUCCESS**.
+- [x] Regenerated project reports on main correspond to the exact N57 merged
+  source SHA `5d82d3ab7d34ae3c76f17d87813a50bef69e3273`. The index bot
+  published only the three generated JSON files as commit
+  `ed0245a9a180f25be229165e2df74ed0e25ac182`, without overwriting
+  other source commits or marking production ready.
 - [ ] Actual independently signed N56 reviewer release approval, vetted
   SQLite and publisher fingerprints, protected signed MSI publication,
   real customer Hostinger DNS/TLS, physical Windows queue/ACK and MySQL
@@ -97,3 +98,30 @@ deployment-safety workflow. That workflow's trigger paths now include
 
 **Production NOT APPROVED.** The index is source metadata, not a release
 certificate. See [issue #29](https://github.com/rehman2671/Aaditech-toolkit-new/issues/29).
+
+## Verified merge and CI evidence (diagnostic, not customer approval)
+
+- [PR #52](https://github.com/rehman2671/Aaditech-toolkit-new/pull/52)
+  reviewed head `785ef303b34eb268ede28744e577ab599be13261` merged as
+  `5d82d3ab7d34ae3c76f17d87813a50bef69e3273`.
+- [PR CI 44743100692](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44743100692):
+  PowerShell N31–N56 regression, Node/Vitest+MySQL and API/MySQL
+  **3/3 SUCCESS**, PR Windows MSI job correctly skipped.
+- [PR deployment safety 44743100705](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44743100705):
+  **2/2 SUCCESS**; included N57 isolated actual local bare Git
+  non-fast-forward retry, no-op and push-denied tests plus real MySQL restore.
+- [Fresh post-merge main CI 44743528930](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44743528930):
+  **4/4 SUCCESS**, including Windows agent EXE, WiX MSI, administrative
+  extraction, real Windows install/clean uninstall and major upgrade
+  retaining tenant config. Production signing/upload skipped.
+- [Fresh main deployment safety 44743529039](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44743529039):
+  **2/2 SUCCESS**, N57 local race and isolated MySQL backup/restore.
+- [Main project index maintenance 44743529081](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44743529081):
+  **SUCCESS**, generated new index commit
+  `ed0245a9a180f25be229165e2df74ed0e25ac182` from the exact merged
+  source SHA. All three reports were independently inspected; their
+  `last_verified_commit` equals the N57 merged source, while
+  `production_ready` / `release_readiness.production_ready` remain false.
+- These checks do **not** verify a real N56 reviewer/HSM signed MSI,
+  Hostinger customer DNS/TLS or physical device release. **Production
+  NOT APPROVED.**

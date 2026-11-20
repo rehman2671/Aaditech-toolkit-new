@@ -31,6 +31,20 @@ if ($env:GITHUB_ACTIONS -cne 'true' -or
 if ($Stage -eq 'Finalize' -and $env:RELEASE_SIGNING_ENABLED -ne 'true') {
   throw 'No verified prepackage signature. Refusing MSI publication.'
 }
+# N56: even approved signing credentials cannot authorize an arbitrary
+# source revision or newly substituted, independently signed release record.
+# Reverify reviewer RSA-2048/4096 signature and exact release scope before
+# importing the PFX or invoking signtool on BOTH release signing phases.
+$releaseAuthorization = Join-Path $PSScriptRoot 'Assert-ReleaseAuthorization.ps1'
+$approvedReleaseDigest = ''
+if ($Stage -eq 'PrePackage') {
+  $approvedReleaseDigest = & $releaseAuthorization -StartSigning
+  if ($approvedReleaseDigest -cnotmatch '\A[0-9A-F]{64}\z') {
+    throw 'N56 reviewer-signed release identity missing.'
+  }
+} else {
+  $null = & $releaseAuthorization -RequireOriginalDigest
+}
 $expected = ($env:CODESIGN_APPROVED_THUMBPRINT -replace '\s','').ToUpperInvariant()
 if ($expected -cnotmatch '^[A-F0-9]{40}$') { throw 'Approved thumbprint must be exactly 40 hex characters.' }
 $sdk = Join-Path ([Environment]::GetFolderPath('ProgramFilesX86')) 'Windows Kits\10\bin'
@@ -80,6 +94,9 @@ try {
     Confirm-Signature $target
   }
   if ($Stage -eq 'PrePackage') {
+    # Only after the EXE is independently signed and signature-verified;
+    # downstream phases re-authenticate this exact record, not just its pins.
+    Flag 'RELEASE_APPROVAL_MANIFEST_SHA256' $approvedReleaseDigest
     Flag 'RELEASE_SIGNING_ENABLED' 'true'
   } else {
     @($exe, $msis[0].FullName) | ForEach-Object {

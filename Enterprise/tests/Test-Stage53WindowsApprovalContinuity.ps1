@@ -83,7 +83,7 @@ try {
         [Security.Cryptography.RSASignaturePadding]::Pkcs1)
     [IO.File]::WriteAllBytes($manifestPath,$original)
     [IO.File]::WriteAllBytes($signaturePath,$originalSignature)
-    $args=@{
+    $check=@{
         ManifestPath=$manifestPath
         SignaturePath=$signaturePath
         ReviewerCertificatePath=$certificatePath
@@ -92,18 +92,18 @@ try {
         ExpectedSignerSha256=$signer
         ExpectedBinarySha256=$binary
     }
-    $record=(Assert-PublicWindowsCurlSignedApproval @args -ReturnManifestSha256)
+    $record=(Assert-PublicWindowsCurlSignedApproval @check -ReturnManifestSha256)
     $actual=[BitConverter]::ToString($hash.ComputeHash($original)).Replace('-','')
     if ($record -cne $actual -or $record -cnotmatch '\A[0-9A-F]{64}\z') {
         throw 'N53 initial manifest hash is not exact canonical bytes.'
     }
-    if ((Assert-PublicWindowsCurlSignedApproval @args -ExpectedManifestSha256 $record) -ne $true -or
-        (Assert-PublicWindowsCurlSignedApproval @args -ExpectedManifestSha256 $record.ToLowerInvariant()) -ne $true) {
+    if ((Assert-PublicWindowsCurlSignedApproval @check -ExpectedManifestSha256 $record) -ne $true -or
+        (Assert-PublicWindowsCurlSignedApproval @check -ExpectedManifestSha256 $record.ToLowerInvariant()) -ne $true) {
         throw 'N53 original signed record should pass repeated verification.'
     }
     foreach ($bad in @('', ('C' * 64), 'not-a-sha256')) {
         Assert-N53Rejected -Case 'missing/wrong initial manifest pin' -Action {
-            Assert-PublicWindowsCurlSignedApproval @args -ExpectedManifestSha256 $bad
+            Assert-PublicWindowsCurlSignedApproval @check -ExpectedManifestSha256 $bad
         }
     }
 
@@ -116,15 +116,15 @@ try {
         [Security.Cryptography.RSASignaturePadding]::Pkcs1)
     [IO.File]::WriteAllBytes($manifestPath,$replacement)
     [IO.File]::WriteAllBytes($signaturePath,$replacementSignature)
-    if ((Assert-PublicWindowsCurlSignedApproval @args) -ne $true) {
+    if ((Assert-PublicWindowsCurlSignedApproval @check) -ne $true) {
         throw 'N53 negative fixture was not independently validly signed.'
     }
     Assert-N53Rejected -Case 'fresh valid reviewer-signed replacement' -Action {
-        Assert-PublicWindowsCurlSignedApproval @args -ExpectedManifestSha256 $record
+        Assert-PublicWindowsCurlSignedApproval @check -ExpectedManifestSha256 $record
     }
     [IO.File]::WriteAllBytes($manifestPath,$original)
     [IO.File]::WriteAllBytes($signaturePath,$originalSignature)
-    if ((Assert-PublicWindowsCurlSignedApproval @args -ExpectedManifestSha256 $record) -ne $true) {
+    if ((Assert-PublicWindowsCurlSignedApproval @check -ExpectedManifestSha256 $record) -ne $true) {
         throw 'N53 restoring exact original approval must recover.'
     }
     # Temporal expiry is always evaluated again, even for the same bytes:
@@ -145,7 +145,7 @@ try {
     [IO.File]::WriteAllBytes($manifestPath,$expired)
     [IO.File]::WriteAllBytes($signaturePath,$expiredSignature)
     Assert-N53Rejected -Case 'valid signature but expired record' -Action {
-        Assert-PublicWindowsCurlSignedApproval @args -ReturnManifestSha256
+        Assert-PublicWindowsCurlSignedApproval @check -ReturnManifestSha256
     }
     Write-Host 'N53 PASS: 4 gates bind one exact signed record; validly signed replacement, malformed pins and expiry blocked offline.'
 } finally {

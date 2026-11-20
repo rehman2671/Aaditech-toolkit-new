@@ -209,6 +209,13 @@ jobs:
         shell: powershell
         run: ./Enterprise/tests/Test-Stage59DraftReleaseAttestation.ps1
 
+      - name: N60 verify untagged private draft and published commit ref (PowerShell 7)
+        run: pwsh -NoProfile -File ./Enterprise/tests/Test-Stage60DraftTagLifecycle.ps1
+
+      - name: N60 reject mismatched tag source and draft release identity on Windows PowerShell 5.1
+        shell: powershell
+        run: ./Enterprise/tests/Test-Stage60DraftTagLifecycle.ps1
+
 
       - name: N31 release publication requires independently approved source and MSI pins
         run: pwsh -NoProfile -File ./Enterprise/tests/Test-Stage31PublicationPins.ps1

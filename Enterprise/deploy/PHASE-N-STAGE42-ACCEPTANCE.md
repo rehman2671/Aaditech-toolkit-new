@@ -1,6 +1,6 @@
 # Phase N Stage 42 — Separately consented Windows pinned public HTTPS probe
 
-**Status: CODE PROPOSED; FRESH PR CI PENDING; CUSTOMER PRODUCTION NOT APPROVED (2026-11-20 IST).**
+**Status: MERGED; POST-MERGE MAIN CI/MSI 4/4 AND DEPLOYMENT-SAFETY 2/2 GREEN; CUSTOMER PRODUCTION NOT APPROVED (verified 2026-11-20 IST).**
 
 ## Why and isolation
 
@@ -71,13 +71,13 @@ GET, **not** production acceptance or an agent installer activation.
 
 ## Verification and remaining blockers
 
-- [ ] Windows PowerShell 7 and **actual Windows PowerShell 5.1** CI offline
+- [x] Windows PowerShell 7 and **actual Windows PowerShell 5.1** CI offline
       negative tests: consent refusal, dry-run zero network, mixed/private
       A/AAAA denial, IPv6 pin, correct locked curl arguments, redacted
       immutable reports, and N31 probe stays disabled.
-- [ ] Node/Vitest+MySQL and isolated API/MySQL CI green, deployment-safety 2/2.
-- [ ] Authorized merge and new main Windows MSI diagnostic
-      build/extract/install/uninstall/major-upgrade 4/4, safety 2/2.
+- [x] Node/Vitest+MySQL and isolated API/MySQL PR CI green, deployment-safety 2/2.
+- [x] Authorized PR #36 merge and main Windows MSI diagnostic
+      build/extract/install/uninstall/major-upgrade 4/4, safety 2/2 passed.
 - [ ] Independently security-review native curl assumptions, signature and
       trust behavior, Windows DNS result completeness, local file ACLs,
       potential transparent network interception and proxy bypass.
@@ -90,3 +90,11 @@ GET, **not** production acceptance or an agent installer activation.
 **Issue #29 remains OPEN** until the real customer transport is independently
 certified and an appropriately reviewed decision about integrating the
 previously disabled N31 `-NetworkProbe` is made. **Production: NOT APPROVED.**
+
+## Verified N42 source and diagnostic CI (not external release acceptance)
+
+- [PR #36](https://github.com/rehman2671/Aaditech-toolkit-new/pull/36) merged to `main` as `ac904c6b98edd622ccd217c14edfce3e49108e69` after the final PR head `10b77725263938a051c33561498e350405639eaa` passed Windows PowerShell 7/5.1 N42 offline tests, Node/Vitest+MySQL, isolated real API/MySQL and deployment safety.
+- [Main CI #44643192250](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44643192250) **4/4 SUCCESS**: PowerShell, Node/Vitest+MySQL, API/MySQL and Windows EXE/MSI build, administrative extraction, fresh install/uninstall and major-upgrade rehearsal.
+- [Main safety #44643192246](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44643192246) **2/2 SUCCESS**: offline deployment safeguards and disposable MySQL backup/restore rehearsal.
+- Diagnostic `Verify pre-signed MSI payload and sign release MSI` job step completed in **diagnostic mode**; `Upload verified signed artifacts only` was **SKIPPED**. No publicly signed MSI or customer production publisher-key custody has been approved.
+- **No customer live probe, independent code audit, public Hostinger ownership/TLS, physical ACK replay or offsite restore** was evidenced by CI. The N31 `-NetworkProbe` remains disabled and Issue #29 remains open.

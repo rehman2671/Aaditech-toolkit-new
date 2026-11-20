@@ -97,8 +97,9 @@ $rsa=$null
 $cert=$null
 $hash=$null
 try {
-    $rsa=[Security.Cryptography.RSA]::Create()
-    $rsa.KeySize=2048
+    # Windows CNG supports explicit 2048-bit key creation on both
+    # .NET Framework/Windows PowerShell 5.1 and modern PowerShell 7.
+    $rsa=[Security.Cryptography.RSACng]::new(2048)
     $request=[Security.Cryptography.X509Certificates.CertificateRequest]::new(
         'CN=Aaditech N51 synthetic CI reviewer',$rsa,
         [Security.Cryptography.HashAlgorithmName]::SHA256,

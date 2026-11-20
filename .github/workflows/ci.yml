@@ -195,6 +195,13 @@ jobs:
         shell: powershell
         run: ./Enterprise/tests/Test-Stage56ReviewedReleaseApproval.ps1
 
+      - name: N58 verify same independently signed source approval at GitHub Release (PowerShell 7)
+        run: pwsh -NoProfile -File ./Enterprise/tests/Test-Stage58ReleasePublicationApproval.ps1
+
+      - name: N58 reject release approval rotation and altered bytes on Windows PowerShell 5.1
+        shell: powershell
+        run: ./Enterprise/tests/Test-Stage58ReleasePublicationApproval.ps1
+
 
       - name: N31 release publication requires independently approved source and MSI pins
         run: pwsh -NoProfile -File ./Enterprise/tests/Test-Stage31PublicationPins.ps1

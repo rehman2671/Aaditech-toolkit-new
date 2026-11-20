@@ -1,5 +1,13 @@
 # Phase N — Production release acceptance and sign-off
 
+## Stage N52 — signed curl approval revalidated across live DNS/HTTPS (CODE PROPOSED; CI PENDING; PRODUCTION BLOCKED)
+
+- [ ] Reverify same independently pinned N51 RSA reviewer authorization **before DNS**, **immediately before native HTTPS transfer** and **after transfer before PASS**, in addition to the original pre-workspace gate. Invalid/expired/replaced signature fails redacted `BLOCKED`; no cached approval is sufficient.
+- [ ] Actual Windows PowerShell 5.1 + 7 synthetic signed-recheck faults (on-disk mutation, valid RSA but expired manifest, signature replacement), prior N31–N51 suites, Node/Vitest+MySQL, API/MySQL and deployment safety. Merge reviewed PR and require fresh main Windows EXE/MSI lifecycle **4/4** plus safety **2/2**.
+- [ ] Independently approved public reviewer key/origin/curl signer and binary, live Hostinger DNS/TLS, HSM publisher-signed MSI, physical lost-ACK and tenant/MySQL replay evidence, offsite restore and security sign-off remain PENDING. **Production NOT APPROVED.**
+
+See [N52 acceptance](PHASE-N-STAGE52-ACCEPTANCE.md) and [issue #29](https://github.com/rehman2671/Aaditech-toolkit-new/issues/29).
+
 ## Stage N51 — signed, expiring independent reviewer curl approval (MERGED; MAIN MSI CI 4/4 AND SAFETY 2/2 GREEN; PRODUCTION BLOCKED)
 
 - [x] Require signed reviewer approval of exact HTTPS origin, approved Microsoft curl signing-certificate DER SHA-256 **and** exact curl.exe file SHA-256, plus separately pinned reviewer public X.509 DER SHA-256. No locally generated key or signer cert automatically becomes approved.

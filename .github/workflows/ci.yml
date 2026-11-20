@@ -111,6 +111,13 @@ jobs:
         shell: powershell
         run: ./Enterprise/tests/Test-Stage43WindowsPinnedHttpsFaults.ps1
 
+      - name: N45 Windows private health workspace and TEMP isolation (PowerShell 7)
+        run: pwsh -NoProfile -File ./Enterprise/tests/Test-Stage45WindowsPrivateProbeWorkspace.ps1
+
+      - name: N45 verify private workspace ACLs on actual Windows PowerShell 5.1
+        shell: powershell
+        run: ./Enterprise/tests/Test-Stage45WindowsPrivateProbeWorkspace.ps1
+
 
       - name: N31 release publication requires independently approved source and MSI pins
         run: pwsh -NoProfile -File ./Enterprise/tests/Test-Stage31PublicationPins.ps1

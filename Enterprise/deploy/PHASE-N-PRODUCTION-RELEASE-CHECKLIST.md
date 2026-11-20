@@ -1,28 +1,28 @@
 # Phase N — Production release acceptance and sign-off
 
-## Stage N54 — independent SQLite source and MSI payload SHA-256 pins (MERGED; PR CI 3/3 + SAFETY 2/2 GREEN; MAIN MSI UNVERIFIED; PRODUCTION BLOCKED)
+## Stage N54 — independent SQLite source and MSI payload SHA-256 pins (MERGED; PR CI 3/3 + SAFETY 2/2 GREEN; MAIN DIAGNOSTIC MSI 4/4 + SAFETY 2/2 VERIFIED; PRODUCTION BLOCKED)
 
 - [x] Release-signable MSI packaging now fails before network/extraction unless both the exact versioned official SQLite ZIP SHA-256 and extracted `sqlite3.exe` SHA-256 are independently approved through protected `production-installer` controls. ZIP before extraction, executable before/after staging and embedded MSI executable before signing. No self-derived approved hashes.
 - [x] Windows PowerShell 5.1/7 local synthetic N54 checksum, mutation, size/UNC and ordering, N31–N53 safety, Node/Vitest+MySQL and API/MySQL [PR CI 3/3](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44730289683); [deployment safety 2/2](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44730289834). [PR #49](https://github.com/rehman2671/Aaditech-toolkit-new/pull/49) merged at `79915aec4afca14997a21f7b5c5f4143f8cc8ef2`.
-- [ ] Fresh **main** Windows EXE/MSI lifecycle **4/4** and deployment safety **2/2** remain independently UNVERIFIED. PR CI deliberately skipped MSI.
+- [x] Independently verified fresh **main** diagnostic EXE/MSI build, administrative extraction, real Windows setup/install/uninstall and major upgrade **4/4 SUCCESS** ([push CI run 44730648241](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44730648241)); Bash/MySQL restore safety **2/2 SUCCESS** ([push run 44730648172](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44730648172)). Signed MSI upload **skipped**; production remains BLOCKED.
 - [ ] Exact physically independently reviewed SQLite release fingerprints, customer Hostinger DNS/TLS, reviewer/HSM publisher custody, physical queue ACK-loss+MySQL receipts, encrypted offsite restore and owner security approval **PENDING**. **Production NOT APPROVED**.
 
 See [N54 acceptance](PHASE-N-STAGE54-ACCEPTANCE.md) and [issue #29](https://github.com/rehman2671/Aaditech-toolkit-new/issues/29).
 
-## Stage N53 — bind complete live HTTPS diagnostic to its originally signed approval (MERGED; PR CI 3/3 + SAFETY 2/2 GREEN; MAIN MSI UNVERIFIED; PRODUCTION BLOCKED)
+## Stage N53 — bind complete live HTTPS diagnostic to its originally signed approval (MERGED; PR CI 3/3 + SAFETY 2/2 GREEN; MAIN DIAGNOSTIC MSI 4/4 + SAFETY 2/2 VERIFIED; PRODUCTION BLOCKED)
 
 - [x] N51 reviewer-signed canonical record verified at initial gate yields an in-memory SHA-256; N52 pre-DNS, pre-transfer and post-transfer gates must authenticate **the exact same** manifest bytes. New validly signed `approval_id` replacement is refused until a fresh operator-approved invocation. Redacted `BLOCKED` remains fail-closed.
 - [x] PR Windows PowerShell 5.1+7 N53 original-record and valid RSA replacement regression, prior N31–N52, Node/Vitest+MySQL, API/MySQL and deployment safety green in [CI 3/3](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44728229481) and [safety 2/2](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44728229430). [PR #48](https://github.com/rehman2671/Aaditech-toolkit-new/pull/48) merged at `bcbd9860b9f138e9e72fc61a1d066d8645a80df3`.
-- [ ] Independently verify new **main** Windows EXE/MSI lifecycle **4/4** and deployment safety **2/2**. PR CI intentionally skipped MSI.
+- [x] Independently verified fresh **main** diagnostic EXE/MSI build, administrative extraction, real Windows setup/install/uninstall and major upgrade **4/4 SUCCESS** ([push CI run 44728607987](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44728607987)); Bash/MySQL restore safety **2/2 SUCCESS** ([push run 44728608211](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44728608211)). Signed MSI upload **skipped**; production remains BLOCKED.
 - [ ] Real operator/reviewer key custody and customer Hostinger DNS/TLS, production Authenticode HSM MSI publication, physical device ACK-loss+MySQL receipts, encrypted offsite restore and final human security sign-off **PENDING**. **Production NOT APPROVED.**
 
 See [N53 acceptance](PHASE-N-STAGE53-ACCEPTANCE.md) and [issue #29](https://github.com/rehman2671/Aaditech-toolkit-new/issues/29).
 
-## Stage N52 — signed curl approval revalidated across live DNS/HTTPS (MERGED; PR CI 3/3 + SAFETY 2/2 GREEN; MAIN MSI PENDING VERIFICATION; PRODUCTION BLOCKED)
+## Stage N52 — signed curl approval revalidated across live DNS/HTTPS (MERGED; PR CI 3/3 + SAFETY 2/2 GREEN; MAIN DIAGNOSTIC MSI 4/4 + SAFETY 2/2 VERIFIED; PRODUCTION BLOCKED)
 
 - [x] Reverify same independently pinned N51 RSA reviewer authorization **before DNS**, **immediately before native HTTPS transfer** and **after transfer before PASS**, in addition to the original pre-workspace gate. Invalid/expired/replaced signature fails redacted `BLOCKED`; no cached approval is sufficient.
 - [x] Real Windows PowerShell 5.1 + 7 signed-approval recheck faults, prior N31–N51 suites, Node/Vitest+MySQL, API/MySQL and deployment safety all green in [PR #47](https://github.com/rehman2671/Aaditech-toolkit-new/pull/47): [CI 3/3](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44724914403), [deployment safety 2/2](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44724914312). Merged as `80ce1e7b5327cfc49806db5f38d982b920118b9b`.
-- [ ] Independently inspect fresh **main** Windows EXE/MSI lifecycle **4/4** and deployment safety **2/2**; PR CI skips MSI deliberately. Do not infer production release readiness from a green PR.
+- [x] Independently verified fresh **main** diagnostic EXE/MSI build, administrative extraction, real Windows setup/install/uninstall and major upgrade **4/4 SUCCESS** ([push CI run 44725323118](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44725323118)); Bash/MySQL restore safety **2/2 SUCCESS** ([push run 44725323133](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44725323133)). Signed MSI upload **skipped**; production remains BLOCKED.
 - [ ] Independently approved public reviewer key/origin/curl signer and binary, live Hostinger DNS/TLS, HSM publisher-signed MSI, physical lost-ACK and tenant/MySQL replay evidence, offsite restore and security sign-off remain PENDING. **Production NOT APPROVED.**
 
 See [N52 acceptance](PHASE-N-STAGE52-ACCEPTANCE.md) and [issue #29](https://github.com/rehman2671/Aaditech-toolkit-new/issues/29).

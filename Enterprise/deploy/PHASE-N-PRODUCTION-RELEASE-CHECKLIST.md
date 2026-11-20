@@ -1,5 +1,13 @@
 # Phase N — Production release acceptance and sign-off
 
+## Stage N55 — exact signed EXE/MSI revalidation immediately before release upload (CODE PROPOSED; CI PENDING; PRODUCTION BLOCKED)
+
+- [ ] Protected manual `main` signing-only publication must fail if post-signing install/upgrade rehearsals altered EXE, MSI or canonical two-line `SHA256SUMS.txt`. Recheck exact version, both hashes, one MSI, Authenticode trusted timestamp plus independently approved publisher cert and embedded SQLite N54 pin by re-extracting **the final signed MSI**. Require `PUBLICATION_VERIFIED=true` in addition to `PUBLISH_SIGNED=true` to upload.
+- [ ] Real Windows PowerShell 5.1 and 7 synthetic manifest tamper/reorder/duplicate/version tests, static workflow ordering; N31–N54 baseline, Node/Vitest+MySQL, API/MySQL and deployment-safety CI and main post-merge Windows EXE/MSI **4/4** plus safety **2/2**.
+- [ ] Actual protected manual signing/reviewer-controlled publisher custody, exact vetted SQLite ZIP/EXE fingerprints, customer Hostinger DNS/TLS, physical lost-ACK+MySQL receipts, offsite recovery and owner security sign-off remain **PENDING**. **Production NOT APPROVED.**
+
+See [N55 acceptance](PHASE-N-STAGE55-ACCEPTANCE.md) and [issue #29](https://github.com/rehman2671/Aaditech-toolkit-new/issues/29).
+
 ## Stage N54 — independent SQLite source and MSI payload SHA-256 pins (MERGED; PR CI 3/3 + SAFETY 2/2 GREEN; MAIN DIAGNOSTIC MSI 4/4 + SAFETY 2/2 VERIFIED; PRODUCTION BLOCKED)
 
 - [x] Release-signable MSI packaging now fails before network/extraction unless both the exact versioned official SQLite ZIP SHA-256 and extracted `sqlite3.exe` SHA-256 are independently approved through protected `production-installer` controls. ZIP before extraction, executable before/after staging and embedded MSI executable before signing. No self-derived approved hashes.

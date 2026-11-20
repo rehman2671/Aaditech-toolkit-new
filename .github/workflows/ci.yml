@@ -160,6 +160,13 @@ jobs:
         shell: powershell
         run: ./Enterprise/tests/Test-Stage51WindowsCurlSignedApproval.ps1
 
+      - name: N52 ensure signed approval is revalidated before DNS, HTTPS and PASS (PowerShell 7)
+        run: pwsh -NoProfile -File ./Enterprise/tests/Test-Stage52WindowsApprovalRecheck.ps1
+
+      - name: N52 verify signed approval rotation and expiry faults on Windows PowerShell 5.1
+        shell: powershell
+        run: ./Enterprise/tests/Test-Stage52WindowsApprovalRecheck.ps1
+
 
       - name: N31 release publication requires independently approved source and MSI pins
         run: pwsh -NoProfile -File ./Enterprise/tests/Test-Stage31PublicationPins.ps1

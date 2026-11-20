@@ -36,7 +36,7 @@ Import-Module -Name (Join-Path $PSScriptRoot 'PrivateWindowsProbeWorkspace.psm1'
 $mode = if ($DryRun) { 'OFFLINE_DRY_RUN' } else { 'OPERATOR_CONFIRMED_LIVE' }
 $state = 'BLOCKED'
 $phase = 'LOAD_CONFIGURATION'
-$temporaryDirectory = $null
+$workspace = $null
 $originalEnv = @{}
 $clearEnv = @(
     'CURL_CA_BUNDLE', 'SSL_CERT_FILE', 'SSL_CERT_DIR',
@@ -72,7 +72,6 @@ try {
         # curl. Never write privileged probe output into redirected %TEMP%.
         $phase = 'PRIVATE_WORKSPACE'
         $workspace = New-PrivateWindowsProbeWorkspace
-        $temporaryDirectory = $workspace.Directory
         $responseFile = $workspace.ResponsePath
         $phase = 'LIVE_DNS'
         # OS resolver's returned set must be entirely public. OS lookup is not
@@ -130,9 +129,16 @@ try {
     foreach ($name in $originalEnv.Keys) {
         [Environment]::SetEnvironmentVariable($name, $originalEnv[$name], 'Process')
     }
-    if ($null -ne $temporaryDirectory -and
-        (Test-Path -LiteralPath $temporaryDirectory)) {
-        Remove-Item -LiteralPath $temporaryDirectory -Recurse -Force -ErrorAction SilentlyContinue
+    if ($null -ne $workspace) {
+        try {
+            # N47: a healthy HTTPS response is never reported PASS when the
+            # private response file could not be deleted. No silent cleanup,
+            # and no unrestricted recursive delete of unknown files.
+            $null = Remove-PrivateWindowsProbeWorkspace -Workspace $workspace
+        } catch {
+            $state = 'BLOCKED'
+            $phase = 'PRIVATE_WORKSPACE_CLEANUP'
+        }
     }
 }
 

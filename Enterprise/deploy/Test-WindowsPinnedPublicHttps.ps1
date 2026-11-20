@@ -7,16 +7,19 @@ param(
     [Parameter(Mandatory=$true)][string]$ConfigPath,
     [Parameter(Mandatory=$true)][string]$ReportPath,
     [switch]$DryRun,
-    [string]$ConfirmLive
+    [string]$ConfirmLive,
+    [string]$ApprovedOrigin
 )
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
 # Consent is checked before reading configuration, resolving DNS, invoking
 # the OS curl binary, or writing a report. Invalid combinations fail closed.
-if (($DryRun -and $ConfirmLive) -or
-    (-not $DryRun -and $ConfirmLive -cne 'PROBE_PUBLIC_HEALTH')) {
-    throw 'Public Windows live probe requires explicit operator consent.'
+if (($DryRun -and ($ConfirmLive -or $ApprovedOrigin)) -or
+    (-not $DryRun -and
+      ($ConfirmLive -cne 'PROBE_PUBLIC_HEALTH' -or
+       [string]::IsNullOrWhiteSpace($ApprovedOrigin)))) {
+    throw 'Public Windows live probe requires origin-bound operator consent.'
 }
 if (Test-Path -LiteralPath $ReportPath) {
     throw 'Public Windows probe refuses to overwrite existing evidence.'
@@ -47,6 +50,13 @@ try {
     $phase = 'VALIDATE_ENDPOINT'
     $endpoint = [string]$config.endpoint
     $origin = Test-PublicWindowsEndpointOrigin -Endpoint $endpoint
+    # N43: an operator must explicitly type/approve the *canonical exact*
+    # destination origin. A hostname change between offline approval and live
+    # execution must fail before DNS or any network operation. Do not infer
+    # consent from the mutable agent config or normalize the approved input.
+    if (-not $DryRun -and $ApprovedOrigin -cne $origin) {
+        throw 'Operator-approved HTTPS origin differs from configuration.'
+    }
     if ($DryRun) {
         $phase = 'OFFLINE_DRY_RUN'
         # Dry run is a syntax check only; zero DNS/HTTP and no curl invocation.
@@ -100,18 +110,12 @@ try {
         # IP while HTTPS URL retains TLS hostname/SNI. No redirect or proxy.
         $phase = 'HTTPS_TRANSFER'
         $httpStatus = @(& $curl @curlArguments 2>$null)
-        if ($LASTEXITCODE -ne 0 -or
-            $httpStatus.Count -ne 1 -or [string]$httpStatus[0] -cne '200' -or
-            -not (Test-Path -LiteralPath $responseFile -PathType Leaf)) {
-            throw 'Pinned HTTPS transport refused.'
-        }
-        $responseBytes = [IO.File]::ReadAllBytes($responseFile)
-        # curl --max-filesize is not a substitute for an explicit byte bound.
-        if ($responseBytes.Length -eq 0 -or $responseBytes.Length -gt 65536) {
-            throw 'Health response size refused.'
-        }
-        $phase = 'VALIDATE_HEALTH_JSON'
-        $null = Assert-PublicWindowsHealthJson -JsonUtf8 $responseBytes
+        $transportExit = $LASTEXITCODE
+        # N43 shares one offline-tested fail-closed outcome state machine
+        # across native DNS/TLS/timeout, HTTP redirect/errors, size and JSON
+        # failures. It checks file.Length *before* allocating/reading bytes.
+        $phase = 'VALIDATE_HEALTH_RESULT'
+        $null = Assert-PublicWindowsPinnedHealthResult -TransportExitCode $transportExit -StatusLines $httpStatus -ResponsePath $responseFile
         $state = 'PASS'
     }
 } catch {

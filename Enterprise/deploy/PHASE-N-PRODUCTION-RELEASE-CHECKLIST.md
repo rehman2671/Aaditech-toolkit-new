@@ -1,5 +1,14 @@
 # Phase N — Production release acceptance and sign-off
 
+## Stage N63 — independently SHA-approved compiler archives before protected execution (CODE PROPOSED; PR/MAIN CI PENDING; PRODUCTION BLOCKED)
+
+- [ ] Use **independent security-owner reviewed SHA256** of `ps2exe.1.0.18.nupkg` and `wix.5.0.2.nupkg` in separate protected `production-installer` environment secrets `PS2EXE_NUPKG_SHA256_APPROVED` and `WIX_NUPKG_SHA256_APPROVED`. Never infer approvals from downloads just retrieved by CI; no fingerprints are invented by this code stage.
+- [ ] Protected `workflow_dispatch` main CI must require both fingerprints **before downloading any tool** and verify downloaded regular exact-version bounded NUPKG bytes before extraction/import or install. PS2EXE must load by exact vetted module path; WiX must restore only from an isolated local approved NUPKG NuGet source and empty package cache. Missing approval/invalid SHA/mismatched filename/URL or wrong Git branch is a hard failure, never a fallback to public upstream installation. Diagnostic `push` remains unsigned and unpublishable.
+- [ ] Run offline Windows PowerShell 5.1/7 N63 archive identity/approval denial, mutation, size, build-path and restore-source tests plus prior N31–N62. Verify PR PowerShell/Node/MySQL/API **3/3**, MySQL safety **2/2**; reviewed merge and fresh main MSI build/extraction/installed setup, clean uninstall and tenant-preserving major upgrade **4/4**, safety **2/2**, project index success.
+- [ ] Actual independently vetted compiler archives and provisioned secrets, N56 original signed reviewer approval, publisher/HSM code signing, approved SQLite executable/archive, real protected GitHub draft-to-public release and Hostinger/physical Windows tenant/ACK/MySQL/restore receipts remain **PENDING**. Package version and hash admission alone **do not approve production**.
+
+See [N63 acceptance](PHASE-N-STAGE63-ACCEPTANCE.md) and [tracked release blockers #29](https://github.com/rehman2671/Aaditech-toolkit-new/issues/29).
+
 ## Stage N62 — exact Windows compiler toolchain versions (MERGED; PR CI 3/3 + SAFETY 2/2, MAIN PINNED EXE/MSI 4/4 + SAFETY 2/2 AND INDEX VERIFIED; PRODUCTION BLOCKED)
 
 - [x] Replaced floating `Install-Module ps2exe` and `dotnet tool install wix --version "5.*"` with **exact** PS2EXE **1.0.18** (PSGallery) and WiX **5.0.2** (NuGet), held in a strict checked-in toolchain lock. No fallback to latest in protected or diagnostic CI builds.

@@ -230,6 +230,13 @@ jobs:
         shell: powershell
         run: ./Enterprise/tests/Test-Stage62BuildToolchainLock.ps1
 
+      - name: N63 verify independently approved compiler archive SHA and offline install gates (PowerShell 7)
+        run: pwsh -NoProfile -File ./Enterprise/tests/Test-Stage63ApprovedCompilerPackages.ps1
+
+      - name: N63 reject tampered toolchain packages and automatic signing on Windows PowerShell 5.1
+        shell: powershell
+        run: ./Enterprise/tests/Test-Stage63ApprovedCompilerPackages.ps1
+
 
       - name: N31 release publication requires independently approved source and MSI pins
         run: pwsh -NoProfile -File ./Enterprise/tests/Test-Stage31PublicationPins.ps1
@@ -632,10 +639,19 @@ jobs:
           Write-Host 'Staged unprovisioned agent configuration (HTTPS setup required after MSI install).'
 
       - name: Install ps2exe
-        # MScholtes/PS2EXE requires Windows PowerShell 5.1 (uses the .NET
-        # Framework compiler); it fails under pwsh (PowerShell 7).
+        # Diagnostic push builds are strictly non-publishable.
+        if: github.event_name == 'push'
+        # PS2EXE uses Windows PowerShell 5.1's .NET Framework compiler.
         shell: powershell
         run: Install-Module -Name ps2exe -RequiredVersion 1.0.18 -Repository PSGallery -Force -Scope CurrentUser
+
+      - name: N63 install independently SHA-approved PS2EXE NUPKG (protected manual only)
+        if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+        shell: powershell
+        env:
+          PS2EXE_NUPKG_SHA256_APPROVED: ${{ secrets.PS2EXE_NUPKG_SHA256_APPROVED }}
+          WIX_NUPKG_SHA256_APPROVED: ${{ secrets.WIX_NUPKG_SHA256_APPROVED }}
+        run: ./Enterprise/agent/build/Install-ApprovedCompiler.ps1 -Kind ps2exe
 
       - name: Build agent exe
         shell: powershell
@@ -656,7 +672,18 @@ jobs:
         run: ./Enterprise/agent/build/Release-Sign.ps1 -Stage PrePackage
 
       - name: Install WiX toolset
+        # Diagnostic only: pinned version, but upstream package hash is not
+        # independently reviewed. Protected manual builds use the next step.
+        if: github.event_name == 'push'
         run: dotnet tool install --global wix --version 5.0.2
+
+      - name: N63 install independently SHA-approved WiX NUPKG (protected manual only)
+        if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+        shell: pwsh
+        env:
+          PS2EXE_NUPKG_SHA256_APPROVED: ${{ secrets.PS2EXE_NUPKG_SHA256_APPROVED }}
+          WIX_NUPKG_SHA256_APPROVED: ${{ secrets.WIX_NUPKG_SHA256_APPROVED }}
+        run: ./Enterprise/agent/build/Install-ApprovedCompiler.ps1 -Kind wix
 
       - name: Build MSI
         env:

@@ -1,6 +1,6 @@
 # Phase N Stage 50 — Independently approved Windows curl executable SHA-256
 
-**Status: CODE PROPOSED; PR CI PENDING; CUSTOMER PRODUCTION NOT APPROVED (2026-11-20 IST).**
+**Status: MERGED; PR SECURITY/API/SAFETY GREEN; MAIN POWERHELL/NODE/API/SAFETY GREEN; WINDOWS MSI JOB RUNNING; CUSTOMER PRODUCTION NOT APPROVED (2026-11-20 IST).**
 
 ## Security finding
 
@@ -86,10 +86,10 @@ public server TLS, real tenant evidence or Microsoft HSM custody.
 
 ## Acceptance
 
-- [ ] Actual Windows PowerShell 7 and 5.1 N50 synthetic SHA-256
+- [x] Actual Windows PowerShell 7 and 5.1 N50 synthetic SHA-256
   mutation, malformed pin, empty/missing/large file, and exact OS curl
   verification pass with no customer DNS/HTTP.
-- [ ] N31–N49 Windows, Node/Vitest+MySQL, isolated API/MySQL and
+- [x] N31–N49 Windows, Node/Vitest+MySQL, isolated API/MySQL and
   deployment safety pass; PR merged at verified final HEAD.
 - [ ] Post-merge main CI 4/4 includes Windows EXE/MSI build,
   administrative extraction, install/uninstall and major upgrade,
@@ -102,3 +102,11 @@ public server TLS, real tenant evidence or Microsoft HSM custody.
 
 See [Issue #29](https://github.com/rehman2671/Aaditech-toolkit-new/issues/29).
 **Production NOT APPROVED.**
+
+## Verified GitHub PR and post-merge diagnostics (NOT production acceptance)
+
+- [PR #45](https://github.com/rehman2671/Aaditech-toolkit-new/pull/45) merged verified head `9ba232d32313141bd7b4ecce7d4af618840656aa` as `dd418f3f0677770db674c52a03d1b0cb01b923e9`.
+- [PR CI #44717114375](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44717114375): **3/3 SUCCESS** (PowerShell 7 and actual 5.1 N50 file-tamper tests + prior N31–N49, Node/Vitest+MySQL, API/MySQL; MSI skipped on PR). [PR safety #44717114428](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44717114428): **2/2 SUCCESS**.
+- [Main CI #44717519494](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44717519494) has already confirmed PowerShell/Node/API **3/3 SUCCESS** and has a dependent Windows MSI build/install/upgrade job still executing. [Main safety #44717519536](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44717519536) **2/2 SUCCESS**.
+- Do **not** mark MSI build/extraction/install/uninstall/upgrade complete or publicly signed artifact ready until the Windows MSI step and signed-upload status have been separately inspected.
+- CI hashes self-derived from its own synthetic and local Windows file demonstrate code, not independent Microsoft certificate/binary approval; no customer Hostinger or physical security evidence exists. **Production NOT APPROVED.**

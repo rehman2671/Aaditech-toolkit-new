@@ -32,6 +32,7 @@ Import-Module -Name (Join-Path $PSScriptRoot 'PublicWindowsPinnedTls.psm1') -For
 Import-Module -Name (Join-Path $PSScriptRoot 'PublicWindowsAddressPolicy.psm1') -Force -ErrorAction Stop
 Import-Module -Name (Join-Path $PSScriptRoot 'ValidateWindowsHealthJson.psm1') -Force -ErrorAction Stop
 Import-Module -Name (Join-Path $PSScriptRoot 'PrivateWindowsProbeWorkspace.psm1') -Force -ErrorAction Stop
+Import-Module -Name (Join-Path $PSScriptRoot 'TrustedWindowsSystemCurl.psm1') -Force -ErrorAction Stop
 
 $mode = if ($DryRun) { 'OFFLINE_DRY_RUN' } else { 'OPERATOR_CONFIRMED_LIVE' }
 $state = 'BLOCKED'
@@ -73,6 +74,18 @@ try {
         $phase = 'PRIVATE_WORKSPACE'
         $workspace = New-PrivateWindowsProbeWorkspace
         $responseFile = $workspace.ResponsePath
+        # N48: check only the OS system32 signed curl and its compiled
+        # Schannel backend BEFORE any customer DNS. -q --version cannot
+        # contact a customer origin. Process trust overrides are removed
+        # for BOTH provenance inspection and the later live GET, restored
+        # in finally; no downgrade to PATH curl or non-Schannel is allowed.
+        $phase = 'VALIDATE_CURL'
+        foreach ($name in $clearEnv) {
+            $originalEnv[$name] = [Environment]::GetEnvironmentVariable($name, 'Process')
+            [Environment]::SetEnvironmentVariable($name, $null, 'Process')
+        }
+        $curl = Assert-PublicWindowsTrustedSystemCurl
+
         $phase = 'LIVE_DNS'
         # OS resolver's returned set must be entirely public. OS lookup is not
         # proof of every globally published A/AAAA record; --resolve pins one
@@ -80,35 +93,6 @@ try {
         $ips = @([System.Net.Dns]::GetHostAddresses($dnsHost) |
             ForEach-Object { $_.ToString() })
         $curlArguments = @(New-PublicWindowsPinnedCurlArguments -Endpoint $endpoint -ResolvedAddressLiterals $ips -ResponsePath $responseFile)
-
-        # Only use OS-owned curl. Fake curl.exe earlier in PATH must never
-        # intercept customer traffic or replace hostname TLS verification.
-        $phase = 'VALIDATE_CURL'
-        $curl = Join-Path ([Environment]::SystemDirectory) 'curl.exe'
-        if (-not (Test-Path -LiteralPath $curl -PathType Leaf)) {
-            throw 'Trusted Windows curl unavailable.'
-        }
-        $signature = Get-AuthenticodeSignature -LiteralPath $curl
-        if ($signature.Status -ne 'Valid' -or
-            $null -eq $signature.SignerCertificate -or
-            $signature.SignerCertificate.Subject -notmatch '(?i)O=Microsoft Corporation') {
-            throw 'Windows curl vendor signature not verified.'
-        }
-
-        # Clear user CA/backend/proxy/key-log overrides for BOTH version check
-        # and live request; restore process values afterward.
-        foreach ($name in $clearEnv) {
-            $originalEnv[$name] = [Environment]::GetEnvironmentVariable($name, 'Process')
-            [Environment]::SetEnvironmentVariable($name, $null, 'Process')
-        }
-        # Require Schannel native root trust, not arbitrary curl build/config.
-        # System CA trust is NOT independent public-CA custody evidence.
-        $phase = 'VALIDATE_TLS_BACKEND'
-        $version = @(& $curl -q --version 2>$null)
-        if ($LASTEXITCODE -ne 0 -or
-            @($version | Where-Object { $_ -match 'Schannel' }).Count -lt 1) {
-            throw 'Windows curl system TLS backend not verified.'
-        }
 
         # Fixed HTTPS GET only; -q ignores user curlrc, --resolve pins checked
         # IP while HTTPS URL retains TLS hostname/SNI. No redirect or proxy.

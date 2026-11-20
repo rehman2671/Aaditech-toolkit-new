@@ -81,6 +81,24 @@ try {
     if ($embeddedDigest -cne $releaseDigest) {
         throw 'N55 MSI does not embed approved signed EXE bytes.'
     }
+    # The upload also carries a generic setup template OUTSIDE the signed
+    # MSI, so verify it and every agent.json in the extracted signed MSI are
+    # still entirely unprovisioned. Never publish a token or hostname.
+    $configs = @((Join-Path $out 'agent-config.json')) +
+        @(Get-ChildItem -LiteralPath $extract -Recurse -File -Filter 'agent.json' |
+            ForEach-Object { $_.FullName })
+    if ($configs.Count -lt 2) { throw 'N55 setup template missing.' }
+    foreach ($configPath in $configs) {
+        $cfg = Get-Content -LiteralPath $configPath -Raw -ErrorAction Stop |
+            ConvertFrom-Json -ErrorAction Stop
+        if ($cfg.needs_setup -ne $true -or
+            -not [string]::IsNullOrEmpty([string]$cfg.endpoint) -or
+            -not [string]::IsNullOrEmpty([string]$cfg.enroll_url) -or
+            -not [string]::IsNullOrEmpty([string]$cfg.token) -or
+            -not [string]::IsNullOrEmpty([string]$cfg.bootstrap_token)) {
+            throw 'N55 refuses provisioned configuration in release output.'
+        }
+    }
     # Final time-of-use checks, after unpacking and before authorizing upload.
     $null = Assert-N55SignedPublicationManifest -OutputDirectory $out -ExpectedAgentVersion $version
     Assert-N55Authenticode -File $exe

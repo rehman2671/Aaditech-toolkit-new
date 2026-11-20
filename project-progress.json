@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-20T11:10:05+00:00",
-  "last_verified_commit": "80ce1e7b5327cfc49806db5f38d982b920118b9b",
-  "last_verified_date": "2026-11-20T16:39:55+05:30",
+  "generated": "2026-11-20T11:33:51+00:00",
+  "last_verified_commit": "bcbd9860b9f138e9e72fc61a1d066d8645a80df3",
+  "last_verified_date": "2026-11-20T17:03:39+05:30",
   "overall_progress_percent": 100.0,
   "progress_scope": "historic audit issue closure only; production acceptance pending",
   "production_ready": false,
@@ -16,31 +16,10 @@
   "latest_delta": {
     "added": 2,
     "removed": 0,
-    "changed": 4,
-    "unchanged": 393
+    "changed": 5,
+    "unchanged": 394
   },
   "delta_history": [
-    {
-      "detected_at": "2026-11-18T10:49:35+00:00",
-      "added": [
-        "Enterprise/deploy/stage34-attestation-core.mjs",
-        "Enterprise/deploy/stage34-operator-signature.mjs",
-        "tests/unit/stage34-operator-attestation.test.js",
-        "test-stage34-operator-signature.mjs",
-        "Enterprise/deploy/PHASE-N-STAGE34-ACCEPTANCE.md"
-      ],
-      "removed": [],
-      "changed": [
-        "docs/assessment/GAP-REGISTER.md",
-        "docs/assessment/RELEASE-READINESS.md",
-        "Enterprise/deploy/PHASE-N-STAGE33-ACCEPTANCE.md",
-        "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md",
-        "Enterprise/tests/New-Stage32CustomerEvidenceBundle.ps1",
-        "docs/assessment/TEST-RESULTS.md",
-        ".github/workflows/ci.yml"
-      ],
-      "unchanged_count": 338
-    },
     {
       "detected_at": "2026-11-18T11:18:03+00:00",
       "added": [
@@ -359,6 +338,22 @@
         "Enterprise/deploy/PHASE-N-STAGE51-ACCEPTANCE.md"
       ],
       "unchanged_count": 393
+    },
+    {
+      "detected_at": "2026-11-20T11:33:51+00:00",
+      "added": [
+        "Enterprise/deploy/PHASE-N-STAGE53-ACCEPTANCE.md",
+        "Enterprise/tests/Test-Stage53WindowsApprovalContinuity.ps1"
+      ],
+      "removed": [],
+      "changed": [
+        ".github/workflows/ci.yml",
+        "Enterprise/deploy/WindowsCurlSignedApproval.psm1",
+        "Enterprise/deploy/PHASE-N-STAGE52-ACCEPTANCE.md",
+        "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md",
+        "Enterprise/deploy/Test-WindowsPinnedPublicHttps.ps1"
+      ],
+      "unchanged_count": 394
     }
   ],
   "next_recommended_tasks": [

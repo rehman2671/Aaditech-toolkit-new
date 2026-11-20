@@ -27,7 +27,7 @@ foreach ($required in @(
     'Get-AuthenticodeSignature -LiteralPath $curlPath',
     '[IO.FileAttributes]::ReparsePoint',
     '& $curlPath -q --version',
-    "Assert-PublicWindowsCurlVersionHeader -ExitCode $nativeExit"
+    'Assert-PublicWindowsCurlVersionHeader -ExitCode $nativeExit'
 )) {
     if ($required -ceq 'Join-Path') { continue }
     if ($source.IndexOf($required,[StringComparison]::Ordinal) -lt 0) {

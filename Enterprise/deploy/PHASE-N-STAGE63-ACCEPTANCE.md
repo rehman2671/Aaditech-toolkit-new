@@ -1,6 +1,6 @@
 # Phase N Stage 63 — Independently approved compiler package SHA-256 before use
 
-**Status: CODE PROPOSED; PR CI AND POST-MERGE MAIN ACCEPTANCE PENDING; CUSTOMER PRODUCTION NOT APPROVED (2026-11-21 IST).**
+**Status: MERGED; PR CI 3/3 + SAFETY 2/2 SUCCESS; FRESH MAIN DIAGNOSTIC WINDOWS EXE/MSI 4/4 + SAFETY 2/2 SUCCESS; INDEX VERIFIED; REAL PROTECTED PACKAGE INSTALL/SIGNED RELEASE PENDING; CUSTOMER PRODUCTION NOT APPROVED (2026-11-21 IST).**
 
 ## Finding
 
@@ -101,13 +101,15 @@ protected installation/signing/reviewer/download/hosted asset evidence.
 
 ## Acceptance
 
-- [ ] PR N63 PS5.1/7 package identity/TOCTOU and context regressions,
-  N31–N62 security suites, Node/Vitest+MySQL and API/MySQL **3/3**;
-  isolated MySQL safety **2/2**.
-- [ ] Reviewed PR merged; fresh diagnostic main PS2EXE/WiX EXE/MSI
-  build, administrative extraction, installed setup/clean uninstall
-  and tenant-preserving major upgrade **4/4**; safety **2/2**;
-  project index refreshed.
+- [x] PR N63 PS5.1/7 package identity/TOCTOU and context regressions,
+  N31–N62 security suites, Node/Vitest+MySQL and API/MySQL
+  **3/3 SUCCESS**; isolated MySQL safety **2/2 SUCCESS**.
+- [x] Reviewed [PR #58](https://github.com/rehman2671/Aaditech-toolkit-new/pull/58)
+  merged as `053788a2670ee66b229e50da6c6634bca3fb1126`;
+  fresh diagnostic main PS2EXE/WiX EXE/MSI build, administrative
+  extraction, actual installed setup/clean uninstall and major upgrade
+  preserving tenant configuration **4/4 SUCCESS**, safety
+  **2/2 SUCCESS**, project index refreshed successfully.
 - [ ] Independent human supplier package review and real pinned
   SHA256 secrets, protected manual PS2EXE and WiX offline installation
   from downloaded archives, N56 reviewer RSA signature, publisher
@@ -133,3 +135,32 @@ Earlier verified baseline:
 **4/4 SUCCESS** with [safety 44821722786](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44821722786)
 **2/2 SUCCESS**. These precede N63 and do not certify a protected
 customer production release.
+
+## Verified N63 PR and post-merge main evidence
+
+- [PR #58](https://github.com/rehman2671/Aaditech-toolkit-new/pull/58),
+  reviewed head `7f98d7c5b1adf7a8c45c61ef3a2d1c2f28d321ea`,
+  merge `053788a2670ee66b229e50da6c6634bca3fb1126`.
+- [PR CI 44825229841](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44825229841):
+  **3/3 SUCCESS** — real Windows PowerShell 5.1/7 synthetic N63
+  independently approved package SHA256/TOCTOU/size/context tests,
+  prior N31–N62, Node/Vitest+MySQL and API/MySQL. MSI job skipped on PR.
+- [PR safety 44825229888](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44825229888):
+  **2/2 SUCCESS** — isolated real MySQL backup/restore and offline
+  deployment recovery.
+- Fresh [main CI 44825709437](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44825709437):
+  **4/4 SUCCESS** — Windows PS 5.1/7, Node/Vitest+MySQL, API/MySQL,
+  actual diagnostic PS2EXE EXE + WiX MSI build, MSI administrative
+  extraction, real Windows install/clean uninstall and major upgrade
+  preserving tenant configuration.
+- [Main deployment safety 44825709377](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44825709377):
+  **2/2 SUCCESS**. [Main index maintenance 44825709447](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44825709447):
+  **SUCCESS**.
+- On automatic diagnostic push `Verify final signed artifact publication`
+  and `Upload verified signed artifacts only` both **SKIPPED**.
+  The new **protected** `workflow_dispatch` archive download,
+  independent SHA approval, local PS2EXE/WiX installation, publisher
+  Authenticode signing and GitHub Release creation were **not**
+  exercised in these runs. The real signing owner's compiler archive
+  approval and N56 independent RSA authorization remain pending.
+  **Customer production NOT APPROVED.**

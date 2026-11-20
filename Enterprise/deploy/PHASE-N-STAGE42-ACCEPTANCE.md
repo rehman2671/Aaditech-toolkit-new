@@ -63,7 +63,7 @@ After **independent approval of the actual customer hostname and live probe**,
 an operator may invoke the explicitly consented read-only check:
 
 ```powershell
-powershell.exe -NoProfile -File .\Enterprise\deploy\Test-WindowsPinnedPublicHttps.ps1 -ConfigPath "C:\ProgramData\ITToolkit-Agent\agent.json" -ReportPath "C:\acceptance\n42-live.json" -ConfirmLive PROBE_PUBLIC_HEALTH -ApprovedOrigin "https://YOUR-ACTUAL-APPROVED-PUBLIC-HOST" -ApprovedCurlSignerSha256 "YOUR-INDEPENDENTLY-APPROVED-64-HEX-SIGNING-CERT-SHA256"
+powershell.exe -NoProfile -File .\Enterprise\deploy\Test-WindowsPinnedPublicHttps.ps1 -ConfigPath "C:\ProgramData\ITToolkit-Agent\agent.json" -ReportPath "C:\acceptance\n42-live.json" -ConfirmLive PROBE_PUBLIC_HEALTH -ApprovedOrigin "https://YOUR-ACTUAL-APPROVED-PUBLIC-HOST" -ApprovedCurlSignerSha256 "YOUR-INDEPENDENTLY-APPROVED-64-HEX-SIGNING-CERT-SHA256" -ApprovedCurlBinarySha256 "SECURITY-APPROVED-CURL-EXE-SHA256-64-HEX"
 ```
 
 **Stage N43 amendment:** The CLI above now requires an independently typed,
@@ -116,3 +116,15 @@ or a locally self-derived production approval. Omit the parameter during
 before customer DNS. See [N49 acceptance](PHASE-N-STAGE49-ACCEPTANCE.md).
 No customer live request, independently authorized fingerprint or public
 signed MSI was supplied by N49.
+
+## N50 executable release digest amendment
+
+The optional *live* Windows `/healthz` command now also **requires**
+`-ApprovedCurlBinarySha256`: a separate independently security-approved
+64-hex SHA-256 over the exact OS `curl.exe` file bytes, distinct from N49's
+signer-certificate DER hash. Historical live examples above have been amended
+where present. No such hash is automatically inferred as production approval.
+The binary is checked before customer DNS and again after the optional HTTPS
+transfer; even a healthy response remains non-production-certified. See
+[N50 acceptance](PHASE-N-STAGE50-ACCEPTANCE.md). Physical customer trust,
+Hostinger and publisher signing acceptance remain PENDING.

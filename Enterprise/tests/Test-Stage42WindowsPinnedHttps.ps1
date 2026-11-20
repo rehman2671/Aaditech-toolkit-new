@@ -149,3 +149,6 @@ try {
 } finally {
     Remove-Item -LiteralPath $dir -Recurse -Force -ErrorAction SilentlyContinue
 }
+# Windows PowerShell 5.1 otherwise inherits the last intentionally failing
+# child process's native exit code even after all assertions passed.
+exit 0

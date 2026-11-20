@@ -1,6 +1,6 @@
 # Phase N Stage 47 — Fail-Closed Windows HTTPS Response Cleanup
 
-**Status: CODE PROPOSED; PR CI PENDING; CUSTOMER PRODUCTION NOT APPROVED (2026-11-20 IST).**
+**Status: MERGED; MAIN CI/MSI 4/4 AND DEPLOYMENT-SAFETY 2/2 GREEN; CUSTOMER PRODUCTION NOT APPROVED (verified 2026-11-20 IST).**
 
 ## Security finding
 
@@ -54,13 +54,13 @@ endpoint is used. Existing N31–N46 regression gates remain in place.
 
 ## Acceptance gates
 
-- [ ] Offline N47 Windows PowerShell 7 and 5.1 file-lock, foreign-file,
-      partial-delete and forged-identity tests pass.
-- [ ] Existing Windows N31–N46, Node/Vitest+MySQL, isolated API/MySQL and
-      deployment-safety PR checks pass; authorized PR merge follows.
-- [ ] Main-branch Windows EXE/MSI build, extraction, real install/uninstall
+- [x] Offline N47 Windows PowerShell 7 and 5.1 file-lock, foreign-file,
+      partial-delete and forged-identity tests passed.
+- [x] Existing Windows N31–N46, Node/Vitest+MySQL, isolated API/MySQL and
+      deployment-safety PR checks passed; PR #42 merged.
+- [x] Main-branch Windows EXE/MSI build, extraction, real install/uninstall
       and tenant-preserving major upgrade **4/4** plus deployment safety
-      **2/2** independently pass.
+      **2/2** independently passed.
 - [ ] Independently witnessed physical customer Windows cleanup/AV behavior,
       approved DNS/TLS and Hostinger public trust ownership, real
       publisher-signed MSI custody, authenticated lost-ACK/MySQL receipts,
@@ -79,3 +79,11 @@ production signed MSI publication require separate authorization.
 **Production NOT APPROVED.**
 [Security issue #29](https://github.com/rehman2671/Aaditech-toolkit-new/issues/29)
 remains OPEN.
+
+## Verified GitHub evidence — NOT production acceptance
+
+- [PR #42](https://github.com/rehman2671/Aaditech-toolkit-new/pull/42) merged verified head `4cccd32afc0e7ac6ce4b518fe21a476715179765` into `main` as `d70bc960d511288be81fee236663c6096f9da8c5` following Windows PowerShell 5.1 and 7 N47 no-network cleanup fault tests, Node/Vitest+MySQL, isolated API/MySQL and deployment-safety regressions.
+- [Main CI #44671007434](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44671007434): **4/4 SUCCESS** — PowerShell, Node/Vitest+MySQL, API/MySQL, Windows EXE/MSI build, Windows Installer administrative extraction, fresh install/uninstall and major-upgrade configuration-preservation rehearsal.
+- [Main safety #44671007490](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44671007490): **2/2 SUCCESS** — offline recovery/shell safeguards and isolated MySQL backup/restore.
+- The diagnostic `Verify pre-signed MSI payload and sign release MSI` step completed, but `Upload verified signed artifacts only` was **SKIPPED**. No public customer-publisher-signed MSI or production signing-custody approval resulted.
+- No independently approved customer physical TLS/AV cleanup drill, real Hostinger DNS/CA ownership, authenticated lost-ACK receipts, encrypted offsite restore or human security sign-off was evidenced. Issue #29 remains OPEN, production NOT APPROVED.

@@ -101,7 +101,7 @@ try {
         (Assert-PublicWindowsCurlSignedApproval @args -ExpectedManifestSha256 $record.ToLowerInvariant()) -ne $true) {
         throw 'N53 original signed record should pass repeated verification.'
     }
-    foreach ($bad in @('','C'*64,'not-a-sha256')) {
+    foreach ($bad in @('', ('C' * 64), 'not-a-sha256')) {
         Assert-N53Rejected -Case 'missing/wrong initial manifest pin' -Action {
             Assert-PublicWindowsCurlSignedApproval @args -ExpectedManifestSha256 $bad
         }

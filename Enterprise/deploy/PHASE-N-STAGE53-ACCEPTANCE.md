@@ -1,6 +1,6 @@
 # Phase N Stage 53 — Pin exact signed Windows HTTPS approval for one diagnostic
 
-**Status: CODE PROPOSED; CI AND REVIEW PENDING; CUSTOMER PRODUCTION NOT APPROVED (2026-11-20 IST).**
+**Status: MERGED; PR CI 3/3 AND DEPLOYMENT SAFETY 2/2 GREEN; FRESH MAIN EXE/MSI ACCEPTANCE UNVERIFIED; CUSTOMER PRODUCTION NOT APPROVED (2026-11-20 IST).**
 
 ## Finding
 
@@ -72,10 +72,10 @@ customer hostname ownership or real HSM publisher signing.
 
 ## Acceptance
 
-- [ ] PR Windows PS5.1/7 N53+N31–N52 regression, Node/Vitest+MySQL,
+- [x] PR Windows PS5.1/7 N53+N31–N52 regression, Node/Vitest+MySQL,
   API/MySQL and deployment-safety workflows green.
-- [ ] Reviewed PR merged at verified head and fresh main Windows EXE/MSI
-  lifecycle **4/4** plus safety **2/2** independently confirmed.
+- [x] PR #48 merged at verified head into main.
+- [ ] Fresh main Windows EXE/MSI lifecycle **4/4** plus safety **2/2** independently confirmed.
 - [ ] Production gates: approved reviewer public-key custody and signed
   customer record, genuine Hostinger DNS/TLS, publisher/HSM-signed MSI,
   physical lost-ACK and MySQL queue receipts, offsite restore and external
@@ -83,3 +83,19 @@ customer hostname ownership or real HSM publisher signing.
 
 **Production NOT APPROVED.**
 Security tracker: [issue #29](https://github.com/rehman2671/Aaditech-toolkit-new/issues/29).
+
+## Verified GitHub evidence (not customer production authorization)
+
+- [PR #48](https://github.com/rehman2671/Aaditech-toolkit-new/pull/48)
+  head `d4afa08cfaae1790cf5822b904f0e4f4063d9c12` merged into main at
+  `bcbd9860b9f138e9e72fc61a1d066d8645a80df3`.
+- [PR CI run 44728229481](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44728229481):
+  **3/3 SUCCESS**, including Windows PowerShell 5.1/7 N53 exact-record
+  continuation and all previous N31–N52 safety tests, Node/Vitest+MySQL
+  and API/MySQL. PR diagnostic MSI job correctly **SKIPPED**.
+- [PR deployment-safety run 44728229430](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44728229430):
+  offline Bash/database recovery and real isolated MySQL backup/restore,
+  **2/2 SUCCESS**.
+- Fresh post-merge **main** build/EXE/MSI install/uninstall/upgrade
+  **4/4** and safety **2/2** remain **UNVERIFIED** in this record, even if
+  earlier N51 main runs were green. No live customer probe was performed.

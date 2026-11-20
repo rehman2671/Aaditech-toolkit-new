@@ -1,5 +1,14 @@
 # Phase N — Production release acceptance and sign-off
 
+## Stage N46 — atomic Windows workspace ACL at directory creation (CODE PROPOSED; PR CI PENDING; PRODUCTION BLOCKED)
+
+- [ ] Eliminate N45 create-then-`Set-Acl` permission race: create unique private response directory with protected owner/SYSTEM ACL **at creation** using Windows PowerShell 5.1 `Directory.CreateDirectory(path, security)` and PowerShell 7 `FileSystemAclExtensions.CreateDirectory(security, path)`; no unsafe fallback.
+- [ ] Verify owner/protected allowed SIDs and preallocated exclusive response target; clean up only a directory demonstrably created by this invocation, never a preexisting/failed-create path. Live N31 probe stays DISABLED, report `certified_for_production=false`.
+- [ ] Actual Windows PowerShell 5.1 and 7 offline atomic-create, response ACL and fail-closed code contract tests; PR Node/MySQL/API + deployment-safety CI, authorized merge and main Windows EXE/MSI 4/4 plus safety 2/2 verification.
+- [ ] Independent physical Windows review, approved live Hostinger DNS/TLS/CA evidence, publisher-signed MSI/keys, physical lost-ACK queue replay, offsite restore, real integration and owner security approval remain PENDING. **Production NOT APPROVED**.
+
+See [N46 acceptance](PHASE-N-STAGE46-ACCEPTANCE.md) and [Issue #29](https://github.com/rehman2671/Aaditech-toolkit-new/issues/29).
+
 ## Stage N45 — private Windows pinned HTTPS response workspace (MERGED; MAIN MSI CI 4/4 AND SAFETY 2/2 GREEN; PRODUCTION BLOCKED)
 
 - [x] Native Windows LocalApplicationData workspace with unique per-run directory, explicit current-user and SYSTEM-only protected ACL, owner verification and no redirected/reparse ancestors; **no inherited TEMP/TMP permissions**.

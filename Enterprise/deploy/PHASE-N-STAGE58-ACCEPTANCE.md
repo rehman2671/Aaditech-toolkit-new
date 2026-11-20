@@ -1,6 +1,6 @@
 # Phase N Stage 58 — Same reviewer-signed approval from CI signing to public release
 
-**Status: CODE PROPOSED; PR CI AND POST-MERGE MAIN ACCEPTANCE PENDING; CUSTOMER PRODUCTION NOT APPROVED (2026-11-20 IST).**
+**Status: MERGED; PR CI 3/3 + SAFETY 2/2 SUCCESS; FRESH MAIN DIAGNOSTIC EXE/MSI 4/4 + SAFETY 2/2 SUCCESS; PROTECTED SIGNING/PUBLIC RELEASE PENDING; CUSTOMER PRODUCTION NOT APPROVED (2026-11-20 IST).**
 
 ## Security finding
 
@@ -97,11 +97,13 @@ MSI, checksum manifest and an ephemeral RSA-2048 certificate. It verifies:
 
 ## Acceptance and remaining owner actions
 
-- [ ] PR N58 PowerShell 5.1/7 tests, earlier security gates,
-  Node/Vitest+MySQL and API/MySQL **3/3**, MySQL safety **2/2**.
-- [ ] Reviewed PR merged; new `main` diagnostic Windows MSI build,
-  extraction, setup/uninstall and tenant-preserving major upgrade
-  **4/4** and deployment safety **2/2** independently verified.
+- [x] PR N58 PowerShell 5.1/7 tests, earlier security gates,
+  Node/Vitest+MySQL and API/MySQL **3/3 SUCCESS**, MySQL safety **2/2 SUCCESS**.
+- [x] Reviewed [PR #53](https://github.com/rehman2671/Aaditech-toolkit-new/pull/53)
+  merged at `c07a0560d573ca3095d91f7ccc363122049fd5e7`. New `main`
+  diagnostic Windows EXE/MSI build, extraction, installed setup/clean
+  uninstall and tenant-preserving major upgrade **4/4 SUCCESS** and
+  deployment safety **2/2 SUCCESS** independently verified.
 - [ ] Independently approved publisher key/certificate, reviewed
   SQLite ZIP/EXE digests, real reviewer-signed per-source manifest,
   protected manual main signing source run with N58 receipt, and a real
@@ -126,3 +128,31 @@ and [security issue #29](https://github.com/rehman2671/Aaditech-toolkit-new/issu
 - [N57 project index maintenance 44744480722](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44744480722):
   safe metadata refresh accepted; these results were **pre-N58** and
   did not execute a signed production publication.
+
+## Verified N58 GitHub acceptance evidence
+
+- [PR #53](https://github.com/rehman2671/Aaditech-toolkit-new/pull/53)
+  reviewer-checked head `822ed227e32d6826746ab8f3ff9736aea375e65b`,
+  merge `c07a0560d573ca3095d91f7ccc363122049fd5e7`.
+- [PR CI 44748295565](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44748295565):
+  **3/3 SUCCESS** — Windows PowerShell 5.1/7, new N58 synthetic
+  reviewer-signature receipt/rotation/altered-source negative paths,
+  N31 protected MSI hash pin regression, prior security checks,
+  Node/Vitest+MySQL and API/MySQL. MSI job **SKIPPED** on PR.
+- [PR deployment safety 44748295510](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44748295510):
+  **2/2 SUCCESS** — offline deployment and isolated real MySQL
+  backup/restore verification.
+- Fresh post-merge [`main` CI 44748922171](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44748922171):
+  **4/4 SUCCESS** — all PowerShell tests, Node/Vitest+MySQL, API/MySQL,
+  real Windows EXE+WiX MSI build, MSI administrative extraction,
+  installed first-run setup/clean uninstall, and major upgrade preserving
+  tenant configuration.
+- Fresh [`main` safety 44748922199](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44748922199):
+  **2/2 SUCCESS**. [Main index maintenance 44748922258](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44748922258):
+  **SUCCESS**.
+- The automatic `push` diagnostic MSI job reported **N58 record final
+  verified source reviewer approval identity SKIPPED** and **Upload
+  verified signed artifacts only SKIPPED**, which is the intended
+  non-publishable behavior. No real protected N56 reviewer-signed CI
+  source run, publisher HSM signing or GitHub Release creation was
+  executed. **Customer production NOT APPROVED.**

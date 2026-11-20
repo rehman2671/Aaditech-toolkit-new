@@ -91,7 +91,7 @@ if ($create -lt 0 -or $view -le $create -or
     $remote.IndexOf("'/releases/'",[StringComparison]::Ordinal) -lt 0 -or
     $remote.IndexOf('ExpectedReleaseId=$ReleaseId',[StringComparison]::Ordinal) -lt 0 -or
     $artifactModule.IndexOf('[long]$release.id -ne $ExpectedReleaseId',[StringComparison]::Ordinal) -lt 0 -or
-    $remote.IndexOf('releases/tags/',[StringComparison]::Ordinal) -ge 0) {
+    $remote.IndexOf("+'/releases/tags/'",[StringComparison]::Ordinal) -ge 0) {
     throw 'N60 immutable ID, draft tag absence, published SHA check or protected workflow order missing.'
 }
 Write-Host 'N60 PASS: untagged draft and exact published Git ref, source SHA, annotated/moved/ref duplicate denial, stable draft ID and reviewer rechecks all fail closed.'

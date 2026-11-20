@@ -1,8 +1,8 @@
 name: Project index maintenance
 
-# Historical project-index.json was last refreshed in August 2026. Its
-# snapshot must track the actual codebase rather than blocking CI forever.
-# Writes are restricted to three generated metadata files.
+# N57: serial main metadata publication. The job regenerates from the latest
+# main HEAD, never rebases an obsolete generated JSON snapshot over new code.
+# Writes remain restricted to the three generated project metadata files.
 on:
   push:
     branches: [main]
@@ -13,40 +13,22 @@ permissions:
 
 concurrency:
   group: project-index-maintenance-main
-  # Only newest main HEAD should regenerate and push project metadata.
-  # Cancel outdated work to avoid predictable non-fast-forward failures.
-  cancel-in-progress: true
+  # Do not interrupt a checked-out generation after another main push.
+  # Every run rechecks the *latest* HEAD and becomes a no-op if already fresh.
+  cancel-in-progress: false
 
 jobs:
   refresh-index:
-    if: github.actor != 'github-actions[bot]'
+    if: github.ref == 'refs/heads/main' && github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           persist-credentials: true
-      - name: Generate project index, state and progress reports
-        shell: pwsh
-        run: |
-          ./Scripts/Index/Update-ProjectIndex.ps1
-          foreach ($name in @('project-index.json','project-state.json','project-progress.json')) {
-            $meta = Get-Content $name -Raw | ConvertFrom-Json -ErrorAction Stop
-            if (-not $meta.path -or $meta.path -ne $name) {
-              throw "Indexer produced invalid metadata: $name"
-            }
-          }
-      - name: Commit regenerated reports only
+          fetch-depth: 0
+      - name: Validate bounded non-force index publisher syntax
         shell: bash
-        run: |
-          set -euo pipefail
-          git add -- project-index.json project-state.json project-progress.json
-          if git diff --cached --quiet; then
-            echo "Project metadata already matches HEAD."
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "chore(index): refresh project metadata [skip ci]"
-          # Fail rather than force push if main advanced. A later main
-          # push will schedule another refresh against the new HEAD.
-          git push origin HEAD:main
+        run: bash -n Scripts/Index/Publish-ProjectIndex.sh
+      - name: Regenerate and safely publish latest project index
+        shell: bash
+        run: bash Scripts/Index/Publish-ProjectIndex.sh

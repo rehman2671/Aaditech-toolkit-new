@@ -9,6 +9,7 @@ function New-PrivateWindowsProbeWorkspace {
     param()
 
     $directory = $null
+    $createdDirectory = $false
     try {
         if ($env:OS -cne 'Windows_NT') { throw 'Windows platform required.' }
 
@@ -79,6 +80,7 @@ function New-PrivateWindowsProbeWorkspace {
             $null = [System.IO.FileSystemAclExtensions]::CreateDirectory(
                 $acl, $directory)
         }
+        $createdDirectory = $true
 
         $actual = Get-Acl -LiteralPath $directory -ErrorAction Stop
         if (-not $actual.AreAccessRulesProtected -or
@@ -124,7 +126,10 @@ function New-PrivateWindowsProbeWorkspace {
             ResponsePath = $responsePath
         }
     } catch {
-        if ($null -ne $directory -and (Test-Path -LiteralPath $directory)) {
+        # Never delete a directory that was already present or whose atomic
+        # creation failed. Only clean up a workspace this process created.
+        if ($createdDirectory -and $null -ne $directory -and
+            (Test-Path -LiteralPath $directory)) {
             Remove-Item -LiteralPath $directory -Force -Recurse -ErrorAction SilentlyContinue
         }
         # No local paths, owner/tenant identity, ACL details or tokens in

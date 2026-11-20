@@ -1,11 +1,11 @@
 # Phase N — Production release acceptance and sign-off
 
-## Stage N43 — origin-bound Windows pinned HTTPS consent and offline failure injection (CODE PROPOSED; NEW CI PENDING; PRODUCTION BLOCKED)
+## Stage N43 — origin-bound Windows pinned HTTPS consent and offline failure injection (MERGED; MAIN MSI CI 4/4 AND SAFETY 2/2 GREEN; PRODUCTION BLOCKED)
 
-- [ ] Operator-approved canonical `-ApprovedOrigin` required **alongside** exact live `-ConfirmLive PROBE_PUBLIC_HEALTH`; mismatch/invalid origin aborts *before* DNS, curl or network; N31 `-NetworkProbe` stays BLOCKED.
-- [ ] Shared offline outcome policy rejects DNS/connect/TLS/cert/timeout native exit errors, every nonexact HTTP 200 (including 3xx/4xx/5xx), missing/oversized/reparse response file and non-healthy N41 JSON; file length bounded before allocation/read.
-- [ ] Synthetic fault matrix and refused/host-mismatched operator consent on Windows PowerShell 7 and actual 5.1 CI; zero live customer requests and redacted non-production-certified evidence.
-- [ ] PR CI (Windows/Node/API/MySQL) and deployment-safety green; merge, then main full Windows MSI diagnostic 4/4 and safety 2/2 green, document confirmed evidence.
+- [x] Operator-approved canonical `-ApprovedOrigin` required **alongside** exact live `-ConfirmLive PROBE_PUBLIC_HEALTH`; mismatch/invalid origin aborts *before* DNS, curl or network; N31 `-NetworkProbe` stays BLOCKED.
+- [x] Shared offline outcome policy rejects DNS/connect/TLS/cert/timeout native exit errors, every nonexact HTTP 200 (including 3xx/4xx/5xx), missing/oversized/reparse response file and non-healthy N41 JSON; file length bounded before allocation/read.
+- [x] Synthetic fault matrix and refused/host-mismatched operator consent on Windows PowerShell 7 and actual 5.1 CI; zero live customer requests and redacted non-production-certified evidence.
+- [x] PR #38 PowerShell 7/5.1, Node/Vitest+MySQL, API/MySQL and deployment safety passed and merged as `d6a974d7c1fb24cd292051a98a3ba7824cf22069`. [Main CI #44647657565](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44647657565) **4/4** including EXE/MSI build, extraction, install/uninstall and major upgrade; [main safety #44647657434](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44647657434) **2/2** passed. Public signed MSI upload SKIPPED.
 - [ ] Independent approved physical Windows DNS/TLS and failed-route rehearsal, real Hostinger public ownership, publisher signed MSI, physical queue ACK replay, offsite restore and human security review still **PENDING**. **Production NOT APPROVED**.
 
 See [N43 acceptance](PHASE-N-STAGE43-ACCEPTANCE.md) and [Issue #29](https://github.com/rehman2671/Aaditech-toolkit-new/issues/29).

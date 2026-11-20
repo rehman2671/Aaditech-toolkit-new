@@ -1,5 +1,14 @@
 # Phase N — Production release acceptance and sign-off
 
+## Stage N57 — race-safe main project index maintenance (CODE PROPOSED; PR CI PENDING; PRODUCTION BLOCKED)
+
+- [ ] Regenerate `project-index.json`, `project-state.json` and `project-progress.json` from latest `main` every attempt. When a source commit lands between fetch and push, re-fetch/reset **CI-only checkout** and regenerate; never rebase stale generated reports, force-push, or overwrite source. Bounded four attempts, idempotent semantic `-Check` and fail-closed denied-push behavior.
+- [ ] Serial project index workflow, main/CI-only and bot-loop guards, full Git history, only three staged report files, valid JSON production-not-ready assertions. Isolated real local Git non-fast-forward, no-op and rejected-write regression plus application CI and deployment safety.
+- [ ] Independently verify PR tests, merge, fresh main index maintenance and Windows EXE/MSI **4/4** plus safety **2/2**. Historic [index race 44738371399](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44738371399) is a metadata push conflict, not customer production acceptance.
+- [ ] Approved N56 independent reviewer identity, exact SQLite/publisher digests, protected actual signed MSI publication, customer Hostinger DNS/TLS, physical Windows/tenant replay and MySQL receipts, encrypted offsite restore and authorized external security sign-off still **PENDING**. **Production NOT APPROVED.**
+
+See [N57 acceptance](PHASE-N-STAGE57-ACCEPTANCE.md) and [issue #29](https://github.com/rehman2671/Aaditech-toolkit-new/issues/29).
+
 ## Stage N56 — reviewer-signed exact source/version/dependency release authorization (MERGED; PR CI 3/3 + SAFETY 2/2 GREEN; MAIN DIAGNOSTIC MSI 4/4 + SAFETY 2/2 VERIFIED; PRODUCTION BLOCKED)
 
 - [x] An approved publisher PFX and manual GitHub environment are **not** a release scope grant. Require separate RSA-SHA256 reviewer-signed ASCII/LF manifest pinning exact `main` Git SHA, `agent_version`, positive `msi_revision`, publisher thumbprint, independently approved SQLite ZIP/EXE hashes and short UTC window <=24h. Pin reviewer public DER SHA-256 independently. Never store reviewer private keys in CI/repo.

@@ -1,5 +1,14 @@
 # Phase N — Production release acceptance and sign-off
 
+## Stage N45 — private Windows pinned HTTPS response workspace (CODE PROPOSED; PR CI PENDING; PRODUCTION BLOCKED)
+
+- [ ] Native Windows LocalApplicationData workspace with unique per-run directory, explicit current-user and SYSTEM-only protected ACL, owner verification and no redirected/reparse ancestors; **no inherited TEMP/TMP permissions**.
+- [ ] Create fixed response file with exclusive `FileMode.CreateNew` before DNS/curl. Fail closed if private ACL/profile unavailable, do not enable N31 `-NetworkProbe`, and retain redacted `certified_for_production=false` evidence.
+- [ ] Windows PowerShell 7 and actual 5.1 no-network ACL/TEMP-isolation regression green; Node/Vitest+MySQL, API/MySQL, deployment safety, authorized PR merge and subsequent main Windows MSI diagnostic 4/4 and safety 2/2.
+- [ ] Independent host ACL/profile-security review, customer-approved physical Windows HTTPS test, Hostinger DNS/TLS, real signed MSI publisher custody, lost-ACK queue replay and offsite restore still PENDING. **Production NOT APPROVED**.
+
+See [N45 acceptance](PHASE-N-STAGE45-ACCEPTANCE.md) and [Issue #29](https://github.com/rehman2671/Aaditech-toolkit-new/issues/29).
+
 ## Stage N44 — offline Windows HTTPS diagnostic evidence format audit (MERGED; MAIN MSI CI 4/4 AND SAFETY 2/2 GREEN; PRODUCTION BLOCKED)
 
 - [x] Audit an existing **redacted** N42/N43 diagnostic as an ordinary single-link file via `audit-windows-health-evidence.py` on a host supporting no-follow opens; reject duplicate JSON keys, invalid UTF-8, malformed schema, impossible status/mode pairs, self-asserted external approvals and false `certified_for_production=true`.

@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-20T00:40:06+00:00",
-  "last_verified_commit": "d6a974d7c1fb24cd292051a98a3ba7824cf22069",
-  "last_verified_date": "2026-11-20T06:09:55+05:30",
+  "generated": "2026-11-20T00:57:54+00:00",
+  "last_verified_commit": "004ad08ca02eef0e1503ba1a22f36a01668b2d18",
+  "last_verified_date": "2026-11-20T06:27:43+05:30",
   "overall_progress_percent": 100.0,
   "progress_scope": "historic audit issue closure only; production acceptance pending",
   "production_ready": false,
@@ -14,38 +14,12 @@
     "percent": 100.0
   },
   "latest_delta": {
-    "added": 2,
+    "added": 3,
     "removed": 0,
-    "changed": 5,
-    "unchanged": 370
+    "changed": 3,
+    "unchanged": 374
   },
   "delta_history": [
-    {
-      "detected_at": "2026-11-17T10:51:05+00:00",
-      "added": [
-        "device-metrics.js",
-        "Enterprise/deploy/PHASE-N-STAGE25-ACCEPTANCE.md",
-        "tests/unit/measured-device-telemetry-stage25.test.js",
-        "database/migrations/012_measured_device_telemetry.sql"
-      ],
-      "removed": [],
-      "changed": [
-        "test-migrations-runner.js",
-        "database/mysql/schema.sql",
-        "server.js",
-        "Enterprise/portal/index.html",
-        "Enterprise/agent/Aaditech-Agent.ps1",
-        "docs/assessment/RELEASE-READINESS.md",
-        "db.js",
-        "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md",
-        "Enterprise/deploy/PHASE-N-STAGE24-ACCEPTANCE.md",
-        "database/migrations/README.md",
-        "CHANGELOG.md",
-        "docs/assessment/TEST-RESULTS.md",
-        "docs/assessment/GAP-REGISTER.md"
-      ],
-      "unchanged_count": 297
-    },
     {
       "detected_at": "2026-11-17T18:29:11+00:00",
       "added": [
@@ -417,6 +391,21 @@
         "Enterprise/deploy/Test-WindowsPinnedPublicHttps.ps1"
       ],
       "unchanged_count": 370
+    },
+    {
+      "detected_at": "2026-11-20T00:57:54+00:00",
+      "added": [
+        "Enterprise/tests/test_stage44_windows_health_evidence.py",
+        "Enterprise/deploy/PHASE-N-STAGE44-ACCEPTANCE.md",
+        "Enterprise/deploy/audit-windows-health-evidence.py"
+      ],
+      "removed": [],
+      "changed": [
+        "Enterprise/deploy/PHASE-N-STAGE43-ACCEPTANCE.md",
+        "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md",
+        ".github/workflows/deployment-safety.yml"
+      ],
+      "unchanged_count": 374
     }
   ],
   "next_recommended_tasks": [

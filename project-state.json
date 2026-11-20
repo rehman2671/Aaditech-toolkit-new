@@ -1,31 +1,30 @@
 {
   "state_version": "1.0",
   "path": "project-state.json",
-  "generated": "2026-11-20T00:40:06+00:00",
+  "generated": "2026-11-20T00:57:54+00:00",
   "phase": "PHASE N STAGE 4 / PRODUCTION ACCEPTANCE IN PROGRESS",
-  "last_verified_commit": "d6a974d7c1fb24cd292051a98a3ba7824cf22069",
-  "last_verified_date": "2026-11-20T06:09:55+05:30",
+  "last_verified_commit": "004ad08ca02eef0e1503ba1a22f36a01668b2d18",
+  "last_verified_date": "2026-11-20T06:27:43+05:30",
   "git": {
     "branch": "main",
     "commit_count": 1,
     "clean_working_tree": true,
-    "head": "d6a974d7c1fb24cd292051a98a3ba7824cf22069"
+    "head": "004ad08ca02eef0e1503ba1a22f36a01668b2d18"
   },
   "latest_delta": {
-    "detected_at": "2026-11-20T00:40:06+00:00",
+    "detected_at": "2026-11-20T00:57:54+00:00",
     "added": [
-      "Enterprise/tests/Test-Stage43WindowsPinnedHttpsFaults.ps1",
-      "Enterprise/deploy/PHASE-N-STAGE43-ACCEPTANCE.md"
+      "Enterprise/tests/test_stage44_windows_health_evidence.py",
+      "Enterprise/deploy/PHASE-N-STAGE44-ACCEPTANCE.md",
+      "Enterprise/deploy/audit-windows-health-evidence.py"
     ],
     "removed": [],
     "changed": [
+      "Enterprise/deploy/PHASE-N-STAGE43-ACCEPTANCE.md",
       "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md",
-      "Enterprise/deploy/PHASE-N-STAGE42-ACCEPTANCE.md",
-      "Enterprise/deploy/PublicWindowsPinnedTls.psm1",
-      ".github/workflows/ci.yml",
-      "Enterprise/deploy/Test-WindowsPinnedPublicHttps.ps1"
+      ".github/workflows/deployment-safety.yml"
     ],
-    "unchanged_count": 370
+    "unchanged_count": 374
   },
   "production_ready": false,
   "acceptance_gates": [

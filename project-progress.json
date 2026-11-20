@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-20T02:06:14+00:00",
-  "last_verified_commit": "ee1b90cd6bbd3ae03d48dd1b10be565eb31f44e9",
-  "last_verified_date": "2026-11-20T07:36:02+05:30",
+  "generated": "2026-11-20T03:56:09+00:00",
+  "last_verified_commit": "d70bc960d511288be81fee236663c6096f9da8c5",
+  "last_verified_date": "2026-11-20T09:25:58+05:30",
   "overall_progress_percent": 100.0,
   "progress_scope": "historic audit issue closure only; production acceptance pending",
   "production_ready": false,
@@ -16,37 +16,10 @@
   "latest_delta": {
     "added": 2,
     "removed": 0,
-    "changed": 4,
-    "unchanged": 379
+    "changed": 5,
+    "unchanged": 380
   },
   "delta_history": [
-    {
-      "detected_at": "2026-11-17T21:38:19+00:00",
-      "added": [
-        "test-event-idempotency-mysql.js",
-        "tests/unit/event-idempotency-stage28.test.js",
-        "Enterprise/deploy/PHASE-N-STAGE28-ACCEPTANCE.md",
-        "database/migrations/013_events_idempotency.sql"
-      ],
-      "removed": [],
-      "changed": [
-        "database/mysql/schema.sql",
-        "docs/assessment/GAP-REGISTER.md",
-        "Enterprise/deploy/PHASE-N-STAGE27-ACCEPTANCE.md",
-        ".github/workflows/ci.yml",
-        "database/migrations/README.md",
-        "Enterprise/agent/Agent-Collect.ps1",
-        "server.js",
-        "db.js",
-        "validation.js",
-        "Enterprise/tests/Test-CanonicalAgent-AckCadence.ps1",
-        "docs/assessment/TEST-RESULTS.md",
-        "test-migrations-runner.js",
-        "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md",
-        "docs/assessment/RELEASE-READINESS.md"
-      ],
-      "unchanged_count": 304
-    },
     {
       "detected_at": "2026-11-17T22:05:33+00:00",
       "added": [
@@ -397,6 +370,22 @@
         "Enterprise/deploy/PHASE-N-STAGE45-ACCEPTANCE.md"
       ],
       "unchanged_count": 379
+    },
+    {
+      "detected_at": "2026-11-20T03:56:09+00:00",
+      "added": [
+        "Enterprise/tests/Test-Stage47WindowsProbeCleanup.ps1",
+        "Enterprise/deploy/PHASE-N-STAGE47-ACCEPTANCE.md"
+      ],
+      "removed": [],
+      "changed": [
+        "Enterprise/deploy/PHASE-N-STAGE46-ACCEPTANCE.md",
+        ".github/workflows/ci.yml",
+        "Enterprise/deploy/PrivateWindowsProbeWorkspace.psm1",
+        "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md",
+        "Enterprise/deploy/Test-WindowsPinnedPublicHttps.ps1"
+      ],
+      "unchanged_count": 380
     }
   ],
   "next_recommended_tasks": [

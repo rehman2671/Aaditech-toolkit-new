@@ -1,30 +1,31 @@
 {
   "state_version": "1.0",
   "path": "project-state.json",
-  "generated": "2026-11-20T02:06:14+00:00",
+  "generated": "2026-11-20T03:56:09+00:00",
   "phase": "PHASE N STAGE 4 / PRODUCTION ACCEPTANCE IN PROGRESS",
-  "last_verified_commit": "ee1b90cd6bbd3ae03d48dd1b10be565eb31f44e9",
-  "last_verified_date": "2026-11-20T07:36:02+05:30",
+  "last_verified_commit": "d70bc960d511288be81fee236663c6096f9da8c5",
+  "last_verified_date": "2026-11-20T09:25:58+05:30",
   "git": {
     "branch": "main",
     "commit_count": 1,
     "clean_working_tree": true,
-    "head": "ee1b90cd6bbd3ae03d48dd1b10be565eb31f44e9"
+    "head": "d70bc960d511288be81fee236663c6096f9da8c5"
   },
   "latest_delta": {
-    "detected_at": "2026-11-20T02:06:14+00:00",
+    "detected_at": "2026-11-20T03:56:09+00:00",
     "added": [
-      "Enterprise/tests/Test-Stage46AtomicWindowsProbeAcl.ps1",
-      "Enterprise/deploy/PHASE-N-STAGE46-ACCEPTANCE.md"
+      "Enterprise/tests/Test-Stage47WindowsProbeCleanup.ps1",
+      "Enterprise/deploy/PHASE-N-STAGE47-ACCEPTANCE.md"
     ],
     "removed": [],
     "changed": [
-      "Enterprise/deploy/PrivateWindowsProbeWorkspace.psm1",
+      "Enterprise/deploy/PHASE-N-STAGE46-ACCEPTANCE.md",
       ".github/workflows/ci.yml",
+      "Enterprise/deploy/PrivateWindowsProbeWorkspace.psm1",
       "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md",
-      "Enterprise/deploy/PHASE-N-STAGE45-ACCEPTANCE.md"
+      "Enterprise/deploy/Test-WindowsPinnedPublicHttps.ps1"
     ],
-    "unchanged_count": 379
+    "unchanged_count": 380
   },
   "production_ready": false,
   "acceptance_gates": [

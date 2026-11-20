@@ -61,7 +61,7 @@ function Assert-N51Reject {
     try { $null=& $Action } catch {
         $refused=$true
         if ($_.Exception.Message -cne 'Windows curl approval manifest blocked.') {
-            throw 'N51 refusal disclosed path, certificate or manifest.'
+            throw ('N51 unexpected test-only fixture error in {0}: {1}: {2}' -f $Reason, $_.Exception.GetType().Name, $_.Exception.Message)
         }
     }
     if (-not $refused) { throw ('N51 wrongly accepted: '+$Reason) }

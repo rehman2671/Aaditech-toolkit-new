@@ -1,9 +1,10 @@
 # Phase N — Production release acceptance and sign-off
 
-## Stage N55 — exact signed EXE/MSI revalidation immediately before release upload (CODE PROPOSED; CI PENDING; PRODUCTION BLOCKED)
+## Stage N55 — exact signed EXE/MSI revalidation immediately before release upload (MERGED; PR CI 3/3 + SAFETY 2/2 GREEN; MAIN MSI PENDING; PRODUCTION BLOCKED)
 
-- [ ] Protected manual `main` signing-only publication must fail if post-signing install/upgrade rehearsals altered EXE, MSI or canonical two-line `SHA256SUMS.txt`. Recheck exact version, both hashes, one MSI, Authenticode trusted timestamp plus independently approved publisher cert and embedded SQLite N54 pin by re-extracting **the final signed MSI**. Require `PUBLICATION_VERIFIED=true` in addition to `PUBLISH_SIGNED=true` to upload.
-- [ ] Real Windows PowerShell 5.1 and 7 synthetic manifest tamper/reorder/duplicate/version tests, static workflow ordering; N31–N54 baseline, Node/Vitest+MySQL, API/MySQL and deployment-safety CI and main post-merge Windows EXE/MSI **4/4** plus safety **2/2**.
+- [x] Protected manual `main` publication now revalidates exact version, both EXE/MSI hashes and canonical two-line SHA256SUMS, one MSI, OS-trusted timestamp and pinned publisher cert, actual SQLite embedded in fresh final signed MSI extraction, and **blank external and embedded setup configs**. Upload requires both `PUBLISH_SIGNED=true` and `PUBLICATION_VERIFIED=true`.
+- [x] Real Windows PowerShell 5.1/7 synthetic manifest tamper/reorder/duplicate/version tests and workflow upload order, prior N31–N54, Node/Vitest+MySQL and API/MySQL [PR CI 3/3](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44733275703) and [safety 2/2](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44733275562). [PR #50](https://github.com/rehman2671/Aaditech-toolkit-new/pull/50) merged at `0d39f773162bb32f00b47898903ddb0b89b460e3`.
+- [ ] Independently verify new **main** Windows EXE/MSI lifecycle **4/4** and deployment safety **2/2**; main push runs [CI](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44733652919) and [safety](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44733653033) in progress at initial evidence update.
 - [ ] Actual protected manual signing/reviewer-controlled publisher custody, exact vetted SQLite ZIP/EXE fingerprints, customer Hostinger DNS/TLS, physical lost-ACK+MySQL receipts, offsite recovery and owner security sign-off remain **PENDING**. **Production NOT APPROVED.**
 
 See [N55 acceptance](PHASE-N-STAGE55-ACCEPTANCE.md) and [issue #29](https://github.com/rehman2671/Aaditech-toolkit-new/issues/29).

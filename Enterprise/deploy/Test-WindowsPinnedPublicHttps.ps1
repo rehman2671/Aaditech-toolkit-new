@@ -31,6 +31,7 @@ if (Test-Path -LiteralPath $ReportPath) {
 Import-Module -Name (Join-Path $PSScriptRoot 'PublicWindowsPinnedTls.psm1') -Force -ErrorAction Stop
 Import-Module -Name (Join-Path $PSScriptRoot 'PublicWindowsAddressPolicy.psm1') -Force -ErrorAction Stop
 Import-Module -Name (Join-Path $PSScriptRoot 'ValidateWindowsHealthJson.psm1') -Force -ErrorAction Stop
+Import-Module -Name (Join-Path $PSScriptRoot 'PrivateWindowsProbeWorkspace.psm1') -Force -ErrorAction Stop
 
 $mode = if ($DryRun) { 'OFFLINE_DRY_RUN' } else { 'OPERATOR_CONFIRMED_LIVE' }
 $state = 'BLOCKED'
@@ -66,15 +67,19 @@ try {
         if ($env:OS -cne 'Windows_NT') { throw 'Windows host required.' }
         $dnsHost = $origin.Substring('https://'.Length)
 
+        # N45: create and verify an ACL-protected response directory and an
+        # exclusive ordinary response file BEFORE resolving DNS or running
+        # curl. Never write privileged probe output into redirected %TEMP%.
+        $phase = 'PRIVATE_WORKSPACE'
+        $workspace = New-PrivateWindowsProbeWorkspace
+        $temporaryDirectory = $workspace.Directory
+        $responseFile = $workspace.ResponsePath
+        $phase = 'LIVE_DNS'
         # OS resolver's returned set must be entirely public. OS lookup is not
         # proof of every globally published A/AAAA record; --resolve pins one
         # vetted address and prevents a second lookup during connection.
         $ips = @([System.Net.Dns]::GetHostAddresses($dnsHost) |
             ForEach-Object { $_.ToString() })
-        $temporaryDirectory = Join-Path ([IO.Path]::GetTempPath()) (
-            'aaditech-n42-' + [guid]::NewGuid().ToString('N'))
-        [IO.Directory]::CreateDirectory($temporaryDirectory) | Out-Null
-        $responseFile = Join-Path $temporaryDirectory 'response.json'
         $curlArguments = @(New-PublicWindowsPinnedCurlArguments -Endpoint $endpoint -ResolvedAddressLiterals $ips -ResponsePath $responseFile)
 
         # Only use OS-owned curl. Fake curl.exe earlier in PATH must never

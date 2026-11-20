@@ -3,6 +3,9 @@
 # consented public HTTPS /healthz operator diagnostic. No config, DNS, network,
 # curl, credential, registry or customer production acceptance functionality.
 Set-StrictMode -Version Latest
+# N47: only response directories created in this module session may be
+# finalized. Do not expose an unrestricted recursive delete primitive.
+$script:ActivePrivateWindowsProbeWorkspaces = @{}
 
 function New-PrivateWindowsProbeWorkspace {
     [CmdletBinding()]
@@ -121,6 +124,7 @@ function New-PrivateWindowsProbeWorkspace {
             $leaf.Length -ne 0) {
             throw 'Private health response target invalid.'
         }
+        $script:ActivePrivateWindowsProbeWorkspaces[$directory] = $responsePath
         return [pscustomobject]@{
             Directory = $directory
             ResponsePath = $responsePath
@@ -138,4 +142,63 @@ function New-PrivateWindowsProbeWorkspace {
     }
 }
 
-Export-ModuleMember -Function New-PrivateWindowsProbeWorkspace
+# N47: strict bounded cleanup. Success means BOTH the response file and
+# private directory are gone. Do not report a healthy transport when a
+# potentially sensitive health-response file remains on disk.
+function Remove-PrivateWindowsProbeWorkspace {
+    [CmdletBinding()]
+    param([Parameter(Mandatory=$true)][psobject]$Workspace)
+
+    try {
+        $directory = [string]$Workspace.Directory
+        $responsePath = [string]$Workspace.ResponsePath
+        if ([string]::IsNullOrWhiteSpace($directory) -or
+            [string]::IsNullOrWhiteSpace($responsePath) -or
+            -not $script:ActivePrivateWindowsProbeWorkspaces.ContainsKey($directory) -or
+            $script:ActivePrivateWindowsProbeWorkspaces[$directory] -cne $responsePath) {
+            throw 'Workspace was not created in this module session.'
+        }
+        # Only accept the same canonical LocalApplicationData child this
+        # module produced. In particular, NEVER recurse into arbitrary paths.
+        $base = [IO.Path]::GetFullPath([Environment]::GetFolderPath(
+            [Environment+SpecialFolder]::LocalApplicationData))
+        $parent = [IO.Path]::GetDirectoryName($directory)
+        if (-not [string]::Equals($parent,$base,[StringComparison]::OrdinalIgnoreCase) -or
+            [IO.Path]::GetFileName($directory) -cnotmatch
+                '^aaditech-private-health-[a-f0-9]{32}$' -or
+            -not [string]::Equals([IO.Path]::GetDirectoryName($responsePath),
+                $directory,[StringComparison]::OrdinalIgnoreCase) -or
+            [IO.Path]::GetFileName($responsePath) -cne 'response.json') {
+            throw 'Workspace does not match expected local path.'
+        }
+        $dirInfo = Get-Item -LiteralPath $directory -Force -ErrorAction Stop
+        if ($dirInfo -isnot [IO.DirectoryInfo] -or
+            ($dirInfo.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+            throw 'Workspace directory was replaced.'
+        }
+        # Never delete unexpected files/directories, nor follow a reparse
+        # point. An unrecognized file means cleanup must fail closed and
+        # remain subject to manual security investigation.
+        $children = @(Get-ChildItem -LiteralPath $directory -Force -ErrorAction Stop)
+        if ($children.Count -ne 1 -or
+            $children[0] -isnot [IO.FileInfo] -or
+            $children[0].Name -cne 'response.json' -or
+            ($children[0].Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+            throw 'Workspace contains unexpected files.'
+        }
+        [IO.File]::Delete($responsePath)
+        [IO.Directory]::Delete($directory, $false)
+        if (Test-Path -LiteralPath $directory) {
+            throw 'Workspace still exists after cleanup.'
+        }
+        $script:ActivePrivateWindowsProbeWorkspaces.Remove($directory)
+        return $true
+    } catch {
+        # Retain the session record on failures so the operator/test can
+        # retry after a transient file lock clears; never disclose paths,
+        # health contents or Windows identities in a report/error message.
+        throw 'Private Windows health workspace cleanup blocked.'
+    }
+}
+
+Export-ModuleMember -Function New-PrivateWindowsProbeWorkspace, Remove-PrivateWindowsProbeWorkspace

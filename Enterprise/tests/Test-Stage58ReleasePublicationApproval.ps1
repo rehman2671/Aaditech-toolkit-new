@@ -40,16 +40,22 @@ foreach ($marker in @('Assert-N55SignedPublicationManifest','Assert-N54ApprovedS
 }
 $verifyStart=$release.IndexOf('N58 verify same signed source reviewer approval',[StringComparison]::Ordinal)
 $artifactCheck=$release.IndexOf('Verify version and exact trusted EXE/MSI publisher',[StringComparison]::Ordinal)
+$firstApproval=$release.IndexOf('Assert-PublicationReviewerApproval.ps1',[StringComparison]::Ordinal)
 $lastApproval=$release.LastIndexOf('Assert-PublicationReviewerApproval.ps1',[StringComparison]::Ordinal)
+$firstPayload=$release.IndexOf('Verify-ReleaseArtifact.ps1',[StringComparison]::Ordinal)
 $lastPayload=$release.LastIndexOf('Verify-ReleaseArtifact.ps1',[StringComparison]::Ordinal)
-$create=$release.IndexOf('gh release create',[StringComparison]::Ordinal)
+$create=$release.IndexOf('& gh release create',[StringComparison]::Ordinal)
+$publish=$release.IndexOf('& gh release edit',[StringComparison]::Ordinal)
 $upload=$ci.IndexOf('Upload verified signed artifacts only',[StringComparison]::Ordinal)
 $receiptStep=$ci.IndexOf('N58 record final verified source reviewer approval identity',[StringComparison]::Ordinal)
 if ($verifyStart -lt 0 -or $artifactCheck -le $verifyStart -or
-    $lastApproval -le $artifactCheck -or $lastPayload -le $lastApproval -or
-    $create -le $lastPayload -or $receiptStep -lt 0 -or $upload -le $receiptStep -or
+    $firstApproval -le $verifyStart -or $firstApproval -ge $artifactCheck -or
+    $firstPayload -le $artifactCheck -or $firstPayload -ge $create -or
+    $lastApproval -le $create -or $lastPayload -le $lastApproval -or
+    $publish -le $lastPayload -or
+    $receiptStep -lt 0 -or $upload -le $receiptStep -or
     $ci.IndexOf("env.RELEASE_APPROVAL_RECEIPT_VERIFIED == 'true'",[StringComparison]::Ordinal) -lt 0 -or
-    [regex]::Matches($release,'Assert-PublicationReviewerApproval.ps1').Count -ne 2 -or
+    [regex]::Matches($release,'Assert-PublicationReviewerApproval.ps1').Count -ne 3 -or
     $release.IndexOf('$assets.Count -ne 3',[StringComparison]::Ordinal) -lt 0) {
     throw 'N58 protected GitHub Release and source CI step ordering bypassed.'
 }

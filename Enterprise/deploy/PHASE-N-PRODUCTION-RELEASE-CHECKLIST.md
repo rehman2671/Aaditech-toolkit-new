@@ -1,10 +1,10 @@
 # Phase N — Production release acceptance and sign-off
 
-## Stage N47 — fail-closed private Windows HTTPS response cleanup (CODE PROPOSED; PR CI PENDING; PRODUCTION BLOCKED)
+## Stage N47 — fail-closed private Windows HTTPS response cleanup (MERGED; MAIN MSI CI 4/4 AND SAFETY 2/2 GREEN; PRODUCTION BLOCKED)
 
-- [ ] Fix N42–N46 silent `Remove-Item -ErrorAction SilentlyContinue` outcome: only report `PASS` after the exact private response file and workspace directory are **verified deleted**; cleanup failure forces redacted `BLOCKED/PRIVATE_WORKSPACE_CLEANUP` before report creation.
-- [ ] Session-owned private workspace cleanup refuses arbitrary directories, reparse targets and unexpected sibling files, never recursively deletes unknown content; locked files and partial-deletion retry fail closed and remain independently testable.
-- [ ] Windows PowerShell 7 and actual Windows PowerShell 5.1 offline file-lock, forged/missing workspace, unexpected child and bounded cleanup tests; PR Node/Vitest+MySQL, API/MySQL, deployment safety, merge and new main Windows MSI lifecycle 4/4 and safety 2/2.
+- [x] Fix N42–N46 silent `Remove-Item -ErrorAction SilentlyContinue` outcome: only report `PASS` after the exact private response file and workspace directory are **verified deleted**; cleanup failure forces redacted `BLOCKED/PRIVATE_WORKSPACE_CLEANUP` before report creation.
+- [x] Session-owned private workspace cleanup refuses arbitrary directories, reparse targets and unexpected sibling files, never recursively deletes unknown content; locked files and partial-deletion retry fail closed and remain independently testable.
+- [x] Windows PowerShell 7 and actual Windows PowerShell 5.1 offline file-lock/forged-workspace/unknown-child/partial-cleanup tests, Node/Vitest+MySQL, API/MySQL and deployment safety passed. PR #42 merged as `d70bc960d511288be81fee236663c6096f9da8c5`. [Main CI #44671007434](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44671007434) **4/4** including EXE/MSI build, extraction, install/uninstall and major upgrade; [main safety #44671007490](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44671007490) **2/2** passed. Signed public artifact upload SKIPPED.
 - [ ] Independently approved physical Windows AV/cleanup and HTTPS fault drilling, real Hostinger DNS/TLS ownership, publisher-signed public MSI, physical queue lost-ACK replay, offsite restore and human security acceptance remain PENDING. **Production NOT APPROVED**.
 
 See [N47 acceptance](PHASE-N-STAGE47-ACCEPTANCE.md) and [Issue #29](https://github.com/rehman2671/Aaditech-toolkit-new/issues/29).

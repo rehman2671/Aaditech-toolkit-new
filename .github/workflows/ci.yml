@@ -125,6 +125,13 @@ jobs:
         shell: powershell
         run: ./Enterprise/tests/Test-Stage46AtomicWindowsProbeAcl.ps1
 
+      - name: N47 verify private HTTPS response cleanup and locked-file refusal (PowerShell 7)
+        run: pwsh -NoProfile -File ./Enterprise/tests/Test-Stage47WindowsProbeCleanup.ps1
+
+      - name: N47 verify fail-closed private HTTPS cleanup on actual Windows PowerShell 5.1
+        shell: powershell
+        run: ./Enterprise/tests/Test-Stage47WindowsProbeCleanup.ps1
+
 
       - name: N31 release publication requires independently approved source and MSI pins
         run: pwsh -NoProfile -File ./Enterprise/tests/Test-Stage31PublicationPins.ps1

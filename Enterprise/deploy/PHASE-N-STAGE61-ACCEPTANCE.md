@@ -133,3 +133,41 @@ evidence of an actual manually protected production release.
   real protected independent N56 reviewer-signed approval, production
   HSM/PFX, signing run, GitHub Release or customer deployment exercised.
   **Production NOT APPROVED.**
+
+## Authorized release-owner handoff — separate unexecuted gate
+
+The production owner must **not** interpret the N61 synthetic success
+or any automatic unsigned `push` MSI as public-release authorization.
+The actual workflow sequence requires human-controlled decisions and
+independent evidence:
+
+1. Independently review exact `main` source commit SHA, agent version/
+   MSI revision, vetted SQLite ZIP SHA256, vetted embedded
+   `sqlite3.exe` SHA256 and the actual publisher Authenticode
+   certificate thumbprint. A security reviewer signs the canonical
+   short-lived N56 release scope using a private RSA key retained
+   **outside** the repository and Actions.
+2. After protected `production-installer` environment approval, run
+   the manual signed `CI` workflow on that exact approved `main`
+   SHA. Confirm all N55/N56/N58 signer, reviewer receipt, embedded
+   payload and artifact upload gates succeeded. The resulting signed
+   artifact must be independently evaluated; the runner cannot
+   self-approve its own SHA.
+3. Only an authorized release owner can manually dispatch
+   `Publish approved signed Windows installer` with the reviewed CI
+   source run ID, exact 40-hex source commit, independently recorded
+   64-hex MSI digest, matching release tag, and explicit
+   `PUBLISH_SIGNED_AGENT` confirmation. N59–N61 must validate the
+   actual **private draft's release ID and three uploaded hosted
+   digests** and later the newly published Git commit tag; any mismatch
+   is a release incident or blocked draft, not a success.
+4. Separately collect Hostinger DNS/TLS and actual deployed server
+   admission results, physical Windows first-run enrollment and
+   lost-ACK/replay verification receipts tied to tenant/device,
+   encrypted offsite restore proof and security-owner final signoff.
+   Neither source CI nor GitHub Release publication alone satisfies
+   these customer production controls.
+
+**No protected manual production build, public GitHub release or
+customer Hostinger/physical Windows operation was executed here.
+Production remains NOT APPROVED.**

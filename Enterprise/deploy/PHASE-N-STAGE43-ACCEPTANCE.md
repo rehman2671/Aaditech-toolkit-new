@@ -1,6 +1,6 @@
 # Phase N Stage 43 — Exact-origin consent & offline Windows HTTPS fault injection
 
-**Status: CODE PROPOSED; NEW CI EVIDENCE PENDING; CUSTOMER PRODUCTION NOT APPROVED (2026-11-20 IST).**
+**Status: MERGED; MAIN CI/MSI 4/4 AND SAFETY 2/2 GREEN; CUSTOMER PRODUCTION NOT APPROVED (verified 2026-11-20 IST).**
 
 ## Security objective
 
@@ -76,10 +76,10 @@ approval. New report filenames must not exist.
 
 ## Verification gates
 
-- [ ] N43 Windows PowerShell 7 and **5.1** offline negative tests pass.
-- [ ] PR Node/Vitest+MySQL, API/MySQL and deployment-safety suites pass.
-- [ ] PR merged with verified head and new main Windows MSI diagnostic 4/4
-  (EXE/MSI build/extract/install/uninstall/upgrade) plus safety 2/2 pass.
+- [x] N43 Windows PowerShell 7 and **5.1** offline negative tests passed.
+- [x] PR Node/Vitest+MySQL, API/MySQL and deployment-safety suites passed.
+- [x] PR #38 merged with verified head; new main Windows MSI diagnostic 4/4
+  (EXE/MSI build/extract/install/uninstall/upgrade) plus safety 2/2 passed.
 - [ ] Independent review of OS curl/Schannel, native exit handling, local
   temp-file ownership/ACL, signed executable provenance, and DNS answer
   completeness on approved physical Windows.
@@ -91,3 +91,11 @@ approval. New report filenames must not exist.
 
 **Production: NOT APPROVED.** [Issue #29](https://github.com/rehman2671/Aaditech-toolkit-new/issues/29)
 remains OPEN until transport and customer acceptance are independently verified.
+
+## Verified source/CI evidence — not customer approval
+
+- [PR #38](https://github.com/rehman2671/Aaditech-toolkit-new/pull/38) merged verified head `21addbdd11e9c77552aa53ee4c3aa8018bab0fdc` to `main` as `d6a974d7c1fb24cd292051a98a3ba7824cf22069` after PowerShell 7/Windows PowerShell 5.1 N43 offline negative tests, Node/Vitest+MySQL, API/MySQL and deployment-safety passed.
+- [Main CI #44647657565](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44647657565) **4/4 SUCCESS**: PowerShell, Node/Vitest+MySQL, API/MySQL and Windows EXE/MSI build, Windows Installer administrative extraction, fresh install/uninstall and major-upgrade/tenant-config preservation.
+- [Main safety #44647657434](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44647657434) **2/2 SUCCESS**: bash/offline recovery and isolated MySQL backup/restore.
+- The diagnostic MSI signature-validation workflow step passed but **`Upload verified signed artifacts only` was SKIPPED**. This is not approved production code-signing or signed public installer publication.
+- No real customer Windows DNS/TLS fault injection, Hostinger ownership verification, independent security review, physical queue ACK proof or offsite restore is provided by synthetic CI. N31 `-NetworkProbe` remains BLOCKED and Issue #29 remains OPEN.

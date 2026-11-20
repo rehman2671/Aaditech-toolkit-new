@@ -1,6 +1,6 @@
 # Phase N Stage 61 — Offline integration coverage for the protected remote release verifier
 
-**Status: CODE PROPOSED; PR CI / POST-MERGE MAIN ACCEPTANCE PENDING; CUSTOMER PRODUCTION NOT APPROVED (2026-11-21 IST).**
+**Status: MERGED; PR CI 3/3 + SAFETY 2/2 SUCCESS; FRESH MAIN DIAGNOSTIC EXE/MSI 4/4 + SAFETY 2/2 SUCCESS; PROJECT INDEX SUCCESS; REAL PROTECTED RELEASE PENDING; CUSTOMER PRODUCTION NOT APPROVED (2026-11-21 IST).**
 
 ## Gap and acceptance objective
 
@@ -70,12 +70,15 @@ external release or user action.
 
 ## Acceptance checklist
 
-- [ ] Windows PowerShell 5.1 and 7 N61 bridge tests passed, N31–N60
-  suites and PR application CI **3/3**; deployment safety **2/2**.
-- [ ] Reviewed PR merged; fresh `main` PowerShell, Node/MySQL and
-  API/MySQL, plus **real diagnostic Windows MSI** build, administrative
-  extraction, real install/clean uninstall and tenant-preserving major
-  upgrade **4/4**; deployment safety **2/2**; project index refreshed.
+- [x] Windows PowerShell 5.1 and 7 N61 actual-bridge tests,
+  N31–N60 security suites and PR application CI **3/3 SUCCESS**,
+  deployment safety **2/2 SUCCESS**.
+- [x] Reviewed [PR #56](https://github.com/rehman2671/Aaditech-toolkit-new/pull/56)
+  merged as `3da09f17966852770a8b8f7f9a03e31536685564`;
+  fresh `main` PowerShell, Node/MySQL and API/MySQL, plus
+  **real diagnostic Windows EXE/MSI** build, administrative extraction,
+  actual installed setup/clean uninstall and major upgrade preserving
+  tenant settings **4/4 SUCCESS**; safety **2/2 SUCCESS**; index refreshed.
 - [ ] Exact independently reviewed N56 RSA reviewer manifest,
   publisher certificate/HSM custody and SQLite hashes; protected
   `CI` signed source run, real GitHub draft/attested public release
@@ -103,3 +106,30 @@ succeeded. Its last documentation-only
 [CI 44783129692](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44783129692)
 also completed successfully. These runs precede N61 and are not
 evidence of an actual manually protected production release.
+
+## Independently verified N61 GitHub evidence
+
+- [PR #56](https://github.com/rehman2671/Aaditech-toolkit-new/pull/56)
+  final reviewed head `f03f6f34dd75394e7fe103c8024b0738127e31e0`,
+  merged as `3da09f17966852770a8b8f7f9a03e31536685564`.
+- [PR CI 44799410572](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44799410572):
+  **3/3 SUCCESS**, including actual remote-verifier script run with an
+  offline `gh api` stub under both real Windows PowerShell **5.1 and 7**,
+  all existing N31–N60 tests, Node/Vitest+MySQL and API/MySQL.
+  PR MSI packaging was intentionally skipped.
+- [PR deployment safety 44799410550](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44799410550):
+  **2/2 SUCCESS**, isolated real MySQL backup/restore and
+  offline deployment recovery.
+- [Fresh merged main CI 44799875413](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44799875413):
+  **4/4 SUCCESS**, full PowerShell tests, Node/Vitest+MySQL, API/MySQL,
+  real Windows EXE + WiX MSI build, administrative extraction, MSI
+  install/clean uninstall, and major upgrade retaining tenant config.
+- [Main deployment safety 44799875476](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44799875476):
+  **2/2 SUCCESS**. [Project index maintenance 44799875343](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44799875343):
+  **SUCCESS**.
+- Correct non-publishable `push` behavior:
+  `Verify final signed artifact publication` and
+  `Upload verified signed artifacts only` **SKIPPED**. No
+  real protected independent N56 reviewer-signed approval, production
+  HSM/PFX, signing run, GitHub Release or customer deployment exercised.
+  **Production NOT APPROVED.**

@@ -1,5 +1,14 @@
 # Phase N — Production release acceptance and sign-off
 
+## Stage N49 — independently approved Windows curl signer certificate SHA-256 (CODE PROPOSED; PR CI PENDING; PRODUCTION BLOCKED)
+
+- [ ] Require per-live-invocation `-ApprovedCurlSignerSha256` in addition to exact approved origin and live operator confirmation; block missing, 40-character SHA-1, wrong, malformed or unapproved certificate pins **before customer DNS** without leaking certificate/fingerprint data. No pin or live option permitted for offline `-DryRun`.
+- [ ] Compare the approved 64-hex SHA-256 against the Authenticode signing certificate's DER bytes, never infer from local Windows host in live mode, and retain OS-owned signed curl/Schannel and pinned public-IP checks. This is a *signer certificate fingerprint*, not a curl EXE hash or HTTPS server certificate pin.
+- [ ] Windows PowerShell 5.1/7 synthetic mismatch and CI-only self-derived hash tests; prior N31–N48, Node/Vitest+MySQL, API/MySQL and deployment safety green; authorized PR merge and main Windows MSI **4/4** plus safety **2/2**.
+- [ ] Independent owner approval of Microsoft Windows curl signer certificate hash, physical customer Windows / Hostinger DNS+TLS, genuine publisher-signed public MSI/HSM, lost-ACK/MySQL evidence, encrypted offsite restore, integrations and release sign-off still **PENDING**. **Production NOT APPROVED**.
+
+See [N49 acceptance](PHASE-N-STAGE49-ACCEPTANCE.md) and [Issue #29](https://github.com/rehman2671/Aaditech-toolkit-new/issues/29).
+
 ## Stage N48 — actual Windows system curl signer and Schannel provenance preflight (MERGED; MAIN MSI CI 4/4 AND SAFETY 2/2 GREEN; PRODUCTION BLOCKED)
 
 - [x] Independently execute local `[Environment]::SystemDirectory\curl.exe` Authenticode signer validation and Schannel backend inspection in actual Windows PowerShell 7 and 5.1 CI. Reject reparse sources, invalid vendor signature, spoofed second-line `Schannel`, OpenSSL, native exit errors and unbounded output; never use PATH-provided curl.

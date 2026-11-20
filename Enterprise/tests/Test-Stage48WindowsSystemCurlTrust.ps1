@@ -26,7 +26,7 @@ foreach ($required in @(
     "Join-Path", # only applies to operator wrapper, not module
     'Get-AuthenticodeSignature -LiteralPath $curlPath',
     '[IO.FileAttributes]::ReparsePoint',
-    "& $curlPath -q --version",
+    '& $curlPath -q --version',
     "Assert-PublicWindowsCurlVersionHeader -ExitCode $nativeExit"
 )) {
     if ($required -ceq 'Join-Path') { continue }

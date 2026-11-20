@@ -1,8 +1,8 @@
 # Phase N — Production release acceptance and sign-off
 
-## Stage N64 — PS2EXE complete payload hash continuity (IMPLEMENTED FOR REVIEW; CI/INDEPENDENT REVIEW PENDING)
+## Stage N64 — PS2EXE complete payload hash continuity (PR CI 3/3 + SAFETY 2/2 SUCCESS; INDEPENDENT REVIEW/MAIN MSI PENDING)
 
-- [ ] N64 full module-tree fingerprints from N63 SHA-approved extraction through copied WindowsPowerShell module files to pre-import compiler admission. Synthetic tamper/add/remove/symlink fault tests added for Windows PowerShell 5.1 and 7; **review and CI pending**.
+- [ ] N64 full module-tree fingerprints from N63 SHA-approved extraction through copied WindowsPowerShell module files to pre-import compiler admission. Synthetic tamper/add/remove/symlink fault tests **passed** on Windows PowerShell 5.1 and 7 in [PR CI 44828959128](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44828959128) (3/3); [PR safety 44828959211](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44828959211) (2/2). **Independent review, merge and fresh main diagnostic MSI remain pending**.
 - [ ] Genuine independently reviewed N63 NUPKG hash secrets, N56 reviewer authorization, publisher/HSM signing, hosted release attestation and customer Hostinger/Windows acceptance remain **PENDING**. No protected release or customer production approval implied.
 
 ## Stage N63 — independently SHA-approved compiler archives before protected execution (MERGED; PR CI 3/3 + SAFETY 2/2; FRESH MAIN DIAGNOSTIC MSI 4/4 + SAFETY 2/2, INDEX VERIFIED; REAL PROTECTED RELEASE PENDING)

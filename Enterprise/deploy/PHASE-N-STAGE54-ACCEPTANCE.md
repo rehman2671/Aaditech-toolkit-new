@@ -1,6 +1,6 @@
 # Phase N Stage 54 — Independently pinned SQLite binary inside production MSI
 
-**Status: CODE PROPOSED; PR CI PENDING; CUSTOMER PRODUCTION NOT APPROVED (2026-11-20 IST).**
+**Status: MERGED; PR CI 3/3 AND DEPLOYMENT SAFETY 2/2 GREEN; FRESH MAIN EXE/MSI ACCEPTANCE UNVERIFIED; CUSTOMER PRODUCTION NOT APPROVED (2026-11-20 IST).**
 
 ## Security finding
 
@@ -86,13 +86,28 @@ publisher-signing key is used by the offline test.
 
 ## Remaining acceptance
 
-- [ ] PR Windows 5.1/7 N54 and N31–N53 baseline green.
-- [ ] PR Node/Vitest+MySQL, API/MySQL and deployment safety green; review,
-  merge, then inspect fresh **main** Windows EXE/MSI lifecycle **4/4**
-  and deployment safety **2/2** separately.
+- [x] PR Windows 5.1/7 N54 and N31–N53 baseline green.
+- [x] PR Node/Vitest+MySQL, API/MySQL and deployment safety green; reviewed PR merged.
+- [ ] Independently inspect fresh **main** Windows EXE/MSI lifecycle **4/4** and deployment safety **2/2**.
 - [ ] Independently approve two real SQLite version-specific digests,
   actual reviewer key custody, genuine customer Hostinger DNS/TLS, protected
   publisher/HSM MSI signing, physical lost-ACK/tenant MySQL evidence, offsite
   restore and human security owner sign-off.
 
 **Production NOT APPROVED.** See [issue #29](https://github.com/rehman2671/Aaditech-toolkit-new/issues/29).
+
+## Verified GitHub evidence (not production approval)
+
+- [PR #49](https://github.com/rehman2671/Aaditech-toolkit-new/pull/49)
+  head `a6232634774db5a29f822c2d57ef9ff016e4a68e` merged into main at
+  `79915aec4afca14997a21f7b5c5f4143f8cc8ef2`.
+- [PR CI run 44730289683](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44730289683):
+  Windows PowerShell 5.1+7 N54 tests and prior safety regressions, Node/Vitest+
+  MySQL and API/MySQL **3/3 SUCCESS**. Diagnostic EXE/MSI build correctly
+  **SKIPPED** on the pull request.
+- [PR deployment safety 44730289834](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44730289834):
+  offline recovery/Bash and isolated MySQL backup/restore **2/2 SUCCESS**.
+- Fresh **main** diagnostic EXE/MSI install/upgrade/uninstall **4/4** plus
+  safety **2/2** remain **UNVERIFIED** in this record. An actual protected
+  production signing run with independently approved exact SQLite archive
+  and executable digests has **NOT** been performed.

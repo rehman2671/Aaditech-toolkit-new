@@ -1,9 +1,10 @@
 # Phase N — Production release acceptance and sign-off
 
-## Stage N52 — signed curl approval revalidated across live DNS/HTTPS (CODE PROPOSED; CI PENDING; PRODUCTION BLOCKED)
+## Stage N52 — signed curl approval revalidated across live DNS/HTTPS (MERGED; PR CI 3/3 + SAFETY 2/2 GREEN; MAIN MSI PENDING VERIFICATION; PRODUCTION BLOCKED)
 
-- [ ] Reverify same independently pinned N51 RSA reviewer authorization **before DNS**, **immediately before native HTTPS transfer** and **after transfer before PASS**, in addition to the original pre-workspace gate. Invalid/expired/replaced signature fails redacted `BLOCKED`; no cached approval is sufficient.
-- [ ] Actual Windows PowerShell 5.1 + 7 synthetic signed-recheck faults (on-disk mutation, valid RSA but expired manifest, signature replacement), prior N31–N51 suites, Node/Vitest+MySQL, API/MySQL and deployment safety. Merge reviewed PR and require fresh main Windows EXE/MSI lifecycle **4/4** plus safety **2/2**.
+- [x] Reverify same independently pinned N51 RSA reviewer authorization **before DNS**, **immediately before native HTTPS transfer** and **after transfer before PASS**, in addition to the original pre-workspace gate. Invalid/expired/replaced signature fails redacted `BLOCKED`; no cached approval is sufficient.
+- [x] Real Windows PowerShell 5.1 + 7 signed-approval recheck faults, prior N31–N51 suites, Node/Vitest+MySQL, API/MySQL and deployment safety all green in [PR #47](https://github.com/rehman2671/Aaditech-toolkit-new/pull/47): [CI 3/3](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44724914403), [deployment safety 2/2](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44724914312). Merged as `80ce1e7b5327cfc49806db5f38d982b920118b9b`.
+- [ ] Independently inspect fresh **main** Windows EXE/MSI lifecycle **4/4** and deployment safety **2/2**; PR CI skips MSI deliberately. Do not infer production release readiness from a green PR.
 - [ ] Independently approved public reviewer key/origin/curl signer and binary, live Hostinger DNS/TLS, HSM publisher-signed MSI, physical lost-ACK and tenant/MySQL replay evidence, offsite restore and security sign-off remain PENDING. **Production NOT APPROVED.**
 
 See [N52 acceptance](PHASE-N-STAGE52-ACCEPTANCE.md) and [issue #29](https://github.com/rehman2671/Aaditech-toolkit-new/issues/29).

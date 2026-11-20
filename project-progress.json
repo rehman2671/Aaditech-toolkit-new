@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-20T17:19:20+00:00",
-  "last_verified_commit": "be03575d8b0a42d562c5ffdefbdd511b8b02e067",
-  "last_verified_date": "2026-11-20T22:49:01+05:30",
+  "generated": "2026-11-20T17:25:04+00:00",
+  "last_verified_commit": "d2f35068c75a646771a918eccfcb8506a197b21f",
+  "last_verified_date": "2026-11-20T22:54:50+05:30",
   "overall_progress_percent": 100.0,
   "progress_scope": "historic audit issue closure only; production acceptance pending",
   "production_ready": false,
@@ -14,28 +14,12 @@
     "percent": 100.0
   },
   "latest_delta": {
-    "added": 3,
+    "added": 0,
     "removed": 0,
-    "changed": 6,
-    "unchanged": 418
+    "changed": 2,
+    "unchanged": 425
   },
   "delta_history": [
-    {
-      "detected_at": "2026-11-20T00:40:06+00:00",
-      "added": [
-        "Enterprise/tests/Test-Stage43WindowsPinnedHttpsFaults.ps1",
-        "Enterprise/deploy/PHASE-N-STAGE43-ACCEPTANCE.md"
-      ],
-      "removed": [],
-      "changed": [
-        "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md",
-        "Enterprise/deploy/PHASE-N-STAGE42-ACCEPTANCE.md",
-        "Enterprise/deploy/PublicWindowsPinnedTls.psm1",
-        ".github/workflows/ci.yml",
-        "Enterprise/deploy/Test-WindowsPinnedPublicHttps.ps1"
-      ],
-      "unchanged_count": 370
-    },
     {
       "detected_at": "2026-11-20T00:57:54+00:00",
       "added": [
@@ -348,6 +332,16 @@
         ".github/workflows/ci.yml"
       ],
       "unchanged_count": 418
+    },
+    {
+      "detected_at": "2026-11-20T17:25:04+00:00",
+      "added": [],
+      "removed": [],
+      "changed": [
+        "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md",
+        "Enterprise/deploy/PHASE-N-STAGE60-ACCEPTANCE.md"
+      ],
+      "unchanged_count": 425
     }
   ],
   "next_recommended_tasks": [

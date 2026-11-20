@@ -1,33 +1,25 @@
 {
   "state_version": "1.0",
   "path": "project-state.json",
-  "generated": "2026-11-20T17:19:20+00:00",
+  "generated": "2026-11-20T17:25:04+00:00",
   "phase": "PHASE N STAGE 4 / PRODUCTION ACCEPTANCE IN PROGRESS",
-  "last_verified_commit": "be03575d8b0a42d562c5ffdefbdd511b8b02e067",
-  "last_verified_date": "2026-11-20T22:49:01+05:30",
+  "last_verified_commit": "d2f35068c75a646771a918eccfcb8506a197b21f",
+  "last_verified_date": "2026-11-20T22:54:50+05:30",
   "git": {
     "branch": "main",
-    "commit_count": 947,
+    "commit_count": 950,
     "clean_working_tree": true,
-    "head": "be03575d8b0a42d562c5ffdefbdd511b8b02e067"
+    "head": "d2f35068c75a646771a918eccfcb8506a197b21f"
   },
   "latest_delta": {
-    "detected_at": "2026-11-20T17:19:20+00:00",
-    "added": [
-      "Enterprise/agent/build/ReleaseTagLifecycle.psm1",
-      "Enterprise/tests/Test-Stage60DraftTagLifecycle.ps1",
-      "Enterprise/deploy/PHASE-N-STAGE60-ACCEPTANCE.md"
-    ],
+    "detected_at": "2026-11-20T17:25:04+00:00",
+    "added": [],
     "removed": [],
     "changed": [
-      "Enterprise/agent/build/ReleaseAssetAttestation.psm1",
-      ".github/workflows/publish-signed-installer.yml",
-      "Enterprise/tests/Test-Stage59DraftReleaseAttestation.ps1",
       "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md",
-      "Enterprise/agent/build/Assert-RemoteReleaseAssets.ps1",
-      ".github/workflows/ci.yml"
+      "Enterprise/deploy/PHASE-N-STAGE60-ACCEPTANCE.md"
     ],
-    "unchanged_count": 418
+    "unchanged_count": 425
   },
   "production_ready": false,
   "acceptance_gates": [

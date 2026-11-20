@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-20T10:14:33+00:00",
-  "last_verified_commit": "dd418f3f0677770db674c52a03d1b0cb01b923e9",
-  "last_verified_date": "2026-11-20T15:44:21+05:30",
+  "generated": "2026-11-20T10:55:10+00:00",
+  "last_verified_commit": "2d6cc525b140a4e8768f931d9176861db9e2e44d",
+  "last_verified_date": "2026-11-20T16:24:55+05:30",
   "overall_progress_percent": 100.0,
   "progress_scope": "historic audit issue closure only; production acceptance pending",
   "production_ready": false,
@@ -14,32 +14,12 @@
     "percent": 100.0
   },
   "latest_delta": {
-    "added": 2,
+    "added": 3,
     "removed": 0,
-    "changed": 10,
-    "unchanged": 382
+    "changed": 8,
+    "unchanged": 386
   },
   "delta_history": [
-    {
-      "detected_at": "2026-11-18T09:39:10+00:00",
-      "added": [
-        "Enterprise/tests/Invoke-Stage32CustomerReplayAcceptance.ps1",
-        "Enterprise/deploy/PHASE-N-STAGE32-ACCEPTANCE.md",
-        "Enterprise/tests/New-Stage32CustomerEvidenceBundle.ps1",
-        "Enterprise/tests/Test-Stage32CustomerEvidence.ps1"
-      ],
-      "removed": [],
-      "changed": [
-        ".github/workflows/ci.yml",
-        "Enterprise/deploy/PHASE-N-STAGE31-ACCEPTANCE.md",
-        "Enterprise/tests/Test-Windows-MsiUpgrade.ps1",
-        "docs/assessment/GAP-REGISTER.md",
-        "docs/assessment/RELEASE-READINESS.md",
-        "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md",
-        "docs/assessment/TEST-RESULTS.md"
-      ],
-      "unchanged_count": 329
-    },
     {
       "detected_at": "2026-11-18T10:11:28+00:00",
       "added": [
@@ -366,6 +346,26 @@
         "Enterprise/deploy/PHASE-N-STAGE48-ACCEPTANCE.md"
       ],
       "unchanged_count": 382
+    },
+    {
+      "detected_at": "2026-11-20T10:55:10+00:00",
+      "added": [
+        "Enterprise/deploy/WindowsCurlSignedApproval.psm1",
+        "Enterprise/deploy/PHASE-N-STAGE51-ACCEPTANCE.md",
+        "Enterprise/tests/Test-Stage51WindowsCurlSignedApproval.ps1"
+      ],
+      "removed": [],
+      "changed": [
+        ".github/workflows/ci.yml",
+        "Enterprise/deploy/Test-WindowsPinnedPublicHttps.ps1",
+        "Enterprise/deploy/PHASE-N-STAGE48-ACCEPTANCE.md",
+        "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md",
+        "Enterprise/deploy/PHASE-N-STAGE49-ACCEPTANCE.md",
+        "Enterprise/deploy/PHASE-N-STAGE50-ACCEPTANCE.md",
+        "Enterprise/deploy/PHASE-N-STAGE43-ACCEPTANCE.md",
+        "Enterprise/deploy/PHASE-N-STAGE42-ACCEPTANCE.md"
+      ],
+      "unchanged_count": 386
     }
   ],
   "next_recommended_tasks": [

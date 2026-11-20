@@ -149,14 +149,29 @@ jobs:
           # draft hidden for security-owner review, never auto-deletes tags.
           & gh release create $env:RELEASE_TAG @assets --draft --target $env:SOURCE_SHA --title "Aaditech agent $env:RELEASE_TAG" --notes 'Trusted, timestamped Authenticode-signed agent; verify SHA256SUMS.txt and publisher before install.' --latest=false
           if ($LASTEXITCODE -ne 0) { throw 'GitHub draft release staging failed; inspect drafts before retry.' }
-          ./Enterprise/agent/build/Assert-RemoteReleaseAssets.ps1 -ArtifactDir release -RequireDraft
+          # The REST /releases/tags endpoint DOES NOT return draft releases,
+          # and GitHub has not created a Git tag at this stage. gh release
+          # view transparently resolves a pending draft via GraphQL.
+          $draftJson = (& gh release view $env:RELEASE_TAG --json databaseId,isDraft,tagName,targetCommitish 2>$null | Out-String)
+          if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($draftJson)) {
+            throw 'Cannot obtain newly staged private draft identity.'
+          }
+          $draftInfo = ConvertFrom-Json -InputObject $draftJson -ErrorAction Stop
+          if ($draftInfo.isDraft -ne $true -or
+              [string]$draftInfo.tagName -cne $env:RELEASE_TAG -or
+              [string]$draftInfo.targetCommitish -cne $env:SOURCE_SHA -or
+              [long]$draftInfo.databaseId -le 0) {
+            throw 'Draft identity or pending target source differs from approval.'
+          }
+          $releaseId=[long]$draftInfo.databaseId
+          ./Enterprise/agent/build/Assert-RemoteReleaseAssets.ps1 -ArtifactDir release -ReleaseId $releaseId -RequireDraft
           # A release approval may expire while uploading. Recheck independent
           # original reviewer record and signed MSI contents immediately
           # before making the draft publicly accessible.
           ./Enterprise/agent/build/Assert-PublicationReviewerApproval.ps1 -ArtifactDir release -ApprovedSourceSha $env:APPROVED_SOURCE_SHA -ReleaseTag $env:RELEASE_TAG
           ./Enterprise/agent/build/Verify-ReleaseArtifact.ps1 -ArtifactDir release -ApprovedThumbprint $env:CODESIGN_APPROVED_THUMBPRINT -ApprovedMsiSha256 $env:APPROVED_MSI_SHA256 -ApprovedSqliteExeSha256 $env:SQLITE3_EXE_SHA256_APPROVED
-          ./Enterprise/agent/build/Assert-RemoteReleaseAssets.ps1 -ArtifactDir release -RequireDraft
+          ./Enterprise/agent/build/Assert-RemoteReleaseAssets.ps1 -ArtifactDir release -ReleaseId $releaseId -RequireDraft
           & gh release edit $env:RELEASE_TAG --draft=false --latest=false
           if ($LASTEXITCODE -ne 0) { throw 'N59 cannot publish verified draft; manual security review required.' }
           # A successful edit response alone does not establish integrity.
-          ./Enterprise/agent/build/Assert-RemoteReleaseAssets.ps1 -ArtifactDir release -RequirePublished
+          ./Enterprise/agent/build/Assert-RemoteReleaseAssets.ps1 -ArtifactDir release -ReleaseId $releaseId -RequirePublished

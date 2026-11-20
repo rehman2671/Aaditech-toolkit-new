@@ -1,5 +1,13 @@
 # Phase N — Production release acceptance and sign-off
 
+## Stage N53 — bind complete live HTTPS diagnostic to its originally signed approval (CODE PROPOSED; CI PENDING; PRODUCTION BLOCKED)
+
+- [ ] N51 reviewer-signed canonical record verified at initial gate yields an in-memory SHA-256; N52 pre-DNS, pre-transfer and post-transfer gates must authenticate **the exact same** manifest bytes. New validly signed `approval_id` replacement is refused until a fresh operator-approved invocation. Redacted `BLOCKED` remains fail-closed.
+- [ ] Real Windows PowerShell 5.1+7 N53 original-record continuation and valid-RSA replacement fault regression, earlier N31–N52, Node/Vitest+MySQL, API/MySQL and deployment safety. Reviewed merge and independently verified main EXE/MSI lifecycle **4/4** and safety **2/2**.
+- [ ] Real operator/reviewer key custody and customer Hostinger DNS/TLS, production Authenticode HSM MSI publication, physical device ACK-loss+MySQL receipts, encrypted offsite restore and final human security sign-off **PENDING**. **Production NOT APPROVED.**
+
+See [N53 acceptance](PHASE-N-STAGE53-ACCEPTANCE.md) and [issue #29](https://github.com/rehman2671/Aaditech-toolkit-new/issues/29).
+
 ## Stage N52 — signed curl approval revalidated across live DNS/HTTPS (MERGED; PR CI 3/3 + SAFETY 2/2 GREEN; MAIN MSI PENDING VERIFICATION; PRODUCTION BLOCKED)
 
 - [x] Reverify same independently pinned N51 RSA reviewer authorization **before DNS**, **immediately before native HTTPS transfer** and **after transfer before PASS**, in addition to the original pre-workspace gate. Invalid/expired/replaced signature fails redacted `BLOCKED`; no cached approval is sufficient.

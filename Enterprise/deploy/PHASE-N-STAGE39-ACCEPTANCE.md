@@ -16,7 +16,8 @@ Issue [#29](https://github.com/rehman2671/Aaditech-toolkit-new/issues/29) tracks
 - [x] PowerShell, Node/Vitest+MySQL and real isolated API/MySQL regression passed; deployment-safety 2/2.
 - [x] Maintainer-authorized merge and **post-merge main Windows MSI** diagnostic lifecycle checks passed.
 - [ ] Independent human security inspection of special-use IP ranges and platform support.
-- [ ] A separate future Windows native transport provides explicit live operator consent; DNS all-answer validation; hostname-verified TLS with a **connection-time pinned IP**; no proxies or redirects; bounded unambiguous health JSON; refusal/redaction tests and real customer acceptance.
+- [x] Subsequent N40–N42 code added offline endpoint admission, strict bounded JSON checking and a **separately consented Windows pinned HTTPS operator diagnostic**; [N42 main CI #44643192250](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44643192250) passed **4/4**, [main safety #44643192246](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44643192246) passed **2/2**.
+- [ ] Perform a customer-approved real Windows pinned-TLS probe with independent public DNS/CA evidence, signed release, offsite restore and physical customer ACK; CI alone cannot close this gate.
 
 **N39 by itself never initiates DNS/HTTP, never produces `public_https=PASS` and is not evidence of publicly trusted TLS or an operating customer endpoint.** N38 continues to block `-NetworkProbe` on the Windows acceptance script. The external issuer/key custody, publisher-signed MSI, real customer lost-ACK replay, Hostinger TLS/DNS, offsite restore and external integrations remain pending.
 
@@ -35,5 +36,4 @@ passed **2/2**. Public publisher-signed artifact publication was not evidenced.
 A maintainer-authorized merge and passing synthetic CI are not an independent
 human security assessment or actual customer DNS/TLS/production acceptance.
 
-Next: [N40 offline Windows HTTPS endpoint admission](PHASE-N-STAGE40-ACCEPTANCE.md)
-reuses this policy without enabling live Windows network probes.
+This pure N39 module was subsequently consumed by [N40 offline endpoint admission](PHASE-N-STAGE40-ACCEPTANCE.md), [N41 strict health JSON](PHASE-N-STAGE41-ACCEPTANCE.md) and [N42 optional pinned Windows HTTPS operator diagnostic](PHASE-N-STAGE42-ACCEPTANCE.md). N31's original unsafe `-NetworkProbe` remains disabled; N42 requires separate explicit operator consent. No physical customer system was tested by these automated CI jobs.

@@ -63,7 +63,7 @@ After **independent approval of the actual customer hostname and live probe**,
 an operator may invoke the explicitly consented read-only check:
 
 ```powershell
-powershell.exe -NoProfile -File .\Enterprise\deploy\Test-WindowsPinnedPublicHttps.ps1 -ConfigPath "C:\ProgramData\ITToolkit-Agent\agent.json" -ReportPath "C:\acceptance\n42-live.json" -ConfirmLive PROBE_PUBLIC_HEALTH -ApprovedOrigin "https://YOUR-ACTUAL-APPROVED-PUBLIC-HOST"
+powershell.exe -NoProfile -File .\Enterprise\deploy\Test-WindowsPinnedPublicHttps.ps1 -ConfigPath "C:\ProgramData\ITToolkit-Agent\agent.json" -ReportPath "C:\acceptance\n42-live.json" -ConfirmLive PROBE_PUBLIC_HEALTH -ApprovedOrigin "https://YOUR-ACTUAL-APPROVED-PUBLIC-HOST" -ApprovedCurlSignerSha256 "YOUR-INDEPENDENTLY-APPROVED-64-HEX-SIGNING-CERT-SHA256"
 ```
 
 **Stage N43 amendment:** The CLI above now requires an independently typed,
@@ -104,3 +104,15 @@ previously disabled N31 `-NetworkProbe` is made. **Production: NOT APPROVED.**
 - [Main safety #44643192246](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44643192246) **2/2 SUCCESS**: offline deployment safeguards and disposable MySQL backup/restore rehearsal.
 - Diagnostic `Verify pre-signed MSI payload and sign release MSI` job step completed in **diagnostic mode**; `Upload verified signed artifacts only` was **SKIPPED**. No publicly signed MSI or customer production publisher-key custody has been approved.
 - **No customer live probe, independent code audit, public Hostinger ownership/TLS, physical ACK replay or offsite restore** was evidenced by CI. The N31 `-NetworkProbe` remains disabled and Issue #29 remains open.
+
+## N49 trust pin amendment (mandatory on all separately authorized LIVE calls)
+
+The N42/N43 historical live example above now includes the later N49
+`-ApprovedCurlSignerSha256` parameter. This is the independent
+security-owner-approved SHA-256 of the **Windows system curl Authenticode
+leaf signing certificate DER**, NOT the curl EXE, HTTPS server certificate,
+or a locally self-derived production approval. Omit the parameter during
+`-DryRun`. A live request without an externally approved value is blocked
+before customer DNS. See [N49 acceptance](PHASE-N-STAGE49-ACCEPTANCE.md).
+No customer live request, independently authorized fingerprint or public
+signed MSI was supplied by N49.

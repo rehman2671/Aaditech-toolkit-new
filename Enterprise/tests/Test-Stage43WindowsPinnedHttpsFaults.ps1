@@ -142,7 +142,7 @@ try {
     )
     foreach ($scenario in $badConsent) {
         $report = Join-Path $root ($scenario.name + '.json')
-        $args = @('-NoProfile','-NonInteractive','-File',$probeFile,'-ConfigPath',$config,'-ReportPath',$report) + $scenario.extra
+        $args = @('-NoProfile','-NonInteractive','-File',$probeFile,'-ConfigPath',$config,'-ReportPath',$report,'-ApprovedCurlSignerSha256',('A'*64)) + $scenario.extra
         $child = Invoke-N43Child -Arguments $args
         if ($child.exit -eq 0 -or $child.output.Contains($secret) -or $child.output.Contains($hostname)) {
             throw 'N43 bad consent was accepted or exposed configured host/secret.'

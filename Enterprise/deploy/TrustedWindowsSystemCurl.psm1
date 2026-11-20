@@ -38,9 +38,53 @@ function Assert-PublicWindowsCurlVersionHeader {
     }
 }
 
+# N49: Per-invocation signer-certificate pin. A valid Windows Authenticode
+# result and an O=Microsoft Corporation text claim do not independently bind
+# the approved publisher signing certificate. Require an independently
+# witnessed SHA-256 of the DER leaf signing certificate before any DNS/HTTP.
+# Hashing the same machine's current cert in CI only exercises the code:
+# that is NOT independent customer signer provenance/production approval.
+function Assert-PublicWindowsApprovedCurlSignerPin {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory=$true)]
+        [System.Security.Cryptography.X509Certificates.X509Certificate2]$SignerCertificate,
+        [Parameter(Mandatory=$true)][AllowEmptyString()]
+        [string]$ApprovedSignerSha256
+    )
+    $hasher = $null
+    try {
+        # Exactly 32 bytes, no spaces, delimiters, 0x prefixes, separators,
+        # ambiguity from Unicode case folding or truncation.
+        if ($ApprovedSignerSha256 -cnotmatch '\A[0-9A-Fa-f]{64}\z') {
+            throw 'Invalid signer certificate approval.'
+        }
+        $raw = $SignerCertificate.RawData
+        if ($null -eq $raw -or $raw.Length -lt 1) {
+            throw 'Missing signing certificate DER.'
+        }
+        $hasher = [System.Security.Cryptography.SHA256]::Create()
+        $actual = $hasher.ComputeHash($raw)
+        if ($actual.Length -ne 32) { throw 'Unexpected SHA-256 digest length.' }
+        $different = 0
+        for ($i = 0; $i -lt 32; $i++) {
+            $expected = [Convert]::ToByte($ApprovedSignerSha256.Substring($i*2,2),16)
+            $different = $different -bor ([int]$expected -bxor [int]$actual[$i])
+        }
+        if ($different -ne 0) { throw 'Signing certificate is not approved.' }
+        return $true
+    } catch {
+        # Never put the supplied fingerprint or actual certificate identity
+        # into exceptions or the Windows operator acceptance report.
+        throw 'Trusted Windows system curl signer pin blocked.'
+    } finally {
+        if ($null -ne $hasher) { $hasher.Dispose() }
+    }
+}
+
 function Assert-PublicWindowsTrustedSystemCurl {
     [CmdletBinding()]
-    param()
+    param([Parameter(Mandatory=$true)][AllowEmptyString()][string]$ApprovedSignerSha256)
     try {
         if ($env:OS -cne 'Windows_NT') {
             throw 'Windows required.'
@@ -72,6 +116,7 @@ function Assert-PublicWindowsTrustedSystemCurl {
         if ($subject -notmatch '(?i)(?:\A|,\s*)O=Microsoft Corporation(?:,|\z)') {
             throw 'System curl is not signed by the expected organization.'
         }
+        $null = Assert-PublicWindowsApprovedCurlSignerPin -SignerCertificate $signature.SignerCertificate -ApprovedSignerSha256 $ApprovedSignerSha256
         $nativeVersion = @(& $curlPath -q --version 2>$null)
         $nativeExit = $LASTEXITCODE
         $null = Assert-PublicWindowsCurlVersionHeader -ExitCode $nativeExit -VersionLines $nativeVersion
@@ -81,4 +126,4 @@ function Assert-PublicWindowsTrustedSystemCurl {
     }
 }
 
-Export-ModuleMember -Function Assert-PublicWindowsTrustedSystemCurl, Assert-PublicWindowsCurlVersionHeader
+Export-ModuleMember -Function Assert-PublicWindowsTrustedSystemCurl, Assert-PublicWindowsCurlVersionHeader, Assert-PublicWindowsApprovedCurlSignerPin

@@ -139,6 +139,13 @@ jobs:
         shell: powershell
         run: ./Enterprise/tests/Test-Stage48WindowsSystemCurlTrust.ps1
 
+      - name: N49 Windows signer certificate SHA-256 approval pin and mismatch regression on PowerShell 7
+        run: pwsh -NoProfile -File ./Enterprise/tests/Test-Stage49WindowsCurlSignerPin.ps1
+
+      - name: N49 verify per-invocation signer approval pin on actual Windows PowerShell 5.1
+        shell: powershell
+        run: ./Enterprise/tests/Test-Stage49WindowsCurlSignerPin.ps1
+
 
       - name: N31 release publication requires independently approved source and MSI pins
         run: pwsh -NoProfile -File ./Enterprise/tests/Test-Stage31PublicationPins.ps1

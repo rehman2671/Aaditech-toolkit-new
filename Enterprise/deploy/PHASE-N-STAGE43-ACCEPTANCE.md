@@ -63,7 +63,7 @@ Only after the operator has independently confirmed the **exact owned
 production DNS name** and received authorization for a read-only connection:
 
 ```powershell
-powershell.exe -NoProfile -File .\Enterprise\deploy\Test-WindowsPinnedPublicHttps.ps1 -ConfigPath "C:\ProgramData\ITToolkit-Agent\agent.json" -ReportPath "C:\acceptance\n43-live.json" -ConfirmLive PROBE_PUBLIC_HEALTH -ApprovedOrigin "https://YOUR-ACTUAL-APPROVED-PUBLIC-HOST"
+powershell.exe -NoProfile -File .\Enterprise\deploy\Test-WindowsPinnedPublicHttps.ps1 -ConfigPath "C:\ProgramData\ITToolkit-Agent\agent.json" -ReportPath "C:\acceptance\n43-live.json" -ConfirmLive PROBE_PUBLIC_HEALTH -ApprovedOrigin "https://YOUR-ACTUAL-APPROVED-PUBLIC-HOST" -ApprovedCurlSignerSha256 "YOUR-INDEPENDENTLY-APPROVED-64-HEX-SIGNING-CERT-SHA256"
 ```
 
 The illustrative `YOUR-ACTUAL-APPROVED-PUBLIC-HOST` is **not** a deployable
@@ -99,3 +99,15 @@ remains OPEN until transport and customer acceptance are independently verified.
 - [Main safety #44647657434](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44647657434) **2/2 SUCCESS**: bash/offline recovery and isolated MySQL backup/restore.
 - The diagnostic MSI signature-validation workflow step passed but **`Upload verified signed artifacts only` was SKIPPED**. This is not approved production code-signing or signed public installer publication.
 - No real customer Windows DNS/TLS fault injection, Hostinger ownership verification, independent security review, physical queue ACK proof or offsite restore is provided by synthetic CI. N31 `-NetworkProbe` remains BLOCKED and Issue #29 remains OPEN.
+
+## N49 trust pin amendment (mandatory on all separately authorized LIVE calls)
+
+The N42/N43 historical live example above now includes the later N49
+`-ApprovedCurlSignerSha256` parameter. This is the independent
+security-owner-approved SHA-256 of the **Windows system curl Authenticode
+leaf signing certificate DER**, NOT the curl EXE, HTTPS server certificate,
+or a locally self-derived production approval. Omit the parameter during
+`-DryRun`. A live request without an externally approved value is blocked
+before customer DNS. See [N49 acceptance](PHASE-N-STAGE49-ACCEPTANCE.md).
+No customer live request, independently authorized fingerprint or public
+signed MSI was supplied by N49.

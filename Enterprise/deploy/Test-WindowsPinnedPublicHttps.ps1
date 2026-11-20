@@ -8,17 +8,19 @@ param(
     [Parameter(Mandatory=$true)][string]$ReportPath,
     [switch]$DryRun,
     [string]$ConfirmLive,
-    [string]$ApprovedOrigin
+    [string]$ApprovedOrigin,
+    [string]$ApprovedCurlSignerSha256
 )
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
 # Consent is checked before reading configuration, resolving DNS, invoking
 # the OS curl binary, or writing a report. Invalid combinations fail closed.
-if (($DryRun -and ($ConfirmLive -or $ApprovedOrigin)) -or
+if (($DryRun -and ($ConfirmLive -or $ApprovedOrigin -or $ApprovedCurlSignerSha256)) -or
     (-not $DryRun -and
       ($ConfirmLive -cne 'PROBE_PUBLIC_HEALTH' -or
-       [string]::IsNullOrWhiteSpace($ApprovedOrigin)))) {
+       [string]::IsNullOrWhiteSpace($ApprovedOrigin) -or
+       $ApprovedCurlSignerSha256 -cnotmatch '\A[0-9A-Fa-f]{64}\z'))) {
     throw 'Public Windows live probe requires origin-bound operator consent.'
 }
 if (Test-Path -LiteralPath $ReportPath) {
@@ -84,7 +86,10 @@ try {
             $originalEnv[$name] = [Environment]::GetEnvironmentVariable($name, 'Process')
             [Environment]::SetEnvironmentVariable($name, $null, 'Process')
         }
-        $curl = Assert-PublicWindowsTrustedSystemCurl
+        # N49 requires an independently approved exact leaf signing
+        # certificate SHA-256, not an automatically inferred local pin.
+        $phase = 'VALIDATE_SIGNER_PIN'
+        $curl = Assert-PublicWindowsTrustedSystemCurl -ApprovedSignerSha256 $ApprovedCurlSignerSha256
 
         $phase = 'LIVE_DNS'
         # OS resolver's returned set must be entirely public. OS lookup is not

@@ -23,17 +23,25 @@ function Get-N64Ps2ExePayloadDigest {
                 throw 'Compiler entrypoint invalid.'
             }
         }
-        $entries=@(Get-ChildItem -LiteralPath $root.FullName -Force -Recurse -ErrorAction Stop)
-        if ($entries.Count -lt 2 -or $entries.Count -gt 1024) {
-            throw 'Extraction entry count invalid.'
-        }
+        # Explicit queue: never ask PowerShell to recurse into a junction
+        # before we have checked that directory entry for ReparsePoint.
+        $pending=New-Object 'System.Collections.Generic.Queue[System.IO.DirectoryInfo]'
+        $pending.Enqueue($root)
+        $entryCount=0
         $records=@()
         $total=[long]0
-        foreach ($entry in $entries) {
-            if (($entry.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
-                throw 'Linked or redirected payload blocked.'
-            }
-            if ($entry -is [IO.DirectoryInfo]) { continue }
+        while ($pending.Count -gt 0) {
+            $folder=$pending.Dequeue()
+            foreach ($entry in @(Get-ChildItem -LiteralPath $folder.FullName -Force -ErrorAction Stop)) {
+                $entryCount++
+                if ($entryCount -gt 1024) { throw 'Extraction entry count invalid.' }
+                if (($entry.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+                    throw 'Linked or redirected payload blocked.'
+                }
+                if ($entry -is [IO.DirectoryInfo]) {
+                    $pending.Enqueue($entry)
+                    continue
+                }
             if ($entry -isnot [IO.FileInfo] -or $entry.Length -gt 33554432L) {
                 throw 'Non-regular or oversized payload blocked.'
             }
@@ -48,7 +56,8 @@ function Get-N64Ps2ExePayloadDigest {
             # whitespace or a delimiter. Ordinal sorting is culture-neutral.
             $encoded=[Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($relative))
             $sha=(Get-FileHash -LiteralPath $entry.FullName -Algorithm SHA256 -ErrorAction Stop).Hash
-            $records+=($encoded+':'+$sha)
+                $records+=($encoded+':'+$sha)
+            }
         }
         if ($records.Count -lt 2 -or $records.Count -gt 512) {
             throw 'Unexpected payload file count.'

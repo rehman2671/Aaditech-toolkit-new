@@ -1,9 +1,10 @@
 # Phase N — Production release acceptance and sign-off
 
-## Stage N54 — independent SQLite source and MSI payload SHA-256 pins (CODE PROPOSED; PR CI PENDING; PRODUCTION BLOCKED)
+## Stage N54 — independent SQLite source and MSI payload SHA-256 pins (MERGED; PR CI 3/3 + SAFETY 2/2 GREEN; MAIN MSI UNVERIFIED; PRODUCTION BLOCKED)
 
-- [ ] Release-signable MSI packaging must fail before network/extraction unless both the exact versioned official SQLite ZIP SHA-256 and extracted `sqlite3.exe` SHA-256 are independently approved through protected `production-installer` controls. Check ZIP before extraction, binary before/after staging and embedded MSI executable again before signing. Never infer pins from downloaded artifacts.
-- [ ] Diagnostic build remains unsigned/non-publishable. Actual Windows PowerShell 5.1/7 local synthetic digest mutation, wrong pin, type/size/UNC and gate-order tests plus N31–N53, Node/Vitest+MySQL, API/MySQL, deployment safety; reviewed PR and fresh main EXE/MSI lifecycle **4/4** plus safety **2/2** required.
+- [x] Release-signable MSI packaging now fails before network/extraction unless both the exact versioned official SQLite ZIP SHA-256 and extracted `sqlite3.exe` SHA-256 are independently approved through protected `production-installer` controls. ZIP before extraction, executable before/after staging and embedded MSI executable before signing. No self-derived approved hashes.
+- [x] Windows PowerShell 5.1/7 local synthetic N54 checksum, mutation, size/UNC and ordering, N31–N53 safety, Node/Vitest+MySQL and API/MySQL [PR CI 3/3](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44730289683); [deployment safety 2/2](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44730289834). [PR #49](https://github.com/rehman2671/Aaditech-toolkit-new/pull/49) merged at `79915aec4afca14997a21f7b5c5f4143f8cc8ef2`.
+- [ ] Fresh **main** Windows EXE/MSI lifecycle **4/4** and deployment safety **2/2** remain independently UNVERIFIED. PR CI deliberately skipped MSI.
 - [ ] Exact physically independently reviewed SQLite release fingerprints, customer Hostinger DNS/TLS, reviewer/HSM publisher custody, physical queue ACK-loss+MySQL receipts, encrypted offsite restore and owner security approval **PENDING**. **Production NOT APPROVED**.
 
 See [N54 acceptance](PHASE-N-STAGE54-ACCEPTANCE.md) and [issue #29](https://github.com/rehman2671/Aaditech-toolkit-new/issues/29).

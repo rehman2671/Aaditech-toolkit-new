@@ -18,6 +18,24 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
+# N54: production-signable MSI payloads must be sourced from independently
+# approved SQLite ZIP+EXE hashes. Diagnostic CI is deliberately non-publishable.
+# In Actions a missing release-mode flag is an error, never an implicit
+# downgrade from a planned release to an unpinned diagnostic.
+Import-Module -Name (Join-Path $PSScriptRoot 'SqliteBundleApproval.psm1') -Force -ErrorAction Stop
+if ($env:GITHUB_ACTIONS -ceq 'true' -and
+    $env:RELEASE_SIGNING_ENABLED -cnotin @('true','false')) {
+    throw 'Signing mode must be explicitly established before packaging.'
+}
+$releasePackage = ($env:RELEASE_SIGNING_ENABLED -ceq 'true')
+if ($releasePackage -and ($env:SQLITE_TOOLS_ARCHIVE_SHA256_APPROVED -cnotmatch '\A[0-9A-Fa-f]{64}\z' -or
+                         $env:SQLITE3_EXE_SHA256_APPROVED -cnotmatch '\A[0-9A-Fa-f]{64}\z')) {
+    throw 'N54 SQLite independently approved ZIP and EXE pins required before download.'
+}
+if (-not $releasePackage) {
+    Write-Warning 'N54: diagnostic MSI only; SQLite artifact pins are NOT production-verified. Publication prohibited.'
+}
+
 if (-not (Test-Path (Join-Path $BuildOut 'IT-Toolkit-Agent.exe'))) {
     throw "build/out/IT-Toolkit-Agent.exe missing. Run build-agent.ps1 first."
 }
@@ -45,33 +63,61 @@ if (-not (Test-Path -LiteralPath $guiWizard -PathType Leaf)) {
 }
 Copy-Item -LiteralPath $guiWizard -Destination (Join-Path $Stage 'Configure-Agent-GUI.ps1') -Force
 
-# Bundle the official sqlite3.exe CLI so the agent's outbox queue works on
-# stock Windows with no system-wide SQLite install. The agent prepends this
-# directory to PATH at startup (see Agent-Collect.ps1), which the shared
-# ToolkitData module's `sqlite3` lookups then pick up.
+# Bundle the official sqlite3.exe CLI; the worker needs it on a stock
+# Windows endpoint. Diagnostic CI may use unpinned bytes but may never
+# publish them. Every production-signable package requires independent,
+# version-specific ZIP and extracted EXE SHA-256 approval in protected CI.
 $sqliteVer = '3530400'
-$sqliteUrl  = "https://www.sqlite.org/2026/sqlite-tools-win-x64-$sqliteVer.zip"
+$sqliteUrl = "https://www.sqlite.org/2026/sqlite-tools-win-x64-$sqliteVer.zip"
 $stageSqlite = Join-Path $Stage 'sqlite3.exe'
-if (-not (Test-Path $stageSqlite)) {
-    Write-Host "Downloading sqlite3.exe ($sqliteUrl)"
-    $sqliteZip  = Join-Path $env:TEMP "sqlite-tools-win-x64-$sqliteVer.zip"
-    $extractDir = Join-Path $env:TEMP "sqlite-tools-win-x64-$sqliteVer"
-    if (Test-Path $extractDir) { Remove-Item $extractDir -Recurse -Force }
-    try {
-        Invoke-WebRequest $sqliteUrl -OutFile $sqliteZip -UseBasicParsing
-        Expand-Archive $sqliteZip -DestinationPath $extractDir -Force
-        # The zip's internal layout has varied between releases; find sqlite3.exe
-        # wherever it landed instead of assuming a fixed nested path.
-        $sqliteExe = Get-ChildItem $extractDir -Recurse -Filter sqlite3.exe -ErrorAction SilentlyContinue |
-            Select-Object -First 1
-        if ($sqliteExe) { Copy-Item $sqliteExe.FullName $stageSqlite -Force }
+$sqliteTempRoot = if ($env:RUNNER_TEMP) { $env:RUNNER_TEMP } else { $env:TEMP }
+$sqliteWork = Join-Path $sqliteTempRoot ('n54-sqlite-'+[guid]::NewGuid().ToString('N'))
+$sqliteZip = Join-Path $sqliteWork 'sqlite-tools.zip'
+$extractDir = Join-Path $sqliteWork 'extracted'
+$null = [IO.Directory]::CreateDirectory($sqliteWork)
+try {
+    Write-Host "Downloading sqlite3.exe for diagnostic or explicitly approved MSI ($sqliteVer)"
+    # Never reuse a previous mutable TEMP download as approved release bytes.
+    Invoke-WebRequest -Uri $sqliteUrl -OutFile $sqliteZip -UseBasicParsing
+    $zipInfo = Get-Item -LiteralPath $sqliteZip -Force -ErrorAction Stop
+    if ($zipInfo -isnot [IO.FileInfo] -or $zipInfo.Length -lt 1 -or
+        $zipInfo.Length -gt 67108864 -or
+        ($zipInfo.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+        throw 'N54 SQLite download type or size rejected.'
     }
-    finally {
-        if (Test-Path $sqliteZip)  { Remove-Item $sqliteZip -Force -ErrorAction SilentlyContinue }
+    if ($releasePackage) {
+        # MUST be checked before processing the ZIP archive, not against an
+        # attacker-controlled hash adjacent to the downloaded artifact.
+        $null = Assert-N54ApprovedSqliteFile -Path $sqliteZip -Kind Archive -ApprovedSha256 $env:SQLITE_TOOLS_ARCHIVE_SHA256_APPROVED
     }
-    if (-not (Test-Path $stageSqlite)) { throw "Failed to fetch sqlite3.exe from $sqliteUrl" }
+    Expand-Archive -LiteralPath $sqliteZip -DestinationPath $extractDir -Force
+    $sqliteCandidates = @(Get-ChildItem -LiteralPath $extractDir -Recurse -File -Filter 'sqlite3.exe')
+    if ($sqliteCandidates.Count -ne 1) {
+        throw 'N54 SQLite official ZIP must contain exactly one sqlite3.exe.'
+    }
+    $sqliteExe = $sqliteCandidates[0]
+    if ($sqliteExe.Length -lt 1 -or $sqliteExe.Length -gt 33554432 -or
+        ($sqliteExe.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+        throw 'N54 SQLite executable type or size rejected.'
+    }
+    if ($releasePackage) {
+        $null = Assert-N54ApprovedSqliteFile -Path $sqliteExe.FullName -Kind Executable -ApprovedSha256 $env:SQLITE3_EXE_SHA256_APPROVED
+    }
+    Copy-Item -LiteralPath $sqliteExe.FullName -Destination $stageSqlite -Force
+    if ($releasePackage) {
+        # Check the exact bytes actually staged for WiX, not just the archive.
+        $null = Assert-N54ApprovedSqliteFile -Path $stageSqlite -Kind Executable -ApprovedSha256 $env:SQLITE3_EXE_SHA256_APPROVED
+    }
+} finally {
+    # No global cache of an approved ZIP; cleanup on both success and failure.
+    if (Test-Path -LiteralPath $sqliteWork) {
+        Remove-Item -LiteralPath $sqliteWork -Recurse -Force -ErrorAction SilentlyContinue
+    }
 }
-Write-Host "Staged sqlite3.exe ($($(Get-Item $stageSqlite).Length) bytes)"
+if (-not (Test-Path -LiteralPath $stageSqlite -PathType Leaf)) {
+    throw 'N54 sqlite3.exe staging failed.'
+}
+Write-Host "Staged sqlite3.exe ($($(Get-Item $stageSqlite).Length) bytes); production pin verified: $releasePackage"
 
 # bundle the toolkit files the agent wraps (scripts + modules + config)
 Copy-Item (Join-Path $RepoRoot 'Scripts') (Join-Path $Stage 'Scripts') -Recurse -Force

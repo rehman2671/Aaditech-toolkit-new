@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-20T01:17:01+00:00",
-  "last_verified_commit": "43a1561dfc4b3c9d85dfa7b29f4e1b0b4afef7b2",
-  "last_verified_date": "2026-11-20T06:46:51+05:30",
+  "generated": "2026-11-20T02:06:14+00:00",
+  "last_verified_commit": "ee1b90cd6bbd3ae03d48dd1b10be565eb31f44e9",
+  "last_verified_date": "2026-11-20T07:36:02+05:30",
   "overall_progress_percent": 100.0,
   "progress_scope": "historic audit issue closure only; production acceptance pending",
   "production_ready": false,
@@ -14,30 +14,12 @@
     "percent": 100.0
   },
   "latest_delta": {
-    "added": 3,
+    "added": 2,
     "removed": 0,
     "changed": 4,
-    "unchanged": 376
+    "unchanged": 379
   },
   "delta_history": [
-    {
-      "detected_at": "2026-11-17T20:51:17+00:00",
-      "added": [
-        "Enterprise/tests/Test-CanonicalAgent-AckCadence.ps1",
-        "Enterprise/deploy/PHASE-N-STAGE27-ACCEPTANCE.md"
-      ],
-      "removed": [],
-      "changed": [
-        "Enterprise/deploy/PHASE-N-STAGE26-ACCEPTANCE.md",
-        "docs/assessment/TEST-RESULTS.md",
-        "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md",
-        "docs/assessment/GAP-REGISTER.md",
-        ".github/workflows/ci.yml",
-        "docs/assessment/RELEASE-READINESS.md",
-        "Enterprise/agent/Agent-Collect.ps1"
-      ],
-      "unchanged_count": 309
-    },
     {
       "detected_at": "2026-11-17T21:38:19+00:00",
       "added": [
@@ -400,6 +382,21 @@
         ".github/workflows/ci.yml"
       ],
       "unchanged_count": 376
+    },
+    {
+      "detected_at": "2026-11-20T02:06:14+00:00",
+      "added": [
+        "Enterprise/tests/Test-Stage46AtomicWindowsProbeAcl.ps1",
+        "Enterprise/deploy/PHASE-N-STAGE46-ACCEPTANCE.md"
+      ],
+      "removed": [],
+      "changed": [
+        "Enterprise/deploy/PrivateWindowsProbeWorkspace.psm1",
+        ".github/workflows/ci.yml",
+        "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md",
+        "Enterprise/deploy/PHASE-N-STAGE45-ACCEPTANCE.md"
+      ],
+      "unchanged_count": 379
     }
   ],
   "next_recommended_tasks": [

@@ -1,6 +1,6 @@
 # Phase N Stage 46 — Atomic Protected Windows HTTPS Response Workspace
 
-**Status: CODE PROPOSED; FRESH PR CI PENDING; CUSTOMER PRODUCTION NOT APPROVED (2026-11-20 IST).**
+**Status: MERGED; MAIN CI/MSI 4/4 AND DEPLOYMENT-SAFETY 2/2 GREEN; CUSTOMER PRODUCTION NOT APPROVED (verified 2026-11-20 IST).**
 
 ## Finding
 
@@ -46,16 +46,16 @@ and [FileSystemAclExtensions.CreateDirectory (modern .NET)](https://learn.micros
 
 ## Acceptance and negative tests
 
-- [ ] N46 standalone no-network regression passes **actual Windows PowerShell
+- [x] N46 standalone no-network regression passed **actual Windows PowerShell
   5.1** and **PowerShell 7**. The test verifies both API paths are present,
   ACL construction precedes creation, no post-create ACL manipulation or
   network calls, unique directories, protected current-user/SYSTEM access,
   and response-file ACLs.
-- [ ] Prior N31–N45 PowerShell safety regressions pass unmodified.
-- [ ] PR Node/Vitest+MySQL, isolated API/MySQL and deployment safety pass.
-- [ ] Authorized merge and post-merge main CI 4/4, including full
+- [x] Prior N31–N45 PowerShell safety regressions passed unmodified.
+- [x] PR Node/Vitest+MySQL, isolated API/MySQL and deployment safety passed.
+- [x] Authorized PR #41 merge and post-merge main CI 4/4, including full
   Windows EXE/MSI build, administrative extraction, install/uninstall and
-  major upgrade; main deployment-safety 2/2.
+  major upgrade; main deployment-safety 2/2 passed.
 - [ ] Independent customer-owned *physical Windows* ACL/TOCTOU security
   review, DNS/TLS and failed-route drills, verified Hostinger domain/CA
   provenance, publisher signed MSI/HSM custody, queue lost-ACK receipts,
@@ -74,3 +74,11 @@ N44's evidence format auditor must still report
 real customer Windows probe, public publisher signing or signed MSI upload
 is authorized by this stage. [Issue #29](https://github.com/rehman2671/Aaditech-toolkit-new/issues/29)
 stays OPEN. **Production: NOT APPROVED.**
+
+## Verified GitHub source and CI diagnostics (not external release approval)
+
+- [PR #41](https://github.com/rehman2671/Aaditech-toolkit-new/pull/41) merged verified head `36ac61722873f1954e67591cd4a6df17235b61c6` to `main` as `ee1b90cd6bbd3ae03d48dd1b10be565eb31f44e9` after the actual Windows PowerShell 5.1/7 atomic-ACL tests and previous N31–N45, Node/Vitest+MySQL, API/MySQL and deployment-safety suites passed.
+- [Main CI #44658368393](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44658368393) **4/4 SUCCESS**: Windows PowerShell regression, Node/Vitest+MySQL, API/MySQL, Windows EXE/MSI build, administrative extraction, clean install/uninstall and tenant-preserving major upgrade.
+- [Main safety #44658368586](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44658368586) **2/2 SUCCESS**: bash/offline recovery and isolated MySQL backup/restore checks.
+- The diagnostic signing-related workflow step passed, but `Upload verified signed artifacts only` was **SKIPPED**. No public publisher-signed MSI was issued or approved by this verification.
+- No authorized physical Windows customer probe, external Hostinger certificate/public DNS proof, independent security audit, lost-ACK receipt, real integration or offsite restore is established. **Production NOT APPROVED** and Issue #29 stays OPEN.

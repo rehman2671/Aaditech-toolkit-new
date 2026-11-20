@@ -1,6 +1,6 @@
 # Phase N Stage 48 — Windows System Curl Signer / Schannel Preflight
 
-**Status: CODE PROPOSED; PR CI PENDING; CUSTOMER PRODUCTION NOT APPROVED (2026-11-20 IST).**
+**Status: MERGED; MAIN CI/MSI 4/4 AND DEPLOYMENT-SAFETY 2/2 GREEN; CUSTOMER PRODUCTION NOT APPROVED (verified 2026-11-20 IST).**
 
 ## Security finding
 
@@ -73,13 +73,13 @@ MSI.
 
 ## Acceptance checklist
 
-- [ ] Actual Windows PowerShell 7 and 5.1 system curl Authenticode,
+- [x] Actual Windows PowerShell 7 and 5.1 system curl Authenticode,
   non-reparse source and Schannel header pass. Synthetic forged
   headers, exit-code and output limits fail closed.
-- [ ] N48 first validates the system binary and restores cleared
+- [x] N48 first validates the system binary and restores cleared
   process environment afterward; no approved customer DNS, HTTP or
   live transport occurs during CI.
-- [ ] PR PowerShell, Node/Vitest+MySQL, API/MySQL and deployment
+- [x] PR PowerShell, Node/Vitest+MySQL, API/MySQL and deployment
   safety green, then authorized PR merge and main CI **4/4**
   including Windows EXE/MSI build, extraction, install/uninstall
   and major upgrade; main deployment safety **2/2**.
@@ -91,3 +91,11 @@ MSI.
 **Production NOT APPROVED.**
 [Security issue #29](https://github.com/rehman2671/Aaditech-toolkit-new/issues/29)
 remains OPEN. N31 automatic live `-NetworkProbe` stays BLOCKED.
+
+## Verified GitHub evidence — not external production approval
+
+- [PR #43](https://github.com/rehman2671/Aaditech-toolkit-new/pull/43) merged verified N48 head `6d911266ba2748b2e4717f972903f4e6cfcb8b2b` to main merge commit `a9f407b3082c01b3ece94ea62c307d639dfdd0fc` after actual signed system curl/Schannel PowerShell 5.1 and 7 checks, prior N31–N47, Node/Vitest+MySQL, API/MySQL and deployment safety all passed.
+- [Main CI #44708591068](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44708591068): **4/4 SUCCESS** (PowerShell, Node/Vitest+MySQL, API/MySQL, Windows EXE/MSI build, Windows Installer administrative extraction, fresh install/uninstall and tenant-preserving major upgrade).
+- [Main deployment safety #44708591086](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44708591086): **2/2 SUCCESS** (Bash/offline recovery and isolated real MySQL backup/restore data integrity).
+- `Verify pre-signed MSI payload and sign release MSI` succeeded in diagnostic mode only; **`Upload verified signed artifacts only` was SKIPPED**. No approved customer publisher-signed MSI was published.
+- No physical customer Windows live HTTPS/Hostinger DNS/CA ownership, independent Microsoft signing-chain approval, real lost-ACK/receipt, offsite restore, integration acceptance or human security sign-off was established. **Production NOT APPROVED**; issue #29 remains OPEN.

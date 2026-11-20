@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-20T19:18:48+00:00",
-  "last_verified_commit": "3cf5ab2b980a319acd5f2b1fa804a2ca6ea75f06",
-  "last_verified_date": "2026-11-21T00:48:35+05:30",
+  "generated": "2026-11-20T21:30:35+00:00",
+  "last_verified_commit": "cc8e1f7bcea605c24a2865c7c2b00d5910aca38d",
+  "last_verified_date": "2026-11-21T03:00:23+05:30",
   "overall_progress_percent": 100.0,
   "progress_scope": "historic audit issue closure only; production acceptance pending",
   "production_ready": false,
@@ -14,28 +14,12 @@
     "percent": 100.0
   },
   "latest_delta": {
-    "added": 0,
+    "added": 4,
     "removed": 0,
-    "changed": 2,
-    "unchanged": 427
+    "changed": 4,
+    "unchanged": 425
   },
   "delta_history": [
-    {
-      "detected_at": "2026-11-20T03:56:09+00:00",
-      "added": [
-        "Enterprise/tests/Test-Stage47WindowsProbeCleanup.ps1",
-        "Enterprise/deploy/PHASE-N-STAGE47-ACCEPTANCE.md"
-      ],
-      "removed": [],
-      "changed": [
-        "Enterprise/deploy/PHASE-N-STAGE46-ACCEPTANCE.md",
-        ".github/workflows/ci.yml",
-        "Enterprise/deploy/PrivateWindowsProbeWorkspace.psm1",
-        "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md",
-        "Enterprise/deploy/Test-WindowsPinnedPublicHttps.ps1"
-      ],
-      "unchanged_count": 380
-    },
     {
       "detected_at": "2026-11-20T09:11:27+00:00",
       "added": [
@@ -328,6 +312,23 @@
         "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md"
       ],
       "unchanged_count": 427
+    },
+    {
+      "detected_at": "2026-11-20T21:30:35+00:00",
+      "added": [
+        "Enterprise/agent/build/toolchain-lock.json",
+        "Enterprise/deploy/PHASE-N-STAGE62-ACCEPTANCE.md",
+        "Enterprise/tests/Test-Stage62BuildToolchainLock.ps1",
+        "Enterprise/agent/build/BuildToolchainLock.psm1"
+      ],
+      "removed": [],
+      "changed": [
+        ".github/workflows/ci.yml",
+        "Enterprise/agent/wix/build-msi.ps1",
+        "Enterprise/agent/build/build-agent.ps1",
+        "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md"
+      ],
+      "unchanged_count": 425
     }
   ],
   "next_recommended_tasks": [

@@ -1,6 +1,6 @@
 # Phase N Stage 62 — Exact Windows EXE/MSI build toolchain admission
 
-**Status: CODE PROPOSED; PR CI AND FRESH MAIN ACCEPTANCE PENDING; CUSTOMER PRODUCTION NOT APPROVED (2026-11-21 IST).**
+**Status: MERGED; PR CI 3/3 + SAFETY 2/2 SUCCESS; FRESH MAIN PINNED WINDOWS EXE/MSI 4/4 + SAFETY 2/2 SUCCESS; INDEX VERIFIED; PROTECTED SIGNED RELEASE PENDING; CUSTOMER PRODUCTION NOT APPROVED (2026-11-21 IST).**
 
 ## Finding and scope
 
@@ -63,13 +63,15 @@ additional controls to consider before production release.
 
 ## Acceptance
 
-- [ ] PR Windows PowerShell 5.1/7 N62 tests and previous N31–N61
-  security regressions, Node/Vitest+MySQL and API/MySQL **3/3**;
-  isolated MySQL deployment safety **2/2**.
-- [ ] Reviewed PR merged; fresh `main` Windows diagnostic PS2EXE
-  **1.0.18** and WiX **5.0.2** EXE/MSI build, administrative extraction,
-  real MSI install/clean uninstall and tenant-preserving major
-  upgrade **4/4**, safety **2/2**, index refresh.
+- [x] PR Windows PowerShell 5.1/7 N62 exact-version and earlier
+  N31–N61 security regressions, Node/Vitest+MySQL and API/MySQL
+  **3/3 SUCCESS**; isolated MySQL deployment safety **2/2 SUCCESS**.
+- [x] Reviewed [PR #57](https://github.com/rehman2671/Aaditech-toolkit-new/pull/57)
+  merged as `cc8e1f7bcea605c24a2865c7c2b00d5910aca38d`;
+  fresh `main` Windows PS2EXE **1.0.18** and WiX **5.0.2** EXE/MSI build,
+  administrative extraction, actual MSI installed setup/clean uninstall,
+  major upgrade preserving tenant configuration **4/4 SUCCESS**,
+  safety **2/2 SUCCESS**, project index refresh successful.
 - [ ] Independently vetted production publisher certificate/HSM,
   genuine N56 RSA reviewer-approved short-lived source manifest,
   SQLite ZIP/EXE pins, protected signed CI and real draft-to-public
@@ -94,3 +96,30 @@ Related: [N61 acceptance](PHASE-N-STAGE61-ACCEPTANCE.md),
 [44800919632](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44800919632)
 **SUCCESS**. The [N61 documentation-push CI 44800919540](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44800919540)
 also completed **4/4 SUCCESS**. All these results precede N62.
+
+## Independently verified N62 GitHub acceptance evidence
+
+- [PR #57](https://github.com/rehman2671/Aaditech-toolkit-new/pull/57)
+  reviewed head `8a98a531f4bdb233df518e7ee30fa25a588f88b2`,
+  merged as `cc8e1f7bcea605c24a2865c7c2b00d5910aca38d`.
+- [PR CI 44820433868](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44820433868):
+  **3/3 SUCCESS** — N62 exact compiler lock, version downgrade/upgrade,
+  malformed and floating rejection on **Windows PowerShell 5.1 and 7**;
+  previous N31–N61 controls, Node/Vitest+MySQL and API/MySQL.
+  MSI packaging job correctly skipped for pull requests.
+- [PR deployment safety 44820433731](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44820433731):
+  **2/2 SUCCESS** — offline and isolated real MySQL restore safety.
+- Fresh [main CI 44820901522](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44820901522):
+  **4/4 SUCCESS** — full PowerShell suite, Node/Vitest+MySQL,
+  API/MySQL and real Windows PS2EXE 1.0.18 EXE + WiX 5.0.2 MSI build;
+  administrative extraction, MSI install/clean uninstall and
+  tenant configuration-preserving major upgrade all passed.
+- [Main deployment safety 44820901397](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44820901397):
+  **2/2 SUCCESS**; [main index maintenance 44820901328](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44820901328):
+  **SUCCESS**.
+- On an unsigned automatic push, `Verify final signed artifact
+  publication` and `Upload verified signed artifacts only`
+  **SKIPPED**, as intended. These were **diagnostic** builds and no
+  protected signing credentials, human reviewer manifest, real
+  signed GitHub Release or customer Hostinger/physical Windows
+  acceptance was executed. **Customer production NOT APPROVED.**

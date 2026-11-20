@@ -1,6 +1,6 @@
 # Phase N Stage 52 — Revalidate signed Windows HTTPS approval at every network boundary
 
-**Status: CODE PROPOSED; PR CI PENDING; CUSTOMER PRODUCTION NOT APPROVED (2026-11-20 IST).**
+**Status: MERGED; PR CI 3/3 AND DEPLOYMENT SAFETY 2/2 GREEN; FRESH MAIN EXE/MSI ACCEPTANCE UNVERIFIED; CUSTOMER PRODUCTION NOT APPROVED (2026-11-20 IST).**
 
 ## Finding
 
@@ -70,8 +70,8 @@ signed by the same approved reviewer could replace an old one during a run;
 this safety gate checks authentic, current authorization, not nonce-based
 single use or an external revocation registry.
 
-- [ ] PR PowerShell 5.1/7 N52 regression plus N31–N51 safety tests green.
-- [ ] PR Node/Vitest/MySQL, API/MySQL and deployment safety green.
+- [x] PR PowerShell 5.1/7 N52 regression plus N31–N51 safety tests green.
+- [x] PR Node/Vitest/MySQL, API/MySQL and deployment safety green.
 - [ ] Review and merge the verified PR, then verify new `main` Windows
       EXE/MSI lifecycle (4/4) and deployment safety (2/2).
 - [ ] **External production gates pending:** independently approved reviewer
@@ -82,3 +82,19 @@ single use or an external revocation registry.
 
 **Production NOT APPROVED.** Security tracking remains
 [issue #29](https://github.com/rehman2671/Aaditech-toolkit-new/issues/29).
+
+## Verified GitHub evidence (not customer production approval)
+
+- [PR #47](https://github.com/rehman2671/Aaditech-toolkit-new/pull/47) merged
+  reviewed code head `3b1f864da749c749d9348f51e31d1ea999858be0` as
+  merge commit `80ce1e7b5327cfc49806db5f38d982b920118b9b`.
+- [PR CI run 44724914403](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44724914403):
+  PowerShell validation including N52 on real 5.1 and 7, Node/Vitest+MySQL
+  and API/MySQL **3/3 SUCCESS**; the EXE/MSI job was correctly skipped
+  because this run was triggered by a pull request.
+- [PR deployment safety run 44724914312](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44724914312):
+  Bash/offline recovery and isolated MySQL backup/restore **2/2 SUCCESS**.
+- The independently required **fresh `main` Windows EXE/MSI lifecycle 4/4**
+  and main deployment safety 2/2 have **not** been confirmed in this
+  acceptance record. No production release is approved until all external
+  gates are independently evidenced and signed off.

@@ -1,6 +1,6 @@
 # Phase N Stage 51 — Offline reviewer-signed Windows curl transport approval
 
-**Status: CODE PROPOSED; WINDOWS PR CI PENDING; CUSTOMER PRODUCTION NOT APPROVED (2026-11-20 IST).**
+**Status: MERGED; MAIN CI/MSI 4/4 AND DEPLOYMENT-SAFETY 2/2 GREEN; CUSTOMER PRODUCTION NOT APPROVED (verified 2026-11-20 IST).**
 
 ## Security finding and scope
 
@@ -108,10 +108,10 @@ integrations.
 
 ## Acceptance gates
 
-- [ ] Real Windows PowerShell 5.1 and 7 offline N51 reviewer RSA
+- [x] Real Windows PowerShell 5.1 and 7 offline N51 reviewer RSA
   signature, canonical manifest and temporal fault-injection tests
   pass with N31–N50 prior safety tests green.
-- [ ] PR Node/Vitest+MySQL, API/MySQL and deployment safety pass,
+- [x] PR Node/Vitest+MySQL, API/MySQL and deployment safety passed,
   merge at the verified SHA, then new `main` EXE/MSI lifecycle
   **4/4** plus deployment safety **2/2**.
 - [ ] Independently approved reviewer public certificate DER SHA-256,
@@ -124,3 +124,11 @@ integrations.
 **Production NOT APPROVED.**
 [Security issue #29](https://github.com/rehman2671/Aaditech-toolkit-new/issues/29)
 stays OPEN.
+
+## Verified CI and GitHub evidence (NOT customer production approval)
+
+- [PR #46](https://github.com/rehman2671/Aaditech-toolkit-new/pull/46) merged verified head `799773c29bdc90a91963b250514f1b925c4b4320` into main at `2d6cc525b140a4e8768f931d9176861db9e2e44d` following real Windows PowerShell 5.1/7 RSA review-manifest fault tests, N31–N50, Node/Vitest+MySQL, API/MySQL and deployment-safety success.
+- [PR CI #44722781690](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44722781690): **3/3 SUCCESS** (PowerShell, Node/Vitest+MySQL, API/MySQL; MSI correctly skipped on PR); [PR safety #44722781619](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44722781619): **2/2 SUCCESS**.
+- [Main CI #44723214554](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44723214554): **4/4 SUCCESS** (PowerShell, Node/Vitest+MySQL, API/MySQL, real Windows EXE/MSI build, Windows Installer administrative extraction, clean install/uninstall, tenant-preserving major upgrade).
+- [Main safety #44723214490](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44723214490): **2/2 SUCCESS** (Bash/offline recovery and isolated real MySQL backup/restore).
+- `Verify pre-signed MSI payload and sign release MSI` completed in the CI pipeline; `Upload verified signed artifacts only` was **SKIPPED**. No customer publisher-signed MSI, production reviewer certificate, signed real approval manifest, Hostinger physical DNS/TLS, real lost-ACK receipts, offsite restore or independent security sign-off was evidenced. **Production NOT APPROVED.**

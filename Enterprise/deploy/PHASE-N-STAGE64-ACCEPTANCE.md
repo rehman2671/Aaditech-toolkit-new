@@ -1,6 +1,6 @@
 # Phase N Stage 64 — whole PS2EXE module payload integrity across protected build steps
 
-**Status: IMPLEMENTED FOR REVIEW; WINDOWS CI AND INDEPENDENT REVIEW PENDING; CUSTOMER PRODUCTION NOT APPROVED (2026-11-21 IST).**
+**Status: PR #59 CI 3/3 + DEPLOYMENT SAFETY 2/2 SUCCESS; INDEPENDENT REVIEW AND FRESH MAIN MSI PENDING; CUSTOMER PRODUCTION NOT APPROVED (2026-11-21 IST).**
 
 ## Finding
 
@@ -28,6 +28,13 @@ imported a versioned module path, but did not recheck the copied module code.
   manifest/code/dependency payloads, changed module code, added and deleted
   files, invalid fingerprints, optional Windows symlink cases and source-order
   guards on Windows PowerShell 5.1 and 7.
+
+## Verified PR evidence
+
+- [PR #59](https://github.com/rehman2671/Aaditech-toolkit-new/pull/59) code head `f1f8f5ab4a2bf960edd54322973704dcf5ab519b`.
+- [PR CI 44828959128](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44828959128): **3/3 SUCCESS** — both N64 Windows PowerShell 5.1 and 7 offline tests, N62/N63/prior Windows security suite, Node/Vitest+MySQL, API/MySQL. PR MSI job intentionally skipped.
+- [PR deployment safety 44828959211](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44828959211): **2/2 SUCCESS** — independent MySQL restore and offline recovery tests.
+- These are **diagnostic/offline tests only**; neither protected signing nor genuine release happened.
 
 ## Acceptance
 

@@ -174,6 +174,13 @@ jobs:
         shell: powershell
         run: ./Enterprise/tests/Test-Stage53WindowsApprovalContinuity.ps1
 
+      - name: N54 test independent release SQLite ZIP and EXE hash pins (PowerShell 7)
+        run: pwsh -NoProfile -File ./Enterprise/tests/Test-Stage54SqliteBundleApproval.ps1
+
+      - name: N54 reject tampered SQLite bytes and malformed pins on Windows PowerShell 5.1
+        shell: powershell
+        run: ./Enterprise/tests/Test-Stage54SqliteBundleApproval.ps1
+
 
       - name: N31 release publication requires independently approved source and MSI pins
         run: pwsh -NoProfile -File ./Enterprise/tests/Test-Stage31PublicationPins.ps1
@@ -597,6 +604,11 @@ jobs:
         run: dotnet tool install --global wix --version "5.*"
 
       - name: Build MSI
+        env:
+          # Protected production-installer reviewer approvals; never derive these
+          # from the just-downloaded ZIP or CI-generated test fixtures.
+          SQLITE_TOOLS_ARCHIVE_SHA256_APPROVED: ${{ github.event_name == 'workflow_dispatch' && secrets.SQLITE_TOOLS_ARCHIVE_SHA256_APPROVED || '' }}
+          SQLITE3_EXE_SHA256_APPROVED: ${{ github.event_name == 'workflow_dispatch' && secrets.SQLITE3_EXE_SHA256_APPROVED || '' }}
         run: |
           $env:Path = "$env:USERPROFILE\.dotnet\tools;$env:Path"
           ./Enterprise/agent/wix/build-msi.ps1
@@ -633,8 +645,15 @@ jobs:
           CODESIGN_PFX_B64: ${{ github.event_name == 'workflow_dispatch' && secrets.CODESIGN_PFX_B64 || '' }}
           CODESIGN_PFX_PASSWORD: ${{ github.event_name == 'workflow_dispatch' && secrets.CODESIGN_PFX_PASSWORD || '' }}
           CODESIGN_APPROVED_THUMBPRINT: ${{ github.event_name == 'workflow_dispatch' && secrets.CODESIGN_APPROVED_THUMBPRINT || '' }}
+          SQLITE3_EXE_SHA256_APPROVED: ${{ github.event_name == 'workflow_dispatch' && secrets.SQLITE3_EXE_SHA256_APPROVED || '' }}
         run: |
           if ($env:RELEASE_SIGNING_ENABLED -eq 'true') {
+            # N54 verify the *embedded* executable after administrative MSI
+            # extraction and before signing the final distributable package.
+            Import-Module ./Enterprise/agent/wix/SqliteBundleApproval.psm1 -Force
+            $sqlitePayloads = @(Get-ChildItem -Path (Join-Path $env:RUNNER_TEMP 'itk-msi-verify') -Recurse -File -Filter 'sqlite3.exe')
+            if ($sqlitePayloads.Count -ne 1) { throw 'N54 MSI requires exactly one SQLite executable payload.' }
+            $null = Assert-N54ApprovedSqliteFile -Path $sqlitePayloads[0].FullName -Kind Executable -ApprovedSha256 $env:SQLITE3_EXE_SHA256_APPROVED
             $embedded = Get-ChildItem -Path (Join-Path $env:RUNNER_TEMP 'itk-msi-verify') -Recurse -File -Filter 'IT-Toolkit-Agent.exe' | Select-Object -First 1
             if (-not $embedded) { throw 'MSI did not embed signed agent EXE.' }
             $original = 'Enterprise/agent/build/out/IT-Toolkit-Agent.exe'

@@ -50,7 +50,7 @@ if ($verifyStart -lt 0 -or $artifactCheck -le $verifyStart -or
     $create -le $lastPayload -or $receiptStep -lt 0 -or $upload -le $receiptStep -or
     $ci.IndexOf("env.RELEASE_APPROVAL_RECEIPT_VERIFIED == 'true'",[StringComparison]::Ordinal) -lt 0 -or
     [regex]::Matches($release,'Assert-PublicationReviewerApproval.ps1').Count -ne 2 -or
-    $release.IndexOf("$assets.Count -ne 3",[StringComparison]::Ordinal) -lt 0) {
+    $release.IndexOf('$assets.Count -ne 3',[StringComparison]::Ordinal) -lt 0) {
     throw 'N58 protected GitHub Release and source CI step ordering bypassed.'
 }
 foreach ($marker in @('workflow_dispatch','head_repository.full_name',

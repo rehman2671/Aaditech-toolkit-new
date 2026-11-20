@@ -1,6 +1,6 @@
 # Phase N Stage 55 — Reverify exact signed artifacts at final publication
 
-**Status: MERGED; PR CI 3/3 AND SAFETY 2/2 SUCCESS; FRESH MAIN DIAGNOSTIC MSI ACCEPTANCE IN PROGRESS; CUSTOMER PRODUCTION NOT APPROVED (2026-11-20 IST).**
+**Status: MERGED; PR CI 3/3 AND SAFETY 2/2 SUCCESS; FRESH MAIN DIAGNOSTIC EXE/MSI 4/4 + SAFETY 2/2 VERIFIED; CUSTOMER PRODUCTION NOT APPROVED (2026-11-20 IST).**
 
 ## Finding
 
@@ -73,8 +73,8 @@ installer signing keys. It checks:
 - [x] Windows PowerShell 5.1 and 7 N55 tests and N31–N54 baseline green.
 - [x] PR Node/Vitest+MySQL, API/MySQL and deployment-safety checks green;
   PR #50 merged at reviewed head.
-- [ ] Independently verify new `main` Windows diagnostic EXE/MSI lifecycle
-  **4/4** and deployment safety **2/2**.
+- [x] Independently verified fresh `main` Windows diagnostic EXE/MSI lifecycle
+  **4/4 SUCCESS** and deployment safety **2/2 SUCCESS**.
 - [ ] Protected manual production-signing run with exact independently
   reviewed SQLite/publisher fingerprints and successful N55 final check,
   actual publication and independent human signing custody **PENDING**.
@@ -105,11 +105,12 @@ installer signing keys. It checks:
   diagnostic build **SKIPPED** as expected.
 - [PR safety 44733275562](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44733275562):
   real isolated MySQL backup/restore plus offline Bash recovery **2/2 SUCCESS**.
-- Post-merge `main` Windows MSI CI run
-  [44733652919](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44733652919)
-  and safety run
-  [44733653033](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44733653033)
-  started but must be independently inspected before main acceptance.
+- Post-merge `main` [CI 44733652919](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44733652919): **4/4 SUCCESS**, including Windows PowerShell tests, Node/Vitest+MySQL, API/MySQL and the actual Windows EXE/MSI build. MSI steps individually passed administrative extraction, real installed setup/clean uninstall and major upgrade retaining tenant configuration.
+- Post-merge `main` [safety 44733653033](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44733653033): **2/2 SUCCESS**, Bash/offline recovery and real isolated MySQL backup/restore data integrity.
 - Manual production publisher-signing and final `PUBLICATION_VERIFIED`
   execution have **not** happened. No artifact was publicly signed or
   delivered to a customer. **Production NOT APPROVED.**
+
+## Diagnostic versus production publication decision
+
+In N55 `main` run 44733652919, the protected step **Verify final signed artifact publication** and **Upload verified signed artifacts only** both reported **SKIPPED**, which is the intended non-publishable behavior for a normal unsigned `push` diagnostic build. The code-level N55 revalidation policy and synthetic mutation faults passed Windows PowerShell 5.1/7, but actual publisher-signed end-of-pipeline execution awaits independently approved production credentials and a human-protected `workflow_dispatch` on `main`. **Customer production NOT APPROVED.**

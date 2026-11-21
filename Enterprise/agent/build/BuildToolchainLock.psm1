@@ -76,6 +76,13 @@ function Assert-N62InstalledPs2Exe {
                 -not (Test-Path -LiteralPath $approvedManifest -PathType Leaf)) {
                 throw 'Protected build must load the exact approved package module.'
             }
+            # N64: do not import copied module code until its entire file
+            # tree still matches the approved NUPKG extraction fingerprint.
+            if ($env:N64_PS2EXE_PAYLOAD_SHA256 -cnotmatch '\A[0-9A-Fa-f]{64}\z') {
+                throw 'Protected compiler payload digest missing.'
+            }
+            Import-Module -Name (Join-Path $PSScriptRoot 'ApprovedCompilerPayload.psm1') -Force -ErrorAction Stop
+            $null=Assert-N64ApprovedPs2ExePayload -Directory $moduleBase -ApprovedSha256 $env:N64_PS2EXE_PAYLOAD_SHA256
             Import-Module -Name $approvedManifest -RequiredVersion ([version]$lock.ps2exe) -Force -ErrorAction Stop
         } else {
             Import-Module -Name ps2exe -RequiredVersion ([version]$lock.ps2exe) -Force -ErrorAction Stop

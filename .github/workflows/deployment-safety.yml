@@ -1,41 +1,13 @@
 name: Deployment safety regression
 
+# N71: these two jobs are universal required status contexts for every
+# main-targeting PR. Path filters would leave mandatory GitHub checks pending.
+# Running on every main push also provides deterministic fresh-main acceptance.
 on:
   push:
     branches: [main]
-    paths:
-      - 'Enterprise/deploy/**'
-      - 'Enterprise/tests/Test-MySQL-Backup-Restore.sh'
-      - 'Enterprise/tests/Test-Stage14Preflight.sh'
-      - 'Enterprise/tests/Test-Stage31Preflight.sh'
-      - 'Enterprise/tests/Test-Stage37PinnedPublicDns.sh'
-      - 'Enterprise/tests/test_public_dns_resolution.py'
-      - 'Enterprise/tests/test_public_health_json.py'
-      - 'Enterprise/tests/test_stage44_windows_health_evidence.py'
-      - 'Enterprise/tests/Test-DeployMySQL.sh'
-      - 'Enterprise/tests/Test-LegacyMsiMigration.sh'
-      - 'Enterprise/tests/Test-LegacyMsiMigration-Live.sh'
-      - 'Enterprise/tests/Test-MySQL-Live-Rehearsal.sh'
-      - '.github/workflows/deployment-safety.yml'
-      - '.github/workflows/project-index-maintenance.yml'
-      - 'Scripts/Index/**'
   pull_request:
-    paths:
-      - 'Enterprise/deploy/**'
-      - 'Enterprise/tests/Test-MySQL-Backup-Restore.sh'
-      - 'Enterprise/tests/Test-Stage14Preflight.sh'
-      - 'Enterprise/tests/Test-Stage31Preflight.sh'
-      - 'Enterprise/tests/Test-Stage37PinnedPublicDns.sh'
-      - 'Enterprise/tests/test_public_dns_resolution.py'
-      - 'Enterprise/tests/test_public_health_json.py'
-      - 'Enterprise/tests/test_stage44_windows_health_evidence.py'
-      - 'Enterprise/tests/Test-DeployMySQL.sh'
-      - 'Enterprise/tests/Test-LegacyMsiMigration.sh'
-      - 'Enterprise/tests/Test-LegacyMsiMigration-Live.sh'
-      - 'Enterprise/tests/Test-MySQL-Live-Rehearsal.sh'
-      - '.github/workflows/deployment-safety.yml'
-      - '.github/workflows/project-index-maintenance.yml'
-      - 'Scripts/Index/**'
+    branches: [main]
   workflow_dispatch:
 
 jobs:

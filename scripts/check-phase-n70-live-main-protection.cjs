@@ -17,7 +17,8 @@ function mainTarget(rule) {
   const ref = rule.conditions?.ref_name;
   if (!Array.isArray(ref?.include) || !Array.isArray(ref?.exclude)) return false;
   const needles = ['~DEFAULT_BRANCH', '~ALL', 'refs/heads/main'];
-  return ref.include.some(x => needles.includes(x)) && !ref.exclude.some(x => needles.includes(x));
+  // Fail closed on ANY exclude: it may be a glob matching main (e.g. refs/heads/*).
+  return ref.include.some(x => needles.includes(x)) && ref.exclude.length === 0;
 }
 function evaluate(snapshot, expectedSha, repoName) {
   const blockers = [];

@@ -41,6 +41,7 @@ test('ruleset exemptions, inactive protection and bypass actors rejected', () =>
   deny(x=>x.rulesets[0].enforcement='disabled','disabled');
   deny(x=>x.rulesets[0].enforcement='evaluate','monitor-only');
   deny(x=>x.rulesets[0].conditions.ref_name.exclude.push('refs/heads/main'),'excluded main');
+  deny(x=>x.rulesets[0].conditions.ref_name.exclude.push('refs/heads/*'),'wildcard excludes main');
   deny(x=>x.rulesets[0].bypass_actors.push({actor_id:1}),'admin bypass');
   deny(x=>delete x.rulesets[0].bypass_actors,'unknown bypass');
 });

@@ -25,8 +25,8 @@ function ruleTargetsMain(ruleset) {
   const ref = ruleset.conditions?.ref_name;
   if (!ref || !Array.isArray(ref.include) || !Array.isArray(ref.exclude)) return false;
   const applicable = ['~DEFAULT_BRANCH', '~ALL', 'refs/heads/main'];
-  return ref.include.some(p => applicable.includes(p)) &&
-    !ref.exclude.some(p => applicable.includes(p));
+  // Any exclusion may be a wildcard covering main; never guess applicability.
+  return ref.include.some(p => applicable.includes(p)) && ref.exclude.length === 0;
 }
 
 function normalizedContext(context) {

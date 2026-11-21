@@ -67,6 +67,7 @@ test('main-target, active and bypass-free branch rules required', () => {
   deny(d => d.rulesets[0].enforcement = 'disabled', 'disabled ruleset');
   deny(d => d.rulesets[0].bypass_actors.push({ actor_id: 1 }), 'bypass');
   deny(d => d.rulesets[0].conditions.ref_name.exclude.push('refs/heads/main'), 'excluded main');
+  deny(d => d.rulesets[0].conditions.ref_name.exclude.push('refs/heads/*'), 'wildcard main exclusion');
   assert.equal(ruleTargetsMain(fixture().rulesets[0]), true);
 });
 test('stale approvals, PR author self-reviews and later changes-requested fail', () => {

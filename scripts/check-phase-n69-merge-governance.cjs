@@ -13,6 +13,12 @@ const REQUIRED_CHECKS = Object.freeze([
 ]);
 const SHA = /^[0-9a-f]{40}$/;
 const REPO = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/;
+const GITHUB_ACTIONS_APP_ID = 15368; // Official GitHub Actions app, verified by CI API.
+const CHECK_DETAIL = /^https:\/\/github\.com\/([^/?#]+\/[^/?#]+)\/actions\/runs\/([1-9]\d*)\/job\/([1-9]\d*)$/;
+const SAFETY_CHECKS = new Set([
+  'Bash syntax and offline database recovery tests',
+  'Isolated MySQL 8 backup and restore data integrity'
+]);
 
 function ruleTargetsMain(ruleset) {
   if (!ruleset || ruleset.enforcement !== 'active' || ruleset.target !== 'branch') return false;
@@ -50,9 +56,30 @@ function latestApprovedReview(pr) {
     !reviewer.endsWith('[bot]') && review.state === 'APPROVED' && review.commit_id === head);
 }
 
+function isTrustedCheck(check, name, pr, repositoryName) {
+  if (!check || !repositoryName || normalizedContext(check.name) !== name ||
+      check.status !== 'completed' || check.conclusion !== 'success' ||
+      check.head_sha !== pr.head.sha ||
+      check.app?.id !== GITHUB_ACTIONS_APP_ID ||
+      check.app?.slug !== 'github-actions') return false;
+  const match = CHECK_DETAIL.exec(String(check.details_url || ''));
+  const run = check.verified_workflow_run;
+  const workflow = SAFETY_CHECKS.has(name) ?
+    '.github/workflows/deployment-safety.yml' : '.github/workflows/ci.yml';
+  return Boolean(match && match[1] === repositoryName && run &&
+    String(run.id) === match[2] && run.event === 'pull_request' &&
+    run.status === 'completed' && run.conclusion === 'success' &&
+    run.path === workflow &&
+    run.repository?.full_name === repositoryName &&
+    run.head_repository?.full_name === repositoryName &&
+    run.head_sha === pr.head.sha && run.head_branch === pr.head.ref);
+}
+
 function evaluate(snapshot) {
   const blockers = [];
   const branch = snapshot?.branch;
+  const repoName = snapshot?.repository?.full_name;
+  if (!REPO.test(repoName || '')) blockers.push('repository identity is missing or unverified');
   if (snapshot?.repository?.default_branch !== 'main') {
     blockers.push('repository default branch is not verified as main');
   }
@@ -79,6 +106,7 @@ function evaluate(snapshot) {
   const statuses = new Set(rules.filter(r => r.type === 'required_status_checks')
     .flatMap(r => Array.isArray(r.parameters?.required_status_checks) ?
       r.parameters.required_status_checks : [])
+    .filter(c => c && c.integration_id === GITHUB_ACTIONS_APP_ID)
     .map(c => normalizedContext(c.context)));
   for (const name of REQUIRED_CHECKS) {
     if (!statuses.has(name)) blockers.push('required main status check not configured: ' + name);
@@ -87,7 +115,8 @@ function evaluate(snapshot) {
   for (const number of REQUIRED_PRS) {
     const pr = prs.find(p => p && p.number === number);
     if (!pr || pr.state !== 'open' || pr.draft !== false ||
-        pr.base?.ref !== 'main' || !SHA.test(pr.head?.sha || '')) {
+        pr.base?.ref !== 'main' || !SHA.test(pr.head?.sha || '') ||
+        pr.head?.repo?.full_name !== repoName || pr.base?.repo?.full_name !== repoName) {
       blockers.push('PR #' + number + ' must be an open, non-draft main-target review candidate');
       continue;
     }
@@ -97,8 +126,7 @@ function evaluate(snapshot) {
     const runs = Array.isArray(pr.check_runs) ? pr.check_runs : [];
     for (const name of REQUIRED_CHECKS) {
       const matching = runs.filter(c => normalizedContext(c?.name) === name);
-      if (!matching.some(c => c.status === 'completed' && c.conclusion === 'success' &&
-          c.head_sha === pr.head.sha)) {
+      if (!matching.some(c => isTrustedCheck(c, name, pr, repoName))) {
         blockers.push('PR #' + number + ' lacks successful latest-head check: ' + name);
       }
     }
@@ -132,6 +160,7 @@ async function readLiveSnapshot(repo, token) {
     if (!Number.isInteger(r.id)) throw new Error('N69 invalid ruleset identifier');
     return getGithub(prefix + '/rulesets/' + r.id, token);
   }));
+  const actionRunCache = new Map();
   const prs = await Promise.all(REQUIRED_PRS.map(async number => {
     const pr = await getGithub(prefix + '/pulls/' + number, token);
     const reviews = await getGithub(prefix + '/pulls/' + number + '/reviews?per_page=100', token);
@@ -140,7 +169,17 @@ async function readLiveSnapshot(repo, token) {
         checks.total_count > checks.check_runs.length || reviews.length >= 100) {
       throw new Error('N69 incomplete review or required check pagination');
     }
-    return { ...pr, reviews, check_runs: checks.check_runs };
+    const trustedChecks = await Promise.all(checks.check_runs.map(async check => {
+      if (!REQUIRED_CHECKS.includes(normalizedContext(check.name))) return check;
+      const match = CHECK_DETAIL.exec(String(check.details_url || ''));
+      if (!match || match[1] !== repo) return check;
+      const runId = match[2];
+      if (!actionRunCache.has(runId)) {
+        actionRunCache.set(runId, getGithub(prefix + '/actions/runs/' + runId, token));
+      }
+      return { ...check, verified_workflow_run: await actionRunCache.get(runId) };
+    }));
+    return { ...pr, reviews, check_runs: trustedChecks };
   }));
   return { repository, branch, rulesets, prs };
 }
@@ -167,4 +206,4 @@ async function main(argv = process.argv) {
 if (require.main === module) {
   main().then(code => { process.exitCode = code; }).catch(() => { process.exitCode = 1; });
 }
-module.exports = { REQUIRED_PRS, REQUIRED_CHECKS, ruleTargetsMain, latestApprovedReview, evaluate, readLiveSnapshot, main };
+module.exports = { REQUIRED_PRS, REQUIRED_CHECKS, GITHUB_ACTIONS_APP_ID, ruleTargetsMain, latestApprovedReview, isTrustedCheck, evaluate, readLiveSnapshot, main };

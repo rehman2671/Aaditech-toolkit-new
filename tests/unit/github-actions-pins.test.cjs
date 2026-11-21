@@ -22,7 +22,7 @@ test('moving tags, bad SHAs, unknown actions and expressions rejected', () => {
   ];
   for (const value of tokens) {
     assert.throws(() => checkWorkflowText('steps:\n - uses: ' + value),
-      /N65 moving or unapproved action/, value);
+      /N65 (?:moving or unapproved action|unsafe uses syntax)/, value);
   }
 });
 test('folded and invalid YAML uses values fail closed', () => {

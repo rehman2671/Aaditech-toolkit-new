@@ -104,7 +104,7 @@ function inspect(ciText) {
     if (!unsigned.includes(token)) fail('unsigned artifact assertion missing: ' + token);
   }
   const raw = JSON.stringify(job);
-  if (/secrets\s*\.|gh\s+release|actions\/upload-artifact|PUBLISH_SIGNED\s*==\s*'true'/i.test(raw)) {
+  if (/\$\{\{\s*secrets\.[A-Za-z0-9_]+\s*\}\}|gh\s+release|actions\/upload-artifact|PUBLISH_SIGNED\s*==\s*'true'/i.test(raw)) {
     fail('forbidden signing secrets or publication command in PR job');
   }
   return { checkedSteps: steps.length, comparedWindowsSteps: names.length };

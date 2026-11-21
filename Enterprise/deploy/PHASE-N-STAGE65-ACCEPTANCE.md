@@ -1,6 +1,6 @@
 # Phase N Stage 65 — immutable GitHub Actions dependency identity
 
-**Status: IMPLEMENTED FOR REVIEW; PR CI AND INDEPENDENT SECURITY REVIEW PENDING; CUSTOMER PRODUCTION NOT APPROVED (2026-11-21 IST).**
+**Status: PR CI 3/3 + DEPLOYMENT SAFETY 2/2 SUCCESS; INDEPENDENT SECURITY REVIEW AND POST-MERGE MAIN MSI PENDING; CUSTOMER PRODUCTION NOT APPROVED (2026-11-21 IST).**
 
 ## Finding
 
@@ -24,9 +24,17 @@ The current N64 baseline still references moving GitHub Actions major-version ta
 
 These references reduce tag drift but do not certify upstream code security, provenance, publisher signing or independent human review. Changes to Actions require a reviewed SHA allowlist update.
 
+## Verified PR evidence
+
+- [PR #60](https://github.com/rehman2671/Aaditech-toolkit-new/pull/60) reviewed-code candidate `3dc410dc3dee6eea1b44026d8b2fd655e92091c9`.
+- [PR CI 44884573166](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44884573166) **3/3 SUCCESS**: Node/Vitest+MySQL (including strict YAML validator and malicious quoted/inline/alias action references), PowerShell security validation and API/MySQL integration. PR MSI packaging correctly skipped.
+- [PR deployment safety 44884573084](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44884573084) **2/2 SUCCESS**: offline recovery and isolated real MySQL restore verification.
+- The earlier [initial PR CI 44830175678](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44830175678) **FAILED** on a regression-test error-message mismatch; this was fixed and revalidated. No failure is being hidden by the acceptance record.
+
 ## Acceptance
 
-- [ ] PR Node/Windows/API-MySQL/security-safety checks and human review green; reviewed merge.
+- [x] PR Node/Windows/API-MySQL/security-safety checks passed at code commit above.
+- [ ] Independent human security review and reviewed merge.
 - [ ] Post-merge main Windows EXE/MSI extraction, install, clean uninstall and preserved-configuration upgrade pass.
 - [ ] Independently approved real N63 compiler archive SHA pins, N56 signed release authorization, publisher certificate/HSM, remote draft/public asset attestation, Hostinger DNS/TLS and physical Windows enrollment **PENDING**.
 

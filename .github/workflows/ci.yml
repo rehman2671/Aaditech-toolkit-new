@@ -22,7 +22,7 @@ jobs:
       run:
         shell: pwsh
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
 
       - name: Install PSScriptAnalyzer
         run: Install-Module PSScriptAnalyzer -Force -Scope CurrentUser -SkipPublisherCheck
@@ -238,6 +238,13 @@ jobs:
         run: ./Enterprise/tests/Test-Stage63ApprovedCompilerPackages.ps1
 
 
+      - name: N64 verify full SHA-approved PS2EXE payload across protected build steps (PowerShell 7)
+        run: pwsh -NoProfile -File ./Enterprise/tests/Test-Stage64ApprovedCompilerPayload.ps1
+
+      - name: N64 reject copied compiler code tampering on Windows PowerShell 5.1
+        shell: powershell
+        run: ./Enterprise/tests/Test-Stage64ApprovedCompilerPayload.ps1
+
       - name: N31 release publication requires independently approved source and MSI pins
         run: pwsh -NoProfile -File ./Enterprise/tests/Test-Stage31PublicationPins.ps1
 
@@ -304,9 +311,9 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: "20"
           cache: 'npm'
@@ -376,9 +383,9 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: "20"
           cache: 'npm'
@@ -608,9 +615,16 @@ jobs:
     defaults:
       run:
         shell: pwsh
-    if: github.event_name == 'workflow_dispatch' || github.event_name == 'push'
+    if: (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') || (github.event_name == 'push' && github.ref == 'refs/heads/main')
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+
+      - name: N70 verify live protected main before release (manual only)
+        if: github.event_name == 'workflow_dispatch'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node ./scripts/check-phase-n70-live-main-protection.cjs --live
 
       - name: Stage generic agent config (no server credentials baked into MSI)
         shell: pwsh
@@ -660,6 +674,7 @@ jobs:
       - name: Sign release EXE before WiX embeds it (or keep diagnostic only)
         shell: pwsh
         env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CODESIGN_PFX_B64: ${{ github.event_name == 'workflow_dispatch' && secrets.CODESIGN_PFX_B64 || '' }}
           CODESIGN_PFX_PASSWORD: ${{ github.event_name == 'workflow_dispatch' && secrets.CODESIGN_PFX_PASSWORD || '' }}
           CODESIGN_APPROVED_THUMBPRINT: ${{ github.event_name == 'workflow_dispatch' && secrets.CODESIGN_APPROVED_THUMBPRINT || '' }}
@@ -721,9 +736,17 @@ jobs:
           }
           Write-Host 'MSI administrative extraction passed; GUI, worker and blank setup config included.'
 
+      - name: N70 recheck protected main before MSI signing (manual only)
+        if: github.event_name == 'workflow_dispatch'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node ./scripts/check-phase-n70-live-main-protection.cjs --live
+
       - name: Verify pre-signed MSI payload and sign release MSI
         shell: pwsh
         env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CODESIGN_PFX_B64: ${{ github.event_name == 'workflow_dispatch' && secrets.CODESIGN_PFX_B64 || '' }}
           CODESIGN_PFX_PASSWORD: ${{ github.event_name == 'workflow_dispatch' && secrets.CODESIGN_PFX_PASSWORD || '' }}
           CODESIGN_APPROVED_THUMBPRINT: ${{ github.event_name == 'workflow_dispatch' && secrets.CODESIGN_APPROVED_THUMBPRINT || '' }}
@@ -812,7 +835,7 @@ jobs:
 
       - name: Upload verified signed artifacts only
         if: env.PUBLISH_SIGNED == 'true' && env.PUBLICATION_VERIFIED == 'true' && env.RELEASE_APPROVAL_RECEIPT_VERIFIED == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: it-toolkit-agent
           path: |
@@ -821,3 +844,172 @@ jobs:
             Enterprise/agent/build/out/SHA256SUMS.txt
             Enterprise/agent/build/out/agent-config.json
             Enterprise/agent/build/out/RELEASE-APPROVAL-SHA256.txt
+
+
+  agent-diagnostic-pr:
+    name: N68 unsigned Windows MSI install + upgrade (integration PR only)
+    needs: [powershell-validation, node-tests, api-tests]
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.base_ref == 'main' && startsWith(github.head_ref, 'integration/')
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        shell: pwsh
+    # Never attach a protected environment or any signing/release secrets.
+    # This isolated Windows runner builds an unsigned, nonpublishable MSI.
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+
+      - name: N68 deny signing credentials and non-integration contexts
+        shell: pwsh
+        run: |
+          if ($env:GITHUB_ACTIONS -cne 'true' -or $env:GITHUB_EVENT_NAME -cne 'pull_request' -or
+              $env:GITHUB_BASE_REF -cne 'main' -or
+              -not $env:GITHUB_HEAD_REF.StartsWith('integration/', [StringComparison]::Ordinal)) {
+            throw 'N68 only authorized same-repository main-target integration PRs run this diagnostic.'
+          }
+          foreach ($name in @('CODESIGN_PFX_B64', 'CODESIGN_PFX_PASSWORD',
+              'CODESIGN_APPROVED_THUMBPRINT', 'RELEASE_APPROVAL_SIGNATURE_B64',
+              'RELEASE_APPROVAL_MANIFEST_B64', 'RELEASE_APPROVAL_REVIEWER_DER_B64',
+              'RELEASE_REVIEWER_CERT_SHA256_APPROVED', 'GH_TOKEN')) {
+            if (-not [string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($name))) {
+              throw 'N68 protected release credentials cannot be present in diagnostics.'
+            }
+          }
+          Write-Host 'N68 read-only PR diagnostic context validated; protected credentials absent.'
+
+      - name: Stage generic agent config (no server credentials baked into MSI)
+        shell: pwsh
+        run: |
+          # This installer must work before a production server/domain exists.
+          # Bootstrap credentials are acquired after installation via
+          # Configure-Agent.ps1, NEVER embedded in published MSI artifacts.
+          $featuresFile = if (Test-Path ./Enterprise/agent/features.json) { './Enterprise/agent/features.json' } else { './Enterprise/api/features.json' }
+          $manifest = (Get-Content $featuresFile -Raw | ConvertFrom-Json).features
+          $features = @($manifest | ForEach-Object {
+            @{ name = $_.name; script = $_.script; enabled = [bool]$_.default_enabled; requires_elevation = [bool]$_.requires_elevation }
+          })
+          $agentMeta = Get-Content ./Enterprise/agent/agent-version.json -Raw | ConvertFrom-Json
+          $cfg = [ordered]@{
+            endpoint = ''
+            enroll_url = ''
+            token = ''
+            bootstrap_token = ''
+            needs_setup = $true
+            agent_version = [string]$agentMeta.agent_version
+            interval_minutes = [int]$agentMeta.interval_minutes
+            features = $features
+            run_script_allowlist = @()
+          }
+          $cfg | ConvertTo-Json -Depth 6 | Set-Content ./Enterprise/agent/agent-config.json
+          Write-Host 'Staged unprovisioned agent configuration (HTTPS setup required after MSI install).'
+
+
+      - name: N68 install pinned diagnostic PS2EXE
+        shell: powershell
+        run: Install-Module -Name ps2exe -RequiredVersion 1.0.18 -Repository PSGallery -Force -Scope CurrentUser
+
+      - name: N68 build authentic diagnostic agent EXE
+        shell: powershell
+        run: ./Enterprise/agent/build/build-agent.ps1
+
+      - name: N68 explicitly establish unsigned nonpublishable build
+        shell: pwsh
+        run: ./Enterprise/agent/build/Release-Sign.ps1 -Stage PrePackage
+
+      - name: N68 install pinned diagnostic WiX
+        shell: pwsh
+        run: dotnet tool install --global wix --version 5.0.2
+
+      - name: N68 build unsigned Windows MSI
+        shell: pwsh
+        run: |
+          if ($env:RELEASE_SIGNING_ENABLED -cne 'false' -or $env:PUBLISH_SIGNED -cne 'false') {
+            throw 'N68 refuses MSI packaging without explicit diagnostic-only mode.'
+          }
+          $env:Path = "$env:USERPROFILE\.dotnet\tools;$env:Path"
+          ./Enterprise/agent/wix/build-msi.ps1
+
+      - name: Validate MSI payload by Windows Installer administrative extraction
+        shell: pwsh
+        run: |
+          $msi = Get-ChildItem Enterprise/agent/build/out -Filter 'IT-Toolkit-Agent-*.msi' |
+            Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if (-not $msi) { throw 'WiX did not produce a versioned MSI' }
+          $extracted = Join-Path $env:RUNNER_TEMP 'itk-msi-verify'
+          $log = Join-Path $env:RUNNER_TEMP 'itk-msi-verify.log'
+          New-Item -ItemType Directory -Path $extracted -Force | Out-Null
+          $arguments = "/a `"$($msi.FullName)`" /qn TARGETDIR=`"$extracted`" /l*v `"$log`""
+          $proc = Start-Process msiexec.exe -ArgumentList $arguments -Wait -PassThru
+          if ($proc.ExitCode -ne 0) { throw "Administrative extraction failed: msiexec exit $($proc.ExitCode), see $log" }
+          foreach ($name in @('IT-Toolkit-Agent.exe', 'Configure-Agent.ps1', 'Configure-Agent-GUI.ps1')) {
+            $file = Get-ChildItem -Path $extracted -Recurse -File -Filter $name | Select-Object -First 1
+            if (-not $file) { throw "MSI payload is missing $name" }
+          }
+          $configs = @(Get-ChildItem -Path $extracted -Recurse -File -Filter 'agent.json')
+          if ($configs.Count -eq 0) { throw 'MSI payload is missing unprovisioned agent.json' }
+          foreach ($entry in $configs) {
+            $cfg = Get-Content -LiteralPath $entry.FullName -Raw | ConvertFrom-Json
+            if (-not $cfg.needs_setup -or $cfg.endpoint -or $cfg.token -or $cfg.bootstrap_token) {
+              throw "MSI contains a server endpoint or credential: $($entry.FullName)"
+            }
+          }
+          Write-Host 'MSI administrative extraction passed; GUI, worker and blank setup config included.'
+
+
+      - name: N68 assert EXE and MSI have no publisher signature or release proof
+        shell: pwsh
+        run: |
+          if ($env:RELEASE_SIGNING_ENABLED -cne 'false' -or $env:PUBLISH_SIGNED -cne 'false') {
+            throw 'N68 signed or publishable artifacts are prohibited on a PR.'
+          }
+          $items = @(
+            Get-Item -LiteralPath Enterprise/agent/build/out/IT-Toolkit-Agent.exe -ErrorAction Stop
+          ) + @(Get-ChildItem Enterprise/agent/build/out -Filter 'IT-Toolkit-Agent-*.msi')
+          if ($items.Count -ne 2) { throw 'N68 requires exactly one EXE and one MSI.' }
+          foreach ($item in $items) {
+            $signature = Get-AuthenticodeSignature -LiteralPath $item.FullName
+            if ($signature.Status -ne 'NotSigned') {
+              throw 'N68 diagnostic artifact was unexpectedly signed.'
+            }
+          }
+          Write-Host 'N68 unsigned diagnostic EXE/MSI verified; no artifacts will be uploaded.'
+
+      - name: Rehearse real Windows MSI install, post-setup and clean uninstall
+        shell: pwsh
+        run: |
+          try {
+            ./Enterprise/tests/Test-Windows-MsiInstall.ps1
+          } catch {
+            # Summarize failing MSI custom actions without publishing the
+            # entire installer log or any local user/environment secrets.
+            $log = Join-Path $env:RUNNER_TEMP 'itk-msi-install-rehearsal/install.log'
+            if (Test-Path -LiteralPath $log) {
+              Write-Host 'Last MSI error/action diagnostics:'
+              Get-Content -LiteralPath $log -Tail 120 |
+                Where-Object { $_ -match 'Return value 3|error |Error |CustomAction|CreateSchedTask|HardenAgentDataAcl|HardenLocalJsonAcl' } |
+                Select-Object -Last 25 | ForEach-Object { Write-Host $_ }
+            }
+            throw
+          }
+
+
+      - name: Rehearse Windows MSI major upgrade and tenant configuration preservation
+        shell: pwsh
+        run: |
+          try {
+            ./Enterprise/tests/Test-Windows-MsiUpgrade.ps1
+          } catch {
+            $logRoot = Join-Path $env:RUNNER_TEMP 'itk-msi-upgrade-rehearsal'
+            if (Test-Path -LiteralPath $logRoot) {
+              Get-ChildItem -LiteralPath $logRoot -Filter '*.log' | ForEach-Object {
+                Write-Host "MSI upgrade diagnostics from $($_.Name):"
+                Get-Content -LiteralPath $_.FullName -Tail 120 |
+                  Where-Object { $_ -match 'Return value 3|error |Error |CustomAction|FindRelatedProducts|RemoveExistingProducts' } |
+                  Select-Object -Last 15 | ForEach-Object { Write-Host $_ }
+              }
+            }
+            throw
+          }
+

@@ -55,6 +55,8 @@ try {
         # Powershell\Modules) when the subsequent ps2exe compiler runs.
         $documents=[Environment]::GetFolderPath('MyDocuments')
         if ([string]::IsNullOrWhiteSpace($documents)) { throw 'User PowerShell module directory unavailable.' }
+        Import-Module -Name (Join-Path $PSScriptRoot 'ApprovedCompilerPayload.psm1') -Force -ErrorAction Stop
+        $payloadDigest=Get-N64Ps2ExePayloadDigest -Directory $manifests[0].Directory.FullName
         $destination=Join-Path $documents ('WindowsPowerShell\Modules\ps2exe\'+$version)
         $null=[IO.Directory]::CreateDirectory($destination)
         foreach ($entry in @(Get-ChildItem -LiteralPath $manifests[0].Directory.FullName -Force -ErrorAction Stop)) {
@@ -65,6 +67,10 @@ try {
             (Get-FileHash -LiteralPath $trustedManifest -Algorithm SHA256).Hash) {
             throw 'Approved compiler copy differs from vetted archive.'
         }
+        # N64: compare every regular file, including executable module code,
+        # nested resources and additions, not just the manifest.
+        $null=Assert-N64ApprovedPs2ExePayload -Directory $destination -ApprovedSha256 $payloadDigest
+        $env:N64_PS2EXE_PAYLOAD_SHA256=$payloadDigest
         # Scope the next build-agent step to the explicitly vetted PS2EXE
         # module path; a different same-version module cannot win discovery.
         $env:N63_PS2EXE_MANIFEST_PATH=$trustedManifest
@@ -73,6 +79,8 @@ try {
             throw 'Cannot bind approved module path to subsequent build step.'
         }
         'N63_PS2EXE_MANIFEST_PATH='+$trustedManifest |
+            Out-File -LiteralPath $env:GITHUB_ENV -Append -Encoding utf8
+        'N64_PS2EXE_PAYLOAD_SHA256='+$payloadDigest |
             Out-File -LiteralPath $env:GITHUB_ENV -Append -Encoding utf8
     } else {
         # NuGet source isolation is mandatory. --add-source alone is NOT

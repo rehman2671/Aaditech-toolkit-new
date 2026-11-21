@@ -54,8 +54,11 @@ $psSource=[IO.File]::ReadAllText($exeBuilder)
 $wixSource=[IO.File]::ReadAllText($msiBuilder)
 $installPs='Install-Module -Name ps2exe -RequiredVersion '+$lock.ps2exe+' -Repository PSGallery -Force -Scope CurrentUser'
 $installWix='dotnet tool install --global wix --version '+$lock.wix
-if ([regex]::Matches($ci,[regex]::Escape($installPs)).Count -ne 1 -or
-    [regex]::Matches($ci,[regex]::Escape($installWix)).Count -ne 1 -or
+# N68 also builds an unsigned PR diagnostic MSI, independently pinned to
+# the same reviewed versions. Accept exactly TWO uses: main and preview.
+# A missing or floating install in either workflow fails closed.
+if ([regex]::Matches($ci,[regex]::Escape($installPs)).Count -ne 2 -or
+    [regex]::Matches($ci,[regex]::Escape($installWix)).Count -ne 2 -or
     $ci.IndexOf('Install-Module ps2exe -Force',[StringComparison]::Ordinal) -ge 0 -or
     $ci.IndexOf('wix --version "5.*"',[StringComparison]::Ordinal) -ge 0) {
     throw 'N62 Windows CI may have an unpinned EXE or MSI compiler.'
@@ -70,5 +73,5 @@ if ($importPs -lt 0 -or $admitPs -le $importPs -or $execPs -le $admitPs -or
     $importWix -lt 0 -or $admitWix -le $importWix -or $execWix -le $admitWix) {
     throw 'N62 signed/diagnostic compiler version check is not before build invocation.'
 }
-Write-Host 'N62 PASS: reviewed exact PS2EXE/WiX pins, no floating CI restore, offline downgrade/upgrade/injected-version rejection and admission before both build operations.'
+Write-Host 'N62 PASS: reviewed exact PS2EXE/WiX pins, two independently pinned CI restore steps, offline downgrade/upgrade/injected-version rejection and admission before both build operations.'
 exit 0

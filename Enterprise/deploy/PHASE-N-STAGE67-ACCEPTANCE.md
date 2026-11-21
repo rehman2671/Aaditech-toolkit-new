@@ -1,6 +1,6 @@
 # Phase N Stage 67 — main-only release build and executable signing gates
 
-**Status: CODE PUSHED FOR INTEGRATION REVIEW; CI AND HUMAN REVIEW PENDING; CUSTOMER PRODUCTION NOT APPROVED.**
+**Status: INTEGRATED N67 CI 3/3 + DEPLOYMENT SAFETY 2/2 PASSED; INDEPENDENT REVIEW AND MAIN MERGE PENDING; CUSTOMER PRODUCTION NOT APPROVED.**
 
 ## Finding
 
@@ -31,7 +31,7 @@ but the job-level gate did not.
 
 ## Acceptance gates
 
-- [ ] Combined Windows/Node/MySQL CI and database recovery suite green.
+- [x] Combined Windows/Node/MySQL CI and database recovery suite green on N67 code head `131be65aed66e4b8764a96e2e97bec2adf05453d`: [CI 44886601577](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44886601577) **3/3**, [safety 44886601581](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44886601581) **2/2**; also preserved by N68 [CI 44889704068](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44889704068).
 - [ ] Independent N64–N67 reviewer approval and authorized integration
   sequence; draft PR not merged directly.
 - [ ] Fresh `main` diagnostic Windows MSI and upgrade acceptance.

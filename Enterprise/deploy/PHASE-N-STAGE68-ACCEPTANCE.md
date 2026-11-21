@@ -1,6 +1,6 @@
 # Phase N Stage 68 — real premerge Windows MSI diagnostic acceptance
 
-**Status: CODE CANDIDATE; PR CI REAL WINDOWS MSI REHEARSAL AND SECURITY REVIEW PENDING (2026-11-21 IST).**
+**Status: PR DIAGNOSTIC WINDOWS MSI BUILD / INSTALL / UPGRADE PASSED; CI 4/4, SAFETY 2/2; INDEPENDENT REVIEW/MAIN MERGE PENDING (2026-11-21 IST).**
 
 ## Existing gap
 
@@ -29,13 +29,20 @@ pushes. The review branch had no real Windows Installer execution evidence.
   regressions to fail lint when CI weakens the PR restrictions, permits
   signing/upload, changes the compiler version, or drops Windows acceptance.
 
+## Verified evidence
+
+- [N68 CI 44889704068](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44889704068) **4/4 SUCCESS** on `076936727b4fb2ea17e49f5dfde1de31dafd759f`: Windows PowerShell 5.1/7 security, Node/Vitest + MySQL, API/MySQL, **actual unsigned EXE/MSI compilation**, administrative extraction, first-run GUI + blank setup, isolated elevated installation/clean uninstall, and tenant/device/SQLite state-preserving major upgrade.
+- [N68 safety 44889703995](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44889703995) **2/2 SUCCESS** on the same commit, including real isolated MySQL backup/restore.
+- **Zero** PR artifacts published. EXE/MSI verified **NotSigned**. Diagnostic MSI must never be distributed to customers. Initial N68 lint false-positive and N62 single-toolchain-count mismatch were corrected before this successful run.
+- [Release governance blocker #62](https://github.com/rehman2671/Aaditech-toolkit-new/issues/62): `main` unprotected, zero active rulesets and no independent reviews on PR #59/#60/#61. Human-admin actions remain mandatory.
+
 ## Acceptance
 
-- [ ] PR diagnostic Windows job built EXE and MSI and passed administrative
+- [x] PR diagnostic Windows job built EXE and MSI and passed administrative
   extraction (GUI + unprovisioned `agent.json`), real install/uninstall and
   major-upgrade preserving HTTPS server, tenant state, device identity,
   queue and SQLite ACK evidence on an isolated runner.
-- [ ] N68 Node/MySQL API CI and deployment safety checks green.
+- [x] N68 Node/MySQL API CI and deployment safety checks green.
 - [ ] Human security review of PRs #59–61 and authorized integration/merge.
 - [ ] Fresh protected-main Windows diagnostic build and genuine
   signer-authorized release; Hostinger DNS/TLS and physical enrolled Windows

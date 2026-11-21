@@ -1,6 +1,6 @@
 # Phase N Stage 66 — N64 + N65 combined security gate rehearsal
 
-**Status: INTEGRATION CANDIDATE; HUMAN SECURITY REVIEW AND PROTECTED MAIN MSI VALIDATION PENDING (2026-11-21 IST).**
+**Status: COMBINED CI + SAFETY PASSED; REAL PREMERGE N68 WINDOWS MSI PASSED; HUMAN REVIEW AND POST-MERGE MAIN VALIDATION PENDING (2026-11-21 IST).**
 
 ## Reason for separate preview
 
@@ -27,8 +27,8 @@ prove that conflict resolution preserves both security controls.
 
 ## Verification and release block
 
-- [ ] Combined PR Windows PowerShell validation and Node/Vitest/MySQL CI green.
-- [ ] Combined PR deployment safety recovery and real MySQL restore green.
+- [x] Combined PR Windows PowerShell validation and Node/Vitest/MySQL CI green: [N66 CI 44885892452](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44885892452) **3/3** and latest [N68 CI 44889704068](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44889704068) **4/4**, including unsigned real Windows MSI preview.
+- [x] Combined PR deployment safety recovery and real MySQL restore green: [N66 safety 44885892567](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44885892567) and [N68 safety 44889703995](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/44889703995), both **2/2**.
 - [ ] Independent security reviewer validates conflict resolution and
   confirms original PR #59/#60 change ownership before authorized merge.
 - [ ] Review-approved `main` rebuilds actual Windows MSI and exercises

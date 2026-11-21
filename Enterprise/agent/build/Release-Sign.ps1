@@ -31,6 +31,11 @@ if ($env:GITHUB_ACTIONS -cne 'true' -or
 if ($Stage -eq 'Finalize' -and $env:RELEASE_SIGNING_ENABLED -ne 'true') {
   throw 'No verified prepackage signature. Refusing MSI publication.'
 }
+# N70: no private signer key may be decoded until live main governance is verified.
+# Refuse missing Node/GitHub token, absent branch protection or moving main SHA.
+$preflight = Join-Path $PSScriptRoot '../../../scripts/check-phase-n70-live-main-protection.cjs'
+& node $preflight --live
+if ($LASTEXITCODE -ne 0) { throw 'N70 protected main preflight denied signing.' }
 $expected = ($env:CODESIGN_APPROVED_THUMBPRINT -replace '\s','').ToUpperInvariant()
 if ($expected -cnotmatch '^[A-F0-9]{40}$') { throw 'Approved thumbprint must be exactly 40 hex characters.' }
 # N56: after basic publisher thumbprint admission, independently authenticate

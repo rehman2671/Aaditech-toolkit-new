@@ -619,6 +619,13 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
 
+      - name: N70 verify live protected main before release (manual only)
+        if: github.event_name == 'workflow_dispatch'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node ./scripts/check-phase-n70-live-main-protection.cjs --live
+
       - name: Stage generic agent config (no server credentials baked into MSI)
         shell: pwsh
         run: |
@@ -667,6 +674,7 @@ jobs:
       - name: Sign release EXE before WiX embeds it (or keep diagnostic only)
         shell: pwsh
         env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CODESIGN_PFX_B64: ${{ github.event_name == 'workflow_dispatch' && secrets.CODESIGN_PFX_B64 || '' }}
           CODESIGN_PFX_PASSWORD: ${{ github.event_name == 'workflow_dispatch' && secrets.CODESIGN_PFX_PASSWORD || '' }}
           CODESIGN_APPROVED_THUMBPRINT: ${{ github.event_name == 'workflow_dispatch' && secrets.CODESIGN_APPROVED_THUMBPRINT || '' }}
@@ -728,9 +736,17 @@ jobs:
           }
           Write-Host 'MSI administrative extraction passed; GUI, worker and blank setup config included.'
 
+      - name: N70 recheck protected main before MSI signing (manual only)
+        if: github.event_name == 'workflow_dispatch'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node ./scripts/check-phase-n70-live-main-protection.cjs --live
+
       - name: Verify pre-signed MSI payload and sign release MSI
         shell: pwsh
         env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CODESIGN_PFX_B64: ${{ github.event_name == 'workflow_dispatch' && secrets.CODESIGN_PFX_B64 || '' }}
           CODESIGN_PFX_PASSWORD: ${{ github.event_name == 'workflow_dispatch' && secrets.CODESIGN_PFX_PASSWORD || '' }}
           CODESIGN_APPROVED_THUMBPRINT: ${{ github.event_name == 'workflow_dispatch' && secrets.CODESIGN_APPROVED_THUMBPRINT || '' }}

@@ -43,6 +43,12 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
 
+      - name: N70 verify live protected main before signed publication
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node ./scripts/check-phase-n70-live-main-protection.cjs --live
+
       - name: Validate source GitHub CI run provenance and manual confirmation
         shell: pwsh
         env:
@@ -171,6 +177,8 @@ jobs:
           ./Enterprise/agent/build/Assert-PublicationReviewerApproval.ps1 -ArtifactDir release -ApprovedSourceSha $env:APPROVED_SOURCE_SHA -ReleaseTag $env:RELEASE_TAG
           ./Enterprise/agent/build/Verify-ReleaseArtifact.ps1 -ArtifactDir release -ApprovedThumbprint $env:CODESIGN_APPROVED_THUMBPRINT -ApprovedMsiSha256 $env:APPROVED_MSI_SHA256 -ApprovedSqliteExeSha256 $env:SQLITE3_EXE_SHA256_APPROVED
           ./Enterprise/agent/build/Assert-RemoteReleaseAssets.ps1 -ArtifactDir release -ReleaseId $releaseId -RequireDraft
+          node ./scripts/check-phase-n70-live-main-protection.cjs --live
+          if ($LASTEXITCODE -ne 0) { throw 'N70 live governance changed before publication.' }
           & gh release edit $env:RELEASE_TAG --draft=false --latest=false
           if ($LASTEXITCODE -ne 0) { throw 'N59 cannot publish verified draft; manual security review required.' }
           # A successful edit response alone does not establish integrity.

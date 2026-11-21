@@ -13,6 +13,7 @@ N69 validates proposed review and CI governance but does not itself gate a real 
 - The manual-main Windows build checks live governance before approved compiler steps and again before MSI sign. The real `Release-Sign.ps1` independently checks it before decoding PFX bytes for PrePackage and Finalize. Diagnostic push and N68 PR unsigned builds remain unchanged.
 - The protected publication workflow checks immediately after first checkout and again after private draft attestation, immediately before `gh release edit --draft=false`; workflow structural tests deny removal or movement of any preflight step.
 - Offline N70 negative cases cover missing main protection, changed SHA, bypass actors, disabled rulesets, weak review and forged/omitted CI status providers. These tests are registered in npm lint.
+- N70 regression fix: validate the *nonsecret thumbprint format* before live API admission so malformed-fingerprint tests preserve their specific rejection; add a real PowerShell negative case proving a well-shaped thumbprint still cannot sign when GH_TOKEN/live governance is unavailable. Neither local check can decode a PFX or authorize production.
 
 ## Acceptance gates
 

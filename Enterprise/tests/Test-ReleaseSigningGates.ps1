@@ -4,7 +4,8 @@ $signer = Join-Path $PSScriptRoot '..\agent\build\Release-Sign.ps1'
 if (-not (Test-Path -LiteralPath $signer)) { throw 'Signing script missing.' }
 $vars = @('GITHUB_ENV', 'RELEASE_SIGNING_ENABLED', 'PUBLISH_SIGNED',
           'CODESIGN_PFX_B64', 'CODESIGN_PFX_PASSWORD', 'CODESIGN_APPROVED_THUMBPRINT',
-          'GITHUB_ACTIONS', 'GITHUB_EVENT_NAME', 'GITHUB_REF')
+          'GITHUB_ACTIONS', 'GITHUB_EVENT_NAME', 'GITHUB_REF',
+          'GH_TOKEN', 'GITHUB_SHA', 'GITHUB_REPOSITORY')
 $prior = @{}
 foreach ($name in $vars) { $prior[$name] = [Environment]::GetEnvironmentVariable($name) }
 $file = Join-Path $env:RUNNER_TEMP ('itk-negative-sign-' + [Guid]::NewGuid().ToString('N') + '.txt')
@@ -46,6 +47,19 @@ try {
     catch { $blocked = $_.Exception.Message -match 'thumbprint' }
     if (-not $blocked) { throw 'Malformed approved publisher fingerprint was not rejected.' }
     Write-Host '[PASS] Partial signing configuration and invalid publisher pin are rejected.'
+
+    # N70 must deny a correctly shaped thumbprint when live repository
+    # governance cannot be authenticated, before opening any PFX fixture.
+    $env:CODESIGN_APPROVED_THUMBPRINT = 'A' * 40
+    $env:GH_TOKEN = ''
+    $env:GITHUB_SHA = 'A' * 40
+    $env:GITHUB_REPOSITORY = 'rehman2671/Aaditech-toolkit-new'
+    $blocked = $false
+    try { & $signer -Stage PrePackage }
+    catch { $blocked = $_.Exception.Message -match 'N70 protected main preflight denied signing' }
+    if (-not $blocked) { throw 'Signing proceeded without live N70 governance verification.' }
+    Write-Host '[PASS] Valid-looking publisher pins cannot bypass N70 when live governance is unavailable.'
+
     # Even complete-looking secrets must fail before any signature/SDK access
     # when event provenance is not an approved manual main-branch CI run.
     $env:CODESIGN_APPROVED_THUMBPRINT = 'A' * 40

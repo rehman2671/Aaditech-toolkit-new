@@ -28,7 +28,15 @@ test('public publisher cannot bypass first or last protected-main verification',
   denied(ci,pub.replace("if ($LASTEXITCODE -ne 0) { throw 'N70 live governance changed before publication.' }",
     'Write-Host ignore'),sign,'last-moment live guard');
 });
-test('PFX signing requires an independent read-only live admission inside the signing script',()=>{
+test('signer validates fingerprint locally, then live main before PFX access',()=>{
   denied(ci,pub,sign.replace('& node $preflight --live','Write-Host accepted'),'signer');
   denied(ci,pub,sign.replace('N70 protected main preflight denied signing','N70 accept'), 'signer fail closed');
+  const check="if ($expected -cnotmatch '^[A-F0-9]{40}$')";
+  denied(ci,pub,sign.replace(check,'if ($false)'), 'removed thumbprint admission');
+  const first = sign.indexOf('$expected = (');
+  const local = sign.indexOf(check);
+  const live = sign.indexOf('& node $preflight --live');
+  const pfx = sign.indexOf('[Convert]::FromBase64String');
+  assert.ok(first >= 0 && first < local && local < live && live < pfx,
+    'local fingerprint rejection precedes live governance, both before PFX');
 });

@@ -58,11 +58,14 @@ function inspect(ci, publisher, signing) {
       !stage.includes("if ($LASTEXITCODE -ne 0) { throw 'N70 live governance changed before publication.' }")) {
     fail('last-moment governance check must precede public release');
   }
+  const pinCheck = "if ($expected -cnotmatch '^[A-F0-9]{40}$')";
+  const pinPosition = signing.indexOf(pinCheck);
+  const livePosition = signing.indexOf('& node $preflight --live');
+  const pfxPosition = signing.indexOf('[Convert]::FromBase64String');
   if (typeof signing !== 'string' ||
-      !signing.includes('& node $preflight --live') ||
       !signing.includes('N70 protected main preflight denied signing') ||
-      signing.indexOf('& node $preflight --live') > signing.indexOf('[Convert]::FromBase64String')) {
-    fail('signing script must deny before opening PFX');
+      pinPosition < 0 || livePosition <= pinPosition || pfxPosition <= livePosition) {
+    fail('nonsecret fingerprint must validate before live governance, and PFX only after');
   }
   return true;
 }

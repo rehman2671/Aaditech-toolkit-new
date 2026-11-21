@@ -9,8 +9,8 @@ The current N64 baseline still references moving GitHub Actions major-version ta
 ## Scope
 
 - Pinned all four external GitHub Actions in all four workflows to exact 40-character official commit SHAs, sourced from the `actions/*` GitHub `refs/tags/v4` API at implementation time.
-- New `scripts/check-github-actions-pins.cjs` scans all workflow YAML files and rejects unrecognized actions, moving tags, changed hashes, malformed `uses:` values, and linked workflow files.
-- New native Node unit tests exercise accepted pins and negative cases. The checks run within `npm run lint` in both Node/MySQL CI jobs.
+- New `scripts/check-github-actions-pins.cjs` parses all workflow YAML structures (not only line patterns), rejects unrecognized actions, moving tags, changed hashes, quoted/inline `uses:` bypasses, aliases, duplicate YAML keys and linked workflow files.
+- New native Node unit tests exercise accepted pins and negative cases, including valid YAML quoted/inline actions, duplicate keys, anchors and GitHub expressions. The checks run within `npm run lint` in both Node/MySQL CI jobs.
 - No production signing secrets, compiler approval hashes or customer data were changed or synthesized.
 
 ## Reviewed SHA candidates

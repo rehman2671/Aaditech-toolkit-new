@@ -34,3 +34,31 @@ test('empty and non-string workflow payloads fail closed', () => {
   assert.throws(() => checkWorkflowText(''), /N65 invalid/);
   assert.throws(() => checkWorkflowText(null), /N65 invalid/);
 });
+
+test('valid YAML quoted and inline action syntax is checked', () => {
+  const good = APPROVED['actions/checkout'];
+  const accepted = [
+    'steps:\n - "uses": actions/checkout@' + good,
+    'steps:\n - { "uses": "actions/checkout@' + good + '" }'
+  ];
+  for (const text of accepted) assert.equal(checkWorkflowText(text), 1);
+  const denied = [
+    'steps:\n - "uses": actions/checkout@v4',
+    'steps:\n - { uses: actions/checkout@v4 }',
+    'steps:\n - "uses": actions/download-artifact@' + good,
+    'steps:\n - { "uses": "actions/checkout@' + '0'.repeat(40) + '" }',
+    'steps:\n - uses: actions/checkout@' + good +
+      '\n   uses: actions/checkout@v4',
+    'steps:\n - uses: &x actions/checkout@' + good +
+      '\n - uses: *x'
+  ];
+  for (const text of denied) {
+    assert.throws(() => checkWorkflowText(text), /N65 /, text);
+  }
+});
+
+test('uses: text embedded in run scripts is not executed as an action', () => {
+  assert.equal(checkWorkflowText(
+    'name: fixture\njobs:\n  test:\n    steps:\n      - run: |\n          echo done\n          uses: actions/checkout@v4'
+  ), 0);
+});

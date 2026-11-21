@@ -46,12 +46,16 @@ function latestApprovedReview(pr) {
   // reviewer's approval. GitHub also blocks such merges by policy.
   if ([...latest.values()].some(review => review.state === 'CHANGES_REQUESTED')) return false;
   return [...latest.entries()].some(([reviewer, review]) =>
-    reviewer !== author && review.state === 'APPROVED' && review.commit_id === head);
+    reviewer !== author && review.user?.type === 'User' &&
+    !reviewer.endsWith('[bot]') && review.state === 'APPROVED' && review.commit_id === head);
 }
 
 function evaluate(snapshot) {
   const blockers = [];
   const branch = snapshot?.branch;
+  if (snapshot?.repository?.default_branch !== 'main') {
+    blockers.push('repository default branch is not verified as main');
+  }
   if (branch?.name !== 'main' || branch.protected !== true || !SHA.test(branch?.commit?.sha || '')) {
     blockers.push('main protection is missing or its source identity is unverified');
   }
@@ -120,6 +124,7 @@ async function getGithub(path, token) {
 async function readLiveSnapshot(repo, token) {
   if (!REPO.test(repo || '')) throw new Error('N69 requires an exact owner/repository identity');
   const prefix = '/repos/' + repo;
+  const repository = await getGithub(prefix, token);
   const branch = await getGithub(prefix + '/branches/main', token);
   const summaries = await getGithub(prefix + '/rulesets?includes_parents=true', token);
   if (!Array.isArray(summaries)) throw new Error('N69 invalid GitHub ruleset response');
@@ -137,7 +142,7 @@ async function readLiveSnapshot(repo, token) {
     }
     return { ...pr, reviews, check_runs: checks.check_runs };
   }));
-  return { branch, rulesets, prs };
+  return { repository, branch, rulesets, prs };
 }
 
 async function main(argv = process.argv) {

@@ -5,6 +5,7 @@ const { evaluate, REQUIRED_PRS, REQUIRED_CHECKS, ruleTargetsMain } = require('..
 const BASE_SHA = 'a'.repeat(40);
 function fixture() {
   return {
+    repository: { default_branch: 'main' },
     branch: { name: 'main', protected: true, commit: { sha: BASE_SHA } },
     rulesets: [{ id: 1, enforcement: 'active', target: 'branch', bypass_actors: [],
       conditions: { ref_name: { include: ['~DEFAULT_BRANCH'], exclude: [] } },
@@ -23,7 +24,7 @@ function fixture() {
       const sha = number.toString().repeat(40).slice(0,40);
       return { number, state: 'open', draft: false, base: { ref: 'main' },
         head: { sha }, user: { login: 'code-author' },
-        reviews: [{ user: { login: 'independent-reviewer' }, state: 'APPROVED',
+        reviews: [{ user: { login: 'independent-reviewer', type: 'User' }, state: 'APPROVED',
           commit_id: sha, submitted_at: '2026-11-21T12:00:00Z' }],
         check_runs: REQUIRED_CHECKS.map(name => ({ name, status: 'completed',
           conclusion: 'success', head_sha: sha }))
@@ -47,6 +48,7 @@ test('current observed unprotected and unreviewed GitHub state fails closed', ()
     'unprotected main and zero reviewers');
 });
 test('main-target, active and bypass-free branch rules required', () => {
+  deny(d => d.repository.default_branch = 'development', 'unexpected default branch');
   deny(d => d.rulesets[0].enforcement = 'disabled', 'disabled ruleset');
   deny(d => d.rulesets[0].bypass_actors.push({ actor_id: 1 }), 'bypass');
   deny(d => d.rulesets[0].conditions.ref_name.exclude.push('refs/heads/main'), 'excluded main');
@@ -55,6 +57,8 @@ test('main-target, active and bypass-free branch rules required', () => {
 test('stale approvals, PR author self-reviews and later changes-requested fail', () => {
   deny(d => d.prs[0].reviews[0].commit_id = BASE_SHA, 'stale old head');
   deny(d => d.prs[0].reviews[0].user.login = 'code-author', 'self-approval');
+  deny(d => d.prs[0].reviews[0].user.type = 'Bot', 'bot review');
+  deny(d => d.prs[0].reviews[0].user.login = 'security[bot]', 'bot login');
   deny(d => d.prs[1].reviews.push({ user: { login: 'independent-reviewer' },
     state: 'CHANGES_REQUESTED', submitted_at: '2026-11-21T13:00:00Z' }),
     'later rejected PR');

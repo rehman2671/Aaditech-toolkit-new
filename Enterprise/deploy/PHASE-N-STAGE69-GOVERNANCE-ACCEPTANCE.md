@@ -13,9 +13,9 @@
 ## New admission
 
 `scripts/check-phase-n69-merge-governance.cjs` provides a **read-only** explicit `--live` check:
-1. Require verified `main` commit, `protected=true`, an active main-target ruleset with no bypass actors, force-push/deletion protection, stale-review invalidation, non-author last-push review and resolved review threads.
+1. Require repository default branch and verified `main` commit, `protected=true`, an active main-target ruleset with no bypass actors, force-push/deletion protection, stale-review invalidation, non-author last-push review and resolved review threads.
 2. Require five universal required GitHub Actions CI/deployment-safety checks in branch rulesets.
-3. Require PR #59/#60/#61 to be open, non-draft, main-targeted, independently APPROVED on their exact latest heads, with no outstanding changes-requested reviews.
+3. Require PR #59/#60/#61 to be open, non-draft, main-targeted, independently human-account APPROVED (not by a bot) on their exact latest heads, with no outstanding changes-requested reviews.
 4. Require each PR's GitHub check-run metadata to show successful completion at its latest exact head for all five checks.
 5. Fail closed if any GitHub API evidence is unavailable, incomplete, stale or inconclusive. Never set branch rules, sign, publish or approve on a reviewer's behalf.
 

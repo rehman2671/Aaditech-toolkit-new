@@ -1,5 +1,15 @@
 # Phase N — Production release acceptance and sign-off
 
+## Stage N66 — protected WiX shim and tool-store continuity (PR CODE READY; CI PENDING; PRODUCTION BLOCKED)
+
+- [x] After N63's independently SHA-approved, N65-screened local NuGet restore, capture SHA-256 identity for the exact Windows global `wix.exe` shim and every installed file/directory in the locked `.dotnet/tools/.store/wix/<version>` tree.
+- [x] Protected `Assert-N62InstalledWix` rejects alternate PATH commands, reparse paths, changed shim bytes or modified/missing/extra dependencies before running even `wix --version`; diagnostic CI remains unsigned/version-pinned.
+- [x] N66 Windows PowerShell 5.1/7 synthetic mutation and call-order tests added to CI. **Actual test execution and code review are not yet claimed**.
+- [ ] PR + main CI/MSI diagnostic evidence, independent security review, protected real approved-NUPKG install and signed MSI publication: **PENDING**.
+- [ ] Hostinger domain/VPS deployment, actual Windows devices and offsite MySQL restore/operator approvals: **PENDING**.
+
+See [N66 acceptance](PHASE-N-STAGE66-ACCEPTANCE.md).
+
 ## Stage N65 — approved compiler NUPKG ZIP-entry safety (MERGED; PR CI 3/3 + SAFETY 2/2; MAIN DIAGNOSTIC MSI 4/4 + SAFETY 2/2; PRODUCTION BLOCKED)
 
 - [x] Read-only ZIP entry preflight is added after independently approved N63 package SHA verification and before any PS2EXE extraction or WiX local-only restore. Windows traversal, archive ambiguity, symlink/reparse entries and decompression bombs fail closed; the copied PS2EXE ZIP is rehashed against the original approved SHA immediately before extraction.

@@ -16,6 +16,7 @@ try {
     Import-Module -Name (Join-Path $PSScriptRoot 'ApprovedCompilerPackage.psm1') -Force -ErrorAction Stop
     Import-Module -Name (Join-Path $PSScriptRoot 'CompilerModuleContinuity.psm1') -Force -ErrorAction Stop
     Import-Module -Name (Join-Path $PSScriptRoot 'CompilerArchiveSafety.psm1') -Force -ErrorAction Stop
+    Import-Module -Name (Join-Path $PSScriptRoot 'WixToolContinuity.psm1') -Force -ErrorAction Stop
     $null=Assert-N63ProtectedCompilerContext -Ps2ExeApprovedSha256 $env:PS2EXE_NUPKG_SHA256_APPROVED -WixApprovedSha256 $env:WIX_NUPKG_SHA256_APPROVED
 
     $lock=Get-N62BuildToolchainLock
@@ -104,8 +105,25 @@ try {
         $env:NUGET_HTTP_CACHE_PATH=Join-Path $root 'isolated-nuget-http-cache'
         & dotnet tool install --global wix --version $version --configfile $nugetConfig
         if ($LASTEXITCODE -ne 0) { throw 'Offline approved WiX tool restore failed.' }
-        $env:Path=(Join-Path $env:USERPROFILE '.dotnet\tools')+';'+$env:Path
+        # N66: the independently vetted N63 local NUPKG was the only NuGet
+        # source. Capture the actual global shim and every restored store file
+        # BEFORE any WiX code is invoked. Later build steps rehash them.
+        if ([string]::IsNullOrWhiteSpace($env:USERPROFILE)) {
+            throw 'Protected global tool profile directory unavailable.'
+        }
+        $toolRoot=Join-Path $env:USERPROFILE '.dotnet\tools'
+        $fingerprint=Get-N66WixToolFingerprint -ToolRoot $toolRoot -ToolVersion $version
+        $env:N66_WIX_STORE_SHA256=$fingerprint.StoreSha256
+        $env:N66_WIX_SHIM_SHA256=$fingerprint.ShimSha256
+        $env:Path=$toolRoot+';'+$env:Path
         $null=Assert-N62InstalledWix
+        if ([string]::IsNullOrWhiteSpace($env:GITHUB_ENV)) {
+            throw 'Cannot bind approved WiX identity to subsequent build step.'
+        }
+        'N66_WIX_STORE_SHA256='+$fingerprint.StoreSha256 |
+            Out-File -LiteralPath $env:GITHUB_ENV -Append -Encoding utf8
+        'N66_WIX_SHIM_SHA256='+$fingerprint.ShimSha256 |
+            Out-File -LiteralPath $env:GITHUB_ENV -Append -Encoding utf8
     }
     Write-Host 'N63 independently approved compiler NUPKG installed from verified local package only.'
 } catch {

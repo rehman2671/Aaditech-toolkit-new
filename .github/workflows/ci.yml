@@ -252,6 +252,13 @@ jobs:
         shell: powershell
         run: ./Enterprise/tests/Test-Stage65CompilerArchiveSafety.ps1
 
+      - name: N66 verify protected WiX shim and tool-store continuity on Windows PowerShell 7
+        run: pwsh -NoProfile -File ./Enterprise/tests/Test-Stage66WixToolContinuity.ps1
+
+      - name: N66 reject malicious WiX tool PATH and installed-file substitutions on Windows PowerShell 5.1
+        shell: powershell
+        run: ./Enterprise/tests/Test-Stage66WixToolContinuity.ps1
+
       - name: N31 release publication requires independently approved source and MSI pins
         run: pwsh -NoProfile -File ./Enterprise/tests/Test-Stage31PublicationPins.ps1
 

@@ -1,6 +1,6 @@
 # Phase N Stage 65 — Approved NUPKG archive entry safety before extraction and tool restore
 
-**Status: CODE PROPOSED; WINDOWS CI AND REVIEW PENDING; PUBLIC SIGNING AND CUSTOMER PRODUCTION NOT APPROVED (2026-11-22 IST).**
+**Status: MERGED; PR CI 3/3 + SAFETY 2/2 SUCCESS; FRESH MAIN DIAGNOSTIC WINDOWS MSI 4/4 + SAFETY 2/2 SUCCESS; INDEX VERIFIED; PROTECTED SIGNING AND CUSTOMER PRODUCTION NOT APPROVED (2026-11-22 IST).**
 
 ## Remaining risk addressed
 
@@ -15,9 +15,10 @@ N63 verified independently reviewed PS2EXE/WiX package archive SHA-256 before us
 
 ## Acceptance boundaries
 
-- [x] Code and regression tests proposed in N65 feature branch. No external packages or customer files were downloaded to construct test fixtures.
-- [ ] PR Windows PowerShell 5.1/7, Node/MySQL, API/MySQL and deployment-safety results; security review and merge: **PENDING**.
-- [ ] Fresh merged main Windows diagnostic EXE/MSI build, administrative extraction and tenant-preserving MSI upgrade: **PENDING**.
+- [x] [PR #65](https://github.com/rehman2671/Aaditech-toolkit-new/pull/65) merged to main as `e52bd5652d580cf031413ab05f0546afdeb96299` after green GitHub checks. No separate human signing/security-owner acceptance is implied.
+- [x] [PR CI #45026179982](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45026179982) **3/3 SUCCESS**, including N65 real Windows PowerShell **5.1 and 7** synthetic ZIP safety regressions, previous N31–N64 PowerShell tests, Node/Vitest with MySQL and API/MySQL; MSI job skipped on PR. [PR safety #45026179985](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45026179985) **2/2 SUCCESS**.
+- [x] [Merged main CI #45026463843](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45026463843) **4/4 SUCCESS**, including authentic diagnostic Windows EXE/MSI build, MSI administrative extraction, real Windows install/post-setup/clean uninstall and tenant-preserving major upgrade. [Main safety #45026463832](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45026463832) **2/2 SUCCESS**, [project-index maintenance #45026463839](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45026463839) **SUCCESS**.
+- [x] Protected N63 compiler archive installation, final signed-artifact publication and artifact upload were **SKIPPED** in diagnostic main CI. They are NOT verified by these green runs.
 - [ ] Owner approval of actual N63 NUPKG digests, protected manual restored tools, original independent reviewer authorization, publisher/HSM certificate signing, public GitHub draft asset attestation, Hostinger/customer Windows/database restore evidence: **PENDING**.
 
 **Threat boundary:** This is defense-in-depth around **independently approved archive bytes**. It does not certify external package provenance or eliminate every concurrent write/TOCTOU attack. No signed public installer was authorized or published. **Production NOT APPROVED.**

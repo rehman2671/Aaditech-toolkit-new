@@ -93,3 +93,19 @@ test('N72 reject non-strict, missing or fragmented required status rules', () =>
     }});
   }, 'fragmentation across separate strict rules');
 });
+
+test('N73 active wildcard and exclusion policies cannot hide beside a valid strict main rule',()=>{
+  const broad=sample(); broad.rulesets[0].conditions.ref_name.include=['refs/heads/*'];
+  assert.equal(mainTarget(broad.rulesets[0]),true);
+  assert.equal(evaluate(broad,SHA,REPO).allowed,true);
+  // Adjacent ambiguous rulesets are considered for bypass and exclusions.
+  const s=sample();
+  const second=structuredClone(s.rulesets[0]);
+  second.conditions.ref_name.include=['refs/heads/m*'];
+  second.bypass_actors=[{actor_type:'RepositoryRole',actor_id:5}];
+  s.rulesets.push(second);
+  assert.equal(evaluate(s,SHA,REPO).allowed,false);
+  second.bypass_actors=[];
+  second.conditions.ref_name.exclude=['refs/heads/other/*'];
+  assert.equal(evaluate(s,SHA,REPO).allowed,false);
+});

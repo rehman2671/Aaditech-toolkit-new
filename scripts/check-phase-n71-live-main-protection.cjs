@@ -17,8 +17,14 @@ function mainTarget(rule) {
   const ref = rule.conditions?.ref_name;
   if (!Array.isArray(ref?.include) || !Array.isArray(ref?.exclude)) return false;
   const needles = ['~DEFAULT_BRANCH', '~ALL', 'refs/heads/main'];
-  // Fail closed on ANY exclude: it may be a glob matching main (e.g. refs/heads/*).
-  return ref.include.some(x => needles.includes(x)) && ref.exclude.length === 0;
+  // N73: a wildcard/unknown symbolic ref might match main. Treat it as
+  // potentially applicable instead of silently ignoring an additional
+  // policy with bypass actors. Deliberately conservative: unrelated glob
+  // policies can block signing until reviewed, but never authorize it.
+  // Do not filter exclusions here: any exclusion on a candidate is a blocker.
+  return ref.include.some(x =>
+    typeof x === 'string' &&
+    (needles.includes(x) || /[*?\\[\\]{}\\\\]/.test(x) || x.startsWith('~')));
 }
 function evaluate(snapshot, expectedSha, repoName) {
   const blockers = [];
@@ -36,6 +42,18 @@ function evaluate(snapshot, expectedSha, repoName) {
   const rulesets = Array.isArray(snapshot?.rulesets) ? snapshot.rulesets : [];
   const applicable = rulesets.filter(mainTarget);
   if (applicable.length === 0) blockers.push('no effective active main branch ruleset');
+  // Incomplete active branch metadata is not evidence that a ruleset is
+  // unrelated to main. Neither are unreviewed excludes or malformed globs.
+  if (rulesets.some(r => r?.enforcement === 'active' && r?.target === 'branch' &&
+      (!Array.isArray(r.conditions?.ref_name?.include) ||
+       !Array.isArray(r.conditions?.ref_name?.exclude) ||
+       r.conditions.ref_name.include.some(x => typeof x !== 'string') ||
+       r.conditions.ref_name.exclude.some(x => typeof x !== 'string')))) {
+    blockers.push('active branch ruleset scope is incomplete or unverifiable');
+  }
+  if (applicable.some(r => r.conditions.ref_name.exclude.length !== 0)) {
+    blockers.push('potential main ruleset has unapproved branch exclusions');
+  }
   if (applicable.some(r => !Array.isArray(r.bypass_actors) || r.bypass_actors.length !== 0)) {
     blockers.push('missing bypass evidence or bypass actor is allowed');
   }

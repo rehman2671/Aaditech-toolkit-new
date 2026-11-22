@@ -83,3 +83,38 @@ test('N73 still accepts a complete single-page proof with unchanged N71 checks',
   assert.equal(snapshot.rulesets.length,1);
   assert.equal(evaluate(snapshot,SHA,REPO).allowed,true);
 });
+
+test('N73 refuses wildcards and additional excluded main rulesets with bypass actors',()=>{
+  const {mainTarget}=require('../../scripts/check-phase-n71-live-main-protection.cjs');
+  for(const pattern of ['refs/heads/*','refs/heads/m*','refs/heads/m[ai]in','~UNRECOGNIZED']) {
+    const extra=mainRule(8,[{actor_type:'RepositoryRole',actor_id:5}]);
+    extra.conditions.ref_name.include=[pattern];
+    assert.equal(mainTarget(extra),true,pattern);
+    const s={repository:{full_name:REPO,default_branch:'main'},
+      branch:{name:'main',protected:true,commit:{sha:SHA}},
+      rulesets:[mainRule(7),extra]};
+    assert.equal(evaluate(s,SHA,REPO).allowed,false,pattern);
+  }
+  const excluded=mainRule(8);
+  excluded.conditions.ref_name.exclude=['refs/heads/release/*'];
+  const s={repository:{full_name:REPO,default_branch:'main'},
+    branch:{name:'main',protected:true,commit:{sha:SHA}},
+    rulesets:[mainRule(7),excluded]};
+  assert.equal(evaluate(s,SHA,REPO).allowed,false);
+  assert.match(evaluate(s,SHA,REPO).blockers.join(';'),/exclusions/);
+});
+test('N73 rejects malformed additional active rule even beside valid main policy',()=>{
+  for(const broken of [
+    {id:8,enforcement:'active',target:'branch',conditions:{}},
+    {id:8,enforcement:'active',target:'branch',
+      conditions:{ref_name:{include:[null],exclude:[]}}},
+    {id:8,enforcement:'active',target:'branch',
+      conditions:{ref_name:{include:['refs/heads/main'],exclude:[4]}}}
+  ]){
+    const s={repository:{full_name:REPO,default_branch:'main'},
+      branch:{name:'main',protected:true,commit:{sha:SHA}},
+      rulesets:[mainRule(7),broken]};
+    assert.equal(evaluate(s,SHA,REPO).allowed,false);
+    assert.match(evaluate(s,SHA,REPO).blockers.join(';'),/unverifiable/);
+  }
+});

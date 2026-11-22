@@ -78,7 +78,11 @@ function auditN70WorkflowBundle(files) {
                             'Test-Stage68StrictVpsAcceptance.sh','Test-Stage31Preflight.sh']) {
         if (!bash.includes(script)) fail();
       }
-      if (!mysql.includes('Test-MySQL-Live-Rehearsal.sh') ||
+      // A syntax-only `bash -n` mention must never count as actually
+      // executing recovery or live-VPS denial tests.
+      if (!bash.includes('bash Enterprise/tests/Test-Stage68StrictVpsAcceptance.sh') ||
+          !bash.includes('bash Enterprise/tests/Test-DeployMySQL.sh') ||
+          !mysql.includes('AADITECH_REHEARSAL=isolated-ci bash Enterprise/tests/Test-MySQL-Live-Rehearsal.sh') ||
           !mysql.includes('Test-LegacyMsiMigration-Live.sh') ||
           !mysql.includes('docker compose') || !mysql.includes('down -v')) fail();
       if (!raw.includes('branches: [main]')) fail();

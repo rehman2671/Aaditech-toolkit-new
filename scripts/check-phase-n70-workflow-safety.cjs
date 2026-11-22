@@ -65,8 +65,8 @@ function auditN70WorkflowBundle(files) {
       if (JSON.stringify(push) !== JSON.stringify({branches:['main']}) ||
           JSON.stringify(pull) !== JSON.stringify({branches:['main']})) fail();
       if (events.workflow_dispatch !== null && typeof events.workflow_dispatch !== 'object') fail();
-      const keys=Object.keys(wf.jobs);
-      if (keys.length !== 2 || Object.keys(JOB_NAMES).some(k => !keys.includes(k))) fail();
+      const safetyKeys=Object.keys(wf.jobs);
+      if (safetyKeys.length !== 2 || Object.keys(JOB_NAMES).some(k => !safetyKeys.includes(k))) fail();
       for (const [k, name] of Object.entries(JOB_NAMES)) {
         const job=wf.jobs[k];
         if (job.name !== name || job.if !== undefined ||

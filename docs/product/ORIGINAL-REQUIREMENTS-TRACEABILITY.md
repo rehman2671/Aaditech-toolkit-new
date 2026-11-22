@@ -4,7 +4,7 @@
 
 ## Exact source-line inventory and review workflow
 
-The [lossless line register](ORIGINAL-REQUIREMENTS-LINE-REGISTER.json) captures 268 nonblank extracted source-section lines spanning all 34 headings, plus five key binding master-directive anchors; headings and multi-part sentences still require atomization and statement-by-statement atomicization. **Do not interpret line count as the number of completed features.** Owner review uses the [decision handoff](REVIEW-AND-ACCEPTANCE-HANDOFF.md) and [DEC-001 options dossier](STACK-DECISION-DOSSIER.md).
+The [lossless line register](ORIGINAL-REQUIREMENTS-LINE-REGISTER.json) captures 268 nonblank extracted source-section lines spanning all 34 headings, plus five key binding master-directive anchors; headings and multi-part source statements still require decomposition into individually testable requirements. **Do not interpret line count as the number of completed features.** Owner review uses the [decision handoff](REVIEW-AND-ACCEPTANCE-HANDOFF.md) and [DEC-001 options dossier](STACK-DECISION-DOSSIER.md).
 
 ## Normative source and the unresolved stack exception
 

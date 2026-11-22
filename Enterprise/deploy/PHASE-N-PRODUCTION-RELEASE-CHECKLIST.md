@@ -1,10 +1,11 @@
 # Phase N — Production release acceptance and sign-off
 
-## Stage N72 — enforce strictly up-to-date required checks and prepare owner ruleset (PR CODE READY; CI PENDING; PRODUCTION BLOCKED)
+## Stage N72 — strictly up-to-date main checks and admin-ready ruleset (MERGED; PR CI 3/3 + SAFETY 2/2; MAIN MSI 4/4 + SAFETY 2/2; PRODUCTION BLOCKED)
 
 - [x] Runtime live-protection gate now requires all five trusted GitHub Actions checks in **one** strictly up-to-date main ruleset; no loose/stale-context union can approve a signed release.
 - [x] New **offline** deterministic exact active-main ruleset JSON generator, negative tests and [admin handoff](MAIN-RULESET-ADMIN-HANDOFF.md) provide production-owner steps without a token or repository write side effect.
-- [ ] PR CI/merge and fresh main Windows MSI acceptance: **PENDING**.
+- [x] [PR #74](https://github.com/rehman2671/Aaditech-toolkit-new/pull/74) merged as `953566b4f2854d9d64fc0f11ae5c701974825fe7`; [PR CI #45062081506](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45062081506) **3/3** and [PR safety #45062081546](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45062081546) **2/2 PASS**.
+- [x] Fresh main [CI #45062353330](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45062353330) **4/4** and [safety #45062353339](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45062353339) **2/2 PASS** with actual diagnostic Windows MSI build, administrative extraction, install/uninstall and tenant-preserving major upgrade. Protected signing and publication skipped as required.
 - [ ] Authorized repo admin must create/activate ruleset, enroll an independent reviewer, and independently validate N71's live bypass metadata and app identity. **Do not** grant repository Administration-write PAT to general build jobs to make N71 pass.
 - [ ] Protected signed Windows release, live Hostinger VPS, real enrolment and encrypted offsite MySQL restore: **PENDING**.
 

@@ -1,5 +1,14 @@
 # Phase N — Production release acceptance and sign-off
 
+## Stage N68 — authoritative Hostinger VPS live health admission (PR CODE READY; CI PENDING; CUSTOMER PRODUCTION BLOCKED)
+
+- [x] Replace text-grep acceptance in supported `deploy-mysql.sh` with mandatory exact-JSON, DNS-pinned, system-CA HTTPS health + same-origin HTTP redirect verifier; any degraded/malformed live outcome blocks success and preserves existing .env secrets.
+- [x] Enforce the verifier's reserved/public hostname dry-run before Docker or secret mutations, and Stage N14 strong/private deployment credentials before real Compose startup.
+- [x] Offline mocked Docker/verifier tests added and deployment-safety CI gated. **CI not yet claimed green**.
+- [ ] PR/main CI/safety review; verified real Hostinger VPS/DNS/ACME, offsite MySQL restoration, physical Windows tenant enrollment, independently signed release and security owner acceptance: **PENDING**.
+
+See [N68 acceptance](PHASE-N-STAGE68-ACCEPTANCE.md).
+
 ## Stage N67 — signed installer configuration is strictly generic (MERGED; PR 3/3 + SAFETY 2/2; MAIN DIAGNOSTIC MSI 4/4 + SAFETY 2/2; PRODUCTION BLOCKED)
 
 - [x] Every external/embedded signed release JSON must have exact first-run fields and proper JSON data types. Reject extra keys, duplicate keys, credentials/server URL, nonempty script allowlist, mismatched version/interval and any feature/elevation/script discrepancy from the source-controlled manifest.

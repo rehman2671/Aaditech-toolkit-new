@@ -1,6 +1,6 @@
 # Phase N Stage 66 — Protected WiX global-tool command and store continuity
 
-**Status: MERGED; PR CI 3/3 + SAFETY 2/2 SUCCESS; MAIN SAFETY 2/2 + INDEX SUCCESS; MAIN WINDOWS DIAGNOSTIC CI QUEUED; PROTECTED/PRODUCTION RELEASE NOT APPROVED (2026-11-22 IST).**
+**Status: MERGED; PR CI 3/3 + SAFETY 2/2 SUCCESS; MAIN SAFETY 2/2 + INDEX SUCCESS; MAIN WINDOWS DIAGNOSTIC CI 4/4 SUCCESS; PROTECTED/PRODUCTION RELEASE NOT APPROVED (2026-11-22 IST).**
 
 ## Concrete threat addressed
 
@@ -21,7 +21,8 @@ The .NET CLI global-tool install convention uses `%USERPROFILE%\.dotnet\tools\wi
 - [x] [PR CI #45027987884](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45027987884) **3/3 SUCCESS**, including N66 synthetic tool-store/shim tamper and PATH shadowing tests on real **Windows PowerShell 5.1 and PowerShell 7**, Node/MySQL and API/MySQL. PR-only MSI job skipped, as expected.
 - [x] [PR deployment safety #45027987875](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45027987875) **2/2 SUCCESS**.
 - [x] [Main deployment safety #45028218021](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45028218021) **2/2 SUCCESS**, [index #45028217998](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45028217998) **SUCCESS**.
-- [ ] [Merged main diagnostic CI #45028218016](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45028218016): **QUEUED** at last verification; final Windows EXE/MSI build, administrative extraction, install/uninstall and major-upgrade acceptance **NOT YET CLAIMED**.
+- [x] [Merged main diagnostic CI #45028218016](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45028218016): **4/4 SUCCESS** on the actual N66 merge commit `4fbf22ddbd601e266b437911b768751ccd43b4b4`. Verified PowerShell 5.1/7 N66 tests, Node/Vitest+MySQL, API/MySQL, authentic Windows diagnostic EXE/MSI build, administrative MSI extraction, Windows MSI install/post-setup/clean uninstall, and tenant-configuration-preserving major upgrade.
+- [x] Protected N63 package installation, final signed artifact publication and upload steps were **SKIPPED** as expected in diagnostic main CI. Neither this nor any other synthetic test proves a protected signed release.
 - [ ] Protected manual main build with independently approved actual PS2EXE/WiX NUPKG hashes, human-reviewed source/release scope, signed Windows publisher identity, production Hosted GitHub release assets, Hostinger VPS and physical customer Windows/offsite restore evidence: **PENDING**.
 
 **Boundaries:** N66 is an installed-byte continuity check, not independent approval of any new compiler archive, not protection against every concurrent file mutation, and not proof of a live protected build. Normal push CI does not use protected package credentials or publish signed customer artifacts. **Customer production release NOT APPROVED.**

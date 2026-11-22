@@ -9,6 +9,15 @@
 
 See [N68 acceptance](PHASE-N-STAGE68-ACCEPTANCE.md).
 
+## Stage N70 — universal main safety required-check readiness and immutable action SHAs (PR CODE READY; CI/HUMAN REVIEW PENDING; PRODUCTION BLOCKED)
+
+- [x] Safety CI triggers on every main-target pull request and every main push, not selected paths; stable two safety check contexts continue real Bash and isolated MySQL backup/restore.
+- [x] All 13 actions/checkout, setup-node, upload-artifact and download-artifact references across 4 workflows use exact official v4-ref commit SHAs instead of moving tags; structural + adversarial `npm run lint` tests added.
+- [ ] PR CI, independent reviewer validation of exact upstream action commit identities, green merged main MSI/install/upgrade and deployment safety: **PENDING**.
+- [ ] Github owner must separately enable non-bypassable `main` branch protection with latest-head independent approval, five required check contexts (Actions app identity), no force push/deletion or bypass; signed production release and Hostinger/customer acceptance still **PENDING**. No change in YAML enforces those live rules.
+
+See [N70 acceptance](PHASE-N-STAGE70-ACCEPTANCE.md) and [governance blocker #62](https://github.com/rehman2671/Aaditech-toolkit-new/issues/62).
+
 ## Stage N67 — signed installer configuration is strictly generic (MERGED; PR 3/3 + SAFETY 2/2; MAIN DIAGNOSTIC MSI 4/4 + SAFETY 2/2; PRODUCTION BLOCKED)
 
 - [x] Every external/embedded signed release JSON must have exact first-run fields and proper JSON data types. Reject extra keys, duplicate keys, credentials/server URL, nonempty script allowlist, mismatched version/interval and any feature/elevation/script discrepancy from the source-controlled manifest.

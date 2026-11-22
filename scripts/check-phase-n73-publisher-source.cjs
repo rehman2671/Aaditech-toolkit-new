@@ -44,7 +44,7 @@ function inspect(source){
      !admission.includes("$source.head_branch -ne 'main'") ||
      !admission.includes("$source.conclusion -ne 'success'") ||
      !admission.includes('$source.head_repository.full_name -ne $env:GITHUB_REPOSITORY') ||
-     !admission.includes('$source.head_sha -cne $env:APPROVED_SOURCE_SHA.ToLowerInvariant() -or\n              '+BIND+') {') ||
+     !/\$source\.head_sha -cne \$env:APPROVED_SOURCE_SHA\.ToLowerInvariant\(\) -or\s*\$source\.head_sha -cne \$env:GITHUB_SHA\) \{/.test(admission) ||
      admission.indexOf(BIND)>admission.indexOf('"SOURCE_SHA=$($source.head_sha)"')){
     fail('source run must match both human-approved SHA and publisher workflow SHA');
   }

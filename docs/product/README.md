@@ -15,15 +15,17 @@ The original `Aaditech_Endpoint_Monitoring_Management_Final_Requirements.docx` a
 AadiTech is an **intranet-first, independently self-hosted enterprise IT monitoring, diagnostics and controlled remediation platform**. An office must remain operational when the internet or any optional AadiTech central service is unavailable. Hostinger and `tool.aaditechs.in` are **optional future services**, never a dependency of normal local operation.
 
 For implementation proposals, read the original requirements and [crosswalk](ORIGINAL-REQUIREMENTS-TRACEABILITY.md) first, then:
+
 1. [Owner decision and review handoff](REVIEW-AND-ACCEPTANCE-HANDOFF.md) and [DEC-001 stack dossier](STACK-DECISION-DOSSIER.md) — unresolved architecture and scope decisions.
 2. [Original source line register](ORIGINAL-REQUIREMENTS-LINE-REGISTER.json) — traceable source lines, not completion evidence.
-5. [Product requirements](PRODUCT-REQUIREMENTS.md) — what must work, scope and product acceptance.
-2. [Architecture decision](INTRANET-ARCHITECTURE.md) — approved current stack versus planned LAN capabilities.
+3. [Product requirements](PRODUCT-REQUIREMENTS.md) — what must work, scope and product acceptance.
+4. [Architecture decision proposal](INTRANET-ARCHITECTURE.md) — current implemented stack versus the original stack lock and planned LAN capabilities.
 5. [First-run installer and LAN acceptance](INSTALLER-AND-SETUP-ACCEPTANCE.md) — required operator journey.
 6. [Feature and evidence matrix](FEATURE-ACCEPTANCE-MATRIX.md) — implementation truth, gaps and exact supporting links.
 7. [Troubleshooting/auto-healing specification](TROUBLESHOOTING-AUTOHEALING.md) — 26 issue classes and safety/outcome model.
 8. [Acceptance test matrix](ACCEPTANCE-TEST-MATRIX.md) — independent go/no-go gates.
-9. [Delivery roadmap](DELIVERY-ROADMAP.md) and [machine-readable tracker](DELIVERY-TRACKER.json) — next actions, dependencies, priority and blockers.
+9. [Acceptance evidence record](ACCEPTANCE-EVIDENCE-RECORD.md) — independently witnessed physical/E2E proof format.
+10. [Delivery roadmap](DELIVERY-ROADMAP.md) and [machine-readable tracker](DELIVERY-TRACKER.json) — next actions, dependencies, priority and blockers.
 
 **Historical conceptual and implementation documents retained (not replacements for the original DOCX):** `Documentation/PROJECT-SPEC.md` describes a previous FastAPI/PostgreSQL concept; `docs/architecture/Technical-Architecture-Spec.md` describes a Go/PostgreSQL concept. Neither reflects today's server. Real checked-in backend is **Node.js/Express + MySQL 8** (`server.js`, `db.js`, `Enterprise/docker-compose.yml`). Legacy `Enterprise/deploy/deploy.sh` and `deploy.ps1` explicitly block incompatible PostgreSQL deployments; supported `deploy-mysql.sh` currently assumes **public DNS/ACME**, **not** office-only LAN. This mismatch is a primary product gap, not an excuse to deploy via Hostinger.
 

@@ -2,6 +2,10 @@
 
 **Source audit:** 2026-11-23. Compared repository text mirrors `doc1_full.txt` (original "Final Product Requirements & System Architecture") and `doc2_full.txt` ("Master Development Directive — Go Backend Edition", Parts A/B/C). The source `.docx` binaries could not be directly decoded by the repository connector; **a final reviewer must confirm the extracted mirrors match the originals before formal baseline approval**.
 
+## Exact source-line inventory and review workflow
+
+The [lossless line register](ORIGINAL-REQUIREMENTS-LINE-REGISTER.json) captures 268 nonblank extracted source-section lines spanning all 34 headings, plus five key binding master-directive anchors; headings and multi-part sentences still require atomization and source-DOCX fidelity checking. **Do not interpret line count as the number of completed features.** Owner review uses the [decision handoff](REVIEW-AND-ACCEPTANCE-HANDOFF.md) and [DEC-001 options dossier](STACK-DECISION-DOSSIER.md).
+
 ## Normative source and the unresolved stack exception
 
 - The **original product scope remains binding unless the product owner explicitly amends it**. This planning baseline does *not* silently delete Windows/macOS/Linux scope, per-process usage, MSI package factory, time-series charts, health scores, operational observability, report formats, permissions or high availability.

@@ -691,5 +691,9 @@
     "code": "Node.js/Express + MySQL 8",
     "status": "OWNER_ADR_REQUIRED",
     "note": "No silent material stack change"
-  }
+  },
+  "requirement_line_register": "docs/product/ORIGINAL-REQUIREMENTS-LINE-REGISTER.json",
+  "owner_decision_handoff": "docs/product/REVIEW-AND-ACCEPTANCE-HANDOFF.md",
+  "acceptance_evidence_template": "docs/product/ACCEPTANCE-EVIDENCE-RECORD.md",
+  "stack_decision_options": "docs/product/STACK-DECISION-DOSSIER.md"
 }

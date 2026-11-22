@@ -1,0 +1,2098 @@
+{
+  "schema_version": "1.0",
+  "baseline_date": "2026-11-23",
+  "purpose": "Exact text-mirror line inventory; this is NOT a claim of individually atomic requirements, implementation coverage, or verified original DOCX fidelity",
+  "source_files": [
+    {
+      "path": "doc1_full.txt",
+      "original": "Aaditech_Endpoint_Monitoring_Management_Final_Requirements.docx",
+      "text_mirror_match": "REQUIRES_INDEPENDENT_VERIFICATION",
+      "count_lines": 271
+    },
+    {
+      "path": "doc2_full.txt",
+      "original": "Aaditech_Master_Development_Directive_Go_Edition_updated.docx",
+      "text_mirror_match": "REQUIRES_INDEPENDENT_VERIFICATION",
+      "count_lines": 905
+    }
+  ],
+  "line_state_default": "SOURCE_CAPTURED_NOT_INDEPENDENTLY_MAPPED",
+  "acceptance_default": "NOT_VERIFIED",
+  "sections": [
+    {
+      "section": 1,
+      "title": "Product Objective",
+      "line": 4
+    },
+    {
+      "section": 2,
+      "title": "Core Architecture",
+      "line": 6
+    },
+    {
+      "section": 3,
+      "title": "Endpoint Agent",
+      "line": 8
+    },
+    {
+      "section": 4,
+      "title": "MSI Installer / Agent Package Factory — Mandatory",
+      "line": 21
+    },
+    {
+      "section": 5,
+      "title": "OS & Device Inventory",
+      "line": 37
+    },
+    {
+      "section": 6,
+      "title": "Hardware Inventory",
+      "line": 43
+    },
+    {
+      "section": 7,
+      "title": "Real-Time & Historical Resource Monitoring",
+      "line": 52
+    },
+    {
+      "section": 8,
+      "title": "Application & Process Monitoring",
+      "line": 70
+    },
+    {
+      "section": 9,
+      "title": "Network Monitoring",
+      "line": 77
+    },
+    {
+      "section": 10,
+      "title": "Disk & Storage Health",
+      "line": 85
+    },
+    {
+      "section": 11,
+      "title": "Battery & Laptop Health",
+      "line": 92
+    },
+    {
+      "section": 12,
+      "title": "Device Health Score",
+      "line": 96
+    },
+    {
+      "section": 13,
+      "title": "Security Posture",
+      "line": 98
+    },
+    {
+      "section": 14,
+      "title": "Patch & Software Compliance",
+      "line": 108
+    },
+    {
+      "section": 15,
+      "title": "Device Lifecycle & Asset Management",
+      "line": 115
+    },
+    {
+      "section": 16,
+      "title": "Device Groups, Policies & Configuration",
+      "line": 117
+    },
+    {
+      "section": 17,
+      "title": "Alert & Notification Engine",
+      "line": 126
+    },
+    {
+      "section": 18,
+      "title": "Remote Actions & Automated Remediation",
+      "line": 138
+    },
+    {
+      "section": 19,
+      "title": "Event Monitoring",
+      "line": 144
+    },
+    {
+      "section": 20,
+      "title": "Dashboard & Device Detail",
+      "line": 146
+    },
+    {
+      "section": 21,
+      "title": "Backend Services",
+      "line": 156
+    },
+    {
+      "section": 22,
+      "title": "Data Architecture",
+      "line": 172
+    },
+    {
+      "section": 23,
+      "title": "Agent ↔ Server Communication",
+      "line": 174
+    },
+    {
+      "section": 24,
+      "title": "Authentication, Authorization & Multi-Tenancy",
+      "line": 185
+    },
+    {
+      "section": 25,
+      "title": "Audit Logging",
+      "line": 192
+    },
+    {
+      "section": 26,
+      "title": "Reports & Export",
+      "line": 194
+    },
+    {
+      "section": 27,
+      "title": "API & Integrations",
+      "line": 199
+    },
+    {
+      "section": 28,
+      "title": "Data Retention & Privacy",
+      "line": 207
+    },
+    {
+      "section": 29,
+      "title": "Scalability & Reliability",
+      "line": 214
+    },
+    {
+      "section": 30,
+      "title": "Observability of the Platform Itself",
+      "line": 224
+    },
+    {
+      "section": 31,
+      "title": "Recommended Delivery Phases",
+      "line": 235
+    },
+    {
+      "section": 32,
+      "title": "Non-Functional Requirements",
+      "line": 240
+    },
+    {
+      "section": 33,
+      "title": "Definition of Done",
+      "line": 252
+    },
+    {
+      "section": 34,
+      "title": "Final Master Scope",
+      "line": 270
+    }
+  ],
+  "source_lines": [
+    {
+      "id": "SRC1-L004",
+      "line": 4,
+      "section": 1,
+      "kind": "SECTION_HEADING",
+      "source_text": "1. Product Objective"
+    },
+    {
+      "id": "SRC1-L005",
+      "line": 5,
+      "section": 1,
+      "kind": "SOURCE_LINE",
+      "source_text": "Build a production-ready enterprise endpoint monitoring and management platform for Windows, macOS and Linux. The platform must centrally discover, inventory, monitor, score, alert, report on and manage laptops/endpoints. A lightweight endpoint agent will collect telemetry and communicate securely with the central platform. The central platform must also be capable of generating the Windows MSI installer/package for the endpoint agent, with organization/device configuration embedded or provisioned during enrollment."
+    },
+    {
+      "id": "SRC1-L006",
+      "line": 6,
+      "section": 2,
+      "kind": "SECTION_HEADING",
+      "source_text": "2. Core Architecture"
+    },
+    {
+      "id": "SRC1-L007",
+      "line": 7,
+      "section": 2,
+      "kind": "SOURCE_LINE",
+      "source_text": "Endpoint Agent → Secure Ingestion/API → Queue/Workers → Device/Policy/Metrics Services → PostgreSQL + Time-Series Storage → Alert Engine/Reporting → Admin Dashboard. The architecture must support future horizontal scaling without redesigning the data model."
+    },
+    {
+      "id": "SRC1-L008",
+      "line": 8,
+      "section": 3,
+      "kind": "SECTION_HEADING",
+      "source_text": "3. Endpoint Agent"
+    },
+    {
+      "id": "SRC1-L009",
+      "line": 9,
+      "section": 3,
+      "kind": "SOURCE_LINE",
+      "source_text": "Windows, macOS and Linux support with a common telemetry model and OS-specific collectors."
+    },
+    {
+      "id": "SRC1-L010",
+      "line": 10,
+      "section": 3,
+      "kind": "SOURCE_LINE",
+      "source_text": "Lightweight background service/daemon with configurable collection intervals."
+    },
+    {
+      "id": "SRC1-L011",
+      "line": 11,
+      "section": 3,
+      "kind": "SOURCE_LINE",
+      "source_text": "Secure device enrollment and per-device identity/credentials or certificates."
+    },
+    {
+      "id": "SRC1-L012",
+      "line": 12,
+      "section": 3,
+      "kind": "SOURCE_LINE",
+      "source_text": "Agent version, build, architecture, installation date, last heartbeat and configuration version."
+    },
+    {
+      "id": "SRC1-L013",
+      "line": 13,
+      "section": 3,
+      "kind": "SOURCE_LINE",
+      "source_text": "Agent auto-update capability, update status and rollout controls."
+    },
+    {
+      "id": "SRC1-L014",
+      "line": 14,
+      "section": 3,
+      "kind": "SOURCE_LINE",
+      "source_text": "Agent configuration sync from server."
+    },
+    {
+      "id": "SRC1-L015",
+      "line": 15,
+      "section": 3,
+      "kind": "SOURCE_LINE",
+      "source_text": "Agent health monitoring, self-recovery and controlled restart."
+    },
+    {
+      "id": "SRC1-L016",
+      "line": 16,
+      "section": 3,
+      "kind": "SOURCE_LINE",
+      "source_text": "Offline local queue/cache with retry, exponential backoff, batching, compression, sequence numbers and server acknowledgement."
+    },
+    {
+      "id": "SRC1-L017",
+      "line": 17,
+      "section": 3,
+      "kind": "SOURCE_LINE",
+      "source_text": "Secure uninstall/decommission workflow and device retirement state."
+    },
+    {
+      "id": "SRC1-L018",
+      "line": 18,
+      "section": 3,
+      "kind": "SOURCE_LINE",
+      "source_text": "Tamper detection for agent service/process/configuration where supported."
+    },
+    {
+      "id": "SRC1-L019",
+      "line": 19,
+      "section": 3,
+      "kind": "SOURCE_LINE",
+      "source_text": "Certificate/key rotation and credential revocation."
+    },
+    {
+      "id": "SRC1-L020",
+      "line": 20,
+      "section": 3,
+      "kind": "SOURCE_LINE",
+      "source_text": "Graceful resource limits so the agent does not materially impact endpoint performance."
+    },
+    {
+      "id": "SRC1-L021",
+      "line": 21,
+      "section": 4,
+      "kind": "SECTION_HEADING",
+      "source_text": "4. MSI Installer / Agent Package Factory — Mandatory"
+    },
+    {
+      "id": "SRC1-L022",
+      "line": 22,
+      "section": 4,
+      "kind": "SOURCE_LINE",
+      "source_text": "The central Aaditech platform itself must provide an Agent Installer/Package Builder module."
+    },
+    {
+      "id": "SRC1-L023",
+      "line": 23,
+      "section": 4,
+      "kind": "SOURCE_LINE",
+      "source_text": "Admin can select organization/tenant, device group, policy/configuration, agent version and enrollment profile."
+    },
+    {
+      "id": "SRC1-L024",
+      "line": 24,
+      "section": 4,
+      "kind": "SOURCE_LINE",
+      "source_text": "Platform generates a signed Windows MSI installer/package from the selected configuration."
+    },
+    {
+      "id": "SRC1-L025",
+      "line": 25,
+      "section": 4,
+      "kind": "SOURCE_LINE",
+      "source_text": "Generated MSI must install the endpoint agent as a Windows service and register/enroll the device securely."
+    },
+    {
+      "id": "SRC1-L026",
+      "line": 26,
+      "section": 4,
+      "kind": "SOURCE_LINE",
+      "source_text": "Installer must support silent/unattended installation for enterprise deployment."
+    },
+    {
+      "id": "SRC1-L027",
+      "line": 27,
+      "section": 4,
+      "kind": "SOURCE_LINE",
+      "source_text": "Support command-line deployment parameters and enterprise software-distribution tools."
+    },
+    {
+      "id": "SRC1-L028",
+      "line": 28,
+      "section": 4,
+      "kind": "SOURCE_LINE",
+      "source_text": "MSI/package metadata: package ID, version, target OS/architecture, organization, policy, creation time, creator and status."
+    },
+    {
+      "id": "SRC1-L029",
+      "line": 29,
+      "section": 4,
+      "kind": "SOURCE_LINE",
+      "source_text": "Installer downloads must be authenticated and access-controlled."
+    },
+    {
+      "id": "SRC1-L030",
+      "line": 30,
+      "section": 4,
+      "kind": "SOURCE_LINE",
+      "source_text": "Packages must be digitally signed; signing configuration must support secure certificate/key handling."
+    },
+    {
+      "id": "SRC1-L031",
+      "line": 31,
+      "section": 4,
+      "kind": "SOURCE_LINE",
+      "source_text": "Support package revocation/disablement."
+    },
+    {
+      "id": "SRC1-L032",
+      "line": 32,
+      "section": 4,
+      "kind": "SOURCE_LINE",
+      "source_text": "Support generating different installers for different organizations, sites, departments or device groups."
+    },
+    {
+      "id": "SRC1-L033",
+      "line": 33,
+      "section": 4,
+      "kind": "SOURCE_LINE",
+      "source_text": "Support regeneration when agent version/policy changes."
+    },
+    {
+      "id": "SRC1-L034",
+      "line": 34,
+      "section": 4,
+      "kind": "SOURCE_LINE",
+      "source_text": "Track package download/use/enrollment statistics where feasible."
+    },
+    {
+      "id": "SRC1-L035",
+      "line": 35,
+      "section": 4,
+      "kind": "SOURCE_LINE",
+      "source_text": "Do not hard-code permanent secrets into MSI files. Use short-lived enrollment tokens, device bootstrap credentials or equivalent secure enrollment mechanism."
+    },
+    {
+      "id": "SRC1-L036",
+      "line": 36,
+      "section": 4,
+      "kind": "SOURCE_LINE",
+      "source_text": "Future package types should include macOS/Linux installation artifacts while MSI remains the Windows packaging requirement."
+    },
+    {
+      "id": "SRC1-L037",
+      "line": 37,
+      "section": 5,
+      "kind": "SECTION_HEADING",
+      "source_text": "5. OS & Device Inventory"
+    },
+    {
+      "id": "SRC1-L038",
+      "line": 38,
+      "section": 5,
+      "kind": "SOURCE_LINE",
+      "source_text": "Windows/macOS/Linux; OS version/build; hostname; unique device ID; architecture x64/ARM; boot time; uptime; last reboot; logged-in user; timezone."
+    },
+    {
+      "id": "SRC1-L039",
+      "line": 39,
+      "section": 5,
+      "kind": "SOURCE_LINE",
+      "source_text": "First seen, last seen, last check-in, device lifecycle state and enrollment state."
+    },
+    {
+      "id": "SRC1-L040",
+      "line": 40,
+      "section": 5,
+      "kind": "SOURCE_LINE",
+      "source_text": "Assigned user, organization, site, department, device group, tags, ownership and asset ID."
+    },
+    {
+      "id": "SRC1-L041",
+      "line": 41,
+      "section": 5,
+      "kind": "SOURCE_LINE",
+      "source_text": "Device serial number and manufacturer/model."
+    },
+    {
+      "id": "SRC1-L042",
+      "line": 42,
+      "section": 5,
+      "kind": "SOURCE_LINE",
+      "source_text": "OS update/patch status and pending reboot state."
+    },
+    {
+      "id": "SRC1-L043",
+      "line": 43,
+      "section": 6,
+      "kind": "SECTION_HEADING",
+      "source_text": "6. Hardware Inventory"
+    },
+    {
+      "id": "SRC1-L044",
+      "line": 44,
+      "section": 6,
+      "kind": "SOURCE_LINE",
+      "source_text": "CPU model, cores, threads, base/current clock where available, utilization and temperature where supported."
+    },
+    {
+      "id": "SRC1-L045",
+      "line": 45,
+      "section": 6,
+      "kind": "SOURCE_LINE",
+      "source_text": "RAM total/used/free/utilization and committed memory."
+    },
+    {
+      "id": "SRC1-L046",
+      "line": 46,
+      "section": 6,
+      "kind": "SOURCE_LINE",
+      "source_text": "GPU model, VRAM, utilization and temperature where supported."
+    },
+    {
+      "id": "SRC1-L047",
+      "line": 47,
+      "section": 6,
+      "kind": "SOURCE_LINE",
+      "source_text": "Motherboard, manufacturer/model and BIOS/UEFI version."
+    },
+    {
+      "id": "SRC1-L048",
+      "line": 48,
+      "section": 6,
+      "kind": "SOURCE_LINE",
+      "source_text": "Disk model, type (SSD/HDD/NVMe), capacity, free space and health."
+    },
+    {
+      "id": "SRC1-L049",
+      "line": 49,
+      "section": 6,
+      "kind": "SOURCE_LINE",
+      "source_text": "Battery design capacity, current/full charge capacity, charge level, health, charging state, cycle count and temperature where available."
+    },
+    {
+      "id": "SRC1-L050",
+      "line": 50,
+      "section": 6,
+      "kind": "SOURCE_LINE",
+      "source_text": "Network adapters, MAC address, interface state, Wi-Fi/Ethernet information."
+    },
+    {
+      "id": "SRC1-L051",
+      "line": 51,
+      "section": 6,
+      "kind": "SOURCE_LINE",
+      "source_text": "Connected peripherals where permitted by OS APIs."
+    },
+    {
+      "id": "SRC1-L052",
+      "line": 52,
+      "section": 7,
+      "kind": "SECTION_HEADING",
+      "source_text": "7. Real-Time & Historical Resource Monitoring"
+    },
+    {
+      "id": "SRC1-L053",
+      "line": 53,
+      "section": 7,
+      "kind": "TABLE_CELL_FRAGMENT",
+      "source_text": "Category"
+    },
+    {
+      "id": "SRC1-L054",
+      "line": 54,
+      "section": 7,
+      "kind": "TABLE_CELL_FRAGMENT",
+      "source_text": "Metrics"
+    },
+    {
+      "id": "SRC1-L055",
+      "line": 55,
+      "section": 7,
+      "kind": "TABLE_CELL_FRAGMENT",
+      "source_text": "CPU"
+    },
+    {
+      "id": "SRC1-L056",
+      "line": 56,
+      "section": 7,
+      "kind": "SOURCE_LINE",
+      "source_text": "Overall %, per-core %, load, clock and temperature where available"
+    },
+    {
+      "id": "SRC1-L057",
+      "line": 57,
+      "section": 7,
+      "kind": "TABLE_CELL_FRAGMENT",
+      "source_text": "RAM"
+    },
+    {
+      "id": "SRC1-L058",
+      "line": 58,
+      "section": 7,
+      "kind": "SOURCE_LINE",
+      "source_text": "Used %, available, committed memory"
+    },
+    {
+      "id": "SRC1-L059",
+      "line": 59,
+      "section": 7,
+      "kind": "TABLE_CELL_FRAGMENT",
+      "source_text": "Disk"
+    },
+    {
+      "id": "SRC1-L060",
+      "line": 60,
+      "section": 7,
+      "kind": "SOURCE_LINE",
+      "source_text": "Usage %, read/write IOPS, throughput, latency"
+    },
+    {
+      "id": "SRC1-L061",
+      "line": 61,
+      "section": 7,
+      "kind": "TABLE_CELL_FRAGMENT",
+      "source_text": "Network"
+    },
+    {
+      "id": "SRC1-L062",
+      "line": 62,
+      "section": 7,
+      "kind": "SOURCE_LINE",
+      "source_text": "Upload/download, packets, latency, packet loss"
+    },
+    {
+      "id": "SRC1-L063",
+      "line": 63,
+      "section": 7,
+      "kind": "TABLE_CELL_FRAGMENT",
+      "source_text": "GPU"
+    },
+    {
+      "id": "SRC1-L064",
+      "line": 64,
+      "section": 7,
+      "kind": "SOURCE_LINE",
+      "source_text": "Usage %, VRAM, temperature where available"
+    },
+    {
+      "id": "SRC1-L065",
+      "line": 65,
+      "section": 7,
+      "kind": "TABLE_CELL_FRAGMENT",
+      "source_text": "Battery"
+    },
+    {
+      "id": "SRC1-L066",
+      "line": 66,
+      "section": 7,
+      "kind": "SOURCE_LINE",
+      "source_text": "Charge %, health, charging/discharging"
+    },
+    {
+      "id": "SRC1-L067",
+      "line": 67,
+      "section": 7,
+      "kind": "TABLE_CELL_FRAGMENT",
+      "source_text": "System"
+    },
+    {
+      "id": "SRC1-L068",
+      "line": 68,
+      "section": 7,
+      "kind": "SOURCE_LINE",
+      "source_text": "Uptime, boot, shutdown and restart events"
+    },
+    {
+      "id": "SRC1-L069",
+      "line": 69,
+      "section": 7,
+      "kind": "SOURCE_LINE",
+      "source_text": "Dashboard must show current values plus historical graphs for 1 hour, 24 hours, 7 days and 30 days, with configurable retention and aggregation."
+    },
+    {
+      "id": "SRC1-L070",
+      "line": 70,
+      "section": 8,
+      "kind": "SECTION_HEADING",
+      "source_text": "8. Application & Process Monitoring"
+    },
+    {
+      "id": "SRC1-L071",
+      "line": 71,
+      "section": 8,
+      "kind": "SOURCE_LINE",
+      "source_text": "Installed software: name, version, publisher, install date, installation path, size, last update and uninstall metadata."
+    },
+    {
+      "id": "SRC1-L072",
+      "line": 72,
+      "section": 8,
+      "kind": "SOURCE_LINE",
+      "source_text": "Running processes: name, PID, CPU, RAM, disk I/O, network usage where supported, start time and status."
+    },
+    {
+      "id": "SRC1-L073",
+      "line": 73,
+      "section": 8,
+      "kind": "SOURCE_LINE",
+      "source_text": "Application usage: opened time, active/foreground time, total running time, CPU time, RAM usage, network usage, disk I/O, launch count and last used time."
+    },
+    {
+      "id": "SRC1-L074",
+      "line": 74,
+      "section": 8,
+      "kind": "SOURCE_LINE",
+      "source_text": "Top resource-consuming applications and processes."
+    },
+    {
+      "id": "SRC1-L075",
+      "line": 75,
+      "section": 8,
+      "kind": "SOURCE_LINE",
+      "source_text": "Application crash/failure events."
+    },
+    {
+      "id": "SRC1-L076",
+      "line": 76,
+      "section": 8,
+      "kind": "SOURCE_LINE",
+      "source_text": "Privacy-by-design: no keystroke logging, password collection, message contents or arbitrary screen capture by default."
+    },
+    {
+      "id": "SRC1-L077",
+      "line": 77,
+      "section": 9,
+      "kind": "SECTION_HEADING",
+      "source_text": "9. Network Monitoring"
+    },
+    {
+      "id": "SRC1-L078",
+      "line": 78,
+      "section": 9,
+      "kind": "SOURCE_LINE",
+      "source_text": "Current IP, MAC, gateway, DNS, Wi-Fi SSID, signal strength and interface state."
+    },
+    {
+      "id": "SRC1-L079",
+      "line": 79,
+      "section": 9,
+      "kind": "SOURCE_LINE",
+      "source_text": "Upload/download bandwidth, packet counts, latency and packet loss."
+    },
+    {
+      "id": "SRC1-L080",
+      "line": 80,
+      "section": 9,
+      "kind": "SOURCE_LINE",
+      "source_text": "Connection/disconnection history and internet connectivity checks."
+    },
+    {
+      "id": "SRC1-L081",
+      "line": 81,
+      "section": 9,
+      "kind": "SOURCE_LINE",
+      "source_text": "VPN status."
+    },
+    {
+      "id": "SRC1-L082",
+      "line": 82,
+      "section": 9,
+      "kind": "SOURCE_LINE",
+      "source_text": "Per-process network consumption where OS APIs permit."
+    },
+    {
+      "id": "SRC1-L083",
+      "line": 83,
+      "section": 9,
+      "kind": "SOURCE_LINE",
+      "source_text": "Top bandwidth-consuming applications."
+    },
+    {
+      "id": "SRC1-L084",
+      "line": 84,
+      "section": 9,
+      "kind": "SOURCE_LINE",
+      "source_text": "Network availability history."
+    },
+    {
+      "id": "SRC1-L085",
+      "line": 85,
+      "section": 10,
+      "kind": "SECTION_HEADING",
+      "source_text": "10. Disk & Storage Health"
+    },
+    {
+      "id": "SRC1-L086",
+      "line": 86,
+      "section": 10,
+      "kind": "SOURCE_LINE",
+      "source_text": "Per-drive total, used, free and percentage used."
+    },
+    {
+      "id": "SRC1-L087",
+      "line": 87,
+      "section": 10,
+      "kind": "SOURCE_LINE",
+      "source_text": "Read/write throughput, IOPS and latency."
+    },
+    {
+      "id": "SRC1-L088",
+      "line": 88,
+      "section": 10,
+      "kind": "SOURCE_LINE",
+      "source_text": "Disk temperature where available."
+    },
+    {
+      "id": "SRC1-L089",
+      "line": 89,
+      "section": 10,
+      "kind": "SOURCE_LINE",
+      "source_text": "SMART information and health where supported."
+    },
+    {
+      "id": "SRC1-L090",
+      "line": 90,
+      "section": 10,
+      "kind": "SOURCE_LINE",
+      "source_text": "Low-storage detection and alerts."
+    },
+    {
+      "id": "SRC1-L091",
+      "line": 91,
+      "section": 10,
+      "kind": "SOURCE_LINE",
+      "source_text": "Disk health history and failure-warning events."
+    },
+    {
+      "id": "SRC1-L092",
+      "line": 92,
+      "section": 11,
+      "kind": "SECTION_HEADING",
+      "source_text": "11. Battery & Laptop Health"
+    },
+    {
+      "id": "SRC1-L093",
+      "line": 93,
+      "section": 11,
+      "kind": "SOURCE_LINE",
+      "source_text": "Battery percentage, charging status, health, design capacity, current/full charge capacity and cycle count."
+    },
+    {
+      "id": "SRC1-L094",
+      "line": 94,
+      "section": 11,
+      "kind": "SOURCE_LINE",
+      "source_text": "Estimated remaining time, AC/battery mode and temperature where available."
+    },
+    {
+      "id": "SRC1-L095",
+      "line": 95,
+      "section": 11,
+      "kind": "SOURCE_LINE",
+      "source_text": "Battery Health Score and historical degradation trend."
+    },
+    {
+      "id": "SRC1-L096",
+      "line": 96,
+      "section": 12,
+      "kind": "SECTION_HEADING",
+      "source_text": "12. Device Health Score"
+    },
+    {
+      "id": "SRC1-L097",
+      "line": 97,
+      "section": 12,
+      "kind": "SOURCE_LINE",
+      "source_text": "Provide configurable weighted scoring for CPU, Memory, Disk, Battery, Network and Security, producing an overall 0–100 Device Health Score. Score calculation and weights must be explainable and configurable by policy."
+    },
+    {
+      "id": "SRC1-L098",
+      "line": 98,
+      "section": 13,
+      "kind": "SECTION_HEADING",
+      "source_text": "13. Security Posture"
+    },
+    {
+      "id": "SRC1-L099",
+      "line": 99,
+      "section": 13,
+      "kind": "SOURCE_LINE",
+      "source_text": "Firewall status."
+    },
+    {
+      "id": "SRC1-L100",
+      "line": 100,
+      "section": 13,
+      "kind": "SOURCE_LINE",
+      "source_text": "Antivirus/EDR status and real-time protection status where available."
+    },
+    {
+      "id": "SRC1-L101",
+      "line": 101,
+      "section": 13,
+      "kind": "SOURCE_LINE",
+      "source_text": "OS security-update status."
+    },
+    {
+      "id": "SRC1-L102",
+      "line": 102,
+      "section": 13,
+      "kind": "SOURCE_LINE",
+      "source_text": "Disk encryption status (e.g. BitLocker where supported)."
+    },
+    {
+      "id": "SRC1-L103",
+      "line": 103,
+      "section": 13,
+      "kind": "SOURCE_LINE",
+      "source_text": "Secure Boot and TPM status where supported."
+    },
+    {
+      "id": "SRC1-L104",
+      "line": 104,
+      "section": 13,
+      "kind": "SOURCE_LINE",
+      "source_text": "UAC/security configuration where supported."
+    },
+    {
+      "id": "SRC1-L105",
+      "line": 105,
+      "section": 13,
+      "kind": "SOURCE_LINE",
+      "source_text": "Local administrator account inventory/status where permitted."
+    },
+    {
+      "id": "SRC1-L106",
+      "line": 106,
+      "section": 13,
+      "kind": "SOURCE_LINE",
+      "source_text": "Relevant failed-login/security events where supported."
+    },
+    {
+      "id": "SRC1-L107",
+      "line": 107,
+      "section": 13,
+      "kind": "SOURCE_LINE",
+      "source_text": "Security compliance score and alerts."
+    },
+    {
+      "id": "SRC1-L108",
+      "line": 108,
+      "section": 14,
+      "kind": "SECTION_HEADING",
+      "source_text": "14. Patch & Software Compliance"
+    },
+    {
+      "id": "SRC1-L109",
+      "line": 109,
+      "section": 14,
+      "kind": "SOURCE_LINE",
+      "source_text": "Installed and missing OS updates."
+    },
+    {
+      "id": "SRC1-L110",
+      "line": 110,
+      "section": 14,
+      "kind": "SOURCE_LINE",
+      "source_text": "Patch severity, compliance percentage, last patch date and pending reboot."
+    },
+    {
+      "id": "SRC1-L111",
+      "line": 111,
+      "section": 14,
+      "kind": "SOURCE_LINE",
+      "source_text": "Approved/blocked/unauthorized software policies."
+    },
+    {
+      "id": "SRC1-L112",
+      "line": 112,
+      "section": 14,
+      "kind": "SOURCE_LINE",
+      "source_text": "Software version compliance and distribution."
+    },
+    {
+      "id": "SRC1-L113",
+      "line": 113,
+      "section": 14,
+      "kind": "SOURCE_LINE",
+      "source_text": "Software license inventory where data is available."
+    },
+    {
+      "id": "SRC1-L114",
+      "line": 114,
+      "section": 14,
+      "kind": "SOURCE_LINE",
+      "source_text": "Future-ready workflow: Detect → Approve → Deploy → Verify."
+    },
+    {
+      "id": "SRC1-L115",
+      "line": 115,
+      "section": 15,
+      "kind": "SECTION_HEADING",
+      "source_text": "15. Device Lifecycle & Asset Management"
+    },
+    {
+      "id": "SRC1-L116",
+      "line": 116,
+      "section": 15,
+      "kind": "SOURCE_LINE",
+      "source_text": "Lifecycle states: Discovered → Enrolled → Active → Offline → Maintenance → Retired → Deleted. Preserve first/last seen, ownership, assignment, replacement and retirement history."
+    },
+    {
+      "id": "SRC1-L117",
+      "line": 117,
+      "section": 16,
+      "kind": "SECTION_HEADING",
+      "source_text": "16. Device Groups, Policies & Configuration"
+    },
+    {
+      "id": "SRC1-L118",
+      "line": 118,
+      "section": 16,
+      "kind": "SOURCE_LINE",
+      "source_text": "Organizations/tenants, sites, departments and device groups."
+    },
+    {
+      "id": "SRC1-L119",
+      "line": 119,
+      "section": 16,
+      "kind": "SOURCE_LINE",
+      "source_text": "Tags, assigned users and asset ownership."
+    },
+    {
+      "id": "SRC1-L120",
+      "line": 120,
+      "section": 16,
+      "kind": "SOURCE_LINE",
+      "source_text": "Policy assignment by organization/group/device."
+    },
+    {
+      "id": "SRC1-L121",
+      "line": 121,
+      "section": 16,
+      "kind": "SOURCE_LINE",
+      "source_text": "Remote agent configuration."
+    },
+    {
+      "id": "SRC1-L122",
+      "line": 122,
+      "section": 16,
+      "kind": "SOURCE_LINE",
+      "source_text": "Collection intervals and telemetry settings."
+    },
+    {
+      "id": "SRC1-L123",
+      "line": 123,
+      "section": 16,
+      "kind": "SOURCE_LINE",
+      "source_text": "Maintenance mode."
+    },
+    {
+      "id": "SRC1-L124",
+      "line": 124,
+      "section": 16,
+      "kind": "SOURCE_LINE",
+      "source_text": "Policy versioning and effective date."
+    },
+    {
+      "id": "SRC1-L125",
+      "line": 125,
+      "section": 16,
+      "kind": "SOURCE_LINE",
+      "source_text": "Configuration change history."
+    },
+    {
+      "id": "SRC1-L126",
+      "line": 126,
+      "section": 17,
+      "kind": "SECTION_HEADING",
+      "source_text": "17. Alert & Notification Engine"
+    },
+    {
+      "id": "SRC1-L127",
+      "line": 127,
+      "section": 17,
+      "kind": "SOURCE_LINE",
+      "source_text": "Threshold alerts: CPU/RAM/disk/network/battery and other supported metrics."
+    },
+    {
+      "id": "SRC1-L128",
+      "line": 128,
+      "section": 17,
+      "kind": "SOURCE_LINE",
+      "source_text": "Availability alerts: device offline, agent stopped, missed heartbeat."
+    },
+    {
+      "id": "SRC1-L129",
+      "line": 129,
+      "section": 17,
+      "kind": "SOURCE_LINE",
+      "source_text": "Application crash and service failure alerts."
+    },
+    {
+      "id": "SRC1-L130",
+      "line": 130,
+      "section": 17,
+      "kind": "SOURCE_LINE",
+      "source_text": "Patch/security compliance alerts."
+    },
+    {
+      "id": "SRC1-L131",
+      "line": 131,
+      "section": 17,
+      "kind": "SOURCE_LINE",
+      "source_text": "Disk health warnings."
+    },
+    {
+      "id": "SRC1-L132",
+      "line": 132,
+      "section": 17,
+      "kind": "SOURCE_LINE",
+      "source_text": "Composite rules and anomaly detection."
+    },
+    {
+      "id": "SRC1-L133",
+      "line": 133,
+      "section": 17,
+      "kind": "SOURCE_LINE",
+      "source_text": "Configurable duration, cooldown, deduplication and suppression."
+    },
+    {
+      "id": "SRC1-L134",
+      "line": 134,
+      "section": 17,
+      "kind": "SOURCE_LINE",
+      "source_text": "Alert lifecycle: Open → Acknowledged → Investigating → Resolved."
+    },
+    {
+      "id": "SRC1-L135",
+      "line": 135,
+      "section": 17,
+      "kind": "SOURCE_LINE",
+      "source_text": "Recovery notifications."
+    },
+    {
+      "id": "SRC1-L136",
+      "line": 136,
+      "section": 17,
+      "kind": "SOURCE_LINE",
+      "source_text": "Channels: dashboard, email, Slack/Teams, webhook and push notification where implemented."
+    },
+    {
+      "id": "SRC1-L137",
+      "line": 137,
+      "section": 17,
+      "kind": "SOURCE_LINE",
+      "source_text": "Maintenance-window suppression."
+    },
+    {
+      "id": "SRC1-L138",
+      "line": 138,
+      "section": 18,
+      "kind": "SECTION_HEADING",
+      "source_text": "18. Remote Actions & Automated Remediation"
+    },
+    {
+      "id": "SRC1-L139",
+      "line": 139,
+      "section": 18,
+      "kind": "SOURCE_LINE",
+      "source_text": "Command queue between server and agent."
+    },
+    {
+      "id": "SRC1-L140",
+      "line": 140,
+      "section": 18,
+      "kind": "SOURCE_LINE",
+      "source_text": "Approved actions such as restart agent/service, reboot device, collect diagnostics/logs, clear approved temporary data, restart approved applications and run approved scripts."
+    },
+    {
+      "id": "SRC1-L141",
+      "line": 141,
+      "section": 18,
+      "kind": "SOURCE_LINE",
+      "source_text": "RBAC authorization, command signing/validation, execution timeout, result reporting and complete audit trail."
+    },
+    {
+      "id": "SRC1-L142",
+      "line": 142,
+      "section": 18,
+      "kind": "SOURCE_LINE",
+      "source_text": "Remote shell must not be unrestricted by default."
+    },
+    {
+      "id": "SRC1-L143",
+      "line": 143,
+      "section": 18,
+      "kind": "SOURCE_LINE",
+      "source_text": "Automation workflow: Detect → Decide/Policy → Approve if required → Execute → Verify → Record."
+    },
+    {
+      "id": "SRC1-L144",
+      "line": 144,
+      "section": 19,
+      "kind": "SECTION_HEADING",
+      "source_text": "19. Event Monitoring"
+    },
+    {
+      "id": "SRC1-L145",
+      "line": 145,
+      "section": 19,
+      "kind": "SOURCE_LINE",
+      "source_text": "Boot, shutdown, restart, login/logout, sleep/wake, crash/BSOD, application crash, service failure, network changes, disk warnings and other important OS events where supported."
+    },
+    {
+      "id": "SRC1-L146",
+      "line": 146,
+      "section": 20,
+      "kind": "SECTION_HEADING",
+      "source_text": "20. Dashboard & Device Detail"
+    },
+    {
+      "id": "SRC1-L147",
+      "line": 147,
+      "section": 20,
+      "kind": "SOURCE_LINE",
+      "source_text": "Dashboard: total devices, online/offline, unhealthy, critical alerts, patch/security compliance, top resource consumers and health distribution."
+    },
+    {
+      "id": "SRC1-L148",
+      "line": 148,
+      "section": 20,
+      "kind": "SOURCE_LINE",
+      "source_text": "Devices: All, Online, Offline, Unhealthy, New and Device Details."
+    },
+    {
+      "id": "SRC1-L149",
+      "line": 149,
+      "section": 20,
+      "kind": "SOURCE_LINE",
+      "source_text": "Hardware: CPU, RAM, Disk, GPU, Battery."
+    },
+    {
+      "id": "SRC1-L150",
+      "line": 150,
+      "section": 20,
+      "kind": "SOURCE_LINE",
+      "source_text": "Applications: Installed Apps, Running Apps, Application Usage."
+    },
+    {
+      "id": "SRC1-L151",
+      "line": 151,
+      "section": 20,
+      "kind": "SOURCE_LINE",
+      "source_text": "Performance: CPU, Memory, Disk, Network, GPU."
+    },
+    {
+      "id": "SRC1-L152",
+      "line": 152,
+      "section": 20,
+      "kind": "SOURCE_LINE",
+      "source_text": "Network, Battery, Storage and Security pages."
+    },
+    {
+      "id": "SRC1-L153",
+      "line": 153,
+      "section": 20,
+      "kind": "SOURCE_LINE",
+      "source_text": "Alerts, Reports, Groups, Policies, Remote Actions and Audit Logs."
+    },
+    {
+      "id": "SRC1-L154",
+      "line": 154,
+      "section": 20,
+      "kind": "SOURCE_LINE",
+      "source_text": "Settings: Organizations, Users, Roles, Agent Configuration, Alert Rules, Integrations and Data Retention."
+    },
+    {
+      "id": "SRC1-L155",
+      "line": 155,
+      "section": 20,
+      "kind": "SOURCE_LINE",
+      "source_text": "Device detail must show OS, uptime, CPU, RAM, disk, battery, network, top applications/processes and historical graphs."
+    },
+    {
+      "id": "SRC1-L156",
+      "line": 156,
+      "section": 21,
+      "kind": "SECTION_HEADING",
+      "source_text": "21. Backend Services"
+    },
+    {
+      "id": "SRC1-L157",
+      "line": 157,
+      "section": 21,
+      "kind": "SOURCE_LINE",
+      "source_text": "API Gateway."
+    },
+    {
+      "id": "SRC1-L158",
+      "line": 158,
+      "section": 21,
+      "kind": "SOURCE_LINE",
+      "source_text": "Authentication/Identity Service."
+    },
+    {
+      "id": "SRC1-L159",
+      "line": 159,
+      "section": 21,
+      "kind": "SOURCE_LINE",
+      "source_text": "Organization/Tenant Service."
+    },
+    {
+      "id": "SRC1-L160",
+      "line": 160,
+      "section": 21,
+      "kind": "SOURCE_LINE",
+      "source_text": "Device Registration & Device Service."
+    },
+    {
+      "id": "SRC1-L161",
+      "line": 161,
+      "section": 21,
+      "kind": "SOURCE_LINE",
+      "source_text": "Agent Management Service."
+    },
+    {
+      "id": "SRC1-L162",
+      "line": 162,
+      "section": 21,
+      "kind": "SOURCE_LINE",
+      "source_text": "Metrics Ingestion Service."
+    },
+    {
+      "id": "SRC1-L163",
+      "line": 163,
+      "section": 21,
+      "kind": "SOURCE_LINE",
+      "source_text": "Event Ingestion Service."
+    },
+    {
+      "id": "SRC1-L164",
+      "line": 164,
+      "section": 21,
+      "kind": "SOURCE_LINE",
+      "source_text": "Application/Software Inventory Service."
+    },
+    {
+      "id": "SRC1-L165",
+      "line": 165,
+      "section": 21,
+      "kind": "SOURCE_LINE",
+      "source_text": "Policy & Configuration Service."
+    },
+    {
+      "id": "SRC1-L166",
+      "line": 166,
+      "section": 21,
+      "kind": "SOURCE_LINE",
+      "source_text": "Alert/Notification Engine."
+    },
+    {
+      "id": "SRC1-L167",
+      "line": 167,
+      "section": 21,
+      "kind": "SOURCE_LINE",
+      "source_text": "Remote Command Service."
+    },
+    {
+      "id": "SRC1-L168",
+      "line": 168,
+      "section": 21,
+      "kind": "SOURCE_LINE",
+      "source_text": "Reporting Service."
+    },
+    {
+      "id": "SRC1-L169",
+      "line": 169,
+      "section": 21,
+      "kind": "SOURCE_LINE",
+      "source_text": "Installer/MSI Package Builder Service."
+    },
+    {
+      "id": "SRC1-L170",
+      "line": 170,
+      "section": 21,
+      "kind": "SOURCE_LINE",
+      "source_text": "Audit Service."
+    },
+    {
+      "id": "SRC1-L171",
+      "line": 171,
+      "section": 21,
+      "kind": "SOURCE_LINE",
+      "source_text": "Integration/Webhook Service."
+    },
+    {
+      "id": "SRC1-L172",
+      "line": 172,
+      "section": 22,
+      "kind": "SECTION_HEADING",
+      "source_text": "22. Data Architecture"
+    },
+    {
+      "id": "SRC1-L173",
+      "line": 173,
+      "section": 22,
+      "kind": "SOURCE_LINE",
+      "source_text": "Relational PostgreSQL-style storage for users, organizations, devices, hardware inventory, applications, policies, alerts, groups, packages, commands and audit data. Time-series optimized storage for CPU/RAM/disk/network/GPU/battery/process metrics. Define retention, aggregation, indexes/partitioning and archival from the start."
+    },
+    {
+      "id": "SRC1-L174",
+      "line": 174,
+      "section": 23,
+      "kind": "SECTION_HEADING",
+      "source_text": "23. Agent ↔ Server Communication"
+    },
+    {
+      "id": "SRC1-L175",
+      "line": 175,
+      "section": 23,
+      "kind": "SOURCE_LINE",
+      "source_text": "HTTPS and/or gRPC with encrypted transport."
+    },
+    {
+      "id": "SRC1-L176",
+      "line": 176,
+      "section": 23,
+      "kind": "SOURCE_LINE",
+      "source_text": "Per-device identity using certificates or secure enrollment credentials."
+    },
+    {
+      "id": "SRC1-L177",
+      "line": 177,
+      "section": 23,
+      "kind": "SOURCE_LINE",
+      "source_text": "Hardware inventory daily/on-change."
+    },
+    {
+      "id": "SRC1-L178",
+      "line": 178,
+      "section": 23,
+      "kind": "SOURCE_LINE",
+      "source_text": "CPU/RAM approximately every 30–60 seconds."
+    },
+    {
+      "id": "SRC1-L179",
+      "line": 179,
+      "section": 23,
+      "kind": "SOURCE_LINE",
+      "source_text": "Disk/network approximately every 30–60 seconds."
+    },
+    {
+      "id": "SRC1-L180",
+      "line": 180,
+      "section": 23,
+      "kind": "SOURCE_LINE",
+      "source_text": "Battery approximately every 1–5 minutes."
+    },
+    {
+      "id": "SRC1-L181",
+      "line": 181,
+      "section": 23,
+      "kind": "SOURCE_LINE",
+      "source_text": "Process inventory approximately every 30–60 seconds."
+    },
+    {
+      "id": "SRC1-L182",
+      "line": 182,
+      "section": 23,
+      "kind": "SOURCE_LINE",
+      "source_text": "Critical alerts/events immediately."
+    },
+    {
+      "id": "SRC1-L183",
+      "line": 183,
+      "section": 23,
+      "kind": "SOURCE_LINE",
+      "source_text": "Configurable intervals through policy."
+    },
+    {
+      "id": "SRC1-L184",
+      "line": 184,
+      "section": 23,
+      "kind": "SOURCE_LINE",
+      "source_text": "Batching/compression and backpressure for scale."
+    },
+    {
+      "id": "SRC1-L185",
+      "line": 185,
+      "section": 24,
+      "kind": "SECTION_HEADING",
+      "source_text": "24. Authentication, Authorization & Multi-Tenancy"
+    },
+    {
+      "id": "SRC1-L186",
+      "line": 186,
+      "section": 24,
+      "kind": "SOURCE_LINE",
+      "source_text": "Multi-tenant data isolation from the beginning."
+    },
+    {
+      "id": "SRC1-L187",
+      "line": 187,
+      "section": 24,
+      "kind": "SOURCE_LINE",
+      "source_text": "Roles: Super Admin, Organization Admin, IT Admin, Helpdesk, Auditor, Read Only."
+    },
+    {
+      "id": "SRC1-L188",
+      "line": 188,
+      "section": 24,
+      "kind": "SOURCE_LINE",
+      "source_text": "Fine-grained permissions for devices, telemetry, alerts, reports, policies, remote actions and packages."
+    },
+    {
+      "id": "SRC1-L189",
+      "line": 189,
+      "section": 24,
+      "kind": "SOURCE_LINE",
+      "source_text": "Secure session/token management, MFA-ready design, API keys/service accounts and rate limiting."
+    },
+    {
+      "id": "SRC1-L190",
+      "line": 190,
+      "section": 24,
+      "kind": "SOURCE_LINE",
+      "source_text": "Tenant/site/department/group scoping."
+    },
+    {
+      "id": "SRC1-L191",
+      "line": 191,
+      "section": 24,
+      "kind": "SOURCE_LINE",
+      "source_text": "Complete authorization checks on every privileged API/action."
+    },
+    {
+      "id": "SRC1-L192",
+      "line": 192,
+      "section": 25,
+      "kind": "SECTION_HEADING",
+      "source_text": "25. Audit Logging"
+    },
+    {
+      "id": "SRC1-L193",
+      "line": 193,
+      "section": 25,
+      "kind": "SOURCE_LINE",
+      "source_text": "Record administrator/system actions including actor, action, target device/object, timestamp, source IP where appropriate, old value, new value, result and correlation/request ID. Audit records should be tamper-resistant and retained according to policy."
+    },
+    {
+      "id": "SRC1-L194",
+      "line": 194,
+      "section": 26,
+      "kind": "SECTION_HEADING",
+      "source_text": "26. Reports & Export"
+    },
+    {
+      "id": "SRC1-L195",
+      "line": 195,
+      "section": 26,
+      "kind": "SOURCE_LINE",
+      "source_text": "Device inventory, hardware, software, application usage, performance, battery, disk, network, patch, security, agent health, offline-device and department/group reports."
+    },
+    {
+      "id": "SRC1-L196",
+      "line": 196,
+      "section": 26,
+      "kind": "SOURCE_LINE",
+      "source_text": "CSV/Excel/PDF export."
+    },
+    {
+      "id": "SRC1-L197",
+      "line": 197,
+      "section": 26,
+      "kind": "SOURCE_LINE",
+      "source_text": "Scheduled reports and report permissions."
+    },
+    {
+      "id": "SRC1-L198",
+      "line": 198,
+      "section": 26,
+      "kind": "SOURCE_LINE",
+      "source_text": "Filters by organization/site/department/group/tag/date."
+    },
+    {
+      "id": "SRC1-L199",
+      "line": 199,
+      "section": 27,
+      "kind": "SECTION_HEADING",
+      "source_text": "27. API & Integrations"
+    },
+    {
+      "id": "SRC1-L200",
+      "line": 200,
+      "section": 27,
+      "kind": "SOURCE_LINE",
+      "source_text": "REST/OpenAPI and/or GraphQL where justified."
+    },
+    {
+      "id": "SRC1-L201",
+      "line": 201,
+      "section": 27,
+      "kind": "SOURCE_LINE",
+      "source_text": "Webhooks."
+    },
+    {
+      "id": "SRC1-L202",
+      "line": 202,
+      "section": 27,
+      "kind": "SOURCE_LINE",
+      "source_text": "Email."
+    },
+    {
+      "id": "SRC1-L203",
+      "line": 203,
+      "section": 27,
+      "kind": "SOURCE_LINE",
+      "source_text": "Slack/Teams."
+    },
+    {
+      "id": "SRC1-L204",
+      "line": 204,
+      "section": 27,
+      "kind": "SOURCE_LINE",
+      "source_text": "SIEM/ITSM/CMDB integration readiness."
+    },
+    {
+      "id": "SRC1-L205",
+      "line": 205,
+      "section": 27,
+      "kind": "SOURCE_LINE",
+      "source_text": "API keys/service accounts."
+    },
+    {
+      "id": "SRC1-L206",
+      "line": 206,
+      "section": 27,
+      "kind": "SOURCE_LINE",
+      "source_text": "API audit logs and rate limits."
+    },
+    {
+      "id": "SRC1-L207",
+      "line": 207,
+      "section": 28,
+      "kind": "SECTION_HEADING",
+      "source_text": "28. Data Retention & Privacy"
+    },
+    {
+      "id": "SRC1-L208",
+      "line": 208,
+      "section": 28,
+      "kind": "SOURCE_LINE",
+      "source_text": "Configurable retention for raw metrics, aggregated metrics, inventory, events and audit logs."
+    },
+    {
+      "id": "SRC1-L209",
+      "line": 209,
+      "section": 28,
+      "kind": "SOURCE_LINE",
+      "source_text": "Automatic aggregation and deletion/archival according to policy."
+    },
+    {
+      "id": "SRC1-L210",
+      "line": 210,
+      "section": 28,
+      "kind": "SOURCE_LINE",
+      "source_text": "Tenant-specific retention policies where required."
+    },
+    {
+      "id": "SRC1-L211",
+      "line": 211,
+      "section": 28,
+      "kind": "SOURCE_LINE",
+      "source_text": "Telemetry minimization and configurable collection."
+    },
+    {
+      "id": "SRC1-L212",
+      "line": 212,
+      "section": 28,
+      "kind": "SOURCE_LINE",
+      "source_text": "No passwords, keystrokes, message contents or arbitrary surveillance data by default."
+    },
+    {
+      "id": "SRC1-L213",
+      "line": 213,
+      "section": 28,
+      "kind": "SOURCE_LINE",
+      "source_text": "Access control, encryption in transit and appropriate encryption at rest."
+    },
+    {
+      "id": "SRC1-L214",
+      "line": 214,
+      "section": 29,
+      "kind": "SECTION_HEADING",
+      "source_text": "29. Scalability & Reliability"
+    },
+    {
+      "id": "SRC1-L215",
+      "line": 215,
+      "section": 29,
+      "kind": "SOURCE_LINE",
+      "source_text": "Queue-based ingestion to decouple agents from databases."
+    },
+    {
+      "id": "SRC1-L216",
+      "line": 216,
+      "section": 29,
+      "kind": "SOURCE_LINE",
+      "source_text": "Stateless API services where possible."
+    },
+    {
+      "id": "SRC1-L217",
+      "line": 217,
+      "section": 29,
+      "kind": "SOURCE_LINE",
+      "source_text": "Horizontal scaling of API and workers."
+    },
+    {
+      "id": "SRC1-L218",
+      "line": 218,
+      "section": 29,
+      "kind": "SOURCE_LINE",
+      "source_text": "Database indexing/partitioning and time-series retention."
+    },
+    {
+      "id": "SRC1-L219",
+      "line": 219,
+      "section": 29,
+      "kind": "SOURCE_LINE",
+      "source_text": "Idempotent ingestion and duplicate protection."
+    },
+    {
+      "id": "SRC1-L220",
+      "line": 220,
+      "section": 29,
+      "kind": "SOURCE_LINE",
+      "source_text": "Backpressure and rate limiting."
+    },
+    {
+      "id": "SRC1-L221",
+      "line": 221,
+      "section": 29,
+      "kind": "SOURCE_LINE",
+      "source_text": "Health checks, metrics, structured logs and tracing."
+    },
+    {
+      "id": "SRC1-L222",
+      "line": 222,
+      "section": 29,
+      "kind": "SOURCE_LINE",
+      "source_text": "Backup/restore and disaster-recovery readiness."
+    },
+    {
+      "id": "SRC1-L223",
+      "line": 223,
+      "section": 29,
+      "kind": "SOURCE_LINE",
+      "source_text": "High availability architecture for production deployment."
+    },
+    {
+      "id": "SRC1-L224",
+      "line": 224,
+      "section": 30,
+      "kind": "SECTION_HEADING",
+      "source_text": "30. Observability of the Platform Itself"
+    },
+    {
+      "id": "SRC1-L225",
+      "line": 225,
+      "section": 30,
+      "kind": "SOURCE_LINE",
+      "source_text": "Platform health dashboard."
+    },
+    {
+      "id": "SRC1-L226",
+      "line": 226,
+      "section": 30,
+      "kind": "SOURCE_LINE",
+      "source_text": "API latency/error rate."
+    },
+    {
+      "id": "SRC1-L227",
+      "line": 227,
+      "section": 30,
+      "kind": "SOURCE_LINE",
+      "source_text": "Queue depth."
+    },
+    {
+      "id": "SRC1-L228",
+      "line": 228,
+      "section": 30,
+      "kind": "SOURCE_LINE",
+      "source_text": "Worker health."
+    },
+    {
+      "id": "SRC1-L229",
+      "line": 229,
+      "section": 30,
+      "kind": "SOURCE_LINE",
+      "source_text": "Database health."
+    },
+    {
+      "id": "SRC1-L230",
+      "line": 230,
+      "section": 30,
+      "kind": "SOURCE_LINE",
+      "source_text": "Ingestion rate."
+    },
+    {
+      "id": "SRC1-L231",
+      "line": 231,
+      "section": 30,
+      "kind": "SOURCE_LINE",
+      "source_text": "Agent enrollment rate."
+    },
+    {
+      "id": "SRC1-L232",
+      "line": 232,
+      "section": 30,
+      "kind": "SOURCE_LINE",
+      "source_text": "Alert-processing latency."
+    },
+    {
+      "id": "SRC1-L233",
+      "line": 233,
+      "section": 30,
+      "kind": "SOURCE_LINE",
+      "source_text": "Package-builder health."
+    },
+    {
+      "id": "SRC1-L234",
+      "line": 234,
+      "section": 30,
+      "kind": "SOURCE_LINE",
+      "source_text": "Application logs, metrics and distributed tracing."
+    },
+    {
+      "id": "SRC1-L235",
+      "line": 235,
+      "section": 31,
+      "kind": "SECTION_HEADING",
+      "source_text": "31. Recommended Delivery Phases"
+    },
+    {
+      "id": "SRC1-L236",
+      "line": 236,
+      "section": 31,
+      "kind": "SOURCE_LINE",
+      "source_text": "Phase 1 — Production MVP: Agent enrollment/identity, OS + hardware inventory, CPU/RAM/disk/network/battery metrics, installed apps, running processes, heartbeat/offline status, PostgreSQL + metrics storage, core dashboard, device detail, authentication/RBAC foundation, audit foundation, MSI package builder, secure enrollment, basic alerts."
+    },
+    {
+      "id": "SRC1-L237",
+      "line": 237,
+      "section": 31,
+      "kind": "SOURCE_LINE",
+      "source_text": "Phase 2 — Operational Management: Application usage, historical reports, advanced alerts, groups/tags, policies, OS/patch inventory, security posture, audit UI, remote diagnostics/actions, email/webhook notifications, data retention controls."
+    },
+    {
+      "id": "SRC1-L238",
+      "line": 238,
+      "section": 31,
+      "kind": "SOURCE_LINE",
+      "source_text": "Phase 3 — Enterprise Fleet: Windows/macOS/Linux parity, advanced network monitoring, disk SMART, battery analytics, anomaly detection, automated remediation, fleet reports, full multi-tenant controls, integrations, HA/scaling hardening."
+    },
+    {
+      "id": "SRC1-L239",
+      "line": 239,
+      "section": 31,
+      "kind": "SOURCE_LINE",
+      "source_text": "Phase 4 — Advanced Endpoint Management: Software deployment/removal, patch deployment, advanced policy enforcement, richer remote management, compliance automation and enterprise integrations."
+    },
+    {
+      "id": "SRC1-L240",
+      "line": 240,
+      "section": 32,
+      "kind": "SECTION_HEADING",
+      "source_text": "32. Non-Functional Requirements"
+    },
+    {
+      "id": "SRC1-L241",
+      "line": 241,
+      "section": 32,
+      "kind": "SOURCE_LINE",
+      "source_text": "Secure by default."
+    },
+    {
+      "id": "SRC1-L242",
+      "line": 242,
+      "section": 32,
+      "kind": "SOURCE_LINE",
+      "source_text": "No mock telemetry or fake production data."
+    },
+    {
+      "id": "SRC1-L243",
+      "line": 243,
+      "section": 32,
+      "kind": "SOURCE_LINE",
+      "source_text": "All production metrics must originate from real endpoint collectors."
+    },
+    {
+      "id": "SRC1-L244",
+      "line": 244,
+      "section": 32,
+      "kind": "SOURCE_LINE",
+      "source_text": "Every endpoint must have a unique stable device identity."
+    },
+    {
+      "id": "SRC1-L245",
+      "line": 245,
+      "section": 32,
+      "kind": "SOURCE_LINE",
+      "source_text": "APIs must validate tenant and authorization scope."
+    },
+    {
+      "id": "SRC1-L246",
+      "line": 246,
+      "section": 32,
+      "kind": "SOURCE_LINE",
+      "source_text": "All privileged actions must be auditable."
+    },
+    {
+      "id": "SRC1-L247",
+      "line": 247,
+      "section": 32,
+      "kind": "SOURCE_LINE",
+      "source_text": "Agent must remain functional during temporary network outages."
+    },
+    {
+      "id": "SRC1-L248",
+      "line": 248,
+      "section": 32,
+      "kind": "SOURCE_LINE",
+      "source_text": "System must support configurable collection frequency and retention."
+    },
+    {
+      "id": "SRC1-L249",
+      "line": 249,
+      "section": 32,
+      "kind": "SOURCE_LINE",
+      "source_text": "UI must clearly distinguish live, stale and historical data."
+    },
+    {
+      "id": "SRC1-L250",
+      "line": 250,
+      "section": 32,
+      "kind": "SOURCE_LINE",
+      "source_text": "All background jobs must be observable and retry-safe."
+    },
+    {
+      "id": "SRC1-L251",
+      "line": 251,
+      "section": 32,
+      "kind": "SOURCE_LINE",
+      "source_text": "MSI generation must be reproducible, versioned, signed and auditable."
+    },
+    {
+      "id": "SRC1-L252",
+      "line": 252,
+      "section": 33,
+      "kind": "SECTION_HEADING",
+      "source_text": "33. Definition of Done"
+    },
+    {
+      "id": "SRC1-L253",
+      "line": 253,
+      "section": 33,
+      "kind": "SOURCE_LINE",
+      "source_text": "An administrator can create an organization/device group/policy."
+    },
+    {
+      "id": "SRC1-L254",
+      "line": 254,
+      "section": 33,
+      "kind": "SOURCE_LINE",
+      "source_text": "Administrator can generate a Windows MSI from the platform for that organization/group/policy."
+    },
+    {
+      "id": "SRC1-L255",
+      "line": 255,
+      "section": 33,
+      "kind": "SOURCE_LINE",
+      "source_text": "MSI installs and enrolls a real Windows endpoint securely."
+    },
+    {
+      "id": "SRC1-L256",
+      "line": 256,
+      "section": 33,
+      "kind": "SOURCE_LINE",
+      "source_text": "Endpoint appears in the dashboard with correct identity and online status."
+    },
+    {
+      "id": "SRC1-L257",
+      "line": 257,
+      "section": 33,
+      "kind": "SOURCE_LINE",
+      "source_text": "Real OS/hardware inventory is visible."
+    },
+    {
+      "id": "SRC1-L258",
+      "line": 258,
+      "section": 33,
+      "kind": "SOURCE_LINE",
+      "source_text": "Live CPU/RAM/disk/network/battery metrics arrive at the configured interval."
+    },
+    {
+      "id": "SRC1-L259",
+      "line": 259,
+      "section": 33,
+      "kind": "SOURCE_LINE",
+      "source_text": "Installed and running applications/processes are visible."
+    },
+    {
+      "id": "SRC1-L260",
+      "line": 260,
+      "section": 33,
+      "kind": "SOURCE_LINE",
+      "source_text": "Historical metrics are graphed."
+    },
+    {
+      "id": "SRC1-L261",
+      "line": 261,
+      "section": 33,
+      "kind": "SOURCE_LINE",
+      "source_text": "Offline endpoint is detected from heartbeat policy."
+    },
+    {
+      "id": "SRC1-L262",
+      "line": 262,
+      "section": 33,
+      "kind": "SOURCE_LINE",
+      "source_text": "Alerts trigger, deduplicate, recover and are auditable."
+    },
+    {
+      "id": "SRC1-L263",
+      "line": 263,
+      "section": 33,
+      "kind": "SOURCE_LINE",
+      "source_text": "RBAC prevents unauthorized access/actions."
+    },
+    {
+      "id": "SRC1-L264",
+      "line": 264,
+      "section": 33,
+      "kind": "SOURCE_LINE",
+      "source_text": "Remote approved action can be issued, executed and verified with audit trail."
+    },
+    {
+      "id": "SRC1-L265",
+      "line": 265,
+      "section": 33,
+      "kind": "SOURCE_LINE",
+      "source_text": "Reports can be filtered/exported."
+    },
+    {
+      "id": "SRC1-L266",
+      "line": 266,
+      "section": 33,
+      "kind": "SOURCE_LINE",
+      "source_text": "Agent can survive temporary connectivity loss and upload buffered telemetry later."
+    },
+    {
+      "id": "SRC1-L267",
+      "line": 267,
+      "section": 33,
+      "kind": "SOURCE_LINE",
+      "source_text": "Agent/package version and lifecycle are visible."
+    },
+    {
+      "id": "SRC1-L268",
+      "line": 268,
+      "section": 33,
+      "kind": "SOURCE_LINE",
+      "source_text": "Platform itself exposes health/observability metrics."
+    },
+    {
+      "id": "SRC1-L269",
+      "line": 269,
+      "section": 33,
+      "kind": "SOURCE_LINE",
+      "source_text": "No feature depends on mock data in production."
+    },
+    {
+      "id": "SRC1-L270",
+      "line": 270,
+      "section": 34,
+      "kind": "SECTION_HEADING",
+      "source_text": "34. Final Master Scope"
+    },
+    {
+      "id": "SRC1-L271",
+      "line": 271,
+      "section": 34,
+      "kind": "SOURCE_LINE",
+      "source_text": "This document is the consolidated baseline for the fresh Aaditech Endpoint Monitoring & Management Platform implementation. It includes the originally requested OS, hardware, resource, application, process, usage, network, storage, battery, health score, alerts, device management, dashboard, backend, database and phased MVP requirements, plus the missing enterprise foundations: agent lifecycle, MSI/package generation from the platform, secure enrollment, device lifecycle, RBAC/multi-tenancy, audit logs, security posture, patch/software compliance, remote actions, event monitoring, offline buffering, data retention, privacy, API/integration, scalability and platform observability. Any future feature should extend this baseline rather than silently removing or weakening these requirements."
+    }
+  ],
+  "additional_binding_directive_lines": [
+    {
+      "id": "SRC2-DIR-A1",
+      "line": 21,
+      "source_text": "Mandate: Before any code is written, the architecture must explicitly choose and justify one of: (a) modular monolith, (b) modular monolith + background workers, or (c) independently deployable microservices. The default assumption, unless dependency analysis proves otherwise, is modular monolith + workers. This decision must be written down as an Architecture Decision Record before Section 5 (Service Boundaries) of Part C is implemented."
+    },
+    {
+      "id": "SRC2-DIR-A2",
+      "line": 25,
+      "source_text": "Mandate: The MSI Package Builder must be designed and implemented as a first-class, security-sensitive backend subsystem — with its own build pipeline, signing key protection, artifact storage, download authorization, and audit trail — never as a simple \"download the installer\" button wired to a static file."
+    },
+    {
+      "id": "SRC2-DIR-A3",
+      "line": 29,
+      "source_text": "Mandate: Every metric, inventory item, and event surfaced by the platform must originate from a real collector reading an actual OS API, system interface, or validated library. This is a blocking rule, not a style preference: a build that ships simulated CPU, RAM, disk, or process data for demonstration purposes is not acceptable at any phase, including early MVP demos."
+    },
+    {
+      "id": "SRC2-DIR-B",
+      "line": 36,
+      "source_text": "Amendment: Wherever Section 4 of Part C says \"Prefer a Python-based backend where technically appropriate,\" substitute: \"The backend is implemented in Go.\" This is a project-level engineering decision made by the platform owner, not an inference by the implementing agent, and it is now binding for all backend components."
+    },
+    {
+      "id": "SRC2-DIR-SCOPE",
+      "line": 46,
+      "source_text": "No other requirement in Part C is weakened, removed, or reinterpreted by this stack lock."
+    }
+  ]
+}

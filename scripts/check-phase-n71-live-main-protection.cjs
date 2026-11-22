@@ -51,13 +51,22 @@ function evaluate(snapshot, expectedSha, repoName) {
       p.require_last_push_approval === true &&
       p.required_review_thread_resolution === true;
   })) blockers.push('human latest-head PR review safeguards are incomplete');
-  const configured = new Set(all.filter(r => r.type === 'required_status_checks')
-    .flatMap(r => Array.isArray(r.parameters?.required_status_checks) ?
-      r.parameters.required_status_checks : [])
-    .filter(c => c && c.integration_id === GH_APP_ID)
-    .map(c => c.context));
-  for (const name of REQUIRED_CHECKS) {
-    if (!configured.has(name)) blockers.push('missing required GitHub Actions CI check: ' + name);
+  // N72: five required GitHub Actions contexts must be part of at least
+  // one SAME strictly up-to-date rule. A union of loose status rules across
+  // multiple rulesets would accept stale-branch results. GitHub REST requires
+  // strict_required_status_checks_policy=true for fresh target-branch checks.
+  const statusRules = all.filter(r => r.type === 'required_status_checks' &&
+    r.parameters?.strict_required_status_checks_policy === true);
+  const complete = statusRules.some(r => {
+    const checks = r.parameters?.required_status_checks;
+    if (!Array.isArray(checks)) return false;
+    const contexts = new Set(checks.filter(check =>
+      check && check.integration_id === GH_APP_ID &&
+      typeof check.context === 'string').map(check => check.context));
+    return REQUIRED_CHECKS.every(name => contexts.has(name));
+  });
+  if (!complete) {
+    blockers.push('five trusted GitHub Actions checks are not enforced together with strict up-to-date policy');
   }
   return Object.freeze({ allowed: blockers.length === 0, blockers });
 }

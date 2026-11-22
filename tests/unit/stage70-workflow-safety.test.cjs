@@ -40,7 +40,7 @@ deny('safety job context must be stable',safety,s=>s.replace(
 deny('safety job permissions cannot become write',safety,s=>s.replace(
   'permissions:\n      contents: read', 'permissions:\n      contents: write'
 ));
-deny('real MySQL recovery cannot be replaced by unit fixture',safety,s=>s.replace(
+deny('real MySQL recovery cannot be replaced by unit fixture',safety,s=>s.replaceAll(
   'Test-MySQL-Live-Rehearsal.sh','Fake-MySQL-Live-Rehearsal.sh'
 ));
 deny('N68 live rejection regression must remain in safety job',safety,s=>s.replace(

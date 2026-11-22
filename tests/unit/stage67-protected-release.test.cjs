@@ -23,7 +23,7 @@ test('non-main manual signing access fails closed', () => {
     "'ci-diagnostic' || 'ci-diagnostic'"), inspectCI, 'review environment');
 });
 test('dropping API gate or independent package approval fails closed', () => {
-  deny(ci, ci.replace('needs: [node-tests, api-tests]', 'needs: [node-tests]'),
+  deny(ci, ci.replace('needs: [powershell-validation, node-tests, api-tests]', 'needs: [powershell-validation, node-tests]'),
     inspectCI, 'API gate');
   deny(ci, ci.replace(
     'Install-ApprovedCompiler.ps1 -Kind ps2exe',

@@ -44,8 +44,9 @@ function inspectCI(src) {
     'Windows MSI job missing');
   ensure(job.if === MAIN_BUILD, 'main-only manual/push job condition');
   ensure(job.environment?.name === ENV, 'protected reviewer environment');
-  ensure(Array.isArray(job.needs) && job.needs.includes('node-tests') &&
-    job.needs.includes('api-tests'), 'Node/API tests must gate MSI build');
+  ensure(Array.isArray(job.needs) && job.needs.length === 3 &&
+    job.needs.includes('powershell-validation') && job.needs.includes('node-tests') &&
+    job.needs.includes('api-tests'), 'PowerShell/Node/API tests must gate MSI build');
   const s = job.steps;
   ensure(exact(s, 'Install ps2exe',
     'Install-Module -Name ps2exe -RequiredVersion 1.0.18 -Repository PSGallery -Force -Scope CurrentUser',

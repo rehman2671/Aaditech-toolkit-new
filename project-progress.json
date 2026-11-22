@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-22T18:27:20+00:00",
-  "last_verified_commit": "4885502956cb2e630fa482d7a4a822ad5c4b63b7",
-  "last_verified_date": "2026-11-22T23:56:29+05:30",
+  "generated": "2026-11-22T18:42:17+00:00",
+  "last_verified_commit": "46ac3dcef02592cf02ffc696582640a568a31eae",
+  "last_verified_date": "2026-11-23T00:12:08+05:30",
   "overall_progress_percent": 100.0,
   "progress_scope": "historic audit issue closure only; production acceptance pending",
   "production_ready": false,
@@ -14,33 +14,12 @@
     "percent": 100.0
   },
   "latest_delta": {
-    "added": 3,
+    "added": 5,
     "removed": 0,
-    "changed": 6,
-    "unchanged": 448
+    "changed": 8,
+    "unchanged": 449
   },
   "delta_history": [
-    {
-      "detected_at": "2026-11-20T13:57:49+00:00",
-      "added": [
-        "Enterprise/deploy/PHASE-N-STAGE58-ACCEPTANCE.md",
-        "Enterprise/agent/build/ReleasePublicationApproval.psm1",
-        "Enterprise/agent/build/Assert-PublicationReviewerApproval.ps1",
-        "Enterprise/agent/build/Write-SourceReleaseApprovalReceipt.ps1",
-        "Enterprise/tests/Test-Stage58ReleasePublicationApproval.ps1"
-      ],
-      "removed": [],
-      "changed": [
-        "Enterprise/agent/build/Verify-ReleaseArtifact.ps1",
-        "Enterprise/deploy/PHASE-N-STAGE56-ACCEPTANCE.md",
-        ".github/workflows/ci.yml",
-        ".github/workflows/publish-signed-installer.yml",
-        "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md",
-        "Enterprise/tests/Test-Stage31PublicationPins.ps1",
-        "Enterprise/tests/Test-Stage56ReviewedReleaseApproval.ps1"
-      ],
-      "unchanged_count": 408
-    },
     {
       "detected_at": "2026-11-20T14:06:12+00:00",
       "added": [],
@@ -305,6 +284,28 @@
         ".github/workflows/ci.yml"
       ],
       "unchanged_count": 448
+    },
+    {
+      "detected_at": "2026-11-22T18:42:17+00:00",
+      "added": [
+        "scripts/check-phase-n71-release-workflow.cjs",
+        "tests/unit/stage71-live-main-protection.test.cjs",
+        "Enterprise/deploy/PHASE-N-STAGE71-ACCEPTANCE.md",
+        "scripts/check-phase-n71-live-main-protection.cjs",
+        "tests/unit/stage71-release-workflow.test.cjs"
+      ],
+      "removed": [],
+      "changed": [
+        "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md",
+        "Enterprise/deploy/PHASE-N-STAGE68-ACCEPTANCE.md",
+        ".github/workflows/publish-signed-installer.yml",
+        "Enterprise/deploy/PHASE-N-STAGE69-ACCEPTANCE.md",
+        "Enterprise/deploy/PHASE-N-STAGE70-ACCEPTANCE.md",
+        "package.json",
+        ".github/workflows/ci.yml",
+        "Enterprise/agent/build/Release-Sign.ps1"
+      ],
+      "unchanged_count": 449
     }
   ],
   "next_recommended_tasks": [

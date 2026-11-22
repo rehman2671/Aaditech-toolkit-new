@@ -1,11 +1,12 @@
 # Phase N — Production release acceptance and sign-off
 
-## Stage N64 — protected compiler module tree continuity (PR CODE READY; CI PENDING; PRODUCTION BLOCKED)
+## Stage N64 — protected compiler module tree continuity (MERGED; PR CI 3/3 + SAFETY 2/2; MAIN DIAGNOSTIC MSI 4/4 + SAFETY 2/2; PRODUCTION BLOCKED)
 
 - [x] The protected PS2EXE installation now hashes the entire independently reviewed N63 archive's extracted module tree (names, lengths, files, nested dependencies and directory entries) and compares the complete installed tree. A matching `ps2exe.psd1` alone is not sufficient; edited `ps2exe.psm1`, stale/extra files and missing companions fail closed.
 - [x] The approved installed tree fingerprint is carried through the protected job and checked again **before** `build-agent.ps1` imports PS2EXE, with explicit N63 module path and N62 pinned version still enforced. Diagnostic builds remain nonpublishable.
-- [x] Windows PowerShell 5.1/7 synthetic N64 regression test and CI jobs are wired on the PR branch; **do not mark tests green before GitHub Actions reports success**.
-- [ ] N64 CI, review, merge and fresh main diagnostic EXE/MSI install/upgrade acceptance: **PENDING**.
+- [x] PowerShell 5.1/7 synthetic N64 tamper, added/removed dependencies and pre-import SHA continuity regressions **PASS**. [PR #64](https://github.com/rehman2671/Aaditech-toolkit-new/pull/64) merged as `80334a42e86311b24e13e69845f047043092c7dc` after [PR CI #45022600248](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45022600248) **3/3 SUCCESS** and [PR safety #45022600246](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45022600246) **2/2 SUCCESS**.
+- [x] [Fresh main CI #45022858422](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45022858422) **4/4 SUCCESS**, including genuine diagnostic EXE/MSI build, extraction, Windows clean install/uninstall, tenant-preserving major upgrade; [main safety #45022858450](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45022858450) **2/2 SUCCESS** and [index #45022858434](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45022858434) **SUCCESS**. Protected signing, publish verification and artifact upload were **SKIPPED**, not passed.
+- [ ] Separate security-owner review and authenticated protected manual signed-publication acceptance **PENDING**.
 - [ ] All original owner-supplied N63 archive SHA approvals, real protected package installation, publisher signing, release approval, Hostinger, customer Windows and offsite database restore evidence remain **PENDING**. **Customer production NOT APPROVED.**
 
 See [N64 acceptance](PHASE-N-STAGE64-ACCEPTANCE.md) and [tracked release blockers #29](https://github.com/rehman2671/Aaditech-toolkit-new/issues/29).

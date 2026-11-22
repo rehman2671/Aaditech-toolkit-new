@@ -13,7 +13,7 @@ test('all mandatory Windows, Node and API suites must succeed before signing',()
   assert.equal(check(),true);
   assert.equal(inspect(src),true);
   assert.equal(Object.keys(REQUIRED).length,3);
-  assert.equal(src.split(exact).length,2);
+  assert.ok(src.includes('  agent-build:\n    name: Build agent exe + MSI\n'+exact),\n    'the protected agent-build needs all three security suites');
 });
 test('dropping or duplicating a signer dependency is rejected',()=>{
   deny(src.replace(exact,'    needs: [node-tests, api-tests]'),'missing Windows');

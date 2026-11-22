@@ -1,0 +1,390 @@
+{
+  "schema_version": "1.0",
+  "document_type": "manual_product_delivery_tracker",
+  "baseline_date": "2026-11-23",
+  "timezone": "Asia/Kolkata",
+  "baseline_branch": "main",
+  "baseline_commit": "911f509620029c513305c88b26ca0da4e1b7da37",
+  "product_goal": "Intranet-first, independently self-hosted; one-click setup; no mandatory public domain or central cloud",
+  "production_accepted": false,
+  "source_of_truth": "docs/product/README.md",
+  "old_index_note": "project-progress.json 100% is historic audit issue closure only; auto-generated; not the product completion percentage",
+  "status_values": [
+    "NOT_STARTED",
+    "IN_DEVELOPMENT",
+    "CODE_COMPLETE",
+    "CI_VERIFIED",
+    "E2E_VERIFIED",
+    "PRODUCTION_ACCEPTED",
+    "BLOCKED"
+  ],
+  "status_note": "A status reflects the most advanced evidenced stage; blocked=true independently flags an unmet dependency. For PR-only CI, do not infer merged main.",
+  "completion_percentage": null,
+  "entries": [
+    {
+      "key": "M0",
+      "title": "Product documents and evidence baseline",
+      "priority": "P0",
+      "state": "IN_DEVELOPMENT",
+      "owner": "product_owner",
+      "requires": [],
+      "evidence": [
+        "docs/product/*.md (proposed; not merged)"
+      ],
+      "next": "Review and accept requirements, risk tiers, tests and source-of-truth precedence",
+      "blocked": false
+    },
+    {
+      "key": "M1",
+      "title": "Intranet one-click Node/MySQL server deployment",
+      "priority": "P0",
+      "state": "NOT_STARTED",
+      "owner": "deployment_engineering",
+      "requires": [
+        "M0"
+      ],
+      "evidence": [
+        "Enterprise/deploy/deploy-mysql.sh currently requires public DNS",
+        "legacy deploy scripts intentionally refuse incompatible stack"
+      ],
+      "next": "Design LAN profile, prerequisites and offline dependencies without weakening TLS",
+      "blocked": true
+    },
+    {
+      "key": "M2",
+      "title": "Browser setup integrated with machine installer",
+      "priority": "P0",
+      "state": "IN_DEVELOPMENT",
+      "owner": "fullstack_deployment",
+      "requires": [
+        "M1"
+      ],
+      "evidence": [
+        "server.js /api/setup",
+        "Enterprise/portal/index.html renderSetup"
+      ],
+      "next": "Implement installer-to-wizard handoff and automated safe local secrets/DB/PKI provisioning",
+      "blocked": true
+    },
+    {
+      "key": "PR-004",
+      "title": "Persistent installation identity, restore versus clone",
+      "priority": "P0",
+      "state": "NOT_STARTED",
+      "owner": "backend_security",
+      "requires": [
+        "M0"
+      ],
+      "evidence": [
+        "Current tenant/device IDs do not prove installation UUID lifecycle"
+      ],
+      "next": "Specify and implement installation_id schema/immutable lifecycle + duplicate office rejection",
+      "blocked": false
+    },
+    {
+      "key": "PR-005",
+      "title": "Generic signed MSI and local enrollment",
+      "priority": "P0",
+      "state": "CI_VERIFIED",
+      "owner": "windows_agent",
+      "requires": [
+        "M1",
+        "M2"
+      ],
+      "evidence": [
+        "Enterprise/agent/wix/Agent.wxs",
+        "main diagnostic MSI CI 45062353330"
+      ],
+      "next": "Test with signed artifact, physical Windows and internal CA under WAN-disconnected office",
+      "blocked": true
+    },
+    {
+      "key": "PR-006",
+      "title": "Tenant isolation, workspace selection and invitation",
+      "priority": "P0",
+      "state": "CI_VERIFIED",
+      "owner": "backend_security",
+      "requires": [],
+      "evidence": [
+        "server.js workspaces/agent endpoints",
+        "tests/integration/workspace-selection.integration.test.js"
+      ],
+      "next": "Demonstrate real multi-installation and multi-device namespace isolation",
+      "blocked": false
+    },
+    {
+      "key": "FE-01",
+      "title": "Node.js Express, MySQL migrations and backend",
+      "priority": "P0",
+      "state": "CI_VERIFIED",
+      "owner": "backend",
+      "requires": [],
+      "evidence": [
+        "server.js",
+        "db.js",
+        "Enterprise/docker-compose.yml",
+        "main CI 45062353330"
+      ],
+      "next": "Verify on fresh disconnected office server",
+      "blocked": false
+    },
+    {
+      "key": "FE-08",
+      "title": "Device telemetry, security posture and provenance",
+      "priority": "P0",
+      "state": "CI_VERIFIED",
+      "owner": "windows_agent",
+      "requires": [
+        "M1"
+      ],
+      "evidence": [
+        "device-metrics.js",
+        "security-posture.js",
+        "Enterprise/agent/Agent-Collect.ps1"
+      ],
+      "next": "Validate representative enrolled devices and bad/missing telemetry on LAN",
+      "blocked": true
+    },
+    {
+      "key": "FE-09",
+      "title": "Signed commands, durable queue and result ACK",
+      "priority": "P0",
+      "state": "CI_VERIFIED",
+      "owner": "agent_backend",
+      "requires": [
+        "M1"
+      ],
+      "evidence": [
+        "command-signing.js",
+        "test-network-db-fault-injection.js"
+      ],
+      "next": "Demonstrate real physical command, interrupted network, dedupe and result verification",
+      "blocked": true
+    },
+    {
+      "key": "PR-007",
+      "title": "Encrypted offsite/air-gap restore",
+      "priority": "P0",
+      "state": "CI_VERIFIED",
+      "owner": "database_operator",
+      "requires": [
+        "M1"
+      ],
+      "evidence": [
+        "Enterprise/deploy/backup.sh",
+        "Enterprise/deploy/restore.sh",
+        "deployment safety 45062353339"
+      ],
+      "next": "Conduct independently witnessed encrypted offsite backup and isolated restore",
+      "blocked": true
+    },
+    {
+      "key": "AT-SEC-01",
+      "title": "Private LAN TLS/CA and agent trust",
+      "priority": "P0",
+      "state": "NOT_STARTED",
+      "owner": "infrastructure_security",
+      "requires": [
+        "M1"
+      ],
+      "evidence": [
+        "Existing public ACME path does not prove internal PKI"
+      ],
+      "next": "Implement internal CA/enterprise PKI selection with SAN/revocation and client distribution",
+      "blocked": true
+    },
+    {
+      "key": "FE-17",
+      "title": "Diagnostic agent MSI, upgrade, setup wizard",
+      "priority": "P0",
+      "state": "CI_VERIFIED",
+      "owner": "release_engineering",
+      "requires": [],
+      "evidence": [
+        "main diagnostic CI 45062353330",
+        "Enterprise/agent/SETUP-WINDOWS.md"
+      ],
+      "next": "Review N74; sign and verify physical Windows install/upgrade",
+      "blocked": true
+    },
+    {
+      "key": "FE-18",
+      "title": "N74 safe-before-write credential ACL patch",
+      "priority": "P0",
+      "state": "CI_VERIFIED",
+      "owner": "independent_reviewer",
+      "requires": [],
+      "evidence": [
+        "PR #76 open head fd0bacf108256431a2bb81992f37eade5e7d00b8",
+        "CI 45075407395 success",
+        "safety 45075407383 success"
+      ],
+      "next": "Obtain independent code review and authorized merge, then fresh-main Windows MSI verification",
+      "blocked": true
+    },
+    {
+      "key": "FE-19",
+      "title": "N73 GitHub ruleset integrity patch",
+      "priority": "P0",
+      "state": "CI_VERIFIED",
+      "owner": "independent_reviewer",
+      "requires": [],
+      "evidence": [
+        "PR #75 open head 67abb1bff711a400b55b3f695311917a7d3069c9",
+        "CI 45072083622 success",
+        "safety 45072083593 success"
+      ],
+      "next": "Obtain independent review and repo administrator protected-main ruleset",
+      "blocked": true
+    },
+    {
+      "key": "AT-OPS-01",
+      "title": "Independent signed release/publisher/branch protection",
+      "priority": "P0",
+      "state": "BLOCKED",
+      "owner": "security_owner_and_repo_admin",
+      "requires": [
+        "FE-18",
+        "FE-19"
+      ],
+      "evidence": [
+        "Issue #62 OPEN; main unprotected; no releases"
+      ],
+      "next": "Authorize reviewer, enforce non-bypass protected main and independently sign/publish vetted release",
+      "blocked": true
+    },
+    {
+      "key": "FE-14",
+      "title": "Patch approval to actual safe deployment",
+      "priority": "P1",
+      "state": "IN_DEVELOPMENT",
+      "owner": "endpoint_operations",
+      "requires": [
+        "M3"
+      ],
+      "evidence": [
+        "server.js /api/v1/patches/:id/approve updates DB status"
+      ],
+      "next": "Build endpoint patch executor, maintenance window and rollback/verification",
+      "blocked": true
+    },
+    {
+      "key": "FE-15",
+      "title": "Predictive risk using measured trends",
+      "priority": "P1",
+      "state": "IN_DEVELOPMENT",
+      "owner": "backend_analytics",
+      "requires": [
+        "M3"
+      ],
+      "evidence": [
+        "device-metrics.js analyzeMeasuredTelemetry"
+      ],
+      "next": "Calibrate false-positive behavior against real representative telemetry",
+      "blocked": true
+    },
+    {
+      "key": "FE-16",
+      "title": "End-to-end verified remediation",
+      "priority": "P1",
+      "state": "IN_DEVELOPMENT",
+      "owner": "endpoint_operations",
+      "requires": [
+        "M4"
+      ],
+      "evidence": [
+        "server.js queues Remediate-* commands; no reviewed matching script artifacts evidenced"
+      ],
+      "next": "Create signed allowlisted playbooks + approval/rollback/postcheck; no arbitrary privileged execution",
+      "blocked": true
+    },
+    {
+      "key": "M4",
+      "title": "26-issue self-service troubleshooting framework",
+      "priority": "P1",
+      "state": "NOT_STARTED",
+      "owner": "it_support_engineering",
+      "requires": [
+        "M3"
+      ],
+      "evidence": [
+        "docs/product/TROUBLESHOOTING-AUTOHEALING.md (requirements only)"
+      ],
+      "next": "Implement incident store, D0-D3 risk engine, read-only triage and user consent",
+      "blocked": true
+    },
+    {
+      "key": "M5",
+      "title": "Verified resolution analytics and audit",
+      "priority": "P1",
+      "state": "NOT_STARTED",
+      "owner": "product_analytics",
+      "requires": [
+        "M4"
+      ],
+      "evidence": [
+        "Existing command logs do not establish repaired outcome"
+      ],
+      "next": "Define/implement incident attempts, postchecks, reopened cases and accurate denominators",
+      "blocked": true
+    },
+    {
+      "key": "FE-23",
+      "title": "Local ticketing versus external ITSM",
+      "priority": "P1",
+      "state": "CODE_COMPLETE",
+      "owner": "helpdesk",
+      "requires": [],
+      "evidence": [
+        "server.js /api/v1/tickets; external_sync NOT_CONNECTED"
+      ],
+      "next": "Verify full local ticket workflow; separately plan optional ITSM integration",
+      "blocked": false
+    },
+    {
+      "key": "FE-24",
+      "title": "M365/Azure/Intune integration",
+      "priority": "P2",
+      "state": "NOT_STARTED",
+      "owner": "optional_integrations",
+      "requires": [
+        "M6"
+      ],
+      "evidence": [
+        "server.js /api/v1/compliance/cloud-audit -> NOT_CONNECTED"
+      ],
+      "next": "Only after owner opts in: design Graph auth/privacy and acceptance",
+      "blocked": false
+    },
+    {
+      "key": "FE-25",
+      "title": "License compliance with evidence",
+      "priority": "P1",
+      "state": "IN_DEVELOPMENT",
+      "owner": "compliance_ops",
+      "requires": [
+        "M3"
+      ],
+      "evidence": [
+        "server.js license endpoint returns UNKNOWN/NOT_CONFIGURED"
+      ],
+      "next": "Implement measured license attestation, do not invent compliant status",
+      "blocked": true
+    },
+    {
+      "key": "M6",
+      "title": "Optional tool.aaditechs.in control service",
+      "priority": "P2",
+      "state": "NOT_STARTED",
+      "owner": "product_owner",
+      "requires": [
+        "M3"
+      ],
+      "evidence": [
+        "No required central service deployed"
+      ],
+      "next": "Define separately; prohibit local core availability dependency",
+      "blocked": false
+    }
+  ]
+}

@@ -1,0 +1,52 @@
+# Evidence-based feature completion matrix — AadiTech Enterprise
+
+**Baseline:** 2026-11-23 IST, existing `main` = `911f509620029c513305c88b26ca0da4e1b7da37`. PR #75 and #76 are **not on main**. This is a code review/documentation audit, **not** a fresh LAN test. Historical green CI [main #45062353330](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45062353330) has 4/4 jobs including *diagnostic* Windows MSI; safety [#45062353339](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45062353339) 2/2. The later main documentation-only commit has no separate claimed MSI run.
+
+**Legend:** `CI_VERIFIED` = relevant automated code checks passed; `CODE_COMPLETE` = code exists but independent full acceptance evidence absent; `PARTIAL` = basic implementation exists but expected external action/user journey missing; `NOT_STARTED` = target behavior not implemented; `BLOCKED` = external/review prerequisite. **No feature currently has complete independent intranet office E2E + production acceptance evidence in this baseline.**
+
+| ID | Feature / business capability | Existing evidence | Source/readiness | Remaining acceptance |
+|---|---|---|---|---|
+| FE-01 | Node API, auth and MySQL | `server.js`, `db.js`, `Dockerfile`; MySQL CI | **CI_VERIFIED** | Fresh office host + offline recovery |
+| FE-02 | Admin login, RBAC, secure setup key | `server.js` setup/auth, `setup-security.js`, auth tests | **CI_VERIFIED** | Guided installation + first local admin |
+| FE-03 | Browser first-run company/admin wizard | `Enterprise/portal/index.html` `renderSetup` and `/api/setup` | **PARTIAL** | Full infrastructure prerequisites and LAN PKI from wizard |
+| FE-04 | Users, tenant/workspace identities, invites | `server.js`, `auth-principal.js`, unit/integration MySQL | **CI_VERIFIED** | Separate installation isolation and multi-office E2E |
+| FE-05 | Persistent independent installation UUID | Tenant/device identity exists but no proven local installation identity lifecycle | **NOT_STARTED** | Create/backup/clone/restore semantics and tests |
+| FE-06 | Agent telemetry enrollment and per-device token | `Agent-Collect.ps1`, `server.js`, enrollment security tests | **CI_VERIFIED** | Physical local endpoint + intranet HTTPS acceptance |
+| FE-07 | Windows hardware/software/system inventory | `Enterprise/agent/features.json` (13 existing scripts), `server.js` | **CI_VERIFIED** | Accuracy on mixed office hardware/OS policies |
+| FE-08 | Endpoint health, metrics provenance and history | `device-metrics.js`, `security-posture.js`, telemetry migration/tests | **CI_VERIFIED** | Representative devices and privacy policy |
+| FE-09 | Events, command queue, signed device commands/ACK | `command-signing.js`, `server.js`, durable MySQL tests | **CI_VERIFIED** | Real offline/online transitions and delivered command outcome |
+| FE-10 | Alerts, acknowledge/resolve, notification outbox | `server.js`, `notification-outbox.js`, tests | **CI_VERIFIED** | Locally verified live destinations; SMTP/webhook requires opt-in/config |
+| FE-11 | Security posture and update inventory | `security-posture.js`, collectors, posture tests | **CI_VERIFIED** | On-device proof; no real MDM attestation |
+| FE-12 | Fleet/device CSV reports and audit logs | `server.js`, portal report/audit views | **CODE_COMPLETE** | Audit retention/redaction and owner acceptance |
+| FE-13 | Device groups and tenant policy records | `server.js` `/groups`, `/policies`; UI views | **PARTIAL** | Full policy-to-agent enforcement and precedence tested |
+| FE-14 | Patches and approvals | `/api/v1/patches/summary`, `/patches/:id/approve` | **PARTIAL** | Actual endpoint installation/rollback not provided by approval API |
+| FE-15 | Predictive health | `device-metrics.js` disk trend, minimum measured sample policy | **PARTIAL** | Calibrated forecast, false positive benchmarking; not trained AI |
+| FE-16 | Self-healing commands and policies | `/api/v1/remediation/trigger` queues named remediation | **PARTIAL** | Reviewed `Remediate-*.ps1` scripts + outcome and rollback proof not found |
+| FE-17 | Windows diagnostic MSI, agent setup GUI | WiX, `Configure-Agent*.ps1`, Windows main CI | **CI_VERIFIED** diagnostic | Signed approved release; real endpoint install/reconfigure; integrated launch |
+| FE-18 | Windows first-run credential ACL hardening (N74) | [PR #76](https://github.com/rehman2671/Aaditech-toolkit-new/pull/76) at `fd0bacf1`; [CI](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45075407395) 3/3 + [safety](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45075407383) 2/2 | **CI_VERIFIED PR ONLY; NOT MERGED** | Independent review; fresh-main diagnostic and real office proof |
+| FE-19 | Repo governance/ruleset integrity (N73) | [PR #75](https://github.com/rehman2671/Aaditech-toolkit-new/pull/75) at `67abb1bf`; [CI](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45072083622) 3/3 + [safety](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45072083593) 2/2 | **CI_VERIFIED PR ONLY; NOT MERGED** | Independent review, actual protected main and non-bypass rulesets |
+| FE-20 | Public DNS Docker deployment | `Enterprise/deploy/deploy-mysql.sh` / public hostname verifier | **CI_VERIFIED OFFLINE + public-target code** | Real external host acceptance; not required by LAN product |
+| FE-21 | Offline LAN one-click server installer | Legacy `deploy.sh`/`deploy.ps1` intentionally block incompatible stack | **NOT_STARTED** | Windows + Linux guided installer, WAN disconnected acceptance |
+| FE-22 | Encrypted off-host backup and restore | `backup.sh`, `restore.sh`, isolated MySQL CI | **CI_VERIFIED isolated** | Independent real office encrypted off-host recovery |
+| FE-23 | Local support tickets | `server.js` `/api/v1/tickets` | **CODE_COMPLETE** | Workflow E2E; Jira/ServiceNow/Zendesk **NOT_CONNECTED** |
+| FE-24 | M365/Azure/Intune integration | `/api/v1/compliance/cloud-audit` responds `NOT_CONNECTED` | **NOT_STARTED external** | Real OAuth/Graph connectors, tenant permissions, consent |
+| FE-25 | Windows/Office license compliance | `/api/v1/license/compliance` returns `UNKNOWN/NOT_CONFIGURED` | **PARTIAL/UNKNOWN** | Verified compliance evidence and human policy mapping |
+| FE-26 | 26 user troubleshooting and safe repair outcomes | Initial PowerShell diagnostics exist; no shared issue/verified outcome lifecycle | **NOT_STARTED as product** | See `TROUBLESHOOTING-AUTOHEALING.md` |
+| FE-27 | Optional central installation registry/service | `tool.aaditechs.in` is a proposal, not existing core | **NOT_STARTED / OPTIONAL** | Design approval, no local availability dependency |
+| FE-28 | Public signed release/HSM and human approvals | Workflow/gates exist; GitHub releases empty, main unprotected | **BLOCKED** | Certified signer/HSM, independent review, protected main, approved artifact |
+
+## Live governance snapshot (not a durable approval)
+
+On 2026-11-23 live checks returned **`main.protected=false`**, **0 effective rulesets**, **0 releases**, **0 reviews** for #75 and #76. These are time-sensitive; always re-query before production. [Production blocker #62](https://github.com/rehman2671/Aaditech-toolkit-new/issues/62) remains OPEN.
+
+## Important truth corrections
+
+- `docs/assessment/FEATURE-STATUS.md` historically lists route names such as `/api/v1/software/inventory`, `/api/v1/compliance/licenses` and `/api/v1/cloud/integrations`; the actual audited routes in current `server.js` are `/api/v1/software/search`, `/api/v1/license/compliance` and `/api/v1/compliance/cloud-audit`. Do not treat stale endpoint references as test evidence.
+- External support ticket creation in backend explicitly reports `external_sync: NOT_CONNECTED`.
+- Patch approval updates a database status; it does not install Windows KBs.
+- A command queue ACK is not successful repair, and a successful MySQL backup CI test is not a customer's restore.
+- `project-progress.json` 100% is **only historic audit closure**, never overall product completion.
+
+## Reporting rule
+
+For each feature record **code state, merged branch, CI commit/run, E2E site/date/operator, production signer/release and last independent review**. Never invent completion percentages from file or route counts. The [delivery tracker](DELIVERY-TRACKER.json) records prioritized next actions.

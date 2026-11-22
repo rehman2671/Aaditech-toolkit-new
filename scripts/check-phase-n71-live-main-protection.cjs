@@ -24,7 +24,7 @@ function mainTarget(rule) {
   // Do not filter exclusions here: any exclusion on a candidate is a blocker.
   return ref.include.some(x =>
     typeof x === 'string' &&
-    (needles.includes(x) || /[*?\\[\\]{}\\\\]/.test(x) || x.startsWith('~')));
+    (needles.includes(x) || /[*?\[\]{}\\]/.test(x) || x.startsWith('~')));
 }
 function evaluate(snapshot, expectedSha, repoName) {
   const blockers = [];

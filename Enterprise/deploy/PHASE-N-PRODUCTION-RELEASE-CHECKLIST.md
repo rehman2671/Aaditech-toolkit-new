@@ -1,11 +1,13 @@
 # Phase N — Production release acceptance and sign-off
 
-## Stage N71 — live non-bypass main protection before actual code signing and public release (PR CODE READY; CI PENDING; PRODUCTION BLOCKED)
+## Stage N71 — live non-bypass main protection before actual signing and public release (MERGED; PR 3/3 + SAFETY 2/2; MAIN WINDOWS MSI 4/4 + SAFETY 2/2; PRODUCTION BLOCKED)
 
 - [x] New read-only GitHub REST gate verifies current protected main SHA, active non-bypass ruleset, independent latest-head review policy, no force-push/delete, and 5 exact GitHub Actions app ID 15368 contexts.
 - [x] Mandatory manual-main gate before approved compiler installation, before MSI signing (also within the actual EXE/MSI signing script, **before PFX import**), before draft release creation and immediately before exposing a hosted signed GitHub Release.
 - [x] Approved signed source SHA must exactly equal manual publisher's GitHub main dispatch SHA; source and branch protection rechecked before making draft public. Synthetic offline negative policies and YAML regression gates added.
-- [ ] PR CI, independently reviewed source, fresh merged-main diagnostic Windows MSI and live governance activation: **PENDING**.
+- [x] [PR #72](https://github.com/rehman2671/Aaditech-toolkit-new/pull/72) merged as `46ac3dcef02592cf02ffc696582640a568a31eae` after [PR CI #45056310054](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45056310054) **3/3 SUCCESS** and [PR safety #45056310065](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45056310065) **2/2 SUCCESS**.
+- [x] Fresh main diagnostic [CI #45056575516](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45056575516) **4/4 SUCCESS** including EXE/MSI build, extraction, real Windows install/clean uninstall and tenant-preserving major upgrade; [main safety #45056575480](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45056575480) **2/2 SUCCESS**, [index #45056575436](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45056575436) **SUCCESS**. Protected live ruleset verification, approved archives, real signing and public upload deliberately **SKIPPED**.
+- [ ] Independent human source/code approval, active repository ruleset and live protected-manual signing verification: **PENDING**.
 - [ ] Repo currently has **no effective main protection**; authorized admin must configure main ruleset and independent required reviews before genuine protected signing can ever pass. No script can self-approve or authorize production.
 - [ ] Approved publisher certificate/HSM, human-approved archives, real Hostinger/customer Windows and offsite DB restore receipt: **PENDING**.
 

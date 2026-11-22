@@ -1,22 +1,31 @@
 # Phase N — Production release acceptance and sign-off
 
-## Stage N68 — authoritative Hostinger VPS live health admission (PR CODE READY; CI PENDING; CUSTOMER PRODUCTION BLOCKED)
+## Stage N68 — authoritative Hostinger VPS live health admission (MERGED; MAIN DIAGNOSTIC CI 4/4 + SAFETY 2/2; CUSTOMER PRODUCTION BLOCKED)
 
 - [x] Replace text-grep acceptance in supported `deploy-mysql.sh` with mandatory exact-JSON, DNS-pinned, system-CA HTTPS health + same-origin HTTP redirect verifier; any degraded/malformed live outcome blocks success and preserves existing .env secrets.
 - [x] Enforce the verifier's reserved/public hostname dry-run before Docker or secret mutations, and Stage N14 strong/private deployment credentials before real Compose startup.
-- [x] Offline mocked Docker/verifier tests added and deployment-safety CI gated. **CI not yet claimed green**.
-- [ ] PR/main CI/safety review; verified real Hostinger VPS/DNS/ACME, offsite MySQL restoration, physical Windows tenant enrollment, independently signed release and security owner acceptance: **PENDING**.
+- [x] [PR #68](https://github.com/rehman2671/Aaditech-toolkit-new/pull/68) merged: PR CI [#45052878778](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45052878778) **3/3** and safety [#45052878701](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45052878701) **2/2** pass; [main diagnostic Windows MSI #45054244204](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45054244204) **4/4** and [safety #45054244194](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45054244194) **2/2** pass.
+- [ ] Actual Hostinger VPS/DNS/ACME, offsite restore, physical Windows enrollment and separately signed release/security-owner acceptance: **PENDING**.
 
 See [N68 acceptance](PHASE-N-STAGE68-ACCEPTANCE.md).
 
-## Stage N70 — universal main safety required-check readiness and immutable action SHAs (PR CODE READY; CI/HUMAN REVIEW PENDING; PRODUCTION BLOCKED)
+## Stage N70 — universal main safety checks and immutable action SHAs (MERGED; PR CI 3/3 + SAFETY 2/2; MAIN CI 4/4 + SAFETY 2/2; HUMAN REVIEW/PRODUCTION BLOCKED)
 
 - [x] Safety CI triggers on every main-target pull request and every main push, not selected paths; stable two safety check contexts continue real Bash and isolated MySQL backup/restore.
 - [x] All 13 actions/checkout, setup-node, upload-artifact and download-artifact references across 4 workflows use exact official v4-ref commit SHAs instead of moving tags; structural + adversarial `npm run lint` tests added.
-- [ ] PR CI, independent reviewer validation of exact upstream action commit identities, green merged main MSI/install/upgrade and deployment safety: **PENDING**.
+- [x] [PR #70](https://github.com/rehman2671/Aaditech-toolkit-new/pull/70) merged: PR [CI #45054792334](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45054792334) **3/3** and [safety #45054792284](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45054792284) **2/2** pass; [fresh main CI #45055096722](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45055096722) **4/4** and [safety #45055096741](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45055096741) **2/2** pass, including real diagnostic MSI install/uninstall and upgrade.
+- [ ] Independent human review of the four pinned upstream action source revisions: **PENDING**.
 - [ ] Github owner must separately enable non-bypassable `main` branch protection with latest-head independent approval, five required check contexts (Actions app identity), no force push/deletion or bypass; signed production release and Hostinger/customer acceptance still **PENDING**. No change in YAML enforces those live rules.
 
 See [N70 acceptance](PHASE-N-STAGE70-ACCEPTANCE.md) and [governance blocker #62](https://github.com/rehman2671/Aaditech-toolkit-new/issues/62).
+
+## Stage N69 — protected MSI signing requires all Windows/Node/API tests and strict npm ci (MERGED; MAIN CI 4/4 + SAFETY 2/2; PRODUCTION BLOCKED)
+
+- [x] Windows agent diagnostic/protected signer requires passing PowerShell security validation, Node/Vitest MySQL and API/MySQL jobs. Both Node jobs enforce locked `npm ci` with no `npm install` escape.
+- [x] [PR #69](https://github.com/rehman2671/Aaditech-toolkit-new/pull/69) merged after [PR CI #45052621206](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45052621206) **3/3** and [safety #45052621208](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45052621208) **2/2**. Combined main N70 [CI #45055096722](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45055096722) **4/4** + [safety #45055096741](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45055096741) **2/2** successful.
+- [ ] Protected manually signed release, independently reviewed supply chain, actual Hostinger/Windows and backup restore acceptance: **PENDING**.
+
+See [N69 acceptance](PHASE-N-STAGE69-ACCEPTANCE.md).
 
 ## Stage N67 — signed installer configuration is strictly generic (MERGED; PR 3/3 + SAFETY 2/2; MAIN DIAGNOSTIC MSI 4/4 + SAFETY 2/2; PRODUCTION BLOCKED)
 

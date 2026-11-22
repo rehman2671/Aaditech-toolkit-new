@@ -110,6 +110,25 @@ function Assert-N62InstalledWix {
     try {
         if ($env:OS -cne 'Windows_NT') { throw 'Windows WiX build is required.' }
         $command=Get-Command -Name wix -CommandType Application -ErrorAction Stop
+        $protected=($env:GITHUB_ACTIONS -ceq 'true' -and
+                    $env:GITHUB_EVENT_NAME -ceq 'workflow_dispatch')
+        if ($protected) {
+            # N66: pinned versions alone do not prevent PATH shadowing or
+            # replacement of the downloaded WiX tool after local-only restore.
+            # Authenticate both the expected global shim AND the whole store
+            # BEFORE invoking any WiX code, including the --version command.
+            if ([string]::IsNullOrWhiteSpace($env:USERPROFILE)) {
+                throw 'Protected WiX global tool profile missing.'
+            }
+            Import-Module -Name (Join-Path $PSScriptRoot 'WixToolContinuity.psm1') -Force -ErrorAction Stop
+            $lock=Get-N62BuildToolchainLock
+            $null=Assert-N66WixToolContinuity `
+                -ToolRoot (Join-Path $env:USERPROFILE '.dotnet\tools') `
+                -ToolVersion ([string]$lock.wix) `
+                -ResolvedCommand $command.Source `
+                -ExpectedStoreSha256 $env:N66_WIX_STORE_SHA256 `
+                -ExpectedShimSha256 $env:N66_WIX_SHIM_SHA256
+        }
         $observed=(& $command.Source --version 2>$null | Out-String).Trim()
         if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($observed)) {
             throw 'WiX version could not be verified.'

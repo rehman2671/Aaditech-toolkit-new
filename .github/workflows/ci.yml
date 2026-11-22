@@ -336,7 +336,7 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci || npm install
+        run: npm ci
 
       - name: Generate ephemeral CI security credentials
         shell: bash
@@ -408,7 +408,7 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci || npm install
+        run: npm ci
 
       - name: Generate ephemeral CI security credentials
         shell: bash
@@ -622,7 +622,10 @@ jobs:
 
   agent-build:
     name: Build agent exe + MSI
-    needs: [node-tests, api-tests]
+    # N69: both diagnostic MSI and protected manually signed MSI require
+    # successful Windows security/Pester validation and both DB suites.
+    # A failed/pending PowerShell signing policy suite must block the signer.
+    needs: [powershell-validation, node-tests, api-tests]
     runs-on: windows-latest
     # Only manually dispatched signing builds use the human-reviewed,
     # branch-restricted production-installer environment. Normal push CI

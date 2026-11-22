@@ -118,3 +118,47 @@ test('N73 rejects malformed additional active rule even beside valid main policy
     assert.match(evaluate(s,SHA,REPO).blockers.join(';'),/unverifiable/);
   }
 });
+
+test('N73 rejects a main push or unprotected branch during policy reads',async()=>{
+  for(const next of [
+    {name:'main',protected:true,commit:{sha:'b'.repeat(40)}},
+    {name:'main',protected:false,commit:{sha:SHA}}
+  ]) {
+    const fake=fakeRequest([[{id:7}]],{7:mainRule(7)});
+    let branchReads=0;
+    const read=async path=>{
+      if (path===`/repos/${REPO}/branches/main` && ++branchReads===2) return next;
+      return fake.get(path);
+    };
+    await assert.rejects(readLiveSnapshot(REPO,'none',read),/branch or repository changed/);
+  }
+});
+test('N73 rejects changed policy summaries between completed inventory passes',async()=>{
+  const fake=fakeRequest([[{id:7}]],{7:mainRule(7)});
+  let lists=0;
+  const read=async path=>{
+    if (path.includes('/rulesets?') && ++lists===2) return [{id:7},{id:8}];
+    return fake.get(path);
+  };
+  await assert.rejects(readLiveSnapshot(REPO,'none',read),/inventory changed/);
+});
+test('N73 rejects changed detailed bypass policy between inventory passes',async()=>{
+  const fake=fakeRequest([[{id:7}]],{7:mainRule(7)});
+  let detailReads=0;
+  const read=async path=>{
+    if (path.endsWith('/rulesets/7') && ++detailReads===2)
+      return mainRule(7,[{actor_id:5,actor_type:'RepositoryRole'}]);
+    return fake.get(path);
+  };
+  await assert.rejects(readLiveSnapshot(REPO,'none',read),/inventory changed/);
+});
+test('N73 rejects changed repository default branch at final read',async()=>{
+  const fake=fakeRequest([[{id:7}]],{7:mainRule(7)});
+  let repoReads=0;
+  const read=async path=>{
+    if (path===`/repos/${REPO}` && ++repoReads===2)
+      return {full_name:REPO,default_branch:'develop'};
+    return fake.get(path);
+  };
+  await assert.rejects(readLiveSnapshot(REPO,'none',read),/branch or repository changed/);
+});

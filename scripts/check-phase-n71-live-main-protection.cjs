@@ -107,11 +107,10 @@ async function github(path, token) {
 // Reject truncated/duplicate/inconsistent responses instead of assuming safety.
 const RULESET_PAGE_SIZE = 100;
 const MAX_RULESET_PAGES = 10;
-async function readLiveSnapshot(repo, token, request = github) {
-  if (!REPO.test(repo || '')) throw new Error('N71 requires an exact owner/repository identity');
-  const prefix = '/repos/' + repo;
-  const repository = await request(prefix, token);
-  const branch = await request(prefix + '/branches/main', token);
+// A ruleset list and individual rule details are not an atomic GitHub
+// snapshot. Read them twice; do not bless a policy changed mid-verification.
+// Both passes are bounded and any disagreement denies production admission.
+async function readPolicyInventory(prefix, token, request) {
   const summaries = [];
   const seenIds = new Set();
   for (let page = 1; page <= MAX_RULESET_PAGES; page++) {
@@ -133,7 +132,7 @@ async function readLiveSnapshot(repo, token, request = github) {
     }
   }
   const rulesets = [];
-  // Bounded fetch concurrency avoids an unbounded fan-out on large repositories.
+  // Bounded fetch concurrency avoids unbounded fan-out on large repositories.
   for (let offset = 0; offset < summaries.length; offset += 10) {
     const part = summaries.slice(offset, offset + 10);
     const details = await Promise.all(part.map(item =>
@@ -145,7 +144,32 @@ async function readLiveSnapshot(repo, token, request = github) {
       rulesets.push(details[i]);
     }
   }
-  return { repository, branch, rulesets };
+  return { summaries, rulesets };
+}
+async function readLiveSnapshot(repo, token, request = github) {
+  if (!REPO.test(repo || '')) throw new Error('N71 requires an exact owner/repository identity');
+  const prefix = '/repos/' + repo;
+  const originalRepository = await request(prefix, token);
+  const originalBranch = await request(prefix + '/branches/main', token);
+  const initial = await readPolicyInventory(prefix, token, request);
+  const confirmed = await readPolicyInventory(prefix, token, request);
+  // GitHub responses are JSON; compare complete policy evidence rather than
+  // just IDs or a few approved settings. Even reordering fails closed.
+  if (JSON.stringify(initial) !== JSON.stringify(confirmed)) {
+    throw new Error('N73 main governance ruleset inventory changed during verification');
+  }
+  // Check the branch last so a main push or protection change during the
+  // policy reads is not accepted based on the initial branch snapshot.
+  const branch = await request(prefix + '/branches/main', token);
+  const repository = await request(prefix, token);
+  if (originalRepository?.full_name !== repository?.full_name ||
+      originalRepository?.default_branch !== repository?.default_branch ||
+      originalBranch?.name !== branch?.name ||
+      originalBranch?.protected !== branch?.protected ||
+      originalBranch?.commit?.sha !== branch?.commit?.sha) {
+    throw new Error('N73 main branch or repository changed during governance verification');
+  }
+  return { repository, branch, rulesets: confirmed.rulesets };
 }
 async function live(repo, sha, token) {
   if (!REPO.test(repo || '') || !SHA.test(sha || '') ||

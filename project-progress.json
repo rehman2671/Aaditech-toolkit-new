@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-22T18:15:30+00:00",
-  "last_verified_commit": "da257add011f564793e853041b08475e621c92af",
-  "last_verified_date": "2026-11-22T23:44:13+05:30",
+  "generated": "2026-11-22T18:18:11+00:00",
+  "last_verified_commit": "d3ef78605d068c51ef8c8572c98f875497032e24",
+  "last_verified_date": "2026-11-22T23:47:38+05:30",
   "overall_progress_percent": 100.0,
   "progress_scope": "historic audit issue closure only; production acceptance pending",
   "production_ready": false,
@@ -14,35 +14,12 @@
     "percent": 100.0
   },
   "latest_delta": {
-    "added": 3,
+    "added": 2,
     "removed": 0,
-    "changed": 4,
-    "unchanged": 445
+    "changed": 5,
+    "unchanged": 447
   },
   "delta_history": [
-    {
-      "detected_at": "2026-11-20T13:21:12+00:00",
-      "added": [
-        "Enterprise/deploy/PHASE-N-STAGE56-ACCEPTANCE.md",
-        "Enterprise/agent/build/Assert-ReleaseAuthorization.ps1",
-        "Enterprise/deploy/PHASE-N-STAGE57-ACCEPTANCE.md",
-        "Enterprise/tests/Test-Stage56ReviewedReleaseApproval.ps1",
-        "Enterprise/agent/build/ReviewedReleaseApproval.psm1",
-        "Scripts/Index/Test-Stage57ProjectIndexPublish.sh",
-        "Scripts/Index/Publish-ProjectIndex.sh"
-      ],
-      "removed": [],
-      "changed": [
-        ".github/workflows/project-index-maintenance.yml",
-        "Enterprise/deploy/PHASE-N-STAGE55-ACCEPTANCE.md",
-        "Enterprise/agent/build/Release-Sign.ps1",
-        ".github/workflows/deployment-safety.yml",
-        "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md",
-        ".github/workflows/ci.yml",
-        "Enterprise/agent/build/Verify-SignedPublication.ps1"
-      ],
-      "unchanged_count": 401
-    },
     {
       "detected_at": "2026-11-20T13:27:52+00:00",
       "added": [],
@@ -304,6 +281,22 @@
         ".github/workflows/ci.yml"
       ],
       "unchanged_count": 445
+    },
+    {
+      "detected_at": "2026-11-22T18:18:11+00:00",
+      "added": [
+        "Enterprise/tests/Test-Stage68StrictVpsAcceptance.sh",
+        "Enterprise/deploy/PHASE-N-STAGE68-ACCEPTANCE.md"
+      ],
+      "removed": [],
+      "changed": [
+        "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md",
+        "Enterprise/deploy/MYSQL-RECOVERY-AND-DEPLOYMENT.md",
+        "Enterprise/deploy/deploy-mysql.sh",
+        ".github/workflows/deployment-safety.yml",
+        "Enterprise/tests/Test-DeployMySQL.sh"
+      ],
+      "unchanged_count": 447
     }
   ],
   "next_recommended_tasks": [

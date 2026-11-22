@@ -1,6 +1,6 @@
 # Phase N Stage 71 — Protected main policy verified live before any production signing or public GitHub Release
 
-**Status: IMPLEMENTATION PROPOSED; PR CI/REVIEW PENDING; NO PRODUCTION SIGNING, LIVE HOSTINGER, CUSTOMER DEPLOYMENT OR RELEASE APPROVAL (2026-11-23 IST).**
+**Status: MERGED; PR CI 3/3 + DEPLOYMENT SAFETY 2/2 SUCCESS; FRESH MAIN DIAGNOSTIC EXE/MSI IN PROGRESS; PROTECTED PRODUCTION RELEASE NOT APPROVED (2026-11-23 IST).**
 
 ## Actual remaining gap
 
@@ -17,9 +17,8 @@ The existing unreviewed historical draft integration PR #61 contains related con
 
 ## Acceptance and external boundaries
 
-- [x] N71 code, negative offline tests and protected workflow wiring proposed on branch `fix/phase-n71-live-protected-release-gates`.
-- [ ] Current N71 PR PowerShell/Node/API/MySQL + universal safety CI: **PENDING**.
-- [ ] PR merge, fresh main Windows **diagnostic** EXE/MSI build, extraction/install/uninstall and tenant-preserving major upgrade: **PENDING**.
+- [x] [PR #72](https://github.com/rehman2671/Aaditech-toolkit-new/pull/72) merged as `46ac3dcef02592cf02ffc696582640a568a31eae` after exact-head [PR CI #45056310054](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45056310054) **3/3 SUCCESS** (Windows PowerShell, Node/Vitest+MySQL with N71 negative tests, API+MySQL) and [deployment safety #45056310065](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45056310065) **2/2 SUCCESS** including isolated MySQL backup/restore. Earlier failed syntax/lint run was corrected and does **not** count as accepted evidence.
+- [ ] [Fresh merged-main CI #45056575516](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45056575516), [main safety #45056575480](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45056575480), [index #45056575436](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45056575436): **IN PROGRESS**. Diagnostic MSI build, Windows install/uninstall and tenant-preserving major upgrade are **NOT YET** accepted at merge SHA.
 - [ ] Actual GitHub administrator activates and verifies non-bypassable **main ruleset**, required five check contexts from official GitHub Actions app and independent reviewer approvals: **PENDING**. Currently unprotected main must be **DENIED** by this new live gate.
 - [ ] Real independently reviewed package/SBOM checks, original reviewer signing, cert/HSM, signed GitHub Release, actual Hostinger VPS/DNS/ACME, physical Windows tenant enrollment and encrypted offsite MySQL restore: **PENDING**.
 

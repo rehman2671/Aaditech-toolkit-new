@@ -1,6 +1,6 @@
 # Phase N Stage 69 — Protected Windows signer blocked by ALL security jobs and strict lockfile installs
 
-**Status: CODE PROPOSED; PR CI/POLICY REVIEW PENDING; PRODUCTION SIGNING AND PUBLIC CUSTOMER RELEASE NOT APPROVED (2026-11-22 IST).**
+**Status: MERGED; PR CI 3/3 + SAFETY 2/2 SUCCESS; COMBINED MAIN CI 4/4 + SAFETY 2/2 SUCCESS; PRODUCTION SIGNING NOT APPROVED (2026-11-23 IST).**
 
 ## Actual protected release hazard
 
@@ -18,8 +18,8 @@ An earlier **draft** integration PR #61 describes this class of issue but is old
 ## Acceptance and immutable external blockers
 
 - [x] Narrow code and negative tests authored on isolated N69 branch. No signing keys or real customer server accessed.
-- [ ] PR Windows PowerShell, Node/MySQL, API/MySQL and deployment-safety CI: **PENDING**.
-- [ ] PR merge and fresh merged main Windows unsigned EXE/MSI build/upgrade: **PENDING**.
+- [x] [PR #69](https://github.com/rehman2671/Aaditech-toolkit-new/pull/69) merged at `da257add011f564793e853041b08475e621c92af` after [PR CI #45052621206](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45052621206) **3/3 SUCCESS** and [PR safety #45052621208](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45052621208) **2/2 SUCCESS**.
+- [x] Combined merged main N68-N70 [CI #45055096722](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45055096722) **4/4 SUCCESS** with Windows EXE/MSI diagnostic install/uninstall/tenant-preserving upgrade; [safety #45055096741](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45055096741) **2/2 SUCCESS**. Protected manual signing and signed publication were correctly skipped.
 - [ ] Live non-bypassable main ruleset, independent latest-commit approving review and the required GitHub Actions status contexts: **PENDING authorized repository administrator**. Repository governance cannot be established by CI YAML or auto-merging.
 - [ ] Real independently approved compiler/SQLite hashes, reviewer-signed release manifest, publisher signing certificate, protected manual release, GitHub public release, Hostinger VPS/DNS and customer Windows/offsite MySQL acceptance: **PENDING**.
 

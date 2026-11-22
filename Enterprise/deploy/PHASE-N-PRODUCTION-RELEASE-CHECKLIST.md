@@ -1,11 +1,12 @@
 # Phase N — Production release acceptance and sign-off
 
-## Stage N66 — protected WiX shim and tool-store continuity (MERGED; PR CI 3/3 + SAFETY 2/2 PASS; MAIN MSI QUEUED; PRODUCTION BLOCKED)
+## Stage N66 — protected WiX shim and tool-store continuity (MERGED; PR CI 3/3 + SAFETY 2/2; MAIN SAFETY 2/2 + INDEX PASS; MAIN MSI QUEUED; PRODUCTION BLOCKED)
 
 - [x] After N63's independently SHA-approved, N65-screened local NuGet restore, capture SHA-256 identity for the exact Windows global `wix.exe` shim and every installed file/directory in the locked `.dotnet/tools/.store/wix/<version>` tree.
 - [x] Protected `Assert-N62InstalledWix` rejects alternate PATH commands, reparse paths, changed shim bytes or modified/missing/extra dependencies before running even `wix --version`; diagnostic CI remains unsigned/version-pinned.
 - [x] N66 Windows PowerShell 5.1/7 negative mutation tests both **PASS**. [PR #66](https://github.com/rehman2671/Aaditech-toolkit-new/pull/66) merged at `4fbf22ddbd601e266b437911b768751ccd43b4b4` after [PR CI #45027987884](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45027987884) **3/3 SUCCESS** and [PR safety #45027987875](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45027987875) **2/2 SUCCESS**.
-- [ ] [Fresh main CI #45028218016](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45028218016), [main safety #45028218021](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45028218021), [index #45028217998](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45028217998): **PENDING GitHub runner completion**, no main diagnostic MSI acceptance claimed yet.
+- [x] [Main safety #45028218021](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45028218021) **2/2 SUCCESS** and [index #45028217998](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45028217998) **SUCCESS**.
+- [ ] [Fresh main CI #45028218016](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45028218016): **QUEUED** at last check. No fresh main Windows diagnostic EXE/MSI extraction/install/major-upgrade acceptance claimed yet.
 - [ ] Independent security-owner acceptance, protected real approved-NUPKG install and signed MSI publication: **PENDING**.
 - [ ] Hostinger domain/VPS deployment, actual Windows devices and offsite MySQL restore/operator approvals: **PENDING**.
 

@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-22T12:33:13+00:00",
-  "last_verified_commit": "80334a42e86311b24e13e69845f047043092c7dc",
-  "last_verified_date": "2026-11-22T18:02:59+05:30",
+  "generated": "2026-11-22T13:15:01+00:00",
+  "last_verified_commit": "e52bd5652d580cf031413ab05f0546afdeb96299",
+  "last_verified_date": "2026-11-22T18:44:48+05:30",
   "overall_progress_percent": 100.0,
   "progress_scope": "historic audit issue closure only; production acceptance pending",
   "production_ready": false,
@@ -17,24 +17,9 @@
     "added": 3,
     "removed": 0,
     "changed": 4,
-    "unchanged": 433
+    "unchanged": 436
   },
   "delta_history": [
-    {
-      "detected_at": "2026-11-20T11:10:05+00:00",
-      "added": [
-        "Enterprise/tests/Test-Stage52WindowsApprovalRecheck.ps1",
-        "Enterprise/deploy/PHASE-N-STAGE52-ACCEPTANCE.md"
-      ],
-      "removed": [],
-      "changed": [
-        "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md",
-        "Enterprise/deploy/Test-WindowsPinnedPublicHttps.ps1",
-        ".github/workflows/ci.yml",
-        "Enterprise/deploy/PHASE-N-STAGE51-ACCEPTANCE.md"
-      ],
-      "unchanged_count": 393
-    },
     {
       "detected_at": "2026-11-20T11:33:51+00:00",
       "added": [
@@ -304,6 +289,22 @@
         "Enterprise/agent/build/BuildToolchainLock.psm1"
       ],
       "unchanged_count": 433
+    },
+    {
+      "detected_at": "2026-11-22T13:15:01+00:00",
+      "added": [
+        "Enterprise/deploy/PHASE-N-STAGE65-ACCEPTANCE.md",
+        "Enterprise/agent/build/CompilerArchiveSafety.psm1",
+        "Enterprise/tests/Test-Stage65CompilerArchiveSafety.ps1"
+      ],
+      "removed": [],
+      "changed": [
+        "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md",
+        ".github/workflows/ci.yml",
+        "Enterprise/deploy/PHASE-N-STAGE64-ACCEPTANCE.md",
+        "Enterprise/agent/build/Install-ApprovedCompiler.ps1"
+      ],
+      "unchanged_count": 436
     }
   ],
   "next_recommended_tasks": [

@@ -91,9 +91,13 @@ function Assert-N67UnprovisionedReleaseConfig {
             throw 'Release feature count differs from approved manifest.'
         }
         $seen=New-Object 'System.Collections.Generic.HashSet[string]' ([StringComparer]::Ordinal)
-        for ($i=0;$i -lt $features.GetArrayLength();$i++) {
-            $feature=$features[$i]
-            $expected=$expectedFeatures[$i]
+        $actualItems=New-Object 'System.Collections.Generic.List[System.Text.Json.JsonElement]'
+        $expectedItems=New-Object 'System.Collections.Generic.List[System.Text.Json.JsonElement]'
+        foreach ($item in $features.EnumerateArray()) { $actualItems.Add($item) }
+        foreach ($item in $expectedFeatures.EnumerateArray()) { $expectedItems.Add($item) }
+        for ($i=0;$i -lt $actualItems.Count;$i++) {
+            $feature=$actualItems[$i]
+            $expected=$expectedItems[$i]
             Assert-N67ExactJsonProperties -Object $feature -Expected @(
                 'name','script','enabled','requires_elevation'
             )
@@ -115,9 +119,10 @@ function Assert-N67UnprovisionedReleaseConfig {
                 $feature.GetProperty('script').GetString() -cne $scriptPath) {
                 throw 'Release feature name or script path differs from reviewed source.'
             }
-            foreach ($pair in @(@('enabled','default_enabled'),@('requires_elevation','requires_elevation'))) {
-                $actual=$feature.GetProperty($pair[0])
-                $required=$expected.GetProperty($pair[1])
+            foreach ($key in @('enabled','requires_elevation')) {
+                $expectedKey=if ($key -ceq 'enabled') { 'default_enabled' } else { 'requires_elevation' }
+                $actual=$feature.GetProperty($key)
+                $required=$expected.GetProperty($expectedKey)
                 if ($actual.ValueKind -notin @([System.Text.Json.JsonValueKind]::True,[System.Text.Json.JsonValueKind]::False) -or
                     $required.ValueKind -notin @([System.Text.Json.JsonValueKind]::True,[System.Text.Json.JsonValueKind]::False) -or
                     $actual.GetBoolean() -ne $required.GetBoolean()) {

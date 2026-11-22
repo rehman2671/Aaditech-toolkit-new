@@ -15,6 +15,21 @@ prompts for administrator approval via UAC and supports later reconfiguration.
 The installer does **not** yet open a native graphical dialog as part of
 `msiexec` itself; setup is launched from the Start Menu after installation.
 
+### N74 — private configuration before first credential write
+
+The administrator setup wizard now restricts the ProgramData agent directory,
+any existing runtime configuration, and an **empty** same-directory temporary
+file to explicit SYSTEM/Administrators/NETWORK SERVICE permissions before a
+single-use enrollment token is saved. The setter purges old explicit Everyone
+or Users grants (not only inherited grants), verifies the actual ACL, and
+aborts if Windows cannot prove the secret file is private. Both the old file
+and replacement are protected before `File.Replace`; the final file is
+verified again before completion. Windows CI regression simulates explicit
+world-readable legacy directory/file ACLs and tests fresh installation.
+
+This code safeguard cannot remediate secrets previously copied elsewhere or
+replace managed-device Windows acceptance and independent security review.
+
 ### MSI upgrade version and release revision
 
 Windows Installer compares only the first **three** product version fields.

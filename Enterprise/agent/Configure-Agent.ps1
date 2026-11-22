@@ -128,22 +128,83 @@ if (-not $old.ContainsKey('features')) { $old['features'] = @() }
 if (-not $old.ContainsKey('run_script_allowlist')) { $old['run_script_allowlist'] = @() }
 if (-not $old.ContainsKey('interval_minutes')) { $old['interval_minutes'] = 30 }
 
+# A secret must NEVER be written to a broadly readable inherited ACL and
+# hardened only afterwards. Remove inherited AND previously explicit access
+# from both the directory and secret-bearing files before bytes are written.
+# Retain the file owner while replacing the DACL with trusted SID grants.
+function Set-PrivateAgentAcl([string]$Path, [bool]$IsDirectory) {
+    $acl = Get-Acl -LiteralPath $Path -ErrorAction Stop
+    $acl.SetAccessRuleProtection($true, $false)
+    foreach ($entry in @($acl.Access)) {
+        $acl.PurgeAccessRules($entry.IdentityReference)
+    }
+    $inherit = [System.Security.AccessControl.InheritanceFlags]::ContainerInherit -bor
+               [System.Security.AccessControl.InheritanceFlags]::ObjectInherit
+    foreach ($grant in @(
+        @{ Sid = 'S-1-5-18'; Rights = [System.Security.AccessControl.FileSystemRights]::FullControl },
+        @{ Sid = 'S-1-5-32-544'; Rights = [System.Security.AccessControl.FileSystemRights]::FullControl },
+        @{ Sid = 'S-1-5-20'; Rights = [System.Security.AccessControl.FileSystemRights]::Modify }
+    )) {
+        $sid = [System.Security.Principal.SecurityIdentifier]::new($grant.Sid)
+        $allow = if ($IsDirectory) {
+            [System.Security.AccessControl.FileSystemAccessRule]::new(
+                $sid, $grant.Rights, $inherit,
+                [System.Security.AccessControl.PropagationFlags]::None,
+                [System.Security.AccessControl.AccessControlType]::Allow
+            )
+        } else {
+            [System.Security.AccessControl.FileSystemAccessRule]::new(
+                $sid, $grant.Rights, [System.Security.AccessControl.AccessControlType]::Allow
+            )
+        }
+        $acl.AddAccessRule($allow)
+    }
+    Set-Acl -LiteralPath $Path -AclObject $acl -ErrorAction Stop
+    $verified = Get-Acl -LiteralPath $Path -ErrorAction Stop
+    if (-not $verified.AreAccessRulesProtected -or
+        @($verified.Access).Count -ne 3) {
+        throw 'Agent credential ACL is not verifiably private; refusing to save secrets.'
+    }
+    foreach ($entry in $verified.Access) {
+        $sid = $entry.IdentityReference.Translate([System.Security.Principal.SecurityIdentifier]).Value
+        if ($entry.IsInherited -or $entry.AccessControlType -ne 'Allow' -or
+            $sid -notin @('S-1-5-18', 'S-1-5-32-544', 'S-1-5-20')) {
+            throw 'Agent credential ACL contains unapproved permissions.'
+        }
+    }
+}
 if (-not (Test-Path -LiteralPath $dir)) {
     New-Item -ItemType Directory -Path $dir -Force | Out-Null
+}
+if ($env:OS -eq 'Windows_NT') {
+    Set-PrivateAgentAcl -Path $dir -IsDirectory $true
+    # Existing config may have been given an explicit Everyone/User grant by
+    # an older installer or local administrator. Seal it before replacement.
+    if (Test-Path -LiteralPath $ConfigPath) {
+        Set-PrivateAgentAcl -Path $ConfigPath -IsDirectory $false
+    }
 }
 $temp = Join-Path $dir ("agent.json.tmp." + [guid]::NewGuid().ToString('N'))
 $backup = Join-Path $dir ("agent.json.backup." + [guid]::NewGuid().ToString('N'))
 $writeSucceeded = $false
 try {
+    # Create an EMPTY temp file; apply private ACL before placing the token
+    # into it. The parent directory is private before this file exists.
+    [System.IO.File]::WriteAllBytes($temp, [byte[]]@())
+    if ($env:OS -eq 'Windows_NT') {
+        Set-PrivateAgentAcl -Path $temp -IsDirectory $false
+    }
     $json = $old | ConvertTo-Json -Depth 12
     [System.IO.File]::WriteAllText($temp, $json, ([System.Text.UTF8Encoding]::new($false)))
     if (Test-Path -LiteralPath $ConfigPath) {
-        # .NET's File.Replace requires a non-empty backup path on PowerShell
-        # 7/modern runtimes; passing $null fails before writing the new file.
-        # Keep an actual backup for recovery until the replace succeeds.
+        # File.Replace keeps an actual recovery backup until success.
+        # Both its original and replacement files already have private ACLs.
         [System.IO.File]::Replace($temp, $ConfigPath, $backup)
     } else {
         [System.IO.File]::Move($temp, $ConfigPath)
+    }
+    if ($env:OS -eq 'Windows_NT') {
+        Set-PrivateAgentAcl -Path $ConfigPath -IsDirectory $false
     }
     $writeSucceeded = $true
 } finally {
@@ -151,13 +212,6 @@ try {
     if ($writeSucceeded -and (Test-Path -LiteralPath $backup)) {
         Remove-Item -LiteralPath $backup -Force
     }
-}
-
-# Ensure the data file is not world-readable. Localized Windows account names
-# are avoided by granting well-known SIDs.
-if ($env:OS -eq 'Windows_NT') {
-    & icacls.exe $ConfigPath /inheritance:r /grant:r '*S-1-5-18:F' '*S-1-5-32-544:F' '*S-1-5-20:M' | Out-Null
-    if ($LASTEXITCODE -ne 0) { throw 'Could not secure agent.json ACL; correct permissions before starting agent.' }
 }
 if ($ClearRegistryOverride -and (Test-Path $reg)) {
     Remove-ItemProperty -Path $reg -Name EndpointUrl -ErrorAction SilentlyContinue

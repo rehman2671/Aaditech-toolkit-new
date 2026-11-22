@@ -238,6 +238,13 @@ jobs:
         run: ./Enterprise/tests/Test-Stage63ApprovedCompilerPackages.ps1
 
 
+      - name: N64 verify full reviewed PS2EXE module copy and precompile SHA continuity (PowerShell 7)
+        run: pwsh -NoProfile -File ./Enterprise/tests/Test-Stage64CompilerTreeContinuity.ps1
+
+      - name: N64 reject mutated executable/compiler companion files on Windows PowerShell 5.1
+        shell: powershell
+        run: ./Enterprise/tests/Test-Stage64CompilerTreeContinuity.ps1
+
       - name: N31 release publication requires independently approved source and MSI pins
         run: pwsh -NoProfile -File ./Enterprise/tests/Test-Stage31PublicationPins.ps1
 

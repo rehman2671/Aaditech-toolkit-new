@@ -15,8 +15,10 @@ function sample() {
         { type: 'pull_request', parameters: { required_approving_review_count: 1,
           dismiss_stale_reviews_on_push: true, require_last_push_approval: true,
           required_review_thread_resolution: true } },
-        { type: 'required_status_checks', parameters: { required_status_checks:
-          REQUIRED_CHECKS.map(context => ({ context, integration_id: GH_APP_ID })) } }
+        { type: 'required_status_checks', parameters: {
+          strict_required_status_checks_policy: true,
+          required_status_checks:
+            REQUIRED_CHECKS.map(context => ({ context, integration_id: GH_APP_ID })) } }
       ]
     }]
   };
@@ -68,4 +70,26 @@ test('reject misleading ruleset controls or completely absent metadata', () => {
   deny(x => x.rulesets[0].rules[2].parameters.required_approving_review_count=1.5, 'fractional reviewer approval');
   assert.equal(evaluate(null,SHA,REPO).allowed,false);
   assert.equal(evaluate(sample(),'b'.repeat(40),REPO).allowed,false);
+});
+
+test('N72 reject non-strict, missing or fragmented required status rules', () => {
+  deny(x => x.rulesets[0].rules[3].parameters.strict_required_status_checks_policy=false, 'stale statuses could be accepted');
+  deny(x => delete x.rulesets[0].rules[3].parameters.strict_required_status_checks_policy, 'missing strict policy');
+  deny(x => x.rulesets[0].rules[3].parameters.required_status_checks.splice(0,1), 'partial required context');
+  deny(x => {
+    const statuses=x.rulesets[0].rules[3].parameters.required_status_checks;
+    x.rulesets[0].rules[3].parameters.required_status_checks=statuses.slice(0,3);
+    x.rulesets[0].rules.push({type:'required_status_checks',parameters:{
+      strict_required_status_checks_policy:false,
+      required_status_checks:statuses.slice(3)
+    }});
+  }, 'strict and loose policy union');
+  deny(x => {
+    const statuses=x.rulesets[0].rules[3].parameters.required_status_checks;
+    x.rulesets[0].rules[3].parameters.required_status_checks=statuses.slice(0,3);
+    x.rulesets[0].rules.push({type:'required_status_checks',parameters:{
+      strict_required_status_checks_policy:true,
+      required_status_checks:statuses.slice(3)
+    }});
+  }, 'fragmentation across separate strict rules');
 });

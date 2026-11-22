@@ -1,6 +1,6 @@
 # Phase N Stage 64 — Full PS2EXE module-tree continuity before protected compilation
 
-**Status: CODE PROPOSED ON PR BRANCH; WINDOWS CI AND REVIEW PENDING; PRODUCTION NOT APPROVED (2026-11-22 IST).**
+**Status: MERGED; PR CI 3/3 + SAFETY 2/2 PASS; FRESH MAIN DIAGNOSTIC WINDOWS EXE/MSI 4/4 + SAFETY 2/2 PASS; INDEX SUCCESS; HUMAN PROTECTED RELEASE AND CUSTOMER PRODUCTION NOT APPROVED (2026-11-22 IST).**
 
 ## Finding
 
@@ -15,9 +15,11 @@ N63 independently verifies the exact PS2EXE 1.0.18 NUPKG archive SHA-256 and imp
 
 ## Verification and limitations
 
-- [x] Implementation and offline regression script added to the N64 PR branch.
-- [ ] GitHub Windows 5.1 and 7 N64 regressions, earlier suites, Node/Vitest+MySQL, API/MySQL and deployment-safety CI: **NOT YET VERIFIED**.
-- [ ] Independent security review, merge approval and fresh main diagnostic EXE/MSI install and major-upgrade evidence: **PENDING**.
+- [x] [PR #64](https://github.com/rehman2671/Aaditech-toolkit-new/pull/64) reviewed through GitHub CI and merged to main as `80334a42e86311b24e13e69845f047043092c7dc` on 2026-11-22 IST. No separate human release/security-owner attestation is implied.
+- [x] [PR CI #45022600248](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45022600248) **3/3 SUCCESS**, covering PowerShell 7 + Windows PowerShell 5.1 N64 full-tree and mutation regressions, previous suites, Node/Vitest + MySQL and API + MySQL. PR MSI build correctly skipped. [PR deployment safety #45022600246](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45022600246) **2/2 SUCCESS**.
+- [x] [Merged main CI #45022858422](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45022858422) **4/4 SUCCESS**: PowerShell, Node + MySQL, API + MySQL, authentic diagnostic Windows EXE/MSI build, MSI administrative extraction, genuine Windows clean install/uninstall and major upgrade preserving tenant configuration. N64 offline tests **PASS on PS 5.1 and 7**. [Main safety #45022858450](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45022858450) **2/2 SUCCESS**; [main index #45022858434](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45022858434) **SUCCESS**.
+- [x] Main diagnostic CI **SKIPPED** N63 protected independent archive-install steps, verified public signing and artifact upload. These skipped gates are **not** customer release success.
+- [ ] Separate human security review, real authorized manual protected package installation, publisher certificate signing and public Release asset attestation: **PENDING**.
 - [ ] Genuine independent N63 archive SHA approvals and the actual protected archive installation, reviewer authorization, publisher/HSM Authenticode, hosted release asset attestations, Hostinger VPS/DNS/TLS, customer Windows and database backup/restore signoffs: **PENDING**.
 
 **Security boundary:** The digest is computed from the independently approved N63 archive's extracted contents; it is not an independently reviewed fingerprint itself. This detects changed or unexpected installed files at the two check points, but does not claim to eliminate malicious local processes, kernel compromise, or every possible time-of-check/time-of-use race. No signed/public installer has been published.

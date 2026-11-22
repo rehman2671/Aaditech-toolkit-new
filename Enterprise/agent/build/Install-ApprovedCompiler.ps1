@@ -14,6 +14,7 @@ $oldNugetHttpCache=$env:NUGET_HTTP_CACHE_PATH
 try {
     Import-Module -Name (Join-Path $PSScriptRoot 'BuildToolchainLock.psm1') -Force -ErrorAction Stop
     Import-Module -Name (Join-Path $PSScriptRoot 'ApprovedCompilerPackage.psm1') -Force -ErrorAction Stop
+    Import-Module -Name (Join-Path $PSScriptRoot 'CompilerModuleContinuity.psm1') -Force -ErrorAction Stop
     $null=Assert-N63ProtectedCompilerContext -Ps2ExeApprovedSha256 $env:PS2EXE_NUPKG_SHA256_APPROVED -WixApprovedSha256 $env:WIX_NUPKG_SHA256_APPROVED
 
     $lock=Get-N62BuildToolchainLock
@@ -61,18 +62,20 @@ try {
             Copy-Item -LiteralPath $entry.FullName -Destination $destination -Force -Recurse -ErrorAction Stop
         }
         $trustedManifest=Join-Path $destination 'ps2exe.psd1'
-        if ((Get-FileHash -LiteralPath $manifests[0].FullName -Algorithm SHA256).Hash -cne
-            (Get-FileHash -LiteralPath $trustedManifest -Algorithm SHA256).Hash) {
-            throw 'Approved compiler copy differs from vetted archive.'
-        }
-        # Scope the next build-agent step to the explicitly vetted PS2EXE
-        # module path; a different same-version module cannot win discovery.
+        # N64 verifies ALL module files, nested dependencies, directories
+        # and extra/stale files, not only the manifest copied by N63.
+        $approvedTreeDigest=Assert-N64CompilerModuleCopy -SourceDirectory $manifests[0].Directory.FullName -InstalledDirectory $destination
+        # Preserve the full installed tree digest between GitHub Actions
+        # steps. The protected compiler admission rehashes before import.
+        $env:N64_PS2EXE_TREE_SHA256=$approvedTreeDigest
         $env:N63_PS2EXE_MANIFEST_PATH=$trustedManifest
         $null=Assert-N62InstalledPs2Exe
         if ([string]::IsNullOrWhiteSpace($env:GITHUB_ENV)) {
             throw 'Cannot bind approved module path to subsequent build step.'
         }
         'N63_PS2EXE_MANIFEST_PATH='+$trustedManifest |
+            Out-File -LiteralPath $env:GITHUB_ENV -Append -Encoding utf8
+        'N64_PS2EXE_TREE_SHA256='+$approvedTreeDigest |
             Out-File -LiteralPath $env:GITHUB_ENV -Append -Encoding utf8
     } else {
         # NuGet source isolation is mandatory. --add-source alone is NOT

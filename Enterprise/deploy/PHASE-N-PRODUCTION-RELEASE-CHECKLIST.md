@@ -9,6 +9,16 @@
 
 See [N68 acceptance](PHASE-N-STAGE68-ACCEPTANCE.md).
 
+## Stage N71 — live non-bypassable main admission before actual signing/release (PR CODE READY; CI PENDING; HUMAN ADMIN PROTECTION BLOCKED)
+
+- [x] Protected manual `agent-build` now queries live GitHub main identity and rulesets before compiler download, again before EXE/MSI signing and any private PFX read. Missing branch rules, independent latest-head review policy or trusted five required checks fail closed.
+- [x] Protected publisher requires human-approved signed CI SHA to equal its own current main SHA; live read-only branch-policy check runs before source acceptance, before creating a draft and immediately before publicizing the verified signed assets.
+- [x] Synthetic negative GitHub metadata tests and executable YAML workflow bypass tests proposed in both Node lint jobs. They do **not** configure branch protection.
+- [ ] PR/main CI, human code review, actual protected operator release, Hostinger/customer Windows/MySQL and offsite restore: **PENDING**.
+- [ ] Repo admin: `main` live protection / no-bypass ruleset and independent latest-head reviews currently **NOT CONFIGURED**; signing deliberately stays blocked until this is corrected under issue #62.
+
+See [N71 acceptance](PHASE-N-STAGE71-ACCEPTANCE.md).
+
 ## Stage N70 — universal main safety required-check readiness and immutable action SHAs (PR CODE READY; CI/HUMAN REVIEW PENDING; PRODUCTION BLOCKED)
 
 - [x] Safety CI triggers on every main-target pull request and every main push, not selected paths; stable two safety check contexts continue real Bash and isolated MySQL backup/restore.

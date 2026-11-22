@@ -259,6 +259,9 @@ jobs:
         shell: powershell
         run: ./Enterprise/tests/Test-Stage66WixToolContinuity.ps1
 
+      - name: N67 reject provisioned/ambiguous signed-release config JSON (PowerShell 7)
+        run: pwsh -NoProfile -File ./Enterprise/tests/Test-Stage67ReleaseConfigAdmission.ps1
+
       - name: N31 release publication requires independently approved source and MSI pins
         run: pwsh -NoProfile -File ./Enterprise/tests/Test-Stage31PublicationPins.ps1
 
@@ -658,6 +661,17 @@ jobs:
           }
           $cfg | ConvertTo-Json -Depth 6 | Set-Content ./Enterprise/agent/agent-config.json
           Write-Host 'Staged unprovisioned agent configuration (HTTPS setup required after MSI install).'
+
+      - name: N67 fail closed if release payload includes unexpected config data
+        shell: pwsh
+        run: |
+          Import-Module ./Enterprise/agent/build/ReleaseConfigAdmission.psm1 -Force
+          $meta = Get-Content ./Enterprise/agent/agent-version.json -Raw | ConvertFrom-Json
+          $null = Assert-N67UnprovisionedReleaseConfig `
+            -ConfigPath ./Enterprise/agent/agent-config.json `
+            -FeaturesPath ./Enterprise/agent/features.json `
+            -ExpectedAgentVersion ([string]$meta.agent_version) `
+            -ExpectedIntervalMinutes ([int]$meta.interval_minutes)
 
       - name: Install ps2exe
         # Diagnostic push builds are strictly non-publishable.

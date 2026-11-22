@@ -1,5 +1,14 @@
 # Phase N — Production release acceptance and sign-off
 
+## Stage N67 — signed installer configuration is strictly generic (PR PROPOSED; CI PENDING; PRODUCTION BLOCKED)
+
+- [x] Every external/embedded signed release JSON must have exact first-run fields and proper JSON data types. Reject extra keys, duplicate keys, credentials/server URL, nonempty script allowlist, mismatched version/interval and any feature/elevation/script discrepancy from the source-controlled manifest.
+- [x] N67 admission is wired to final Authenticode-protected publication verifier (external agent-config.json and ALL extracted agent.json payloads) and to pre-compiler generic MSI CI staging; synthetic PowerShell 7 regressions added.
+- [ ] N67 PR CI/merge and fresh main diagnostic MSI install/upgrade: **PENDING**.
+- [ ] Independent manual signing authority, approved archive checks, protected signing, actual Hostinger VPS/Windows/customer rollout and offsite restore evidence: **PENDING**.
+
+See [N67 acceptance](PHASE-N-STAGE67-ACCEPTANCE.md).
+
 ## Stage N66 — protected WiX shim and tool-store continuity (MERGED; PR CI 3/3 + SAFETY 2/2; MAIN SAFETY 2/2 + INDEX PASS; MAIN MSI 4/4 SUCCESS; PRODUCTION BLOCKED)
 
 - [x] After N63's independently SHA-approved, N65-screened local NuGet restore, capture SHA-256 identity for the exact Windows global `wix.exe` shim and every installed file/directory in the locked `.dotnet/tools/.store/wix/<version>` tree.

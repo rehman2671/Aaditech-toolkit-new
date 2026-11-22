@@ -31,6 +31,7 @@ if ($approved -cnotmatch '\A[A-Fa-f0-9]{40}\z' -or
 $approved=$approved.ToUpperInvariant()
 
 Import-Module -Name (Join-Path $PSScriptRoot 'ReleaseArtifactManifest.psm1') -Force -ErrorAction Stop
+Import-Module -Name (Join-Path $PSScriptRoot 'ReleaseConfigAdmission.psm1') -Force -ErrorAction Stop
 Import-Module -Name (Join-Path $PSScriptRoot '..\wix\SqliteBundleApproval.psm1') -Force -ErrorAction Stop
 $versionFile = Join-Path $PSScriptRoot '..\agent-version.json'
 $version = [string]((Get-Content -LiteralPath $versionFile -Raw |
@@ -94,6 +95,8 @@ try {
         @(Get-ChildItem -LiteralPath $extract -Recurse -File -Filter 'agent.json' |
             ForEach-Object { $_.FullName })
     if ($configs.Count -lt 2) { throw 'N55 setup template missing.' }
+    $agentMeta=Get-Content -LiteralPath $versionFile -Raw -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop
+    $featuresPath=Join-Path $PSScriptRoot '..\features.json'
     foreach ($configPath in $configs) {
         $cfg = Get-Content -LiteralPath $configPath -Raw -ErrorAction Stop |
             ConvertFrom-Json -ErrorAction Stop
@@ -104,6 +107,15 @@ try {
             -not [string]::IsNullOrEmpty([string]$cfg.bootstrap_token)) {
             throw 'N55 refuses provisioned configuration in release output.'
         }
+        # N67: the previous blank-field check alone allowed extra secret
+        # properties, script allowlists and altered elevated feature paths.
+        # Inspect full non-lossy JSON (including duplicate property names)
+        # against the exact source feature defaults and first-run metadata.
+        $null=Assert-N67UnprovisionedReleaseConfig `
+            -ConfigPath $configPath `
+            -FeaturesPath $featuresPath `
+            -ExpectedAgentVersion $version `
+            -ExpectedIntervalMinutes ([int]$agentMeta.interval_minutes)
     }
     # Final time-of-use checks, after unpacking and before authorizing upload.
     $null = Assert-N55SignedPublicationManifest -OutputDirectory $out -ExpectedAgentVersion $version

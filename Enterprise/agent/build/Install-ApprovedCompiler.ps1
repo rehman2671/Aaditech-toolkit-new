@@ -15,6 +15,7 @@ try {
     Import-Module -Name (Join-Path $PSScriptRoot 'BuildToolchainLock.psm1') -Force -ErrorAction Stop
     Import-Module -Name (Join-Path $PSScriptRoot 'ApprovedCompilerPackage.psm1') -Force -ErrorAction Stop
     Import-Module -Name (Join-Path $PSScriptRoot 'CompilerModuleContinuity.psm1') -Force -ErrorAction Stop
+    Import-Module -Name (Join-Path $PSScriptRoot 'CompilerArchiveSafety.psm1') -Force -ErrorAction Stop
     $null=Assert-N63ProtectedCompilerContext -Ps2ExeApprovedSha256 $env:PS2EXE_NUPKG_SHA256_APPROVED -WixApprovedSha256 $env:WIX_NUPKG_SHA256_APPROVED
 
     $lock=Get-N62BuildToolchainLock
@@ -37,6 +38,10 @@ try {
     # nor expected digest is inferred from the bytes being downloaded.
     Invoke-WebRequest -Uri $url -OutFile $packagePath -UseBasicParsing -MaximumRedirection 3 -ErrorAction Stop
     $null=Assert-N63ApprovedCompilerPackage -Kind $Kind -PackagePath $packagePath -ApprovedSha256 $approved
+    # N65 preflight: independently approved bytes can still contain hostile
+    # ZIP metadata, Windows path aliases or decompression bombs. Validate
+    # every entry and stream BEFORE extracting PS2EXE or restoring WiX.
+    $null=Assert-N65SafeCompilerArchive -Kind $Kind -PackagePath $packagePath
 
     if ($Kind -ceq 'ps2exe') {
         # PowerShell Gallery supports manually extracting .nupkg content.
@@ -45,6 +50,11 @@ try {
         # directory. Do NOT call Install-Module in the protected path.
         $zip=Join-Path $root 'ps2exe.zip'
         Copy-Item -LiteralPath $packagePath -Destination $zip -Force -ErrorAction Stop
+        # The extraction input itself must still equal the independently
+        # approved N63 package after the N65 read-only inspection and copy.
+        if ((Get-FileHash -LiteralPath $zip -Algorithm SHA256 -ErrorAction Stop).Hash -cne $approved.ToUpperInvariant()) {
+            throw 'Approved compiler archive copy changed before extraction.'
+        }
         $extract=Join-Path $root 'verified-extraction'
         Expand-Archive -LiteralPath $zip -DestinationPath $extract -ErrorAction Stop
         $manifests=@(Get-ChildItem -LiteralPath $extract -Recurse -File -Filter 'ps2exe.psd1' -ErrorAction Stop)

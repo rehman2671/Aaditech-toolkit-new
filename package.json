@@ -12,7 +12,7 @@
     "stop:cluster": "pm2 stop ecosystem.config.cjs",
     "reload:cluster": "pm2 reload ecosystem.config.cjs",
     "build": "echo 'No build required for Node Express static server'",
-    "lint": "node -c server.js && node scripts/check-version-consistency.cjs && node scripts/check-phase-n69-ci-release-gates.cjs && node --test tests/unit/stage69-ci-release-gates.test.cjs && node scripts/check-phase-n70-workflow-safety.cjs && node --test tests/unit/stage70-workflow-safety.test.cjs",
+    "lint": "node -c server.js && node scripts/check-version-consistency.cjs && node scripts/check-phase-n69-ci-release-gates.cjs && node --test tests/unit/stage69-ci-release-gates.test.cjs && node scripts/check-phase-n70-workflow-safety.cjs && node --test tests/unit/stage70-workflow-safety.test.cjs && node scripts/check-phase-n71-release-workflow.cjs && node --test tests/unit/stage71-live-main-protection.test.cjs tests/unit/stage71-release-workflow.test.cjs",
     "test": "vitest run --coverage",
     "test:coverage": "vitest run --coverage",
     "test:unit": "vitest run tests/unit",

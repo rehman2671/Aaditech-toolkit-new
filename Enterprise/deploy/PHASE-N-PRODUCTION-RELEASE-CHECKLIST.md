@@ -1,5 +1,15 @@
 # Phase N — Production release acceptance and sign-off
 
+## Stage N64 — protected compiler module tree continuity (PR CODE READY; CI PENDING; PRODUCTION BLOCKED)
+
+- [x] The protected PS2EXE installation now hashes the entire independently reviewed N63 archive's extracted module tree (names, lengths, files, nested dependencies and directory entries) and compares the complete installed tree. A matching `ps2exe.psd1` alone is not sufficient; edited `ps2exe.psm1`, stale/extra files and missing companions fail closed.
+- [x] The approved installed tree fingerprint is carried through the protected job and checked again **before** `build-agent.ps1` imports PS2EXE, with explicit N63 module path and N62 pinned version still enforced. Diagnostic builds remain nonpublishable.
+- [x] Windows PowerShell 5.1/7 synthetic N64 regression test and CI jobs are wired on the PR branch; **do not mark tests green before GitHub Actions reports success**.
+- [ ] N64 CI, review, merge and fresh main diagnostic EXE/MSI install/upgrade acceptance: **PENDING**.
+- [ ] All original owner-supplied N63 archive SHA approvals, real protected package installation, publisher signing, release approval, Hostinger, customer Windows and offsite database restore evidence remain **PENDING**. **Customer production NOT APPROVED.**
+
+See [N64 acceptance](PHASE-N-STAGE64-ACCEPTANCE.md) and [tracked release blockers #29](https://github.com/rehman2671/Aaditech-toolkit-new/issues/29).
+
 ## Stage N63 — independently SHA-approved compiler archives before protected execution (MERGED; PR CI 3/3 + SAFETY 2/2; FRESH MAIN DIAGNOSTIC MSI 4/4 + SAFETY 2/2, INDEX VERIFIED; REAL PROTECTED RELEASE PENDING)
 
 - [x] The code requires **independent security-owner reviewed SHA256** of `ps2exe.1.0.18.nupkg` and `wix.5.0.2.nupkg` from separately protected `production-installer` environment secrets `PS2EXE_NUPKG_SHA256_APPROVED` and `WIX_NUPKG_SHA256_APPROVED`. No approved real hashes have been invented; owner provisioning and live protected acceptance **PENDING**.

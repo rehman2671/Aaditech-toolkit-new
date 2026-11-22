@@ -32,18 +32,19 @@ expect_failure --host 'domain.aaditech.net/evil' --dry-run
 cat > "$ENV_FILE" <<'EOF'
 MYSQL_DATABASE=it_toolkit
 MYSQL_USER=itk_user
-MYSQL_PASSWORD=secret_pass_1234567890
-MYSQL_ROOT_PASSWORD=root_secret_1234567890
-API_TOKEN=agent_secret_1234567890
-JWT_SECRET=jwt_secret_1234567890
-BOOTSTRAP_SECRET=bootstrap_secret_1234567890
-HMAC_SECRET=hmac_secret_1234567890
-COMMAND_SIGNING_KEY=command_secret_1234567890
-SETUP_TOKEN=setup_secret_123456789012345678901234567890
+MYSQL_PASSWORD=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+MYSQL_ROOT_PASSWORD=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+API_TOKEN=cccccccccccccccccccccccccccccccc
+JWT_SECRET=dddddddddddddddddddddddddddddddd
+BOOTSTRAP_SECRET=eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+HMAC_SECRET=ffffffffffffffffffffffffffffffff
+COMMAND_SIGNING_KEY=gggggggggggggggggggggggggggggggg
+SETUP_TOKEN=hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh
 SERVER_HOST=toolkit.aaditech.net
 CADDY_HOST=toolkit.aaditech.net
 ENVIRONMENT=prod
 EOF
+chmod 600 "$ENV_FILE"
 BEFORE="$(sha256sum "$ENV_FILE" | cut -d' ' -f1)"
 bash "$DEPLOY" --dry-run
 bash "$DEPLOY" --host other.aaditech.net --update-host --dry-run
@@ -52,6 +53,6 @@ bash "$DEPLOY" --host other.aaditech.net --update-host --dry-run
 expect_failure --host other.aaditech.net --dry-run
 expect_failure --host other.aaditech.net
 expect_failure --host bogus.example.test --update-host --dry-run
-sed -i 's/API_TOKEN=agent_secret_1234567890/API_TOKEN=change-me/' "$ENV_FILE"
+sed -i 's/API_TOKEN=cccccccccccccccccccccccccccccccc/API_TOKEN=change-me/' "$ENV_FILE"
 expect_failure --dry-run
 echo "[test] MySQL deployment dry-run safety tests passed."

@@ -1,37 +1,33 @@
 {
   "state_version": "1.0",
   "path": "project-state.json",
-  "generated": "2026-11-22T18:42:17+00:00",
+  "generated": "2026-11-22T19:43:35+00:00",
   "phase": "PHASE N STAGE 4 / PRODUCTION ACCEPTANCE IN PROGRESS",
-  "last_verified_commit": "46ac3dcef02592cf02ffc696582640a568a31eae",
-  "last_verified_date": "2026-11-23T00:12:08+05:30",
+  "last_verified_commit": "953566b4f2854d9d64fc0f11ae5c701974825fe7",
+  "last_verified_date": "2026-11-23T01:13:18+05:30",
   "git": {
     "branch": "main",
-    "commit_count": 1098,
+    "commit_count": 1111,
     "clean_working_tree": true,
-    "head": "46ac3dcef02592cf02ffc696582640a568a31eae"
+    "head": "953566b4f2854d9d64fc0f11ae5c701974825fe7"
   },
   "latest_delta": {
-    "detected_at": "2026-11-22T18:42:17+00:00",
+    "detected_at": "2026-11-22T19:43:35+00:00",
     "added": [
-      "scripts/check-phase-n71-release-workflow.cjs",
-      "tests/unit/stage71-live-main-protection.test.cjs",
-      "Enterprise/deploy/PHASE-N-STAGE71-ACCEPTANCE.md",
-      "scripts/check-phase-n71-live-main-protection.cjs",
-      "tests/unit/stage71-release-workflow.test.cjs"
+      "scripts/build-phase-n72-main-ruleset.cjs",
+      "tests/unit/stage72-main-governance-bootstrap.test.cjs",
+      "Enterprise/deploy/PHASE-N-STAGE72-ACCEPTANCE.md",
+      "Enterprise/deploy/MAIN-RULESET-ADMIN-HANDOFF.md"
     ],
     "removed": [],
     "changed": [
       "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md",
-      "Enterprise/deploy/PHASE-N-STAGE68-ACCEPTANCE.md",
-      ".github/workflows/publish-signed-installer.yml",
-      "Enterprise/deploy/PHASE-N-STAGE69-ACCEPTANCE.md",
-      "Enterprise/deploy/PHASE-N-STAGE70-ACCEPTANCE.md",
+      "Enterprise/deploy/PHASE-N-STAGE71-ACCEPTANCE.md",
+      "tests/unit/stage71-live-main-protection.test.cjs",
       "package.json",
-      ".github/workflows/ci.yml",
-      "Enterprise/agent/build/Release-Sign.ps1"
+      "scripts/check-phase-n71-live-main-protection.cjs"
     ],
-    "unchanged_count": 449
+    "unchanged_count": 457
   },
   "production_ready": false,
   "acceptance_gates": [

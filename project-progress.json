@@ -1,9 +1,9 @@
 {
   "progress_version": "1.0",
   "path": "project-progress.json",
-  "generated": "2026-11-22T18:42:17+00:00",
-  "last_verified_commit": "46ac3dcef02592cf02ffc696582640a568a31eae",
-  "last_verified_date": "2026-11-23T00:12:08+05:30",
+  "generated": "2026-11-22T19:43:35+00:00",
+  "last_verified_commit": "953566b4f2854d9d64fc0f11ae5c701974825fe7",
+  "last_verified_date": "2026-11-23T01:13:18+05:30",
   "overall_progress_percent": 100.0,
   "progress_scope": "historic audit issue closure only; production acceptance pending",
   "production_ready": false,
@@ -14,22 +14,12 @@
     "percent": 100.0
   },
   "latest_delta": {
-    "added": 5,
+    "added": 4,
     "removed": 0,
-    "changed": 8,
-    "unchanged": 449
+    "changed": 5,
+    "unchanged": 457
   },
   "delta_history": [
-    {
-      "detected_at": "2026-11-20T14:06:12+00:00",
-      "added": [],
-      "removed": [],
-      "changed": [
-        "Enterprise/deploy/PHASE-N-STAGE58-ACCEPTANCE.md",
-        "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md"
-      ],
-      "unchanged_count": 418
-    },
     {
       "detected_at": "2026-11-20T14:35:33+00:00",
       "added": [
@@ -306,6 +296,24 @@
         "Enterprise/agent/build/Release-Sign.ps1"
       ],
       "unchanged_count": 449
+    },
+    {
+      "detected_at": "2026-11-22T19:43:35+00:00",
+      "added": [
+        "scripts/build-phase-n72-main-ruleset.cjs",
+        "tests/unit/stage72-main-governance-bootstrap.test.cjs",
+        "Enterprise/deploy/PHASE-N-STAGE72-ACCEPTANCE.md",
+        "Enterprise/deploy/MAIN-RULESET-ADMIN-HANDOFF.md"
+      ],
+      "removed": [],
+      "changed": [
+        "Enterprise/deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md",
+        "Enterprise/deploy/PHASE-N-STAGE71-ACCEPTANCE.md",
+        "tests/unit/stage71-live-main-protection.test.cjs",
+        "package.json",
+        "scripts/check-phase-n71-live-main-protection.cjs"
+      ],
+      "unchanged_count": 457
     }
   ],
   "next_recommended_tasks": [

@@ -18,12 +18,12 @@ $guiParseErrors = $null
 if ($guiParseErrors.Count -gt 0) {
     throw "GUI wizard has parser errors: $($guiParseErrors | ForEach-Object Message | Out-String)"
 }
-// A custom config file selected before UAC must remain selected in the
-// elevated process; otherwise the GUI can silently reconfigure a different
-// machine-global agent file. Reject quote/newline command-line ambiguity.
+# A custom config file selected before UAC must remain selected in the
+# elevated process; otherwise the GUI can silently reconfigure a different
+# machine-global agent file. Reject quote/newline command-line ambiguity.
 $guiText = Get-Content -LiteralPath $guiWizard -Raw
 if (-not $guiText.Contains('-ConfigPath `"$ConfigPath`"') -or
-    -not $guiText.Contains("$" + 'ConfigPath -match')) {
+    -not $guiText.Contains('$ConfigPath -match')) {
     throw 'GUI UAC elevation must forward and validate the selected config path'
 }
 [xml]$manifest = Get-Content -LiteralPath $wxs -Raw

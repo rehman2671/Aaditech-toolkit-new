@@ -46,7 +46,78 @@ function inspect(ci, publisher, signing) {
     'Sign release EXE before WiX embeds it (or keep diagnostic only)',
     'Verify pre-signed MSI payload and sign release MSI'
   ]) {
-    if (only(a,signingStepName).env?.GH_TOKEN !== TOKEN) {
+    if (only(a,signingStepName).env?.GH_TOKEN !== ' {
+      fail('signer missing read-only governance token');
+    }
+  }
+  const stage=only(b,'Stage draft, attest hosted SHA256 digests, then publish verified GitHub Release').run;
+  const attested=stage.indexOf('Assert-RemoteReleaseAssets.ps1 -ArtifactDir release -ReleaseId $releaseId -RequireDraft');
+  const last=stage.lastIndexOf(CMD);
+  const publicize=stage.indexOf('& gh release edit $env:RELEASE_TAG --draft=false --latest=false');
+  if (attested < 0 || last <= attested || publicize <= last ||
+      !stage.includes("if ($LASTEXITCODE -ne 0) { throw 'N71 live main policy blocked public release.' }")) {
+    fail('last-moment governance check must precede public release');
+  }
+  // An approved historical CI SHA cannot be republished from a later
+  // dispatch. Exact source approval and live main branch binding are needed.
+  const sourceAdmission=only(b,'Validate source GitHub CI run provenance and manual confirmation').run;
+  if (!sourceAdmission.includes('$source.head_sha -cne $env:APPROVED_SOURCE_SHA.ToLowerInvariant()') ||
+      !sourceAdmission.includes('$source.head_sha -cne $env:GITHUB_SHA')) {
+    fail('published signed source is not bound to the protected main dispatch');
+  }
+  const bind="if ($env:SOURCE_SHA -cne $env:GITHUB_SHA)";
+  const firstBind=stage.indexOf(bind);
+  const lastBind=stage.lastIndexOf(bind);
+  const create=stage.indexOf('& gh release create $env:RELEASE_TAG');
+  if (firstBind<0 || lastBind<=firstBind || create<=firstBind ||
+      lastBind<=create || publicize<=lastBind) {
+    fail('approved source must still match current main before draft and publication');
+  }
+  const pinCheck = "if ($expected -cnotmatch '^[A-F0-9]{40}
+  const pinPosition = signing.indexOf(pinCheck);
+  const livePosition = signing.indexOf('& node $preflight --live');
+  const pfxPosition = signing.indexOf('[Convert]::FromBase64String');
+  if (typeof signing !== 'string' ||
+      !signing.includes('N71 protected main preflight denied signing') ||
+      pinPosition < 0 || livePosition <= pinPosition || pfxPosition <= livePosition) {
+    fail('nonsecret fingerprint must validate before live governance, and PFX only after');
+  }
+  return true;
+}
+function check(root=path.resolve(__dirname,'..')) {
+  const folder=path.join(root,'.github','workflows');
+  return inspect(fs.readFileSync(path.join(folder,'ci.yml'),'utf8'),
+    fs.readFileSync(path.join(folder,'publish-signed-installer.yml'),'utf8'),
+    fs.readFileSync(path.join(root,'Enterprise','agent','build','Release-Sign.ps1'),'utf8'));
+}
+if (require.main === module) {
+  check();
+  process.stdout.write('N71 PASS: signer/publisher enforce live protected main before private-key use and public release.\n');
+}
+module.exports={FIRST,RECHECK,PUB,CMD,TOKEN,inspect,check};
+)";
+  const pinPosition = signing.indexOf(pinCheck);
+  const livePosition = signing.indexOf('& node $preflight --live');
+  const pfxPosition = signing.indexOf('[Convert]::FromBase64String');
+  if (typeof signing !== 'string' ||
+      !signing.includes('N71 protected main preflight denied signing') ||
+      pinPosition < 0 || livePosition <= pinPosition || pfxPosition <= livePosition) {
+    fail('nonsecret fingerprint must validate before live governance, and PFX only after');
+  }
+  return true;
+}
+function check(root=path.resolve(__dirname,'..')) {
+  const folder=path.join(root,'.github','workflows');
+  return inspect(fs.readFileSync(path.join(folder,'ci.yml'),'utf8'),
+    fs.readFileSync(path.join(folder,'publish-signed-installer.yml'),'utf8'),
+    fs.readFileSync(path.join(root,'Enterprise','agent','build','Release-Sign.ps1'),'utf8'));
+}
+if (require.main === module) {
+  check();
+  process.stdout.write('N71 PASS: signer/publisher enforce live protected main before private-key use and public release.\n');
+}
+module.exports={FIRST,RECHECK,PUB,CMD,TOKEN,inspect,check};
+ + "{{ github.event_name == 'workflow_dispatch' && secrets.GITHUB_TOKEN || '' }}") {
       fail('signer missing read-only governance token');
     }
   }

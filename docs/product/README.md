@@ -6,7 +6,7 @@
 
 ## Original mandatory scope and architecture approval
 
-The original `Aaditech_Endpoint_Monitoring_Management_Final_Requirements.docx` and `Aaditech_Master_Development_Directive_Go_Edition_updated.docx` remain the controlling requirements **unless the owner explicitly amends them**. The repository text mirrors `doc1_full.txt` and `doc2_full.txt` were reviewed for a preliminary section-by-section crosswalk, but their fidelity to the DOCX originals requires independent confirmation. See [original requirements traceability and open decisions](ORIGINAL-REQUIREMENTS-TRACEABILITY.md).
+The original `Aaditech_Endpoint_Monitoring_Management_Final_Requirements.docx` and `Aaditech_Master_Development_Directive_Go_Edition_updated.docx` remain the controlling requirements **unless the owner explicitly amends them**. The repository text mirrors `doc1_full.txt` and `doc2_full.txt` have now been **verified against the original DOCX Word-body text** by decoding the OOXML `word/document.xml` payloads and comparing whitespace/typography-normalized paragraph text. Both match exactly in normalized text. This confirms source-text fidelity but is **not** owner approval of the requirements, solution stack or PR. See [original requirements traceability and open decisions](ORIGINAL-REQUIREMENTS-TRACEABILITY.md).
 
 **DEC-001 is unresolved:** original directive locks **Go/PostgreSQL**; actual code is **Node.js/MySQL**. This baseline reports code reality, **not owner approval of that architecture departure**. The original full feature scope (Windows/macOS/Linux, rich telemetry, in-platform signed MSI factory, health scores, reports and observability) remains mandatory unless formally amended.
 

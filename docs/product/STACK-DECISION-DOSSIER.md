@@ -2,7 +2,7 @@
 
 **Decision state: OPEN — OWNER APPROVAL REQUIRED.**  
 **Prepared:** 2026-11-23.  
-**Source:** `Aaditech_Master_Development_Directive_Go_Edition_updated.docx`, repository text mirror `doc2_full.txt` Part B (lines 33–46). The mirror is not independently verified against the binary original.  
+**Source:** `Aaditech_Master_Development_Directive_Go_Edition_updated.docx`, repository text mirror `doc2_full.txt` Part B (lines 33–46). The original DOCX Word-body text was independently extracted from GitHub's binary blob and matches `doc2_full.txt` after whitespace and typography normalization; human approval of the directive/architecture remains outstanding.  
 **Existing code evidence:** `server.js`, `db.js`, `package.json`, `database/migrations`, `Enterprise/docker-compose.yml`, `Enterprise/deploy/deploy-mysql.sh`.
 
 ## Facts that cannot be silently rewritten
@@ -40,7 +40,7 @@ User-approved **product direction**: intranet-first, independent office installs
 
 1. Product owner explicitly records `DEC-001A` or `DEC-001B`, reason and impact (no default).
 2. Architecture/security reviewer approves ADR, stack and service topology assumptions.
-3. Independent original DOCX text-mirror fidelity review completed.
+3. Automated Word-body-to-text-mirror normalized exact-match verification recorded; independent architecture/product **sign-off** is still required.
 4. Approved migration/no-migration plan, affected source files/DB tables, rollback, data integrity and cost estimates are attached.
 5. Minimum supported OS and original full scope delivery/phasing are accepted under separate DEC-002.
 6. Implementation tickets and tests cite the approved ADR; no production cutover based on the document alone.

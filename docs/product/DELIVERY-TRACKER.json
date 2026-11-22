@@ -31,7 +31,7 @@
       "evidence": [
         "docs/product/*.md (proposed; not merged)"
       ],
-      "next": "Confirm original DOCX/text-mirror fidelity, review 34-section crosswalk and obtain architecture/phase owner decisions",
+      "next": "Source Word-body text verified; independent reviewer to atomize original RTM and product owner to sign DEC-001, DEC-002, DEC-003",
       "blocked": false
     },
     {
@@ -657,7 +657,8 @@
       ],
       "evidence": [
         "doc1_full.txt / doc2_full.txt source mirrors",
-        "docs/product/ORIGINAL-REQUIREMENTS-TRACEABILITY.md"
+        "docs/product/ORIGINAL-REQUIREMENTS-TRACEABILITY.md",
+        "2026-11-23 original DOCX and text mirror normalized exact body-text match (see source-line register)"
       ],
       "next": "Atomize requirement, decide owner acceptance, then code/tests and witnessed E2E evidence",
       "blocked": true
@@ -698,8 +699,8 @@
   "original_sources": [
     "Aaditech_Endpoint_Monitoring_Management_Final_Requirements.docx",
     "Aaditech_Master_Development_Directive_Go_Edition_updated.docx",
-    "doc1_full.txt (text mirror fidelity pending)",
-    "doc2_full.txt (text mirror fidelity pending)"
+    "doc1_full.txt (normalized Word-body content matched original DOCX)",
+    "doc2_full.txt (normalized Word-body content matched original DOCX)"
   ],
   "architecture_conflict": {
     "decision_id": "DEC-001",
@@ -711,5 +712,20 @@
   "requirement_line_register": "docs/product/ORIGINAL-REQUIREMENTS-LINE-REGISTER.json",
   "owner_decision_handoff": "docs/product/REVIEW-AND-ACCEPTANCE-HANDOFF.md",
   "acceptance_evidence_template": "docs/product/ACCEPTANCE-EVIDENCE-RECORD.md",
-  "stack_decision_options": "docs/product/STACK-DECISION-DOSSIER.md"
+  "stack_decision_options": "docs/product/STACK-DECISION-DOSSIER.md",
+  "source_fidelity_verification": {
+    "status": "NORMALIZED_WORD_BODY_EXACT_MATCH",
+    "date": "2026-11-23",
+    "method": "OOXML word/document.xml w:p/w:t extraction, whitespace and dash/quote normalization",
+    "original_docx_git_blobs": [
+      "f6ce4e35ff93eff19a22649b0641ea20428bd40f",
+      "56bbf305e5a0a5cd043df54fb65302727bd14f90"
+    ],
+    "not_claimed": [
+      "human ADR approval",
+      "source binary-byte equivalence",
+      "original requirements fully implemented",
+      "production acceptance"
+    ]
+  }
 }

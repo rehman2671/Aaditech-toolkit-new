@@ -1,19 +1,27 @@
 {
   "schema_version": "1.0",
   "baseline_date": "2026-11-23",
-  "purpose": "Exact text-mirror line inventory; this is NOT a claim of individually atomic requirements, implementation coverage, or verified original DOCX fidelity",
+  "purpose": "Verified normalized Word-body source-line inventory; not atomic requirements, implementation coverage or release acceptance",
   "source_files": [
     {
       "path": "doc1_full.txt",
       "original": "Aaditech_Endpoint_Monitoring_Management_Final_Requirements.docx",
-      "text_mirror_match": "REQUIRES_INDEPENDENT_VERIFICATION",
-      "count_lines": 271
+      "text_mirror_match": "EXACT_MATCH_NORMALIZED_WORD_BODY",
+      "count_lines": 271,
+      "original_docx_git_blob_sha": "f6ce4e35ff93eff19a22649b0641ea20428bd40f",
+      "verification_method": "Decode original DOCX ZIP word/document.xml, concatenate w:t text within each w:p paragraph; compare normalized whitespace and common dash/quote characters against repository text mirror",
+      "verification_date": "2026-11-23",
+      "approval_scope": "Source body-text match only; not solution architecture/production acceptance"
     },
     {
       "path": "doc2_full.txt",
       "original": "Aaditech_Master_Development_Directive_Go_Edition_updated.docx",
-      "text_mirror_match": "REQUIRES_INDEPENDENT_VERIFICATION",
-      "count_lines": 905
+      "text_mirror_match": "EXACT_MATCH_NORMALIZED_WORD_BODY",
+      "count_lines": 905,
+      "original_docx_git_blob_sha": "56bbf305e5a0a5cd043df54fb65302727bd14f90",
+      "verification_method": "Decode original DOCX ZIP word/document.xml, concatenate w:t text within each w:p paragraph; compare normalized whitespace and common dash/quote characters against repository text mirror",
+      "verification_date": "2026-11-23",
+      "approval_scope": "Source body-text match only; not solution architecture/production acceptance"
     }
   ],
   "line_state_default": "SOURCE_CAPTURED_NOT_INDEPENDENTLY_MAPPED",
@@ -2094,5 +2102,7 @@
       "line": 46,
       "source_text": "No other requirement in Part C is weakened, removed, or reinterpreted by this stack lock."
     }
-  ]
+  ],
+  "fidelity_result": "MATCHED_BOTH_DOCUMENTS_NORMALIZED_WORD_BODY",
+  "owner_signoff": "PENDING"
 }

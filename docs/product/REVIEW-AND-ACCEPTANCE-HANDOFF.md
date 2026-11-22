@@ -23,7 +23,8 @@
 
 ## Reviewer checklist
 
-- [ ] Verify `doc1_full.txt` and `doc2_full.txt` match original DOCX binaries exactly or record discrepancies.
+- [x] Verify both original DOCX **Word-body texts** against extracted mirrors: exact after whitespace and typography normalization (source blob SHAs recorded in line register). The DOCX binaries themselves are **not byte-identical** to text files and that is not the acceptance criterion.
+- [ ] Independently review the verified source semantics, atomic acceptance cases and any later original-document revisions.
 - [ ] Confirm original functional/nonfunctional scope is *not silently removed* by new Windows-first or Node/MySQL proposals.
 - [ ] Resolve DEC-001 with signed ADR, anticipated data/compatibility migration and security tests.
 - [ ] Confirm supported server Windows/Linux versions, LAN PKI issuance and permitted disconnected setup path.

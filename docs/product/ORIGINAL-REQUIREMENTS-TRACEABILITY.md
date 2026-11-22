@@ -1,10 +1,10 @@
 # Original requirements reconciliation — preserve mandatory scope, record deviations
 
-**Source audit:** 2026-11-23. Compared repository text mirrors `doc1_full.txt` (original "Final Product Requirements & System Architecture") and `doc2_full.txt` ("Master Development Directive — Go Backend Edition", Parts A/B/C). The source `.docx` binaries could not be directly decoded by the repository connector; **a final reviewer must confirm the extracted mirrors match the originals before formal baseline approval**.
+**Source audit:** 2026-11-23. Compared repository text mirrors `doc1_full.txt` (original "Final Product Requirements & System Architecture") and `doc2_full.txt` ("Master Development Directive — Go Backend Edition", Parts A/B/C). The original `.docx` **Word body contents were decoded and compared directly** against both text mirrors. After whitespace and common dash/quote normalization, both source bodies matched their mirrors exactly. Git blob SHAs: original requirements `f6ce4e35ff93eff19a22649b0641ea20428bd40f`; Go directive `56bbf305e5a0a5cd043df54fb65302727bd14f90`. This is source-content verification, **not** verification of every binary package metadata field, owner approval or production acceptance.
 
 ## Exact source-line inventory and review workflow
 
-The [lossless line register](ORIGINAL-REQUIREMENTS-LINE-REGISTER.json) captures 268 nonblank extracted source-section lines spanning all 34 headings, plus five key binding master-directive anchors; headings and multi-part sentences still require atomization and source-DOCX fidelity checking. **Do not interpret line count as the number of completed features.** Owner review uses the [decision handoff](REVIEW-AND-ACCEPTANCE-HANDOFF.md) and [DEC-001 options dossier](STACK-DECISION-DOSSIER.md).
+The [lossless line register](ORIGINAL-REQUIREMENTS-LINE-REGISTER.json) captures 268 nonblank extracted source-section lines spanning all 34 headings, plus five key binding master-directive anchors; headings and multi-part sentences still require atomization and statement-by-statement atomicization. **Do not interpret line count as the number of completed features.** Owner review uses the [decision handoff](REVIEW-AND-ACCEPTANCE-HANDOFF.md) and [DEC-001 options dossier](STACK-DECISION-DOSSIER.md).
 
 ## Normative source and the unresolved stack exception
 

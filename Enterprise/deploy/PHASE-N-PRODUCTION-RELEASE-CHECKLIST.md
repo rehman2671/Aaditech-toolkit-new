@@ -1,10 +1,11 @@
 # Phase N — Production release acceptance and sign-off
 
-## Stage N65 — approved compiler NUPKG ZIP-entry safety (PR CODE READY; CI PENDING; PRODUCTION BLOCKED)
+## Stage N65 — approved compiler NUPKG ZIP-entry safety (MERGED; PR CI 3/3 + SAFETY 2/2; MAIN DIAGNOSTIC MSI 4/4 + SAFETY 2/2; PRODUCTION BLOCKED)
 
 - [x] Read-only ZIP entry preflight is added after independently approved N63 package SHA verification and before any PS2EXE extraction or WiX local-only restore. Windows traversal, archive ambiguity, symlink/reparse entries and decompression bombs fail closed; the copied PS2EXE ZIP is rehashed against the original approved SHA immediately before extraction.
-- [x] Offline synthetic archive tests and dual Windows PowerShell 5.1/7 CI jobs added on the PR branch; **do not mark green until independent GitHub Actions evidence exists**.
-- [ ] PR/main CI, human code review, real Windows diagnostic MSI upgrade: **PENDING**.
+- [x] N65 synthetic archive negative tests **PASS** on real Windows PowerShell 7 and 5.1. [PR #65](https://github.com/rehman2671/Aaditech-toolkit-new/pull/65) merged as `e52bd5652d580cf031413ab05f0546afdeb96299` after [PR CI #45026179982](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45026179982) **3/3 SUCCESS** and [PR safety #45026179985](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45026179985) **2/2 SUCCESS**.
+- [x] [Fresh main CI #45026463843](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45026463843) **4/4 SUCCESS** including actual diagnostic EXE/MSI build, administrative extraction, real Windows post-setup clean install/uninstall, and tenant-preserving major upgrade; [main safety #45026463832](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45026463832) **2/2 SUCCESS** and [index #45026463839](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45026463839) **SUCCESS**. Protected independently approved package install, signed artifact verification and public upload **SKIPPED**, not passed.
+- [ ] Separate security-owner acceptance and protected production release **PENDING**.
 - [ ] Independently approved real PS2EXE/WiX NUPKG bytes, protected live manual installation, publisher/HSM certificate signing, reviewer release authorization, actual Hostinger/customer/physical Windows/offsite MySQL evidence: **PENDING**. No public signed MSI has been released.
 
 See [N65 acceptance](PHASE-N-STAGE65-ACCEPTANCE.md).

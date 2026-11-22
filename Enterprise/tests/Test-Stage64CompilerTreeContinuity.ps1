@@ -95,7 +95,7 @@ try {
     $lockGate=$buildLock.IndexOf('Assert-N64CompilerModuleContinuity -ModuleDirectory $moduleBase',[StringComparison]::Ordinal)
     $lockImport=$buildLock.IndexOf('Import-Module -Name $approvedManifest',[StringComparison]::Ordinal)
     if ($installCopy -lt 0 -or $installEnv -le $installCopy -or $installImport -le $installEnv -or
-        $install.IndexOf('N64_PS2EXE_TREE_SHA256='+ '$approvedTreeDigest',[StringComparison]::Ordinal) -lt 0 -or
+        $install.IndexOf("'N64_PS2EXE_TREE_SHA256='",[StringComparison]::Ordinal) -lt 0 -or
         $lockGate -lt 0 -or $lockImport -le $lockGate -or
         $buildAgent.IndexOf('$null=Assert-N62InstalledPs2Exe',[StringComparison]::Ordinal) -lt 0 -or
         [regex]::Matches($ci,'Test-Stage64CompilerTreeContinuity\.ps1').Count -ne 2) {

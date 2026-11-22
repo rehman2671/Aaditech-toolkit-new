@@ -676,6 +676,13 @@ jobs:
             -ExpectedAgentVersion ([string]$meta.agent_version) `
             -ExpectedIntervalMinutes ([int]$meta.interval_minutes)
 
+      - name: N71 verify live protected main ruleset before approved compiler download
+        if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node ./scripts/check-phase-n71-live-release-governance.cjs --live
+
       - name: Install ps2exe
         # Diagnostic push builds are strictly non-publishable.
         if: github.event_name == 'push'
@@ -698,6 +705,7 @@ jobs:
       - name: Sign release EXE before WiX embeds it (or keep diagnostic only)
         shell: pwsh
         env:
+          GH_TOKEN: ${{ github.event_name == 'workflow_dispatch' && secrets.GITHUB_TOKEN || '' }}
           CODESIGN_PFX_B64: ${{ github.event_name == 'workflow_dispatch' && secrets.CODESIGN_PFX_B64 || '' }}
           CODESIGN_PFX_PASSWORD: ${{ github.event_name == 'workflow_dispatch' && secrets.CODESIGN_PFX_PASSWORD || '' }}
           CODESIGN_APPROVED_THUMBPRINT: ${{ github.event_name == 'workflow_dispatch' && secrets.CODESIGN_APPROVED_THUMBPRINT || '' }}
@@ -762,6 +770,7 @@ jobs:
       - name: Verify pre-signed MSI payload and sign release MSI
         shell: pwsh
         env:
+          GH_TOKEN: ${{ github.event_name == 'workflow_dispatch' && secrets.GITHUB_TOKEN || '' }}
           CODESIGN_PFX_B64: ${{ github.event_name == 'workflow_dispatch' && secrets.CODESIGN_PFX_B64 || '' }}
           CODESIGN_PFX_PASSWORD: ${{ github.event_name == 'workflow_dispatch' && secrets.CODESIGN_PFX_PASSWORD || '' }}
           CODESIGN_APPROVED_THUMBPRINT: ${{ github.event_name == 'workflow_dispatch' && secrets.CODESIGN_APPROVED_THUMBPRINT || '' }}

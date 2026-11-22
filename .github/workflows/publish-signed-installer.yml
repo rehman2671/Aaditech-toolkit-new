@@ -43,6 +43,12 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
 
+      - name: N71 verify live main ruleset before accepting signed publication
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node ./scripts/check-phase-n71-live-release-governance.cjs --live
+
       - name: Validate source GitHub CI run provenance and manual confirmation
         shell: pwsh
         env:
@@ -65,7 +71,8 @@ jobs:
               $source.conclusion -ne 'success' -or $source.head_branch -ne 'main' -or
               $source.head_repository.full_name -ne $env:GITHUB_REPOSITORY -or
               $source.head_sha -notmatch '^[0-9a-f]{40}$' -or
-              $source.head_sha -cne $env:APPROVED_SOURCE_SHA.ToLowerInvariant()) {
+              $source.head_sha -cne $env:APPROVED_SOURCE_SHA.ToLowerInvariant() -or
+              $source.head_sha -cne $env:GITHUB_SHA) {
             throw 'Source must be a successful manually dispatched same-repository main branch CI run.'
           }
           "SOURCE_SHA=$($source.head_sha)" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
@@ -143,6 +150,12 @@ jobs:
             $_.Name -match '\.(msi|exe)$' -or $_.Name -eq 'SHA256SUMS.txt'
           } | ForEach-Object { $_.FullName })
           if ($assets.Count -ne 3) { throw 'Expected EXE, MSI and SHA256SUMS.txt only.' }
+          # N71: a formerly approved CI run is not sufficient if protected
+          # main advanced. Reverify the current live ruleset and source SHA
+          # immediately before creating any draft/associated tag.
+          if ($env:SOURCE_SHA -cne $env:GITHUB_SHA) { throw 'N71 reviewed signed source differs from current main SHA.' }
+          & node ./scripts/check-phase-n71-live-release-governance.cjs --live
+          if ($LASTEXITCODE -ne 0) { throw 'N71 main governance changed before draft staging.' }
           # Stage assets as a NON-PUBLIC draft. gh release create otherwise
           # publishes immediately after upload, without independent checks
           # against GitHub's hosted digests. A failed attestation leaves the
@@ -171,6 +184,11 @@ jobs:
           ./Enterprise/agent/build/Assert-PublicationReviewerApproval.ps1 -ArtifactDir release -ApprovedSourceSha $env:APPROVED_SOURCE_SHA -ReleaseTag $env:RELEASE_TAG
           ./Enterprise/agent/build/Verify-ReleaseArtifact.ps1 -ArtifactDir release -ApprovedThumbprint $env:CODESIGN_APPROVED_THUMBPRINT -ApprovedMsiSha256 $env:APPROVED_MSI_SHA256 -ApprovedSqliteExeSha256 $env:SQLITE3_EXE_SHA256_APPROVED
           ./Enterprise/agent/build/Assert-RemoteReleaseAssets.ps1 -ArtifactDir release -ReleaseId $releaseId -RequireDraft
+          # N71: after hosted digest and approval checks, revalidate
+          # live main, no bypass and the exact signed source at time of use.
+          if ($env:SOURCE_SHA -cne $env:GITHUB_SHA) { throw 'N71 signed source no longer matches protected main.' }
+          & node ./scripts/check-phase-n71-live-release-governance.cjs --live
+          if ($LASTEXITCODE -ne 0) { throw 'N71 live branch protection changed before publication.' }
           & gh release edit $env:RELEASE_TAG --draft=false --latest=false
           if ($LASTEXITCODE -ne 0) { throw 'N59 cannot publish verified draft; manual security review required.' }
           # A successful edit response alone does not establish integrity.

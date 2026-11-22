@@ -26,6 +26,19 @@ function mainTarget(rule) {
     typeof x === 'string' &&
     (needles.includes(x) || /[*?\[\]{}\\]/.test(x) || x.startsWith('~')));
 }
+// Only an EXACT, GitHub-documented scope is affirmative evidence of a
+// protected main branch. A wildcard *may* match main and therefore must
+// be audited for bypass, but cannot itself establish enforcement: e.g.
+// refs/heads/release/* never covers main even if branch.protected is true
+// due to a weaker, unrelated protection mechanism.
+function confirmedMainTarget(rule) {
+  if (!rule || rule.enforcement !== 'active' || rule.target !== 'branch') return false;
+  const ref = rule.conditions?.ref_name;
+  if (!Array.isArray(ref?.include) || !Array.isArray(ref?.exclude) ||
+      ref.exclude.length !== 0) return false;
+  return ref.include.some(x =>
+    x === '~DEFAULT_BRANCH' || x === '~ALL' || x === 'refs/heads/main');
+}
 function evaluate(snapshot, expectedSha, repoName) {
   const blockers = [];
   if (!REPO.test(repoName || '') || !SHA.test(expectedSha || '')) {
@@ -41,7 +54,10 @@ function evaluate(snapshot, expectedSha, repoName) {
   }
   const rulesets = Array.isArray(snapshot?.rulesets) ? snapshot.rulesets : [];
   const applicable = rulesets.filter(mainTarget);
-  if (applicable.length === 0) blockers.push('no effective active main branch ruleset');
+  const confirmed = applicable.filter(confirmedMainTarget);
+  if (confirmed.length === 0) {
+    blockers.push('no confirmed active main branch ruleset with exact main scope');
+  }
   // Incomplete active branch metadata is not evidence that a ruleset is
   // unrelated to main. Neither are unreviewed excludes or malformed globs.
   if (rulesets.some(r => r?.enforcement === 'active' && r?.target === 'branch' &&
@@ -57,7 +73,9 @@ function evaluate(snapshot, expectedSha, repoName) {
   if (applicable.some(r => !Array.isArray(r.bypass_actors) || r.bypass_actors.length !== 0)) {
     blockers.push('missing bypass evidence or bypass actor is allowed');
   }
-  const all = applicable.flatMap(r => Array.isArray(r.rules) ? r.rules : []);
+  // Only rulesets known to cover main may satisfy mandatory PR/review/status
+  // safeguards; ambiguous wildcard policies are still audited for bypasses.
+  const all = confirmed.flatMap(r => Array.isArray(r.rules) ? r.rules : []);
   if (!all.some(r => r.type === 'non_fast_forward') || !all.some(r => r.type === 'deletion')) {
     blockers.push('force-push and deletion prevention are incomplete');
   }
@@ -202,4 +220,4 @@ async function main(argv = process.argv) {
 if (require.main === module) {
   main().then(code => { process.exitCode = code; }).catch(() => { process.exitCode = 1; });
 }
-module.exports = { REQUIRED_CHECKS, GH_APP_ID, mainTarget, evaluate, readLiveSnapshot, live, main };
+module.exports = { REQUIRED_CHECKS, GH_APP_ID, mainTarget, confirmedMainTarget, evaluate, readLiveSnapshot, live, main };

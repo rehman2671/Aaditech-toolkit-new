@@ -162,3 +162,13 @@ test('N73 rejects changed repository default branch at final read',async()=>{
   };
   await assert.rejects(readLiveSnapshot(REPO,'none',read),/branch or repository changed/);
 });
+
+test('N73 uncertain wildcard cannot be the only affirmative main protection',async()=>{
+  const pattern=mainRule(7);
+  pattern.conditions.ref_name.include=['refs/heads/release/*'];
+  const fake=fakeRequest([[{id:7}]],{7:pattern});
+  const snap=await readLiveSnapshot(REPO,'none',fake.get);
+  const result=evaluate(snap,SHA,REPO);
+  assert.equal(result.allowed,false);
+  assert.match(result.blockers.join(';'),/no confirmed active main branch ruleset/);
+});

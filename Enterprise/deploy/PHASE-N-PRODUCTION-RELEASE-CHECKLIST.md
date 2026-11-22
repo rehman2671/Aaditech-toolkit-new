@@ -2,7 +2,7 @@
 
 ## Stage N73 — complete live ruleset pagination (PR validation pending; production BLOCKED)
 
-- [x] Code rejects incomplete/paginated GitHub main-governance inspection, wildcard/exclusion policy blind spots, missing/duplicate policy IDs, detail mismatch, failed later pages, mid-verification branch/policy drift and unbounded rule counts; offline regressions added to CI lint.
+- [x] Code rejects incomplete/paginated GitHub main-governance inspection, wildcard/exclusion policy blind spots and wildcard-only false-positive main authorization, missing/duplicate policy IDs, detail mismatch, failed later pages, mid-verification branch/policy drift and unbounded rule counts; offline regressions added to CI lint.
 - [ ] Exact-head PR test results, merge, fresh main Windows diagnostic MSI/safety run: **PENDING**.
 - [ ] Independent human review, active no-bypass repository policy, protected signing, Hostinger/Windows/offsite restore: **PENDING**.
 

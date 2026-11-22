@@ -1,7 +1,7 @@
 'use strict';
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { REQUIRED_CHECKS, GH_APP_ID, evaluate, mainTarget } =
+const { REQUIRED_CHECKS, GH_APP_ID, evaluate, mainTarget, confirmedMainTarget } =
   require('../../scripts/check-phase-n71-live-main-protection.cjs');
 const SHA = 'a'.repeat(40), REPO = 'rehman2671/Aaditech-toolkit-new';
 function sample() {
@@ -97,7 +97,8 @@ test('N72 reject non-strict, missing or fragmented required status rules', () =>
 test('N73 active wildcard and exclusion policies cannot hide beside a valid strict main rule',()=>{
   const broad=sample(); broad.rulesets[0].conditions.ref_name.include=['refs/heads/*'];
   assert.equal(mainTarget(broad.rulesets[0]),true);
-  assert.equal(evaluate(broad,SHA,REPO).allowed,true);
+  assert.equal(confirmedMainTarget(broad.rulesets[0]),false);
+  assert.equal(evaluate(broad,SHA,REPO).allowed,false);
   // Adjacent ambiguous rulesets are considered for bypass and exclusions.
   const s=sample();
   const second=structuredClone(s.rulesets[0]);
@@ -108,4 +109,31 @@ test('N73 active wildcard and exclusion policies cannot hide beside a valid stri
   second.bypass_actors=[];
   second.conditions.ref_name.exclude=['refs/heads/other/*'];
   assert.equal(evaluate(s,SHA,REPO).allowed,false);
+});
+
+// N73: merely *possibly* applicable patterns are not a positive proof.
+test('N73 demands exact main proof, not a wildcard rule for another branch',()=>{
+  for (const pattern of ['refs/heads/release/*','refs/heads/m*','refs/heads/*','~UNRECOGNIZED']) {
+    const s=sample();
+    s.rulesets[0].conditions.ref_name.include=[pattern];
+    assert.equal(mainTarget(s.rulesets[0]),true);
+    assert.equal(confirmedMainTarget(s.rulesets[0]),false);
+    const proof=evaluate(s,SHA,REPO);
+    assert.equal(proof.allowed,false,pattern);
+    assert.match(proof.blockers.join(';'),/no confirmed active main branch ruleset/);
+  }
+  for (const exact of ['refs/heads/main','~DEFAULT_BRANCH','~ALL']) {
+    const s=sample(); s.rulesets[0].conditions.ref_name.include=[exact];
+    assert.equal(confirmedMainTarget(s.rulesets[0]),true);
+    assert.equal(evaluate(s,SHA,REPO).allowed,true,exact);
+  }
+});
+test('N73 wildcard status checks cannot complete missing exact main requirements',()=>{
+  const s=sample();
+  const ambiguous=structuredClone(s.rulesets[0]);
+  ambiguous.conditions.ref_name.include=['refs/heads/release/*'];
+  s.rulesets[0].rules=s.rulesets[0].rules.filter(x=>x.type!=='required_status_checks');
+  s.rulesets.push(ambiguous);
+  assert.equal(evaluate(s,SHA,REPO).allowed,false);
+  assert.match(evaluate(s,SHA,REPO).blockers.join(';'),/five trusted GitHub Actions checks/);
 });

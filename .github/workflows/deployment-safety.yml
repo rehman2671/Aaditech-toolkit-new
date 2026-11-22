@@ -13,6 +13,7 @@ on:
       - 'Enterprise/tests/test_public_health_json.py'
       - 'Enterprise/tests/test_stage44_windows_health_evidence.py'
       - 'Enterprise/tests/Test-DeployMySQL.sh'
+      - 'Enterprise/tests/Test-Stage68StrictVpsAcceptance.sh'
       - 'Enterprise/tests/Test-LegacyMsiMigration.sh'
       - 'Enterprise/tests/Test-LegacyMsiMigration-Live.sh'
       - 'Enterprise/tests/Test-MySQL-Live-Rehearsal.sh'
@@ -30,6 +31,7 @@ on:
       - 'Enterprise/tests/test_public_health_json.py'
       - 'Enterprise/tests/test_stage44_windows_health_evidence.py'
       - 'Enterprise/tests/Test-DeployMySQL.sh'
+      - 'Enterprise/tests/Test-Stage68StrictVpsAcceptance.sh'
       - 'Enterprise/tests/Test-LegacyMsiMigration.sh'
       - 'Enterprise/tests/Test-LegacyMsiMigration-Live.sh'
       - 'Enterprise/tests/Test-MySQL-Live-Rehearsal.sh'
@@ -86,6 +88,11 @@ jobs:
       - name: Verify HTTPS/MySQL deployment dry-run isolation
         shell: bash
         run: bash Enterprise/tests/Test-DeployMySQL.sh
+      - name: N68 reject misleading health, DNS/TLS/redirect failures before VPS acceptance
+        shell: bash
+        run: |
+          bash -n Enterprise/tests/Test-Stage68StrictVpsAcceptance.sh
+          bash Enterprise/tests/Test-Stage68StrictVpsAcceptance.sh
       - name: Verify configuration and signed release preflight reject unsafe inputs
         shell: bash
         run: bash Enterprise/tests/Test-Stage14Preflight.sh

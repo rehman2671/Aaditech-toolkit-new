@@ -41,6 +41,10 @@ deny('publisher must not use diagnostic environment',1,s=>
   s.replace('environment: production-installer','environment: ci-diagnostic'));
 deny('release sign tool cannot skip live branch policy',2,s=>
   s.replace('& node $liveGuard --live','Write-Host "Skip live governance"'));
-deny('release sign must verify branch before PFX decryption',2,s=>
-  s.replace('& node $liveGuard --live','& node $liveGuard --live # after?'));
+deny('release sign must verify branch before PFX decryption',2,s=>{
+  const call='& node $liveGuard --live';
+  const decrypt='[IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:CODESIGN_PFX_B64))';
+  return s.replace(call,'# delayed governance check below')
+    .replace(decrypt,decrypt+'\n'+call);
+});
 deny('invalid publisher YAML cannot bypass policy',1,s=>s+'\nnew-unclosed: [');

@@ -76,6 +76,11 @@ function Assert-N62InstalledPs2Exe {
                 -not (Test-Path -LiteralPath $approvedManifest -PathType Leaf)) {
                 throw 'Protected build must load the exact approved package module.'
             }
+            # N64: a correct manifest alone does not authenticate the
+            # PS2EXE .psm1 body or companion files. Rehash the entire
+            # installed module immediately before importing executable code.
+            Import-Module -Name (Join-Path $PSScriptRoot 'CompilerModuleContinuity.psm1') -Force -ErrorAction Stop
+            $null=Assert-N64CompilerModuleContinuity -ModuleDirectory $moduleBase -ExpectedSha256 $env:N64_PS2EXE_TREE_SHA256
             Import-Module -Name $approvedManifest -RequiredVersion ([version]$lock.ps2exe) -Force -ErrorAction Stop
         } else {
             Import-Module -Name ps2exe -RequiredVersion ([version]$lock.ps2exe) -Force -ErrorAction Stop

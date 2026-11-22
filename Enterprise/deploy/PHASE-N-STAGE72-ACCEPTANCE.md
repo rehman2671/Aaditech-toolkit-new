@@ -1,6 +1,6 @@
 # Phase N Stage 72 — Admin-ready main protection proposal and strict current-code CI requirement
 
-**Status: PROPOSED; CI/PR MERGE PENDING; ACTUAL GITHUB ADMINISTRATION AND PRODUCTION RELEASE NOT APPROVED (2026-11-23 IST).**
+**Status: MERGED; PR CI 3/3 + SAFETY 2/2 SUCCESS; FRESH MAIN DIAGNOSTIC WINDOWS MSI CI 4/4 + SAFETY 2/2 SUCCESS; GITHUB ADMINISTRATION/PRODUCTION NOT APPROVED (2026-11-23 IST).**
 
 ## Gap addressed
 
@@ -18,9 +18,10 @@ Also, the project had no executable reviewed **ruleset proposal** to hand to a r
 
 ## Acceptance evidence
 
-- [x] Implementation and offline tests pushed to an isolated PR branch.
-- [ ] PR CI, safety and independent code-review: **PENDING**.
-- [ ] Fresh main diagnostic EXE/MSI build/upgrade acceptance: **PENDING**.
+- [x] [PR #74](https://github.com/rehman2671/Aaditech-toolkit-new/pull/74) merged as `953566b4f2854d9d64fc0f11ae5c701974825fe7` after exact-head [PR CI #45062081506](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45062081506) **3/3 SUCCESS** (Windows PowerShell, Node/Vitest+MySQL, API+MySQL) and [PR deployment safety #45062081546](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45062081546) **2/2 SUCCESS** (Bash/offline + isolated real MySQL backup/restore).
+- [x] [Fresh merged-main CI #45062353330](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45062353330) **4/4 SUCCESS** at N72 merge SHA: PowerShell tests, Node/MySQL, API/MySQL, real Windows diagnostic EXE/MSI build, MSI administrative extraction, actual install/post-setup/clean uninstall and tenant-configuration-preserving major upgrade. [Main safety #45062353339](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45062353339) **2/2 SUCCESS**.
+- [x] Protected manual main ruleset admission, independently SHA-approved NUPKG package installation, actual Authenticode signing, signed publication verification and artifact upload were **SKIPPED** in diagnostic CI. No fake production approval inferred.
+- [ ] Independent security-owner code review of the proposed ruleset, active GitHub admin enforcement and bypass metadata permission boundary: **PENDING**.
 - [ ] Live `main` protected ruleset created by authorized administrator with adequate plan; independently reviewed upstream Actions; security-owner approved verification credentials/attestation: **PENDING**.
 - [ ] Actual protected code signing, signed publication, Hostinger VPS/DNS/TLS, real customer Windows tenant setup and offsite MySQL restore: **PENDING**.
 

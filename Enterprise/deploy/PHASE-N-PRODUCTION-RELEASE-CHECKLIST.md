@@ -1,12 +1,12 @@
 # Phase N — Production release acceptance and sign-off
 
-## Stage N67 — signed installer configuration is strictly generic (MERGED; PR 3/3 + SAFETY 2/2 PASS; MAIN MSI IN PROGRESS; PRODUCTION BLOCKED)
+## Stage N67 — signed installer configuration is strictly generic (MERGED; PR 3/3 + SAFETY 2/2; MAIN DIAGNOSTIC MSI 4/4 + SAFETY 2/2; PRODUCTION BLOCKED)
 
 - [x] Every external/embedded signed release JSON must have exact first-run fields and proper JSON data types. Reject extra keys, duplicate keys, credentials/server URL, nonempty script allowlist, mismatched version/interval and any feature/elevation/script discrepancy from the source-controlled manifest.
 - [x] N67 admission is wired to final Authenticode-protected publication verifier (external agent-config.json and ALL extracted agent.json payloads) and to pre-compiler generic MSI CI staging; synthetic PowerShell 7 regressions added.
 - [x] [PR #67](https://github.com/rehman2671/Aaditech-toolkit-new/pull/67) merged as `462b41b9b000b299ad5458fbd3ec155e98809cf7` after [PR CI #45050758426](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45050758426) **3/3 SUCCESS** and [PR safety #45050758376](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45050758376) **2/2 SUCCESS**.
-- [x] N67 real pre-compiler release config check, PowerShell, Node/MySQL and API/MySQL passed on [main CI #45051039313](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45051039313); [main safety #45051039322](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45051039322) **2/2 SUCCESS**.
-- [ ] Main Windows diagnostic MSI build, extraction/install/uninstall and major upgrade: **IN PROGRESS**, not yet approved.
+- [x] [Fresh main CI #45051039313](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45051039313) **4/4 SUCCESS** at merge SHA `462b41b9b000b299ad5458fbd3ec155e98809cf7`: real N67 generic-config preflight, Windows PowerShell, Node/MySQL, API/MySQL, diagnostic Windows EXE/MSI build, MSI administrative extraction, install/post-setup/clean uninstall and tenant-preserving major upgrade. [Main safety #45051039322](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45051039322) **2/2 SUCCESS**.
+- [x] Protected independently approved N63 package install, final signed publication verification and signed artifact upload were **SKIPPED**, not passed, in diagnostic CI.
 - [ ] Independent manual signing authority, approved archive checks, protected signing, actual Hostinger VPS/Windows/customer rollout and offsite restore evidence: **PENDING**.
 
 See [N67 acceptance](PHASE-N-STAGE67-ACCEPTANCE.md).

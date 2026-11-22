@@ -35,6 +35,22 @@
 | FE-27 | Optional central installation registry/service | `tool.aaditechs.in` is a proposal, not existing core | **NOT_STARTED / OPTIONAL** | Design approval, no local availability dependency |
 | FE-28 | Public signed release/HSM and human approvals | Workflow/gates exist; GitHub releases empty, main unprotected | **BLOCKED** | Certified signer/HSM, independent review, protected main, approved artifact |
 
+## Original master requirements not yet accepted
+
+[34-section original requirements crosswalk](ORIGINAL-REQUIREMENTS-TRACEABILITY.md) preserves these mandatory features:
+
+| ID | Original feature | Status / remaining proof |
+|---|---|---|
+| FE-29 | Windows/macOS/Linux agents | **PARTIAL**; Windows only; PR-015, DEC-002 |
+| FE-30 | In-platform tenant/group/policy-specific **signed MSI builder** | **PARTIAL** diagnostic generic MSI; PR-016, DEC-003 |
+| FE-31 | Weighted 0–100 configurable device health score | **NOT VERIFIED**; PR-018 |
+| FE-32 | Complete hardware/network/GPU/battery/process timeseries and 1h/24h/7d/30d charts | **PARTIAL**; PR-017 |
+| FE-33 | Process/app usage/crash/foreground/network monitoring | **PARTIAL**; PR-023 |
+| FE-34 | CSV/Excel/PDF plus scheduled reports | **PARTIAL** CSV; PR-021 |
+| FE-35 | Complete agent service/tamper/update lifecycle, sites, policies and device asset history | **PARTIAL**; PR-019, PR-020, PR-027 |
+| FE-36 | Platform SLO/queue/worker/MSI health, HA/backpressure | **PARTIAL**; PR-022 |
+| FE-37 | Go/PostgreSQL directive vs Node/MySQL source | **BLOCKED: owner DEC-001** |
+
 ## Live governance snapshot (not a durable approval)
 
 On 2026-11-23 live checks returned **`main.protected=false`**, **0 effective rulesets**, **0 releases**, **0 reviews** for #75 and #76. These are time-sensitive; always re-query before production. [Production blocker #62](https://github.com/rehman2671/Aaditech-toolkit-new/issues/62) remains OPEN.

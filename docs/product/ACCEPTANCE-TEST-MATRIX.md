@@ -24,6 +24,17 @@
 | AT-TR-04 | P1 | Dashboard incidents reconcile retries, reopened issues, unique users/devices and verified outcomes; denominator published | **PENDING** |
 | AT-EXT-01 | P2 | Optional central service can disconnect for 7+ days without blocking local use; no data transfer without opt-in | **PENDING / not a P0 release blocker** |
 
+## Original-scope sign-off gates
+
+| Test | Original requirement | State |
+|---|---|---|
+| AT-OR-01 | Windows/macOS/Linux agent parity, secure enrollment, collectors, offline queue | **PENDING** |
+| AT-OR-02 | Signed per-tenant/group/policy portal MSI builder, authenticated download, revocation and physical enrollment | **PENDING** |
+| AT-OR-03 | Full measured metrics, process/app usage, source/freshness and historical timeseries | **PENDING** |
+| AT-OR-04 | Explainable policy-configurable device health score, asset/site lifecycle and fine-grained roles | **PENDING** |
+| AT-OR-05 | Scheduled PDF/Excel/CSV reports, platform observability, scale/recovery | **PENDING** |
+| AT-OR-06 | Explicit owner ADR deciding original Go/PG vs Node/MySQL stack | **BLOCKED (DEC-001)** |
+
 ## Evidence quality
 
 - **ACI isolated:** tests in disposable GitHub Windows runner, local MySQL Docker volume and mocked/synthetic network. Valid for code regression, not customer production.

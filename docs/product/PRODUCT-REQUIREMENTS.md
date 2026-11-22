@@ -1,10 +1,14 @@
 # AadiTech Enterprise — master product requirements
 
-**Version:** Planning baseline v1.0, 2026-11-23. **Status:** Proposed for independent review; no new implementation implied.
+**Version:** Planning baseline v1.1, 2026-11-23. **Status:** Proposed for independent review; no new implementation implied.
 
 ## Product definition
 
 An **intranet-first, self-hosted IT operations platform** that can be deployed repeatedly in different independent enterprises. An authorized local administrator installs the server, completes the first-run setup wizard, installs/enrolls Windows endpoint agents, monitors their posture, receives issues, diagnoses problems, safely repairs permitted faults and measures *verified* outcomes. Central cloud services are opt-in additions only.
+
+## Original-source preservation
+
+The [34-section original requirements crosswalk](ORIGINAL-REQUIREMENTS-TRACEABILITY.md) tracks original mandatory feature families, including multi-OS agents, signed portal-generated MSI, per-process network/app metrics, configurable weighted health scoring, scheduled CSV/Excel/PDF reports, agent lifecycle and HA/observability. None is waived by the intranet-first phased plan. The original Go/PostgreSQL lock conflicts with the checked-in Node/MySQL code; **owner ADR DEC-001 must decide this material deviation**.
 
 ## People and access model
 
@@ -34,6 +38,26 @@ An **intranet-first, self-hosted IT operations platform** that can be deployed r
 | PR-013 | P2 | **Optional central endpoint.** `tool.aaditechs.in` *may* later offer support requests, update manifests, licensing or voluntary installation registration. Any synchronizer is disabled by default and never uploads sensitive inventory without explicit organization policy. |
 | PR-014 | P2 | **Future external connectors.** Microsoft Graph/Intune, external ITSM and SMTP/cloud notifications are separately configured, clearly marked disconnected when absent; not a local product prerequisite. |
 
+## Preserved original mandatory scope (not yet fully implemented)
+
+| ID | Original obligation retained | Current implementation boundary |
+|---|---|---|
+| PR-015 | Windows, macOS and Linux agent parity, secure enrollment and OS-specific collectors | Windows-focused; other OS acceptance missing |
+| PR-016 | First-class **server-side signed MSI Package Factory** with tenant/group/policy selection, versioned metadata, auth downloads, revocation and short-lived bootstrap | Generic diagnostic MSI and API are not the completed full factory |
+| PR-017 | Full real hardware/CPU/RAM/GPU/network/disk/battery/process telemetry with 1h/24h/7d/30d charts and policy intervals | Partial measured metrics; no invented values |
+| PR-018 | Configurable, explainable weighted 0–100 Device Health Score | Not independently proven |
+| PR-019 | Agent service/update/config/tamper/rotation/decommission lifecycle, durable offline queue | Partial Windows task and token/ACK coverage |
+| PR-020 | Asset/site/department/group ownership, fine-grained RBAC, policy precedence and configuration versioning | Partial records/roles |
+| PR-021 | Tamper-resistant audit, tenant privacy/retention, PDF/Excel/CSV and scheduled filtered reports | Basic CSV and audit code; remainder unproven |
+| PR-022 | Platform observability (worker/queue/DB/API/ingest/package metrics), scale, HA and disaster recovery | Healthz and isolated reliability tests only |
+| PR-023 | Privacy-safe per-process application usage, crash history, foreground and network metrics | Partial processes and usage endpoints |
+| PR-024 | Complete alert recovery, cooldown, maintenance and configured notification channels | Partial alert/outbox, external delivery optional/configured |
+| PR-025 | Controlled AI-assisted diagnostic/tool boundaries; no uncontrolled privileged execution | Proposed safety requirement, not built AI solver |
+| PR-026 | Atomized RTM, contract/source traceability and reviewed ADR for material design changes | Section-level RTM exists; detailed atomic RTM pending |
+| PR-027 | Original Windows **service** requirement vs current scheduled-task worker | DEC-003 requires owner decision/implementation |
+
+These are original-scope obligations (possibly phased only with owner approval), **not optional scope that this PRD removed**.
+
 ## Operating modes (design targets, not current promises)
 
 1. **Office intranet (default):** single local installation, no public DNS or internet, private trusted HTTPS, data stays local.
@@ -55,4 +79,4 @@ Product is **not** complete when the route builds or CI is green. At minimum pro
 
 ## Explicit non-goals for first intranet release
 
-Mandatory Hostinger/VPS deployment, public internet, cloud backup, central SSO/MDM, trained AI diagnosis, autonomous high-risk repairs, full Apple/Linux endpoint coverage, and guaranteed resolution of physical/hardware faults are **not** release prerequisites. These are future choices rather than implied completed functionality.
+Mandatory Hostinger/VPS deployment, public internet, cloud backup, central SSO/MDM, trained AI diagnosis, autonomous high-risk repairs and guaranteed resolution of physical/hardware faults are **not** first LAN-release prerequisites. **macOS/Linux support remains mandatory for the original complete-product scope**. Deferring parity to a later milestone is a proposed scheduling choice requiring DEC-002 owner approval, not a scope deletion.

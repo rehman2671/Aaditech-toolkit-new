@@ -1,5 +1,7 @@
 # IT-Toolkit - Project Spec (Clean-Room Conceptual Specification)
 
+> **ORIGINAL SCOPE PRESERVED:** The original requirements DOCX and Go Backend Edition directive remain scope authorities until an explicit owner ADR; see [original-source crosswalk](../docs/product/ORIGINAL-REQUIREMENTS-TRACEABILITY.md). Full Windows/macOS/Linux and signed in-platform MSI builder obligations are not waived.
+>
 > **CURRENT PRODUCT BASELINE (2026-11-23):** This is a *historical clean-room design*, not the implemented production architecture. Its FastAPI/PostgreSQL and historical mTLS assumptions are superseded for current delivery by [the intranet-first product architecture](../docs/product/INTRANET-ARCHITECTURE.md) and [requirements](../docs/product/PRODUCT-REQUIREMENTS.md). Actual code: Node.js/Express + MySQL 8; no verified offline one-click office installer yet. Preserve this document for design history, not as an operator deployment procedure.
 
 

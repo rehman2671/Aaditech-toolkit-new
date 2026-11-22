@@ -1,7 +1,9 @@
 # Architecture decision — independent intranet installations (ADR-PRODUCT-001)
 
 **Decision:** Intranet-first is the mandatory baseline; external cloud is optional.  
-**State:** Target architecture approved as the product direction for planning; specific LAN installer, certificate/trust flow and independent installation ID are **not implemented/accepted yet**.
+**State:** PROPOSED intranet-first topology; the existing Node/MySQL code conflicts with the original Go/PostgreSQL directive and requires product-owner ADR DEC-001. LAN installer, certificate trust and installation ID remain unimplemented.
+
+**Architecture source conflict:** [Original requirements crosswalk](ORIGINAL-REQUIREMENTS-TRACEABILITY.md) preserves the binding Go/PostgreSQL directive and full feature scope. Reporting Node/MySQL as current code is **not** permission to override the original stack without owner approval.
 
 ## Current repository facts versus proposed behavior
 
@@ -55,7 +57,8 @@
 
 - **Use Hostinger Business shared Node.js for every office:** rejected as default, because internet dependency, process/port constraints and tenant data custody conflict with offline first.
 - **Run public DNS/ACME deployment inside LAN by inventing DNS:** rejected; a publicly trusted ACME flow is not equivalent to standalone air-gapped HTTPS.
-- **Reintroduce FastAPI/PostgreSQL/Go stack:** rejected for this delivery cycle; huge migration risk and existing Node/MySQL acceptance evidence already exists.
+- **Return to original Go/PostgreSQL:** **not rejected**; owner DEC-001 must evaluate mandatory stack compliance versus migration effort.
+- **Keep existing Node.js/MySQL:** substantial code/CI evidence exists, but it requires an explicit owner-approved ADR recording tradeoffs and migration/contract implications.
 - **Automatically disable TLS on intranet:** rejected; silent credential interception risk.
 
 ## Release gate

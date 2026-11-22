@@ -7,7 +7,7 @@
   "baseline_commit": "911f509620029c513305c88b26ca0da4e1b7da37",
   "product_goal": "Intranet-first, independently self-hosted; one-click setup; no mandatory public domain or central cloud",
   "production_accepted": false,
-  "source_of_truth": "docs/product/README.md",
+  "source_of_truth": "Original DOCX requirements + Go directive are binding scope; docs/product/README.md is a proposed implementation and gap crosswalk pending owner ADR",
   "old_index_note": "project-progress.json 100% is historic audit issue closure only; auto-generated; not the product completion percentage",
   "status_values": [
     "NOT_STARTED",
@@ -31,7 +31,7 @@
       "evidence": [
         "docs/product/*.md (proposed; not merged)"
       ],
-      "next": "Review and accept requirements, risk tiers, tests and source-of-truth precedence",
+      "next": "Confirm original DOCX/text-mirror fidelity, review 34-section crosswalk and obtain architecture/phase owner decisions",
       "blocked": false
     },
     {
@@ -41,7 +41,8 @@
       "state": "NOT_STARTED",
       "owner": "deployment_engineering",
       "requires": [
-        "M0"
+        "M0",
+        "DEC-001"
       ],
       "evidence": [
         "Enterprise/deploy/deploy-mysql.sh currently requires public DNS",
@@ -402,6 +403,293 @@
       ],
       "next": "Define separately; prohibit local core availability dependency",
       "blocked": false
+    },
+    {
+      "key": "DEC-001",
+      "title": "Owner ADR: original Go/PostgreSQL versus current Node/MySQL",
+      "priority": "P0",
+      "state": "BLOCKED",
+      "owner": "product_owner_and_architect",
+      "requires": [
+        "M0"
+      ],
+      "evidence": [
+        "doc1_full.txt / doc2_full.txt source mirrors",
+        "docs/product/ORIGINAL-REQUIREMENTS-TRACEABILITY.md"
+      ],
+      "next": "Atomize requirement, decide owner acceptance, then code/tests and witnessed E2E evidence",
+      "blocked": true
+    },
+    {
+      "key": "DEC-002",
+      "title": "Approve Windows-first release phasing without waiving macOS/Linux",
+      "priority": "P0",
+      "state": "BLOCKED",
+      "owner": "product_owner",
+      "requires": [
+        "M0"
+      ],
+      "evidence": [
+        "doc1_full.txt / doc2_full.txt source mirrors",
+        "docs/product/ORIGINAL-REQUIREMENTS-TRACEABILITY.md"
+      ],
+      "next": "Atomize requirement, decide owner acceptance, then code/tests and witnessed E2E evidence",
+      "blocked": true
+    },
+    {
+      "key": "DEC-003",
+      "title": "Reconcile server-side signed MSI factory and Windows service expectation",
+      "priority": "P0",
+      "state": "BLOCKED",
+      "owner": "product_owner_and_security",
+      "requires": [
+        "M0"
+      ],
+      "evidence": [
+        "doc1_full.txt / doc2_full.txt source mirrors",
+        "docs/product/ORIGINAL-REQUIREMENTS-TRACEABILITY.md"
+      ],
+      "next": "Atomize requirement, decide owner acceptance, then code/tests and witnessed E2E evidence",
+      "blocked": true
+    },
+    {
+      "key": "M7",
+      "title": "Original mandatory full telemetry, multi-OS, MSI, reports and SRE parity",
+      "priority": "P1",
+      "state": "NOT_STARTED",
+      "owner": "platform_team",
+      "requires": [
+        "DEC-001",
+        "DEC-002",
+        "M3"
+      ],
+      "evidence": [
+        "doc1_full.txt / doc2_full.txt source mirrors",
+        "docs/product/ORIGINAL-REQUIREMENTS-TRACEABILITY.md"
+      ],
+      "next": "Atomize requirement, decide owner acceptance, then code/tests and witnessed E2E evidence",
+      "blocked": true
+    },
+    {
+      "key": "PR-015",
+      "title": "Windows macOS Linux agent parity",
+      "priority": "P1",
+      "state": "NOT_STARTED",
+      "owner": "product_owner",
+      "requires": [
+        "DEC-002"
+      ],
+      "evidence": [
+        "doc1_full.txt / doc2_full.txt source mirrors",
+        "docs/product/ORIGINAL-REQUIREMENTS-TRACEABILITY.md"
+      ],
+      "next": "Atomize requirement, decide owner acceptance, then code/tests and witnessed E2E evidence",
+      "blocked": true
+    },
+    {
+      "key": "PR-016",
+      "title": "In-platform signed per-tenant MSI factory",
+      "priority": "P1",
+      "state": "NOT_STARTED",
+      "owner": "product_owner",
+      "requires": [
+        "DEC-003"
+      ],
+      "evidence": [
+        "doc1_full.txt / doc2_full.txt source mirrors",
+        "docs/product/ORIGINAL-REQUIREMENTS-TRACEABILITY.md"
+      ],
+      "next": "Atomize requirement, decide owner acceptance, then code/tests and witnessed E2E evidence",
+      "blocked": true
+    },
+    {
+      "key": "PR-017",
+      "title": "Real full multi-OS hardware metrics/history",
+      "priority": "P1",
+      "state": "NOT_STARTED",
+      "owner": "product_owner",
+      "requires": [
+        "DEC-001"
+      ],
+      "evidence": [
+        "doc1_full.txt / doc2_full.txt source mirrors",
+        "docs/product/ORIGINAL-REQUIREMENTS-TRACEABILITY.md"
+      ],
+      "next": "Atomize requirement, decide owner acceptance, then code/tests and witnessed E2E evidence",
+      "blocked": true
+    },
+    {
+      "key": "PR-018",
+      "title": "Policy-configurable weighted device health score",
+      "priority": "P1",
+      "state": "NOT_STARTED",
+      "owner": "product_owner",
+      "requires": [
+        "DEC-001"
+      ],
+      "evidence": [
+        "doc1_full.txt / doc2_full.txt source mirrors",
+        "docs/product/ORIGINAL-REQUIREMENTS-TRACEABILITY.md"
+      ],
+      "next": "Atomize requirement, decide owner acceptance, then code/tests and witnessed E2E evidence",
+      "blocked": true
+    },
+    {
+      "key": "PR-019",
+      "title": "Agent lifecycle service/tamper/rotation/updates",
+      "priority": "P1",
+      "state": "NOT_STARTED",
+      "owner": "product_owner",
+      "requires": [
+        "DEC-003"
+      ],
+      "evidence": [
+        "doc1_full.txt / doc2_full.txt source mirrors",
+        "docs/product/ORIGINAL-REQUIREMENTS-TRACEABILITY.md"
+      ],
+      "next": "Atomize requirement, decide owner acceptance, then code/tests and witnessed E2E evidence",
+      "blocked": true
+    },
+    {
+      "key": "PR-020",
+      "title": "Full asset/site/policy and fine-grained roles",
+      "priority": "P1",
+      "state": "NOT_STARTED",
+      "owner": "product_owner",
+      "requires": [
+        "DEC-001"
+      ],
+      "evidence": [
+        "doc1_full.txt / doc2_full.txt source mirrors",
+        "docs/product/ORIGINAL-REQUIREMENTS-TRACEABILITY.md"
+      ],
+      "next": "Atomize requirement, decide owner acceptance, then code/tests and witnessed E2E evidence",
+      "blocked": true
+    },
+    {
+      "key": "PR-021",
+      "title": "Tamper-resistant audit, retention and scheduled PDF/Excel reporting",
+      "priority": "P1",
+      "state": "NOT_STARTED",
+      "owner": "product_owner",
+      "requires": [
+        "DEC-001"
+      ],
+      "evidence": [
+        "doc1_full.txt / doc2_full.txt source mirrors",
+        "docs/product/ORIGINAL-REQUIREMENTS-TRACEABILITY.md"
+      ],
+      "next": "Atomize requirement, decide owner acceptance, then code/tests and witnessed E2E evidence",
+      "blocked": true
+    },
+    {
+      "key": "PR-022",
+      "title": "Platform observability, HA, backpressure and DR",
+      "priority": "P1",
+      "state": "NOT_STARTED",
+      "owner": "product_owner",
+      "requires": [
+        "DEC-001"
+      ],
+      "evidence": [
+        "doc1_full.txt / doc2_full.txt source mirrors",
+        "docs/product/ORIGINAL-REQUIREMENTS-TRACEABILITY.md"
+      ],
+      "next": "Atomize requirement, decide owner acceptance, then code/tests and witnessed E2E evidence",
+      "blocked": true
+    },
+    {
+      "key": "PR-023",
+      "title": "Privacy-safe application/process usage",
+      "priority": "P1",
+      "state": "NOT_STARTED",
+      "owner": "product_owner",
+      "requires": [
+        "DEC-002"
+      ],
+      "evidence": [
+        "doc1_full.txt / doc2_full.txt source mirrors",
+        "docs/product/ORIGINAL-REQUIREMENTS-TRACEABILITY.md"
+      ],
+      "next": "Atomize requirement, decide owner acceptance, then code/tests and witnessed E2E evidence",
+      "blocked": true
+    },
+    {
+      "key": "PR-024",
+      "title": "Full alerts and maintenance suppression",
+      "priority": "P1",
+      "state": "NOT_STARTED",
+      "owner": "product_owner",
+      "requires": [
+        "DEC-001"
+      ],
+      "evidence": [
+        "doc1_full.txt / doc2_full.txt source mirrors",
+        "docs/product/ORIGINAL-REQUIREMENTS-TRACEABILITY.md"
+      ],
+      "next": "Atomize requirement, decide owner acceptance, then code/tests and witnessed E2E evidence",
+      "blocked": true
+    },
+    {
+      "key": "PR-025",
+      "title": "Approved AI tooling, never uncontrolled agent privilege",
+      "priority": "P1",
+      "state": "NOT_STARTED",
+      "owner": "product_owner",
+      "requires": [
+        "M4"
+      ],
+      "evidence": [
+        "doc1_full.txt / doc2_full.txt source mirrors",
+        "docs/product/ORIGINAL-REQUIREMENTS-TRACEABILITY.md"
+      ],
+      "next": "Atomize requirement, decide owner acceptance, then code/tests and witnessed E2E evidence",
+      "blocked": true
+    },
+    {
+      "key": "PR-026",
+      "title": "Atomic original requirements traceability and ADR",
+      "priority": "P1",
+      "state": "NOT_STARTED",
+      "owner": "product_owner",
+      "requires": [
+        "M0"
+      ],
+      "evidence": [
+        "doc1_full.txt / doc2_full.txt source mirrors",
+        "docs/product/ORIGINAL-REQUIREMENTS-TRACEABILITY.md"
+      ],
+      "next": "Atomize requirement, decide owner acceptance, then code/tests and witnessed E2E evidence",
+      "blocked": true
+    },
+    {
+      "key": "PR-027",
+      "title": "Windows service vs task scheduling original requirement",
+      "priority": "P1",
+      "state": "NOT_STARTED",
+      "owner": "product_owner",
+      "requires": [
+        "DEC-003"
+      ],
+      "evidence": [
+        "doc1_full.txt / doc2_full.txt source mirrors",
+        "docs/product/ORIGINAL-REQUIREMENTS-TRACEABILITY.md"
+      ],
+      "next": "Atomize requirement, decide owner acceptance, then code/tests and witnessed E2E evidence",
+      "blocked": true
     }
-  ]
+  ],
+  "original_sources": [
+    "Aaditech_Endpoint_Monitoring_Management_Final_Requirements.docx",
+    "Aaditech_Master_Development_Directive_Go_Edition_updated.docx",
+    "doc1_full.txt (text mirror fidelity pending)",
+    "doc2_full.txt (text mirror fidelity pending)"
+  ],
+  "architecture_conflict": {
+    "decision_id": "DEC-001",
+    "original": "Go/PostgreSQL locked",
+    "code": "Node.js/Express + MySQL 8",
+    "status": "OWNER_ADR_REQUIRED",
+    "note": "No silent material stack change"
+  }
 }

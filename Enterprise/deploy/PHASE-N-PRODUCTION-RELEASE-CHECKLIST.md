@@ -1,5 +1,16 @@
 # Phase N — Production release acceptance and sign-off
 
+## Stage N71 — live non-bypass main protection before actual code signing and public release (PR CODE READY; CI PENDING; PRODUCTION BLOCKED)
+
+- [x] New read-only GitHub REST gate verifies current protected main SHA, active non-bypass ruleset, independent latest-head review policy, no force-push/delete, and 5 exact GitHub Actions app ID 15368 contexts.
+- [x] Mandatory manual-main gate before approved compiler installation, before MSI signing (also within the actual EXE/MSI signing script, **before PFX import**), before draft release creation and immediately before exposing a hosted signed GitHub Release.
+- [x] Approved signed source SHA must exactly equal manual publisher's GitHub main dispatch SHA; source and branch protection rechecked before making draft public. Synthetic offline negative policies and YAML regression gates added.
+- [ ] PR CI, independently reviewed source, fresh merged-main diagnostic Windows MSI and live governance activation: **PENDING**.
+- [ ] Repo currently has **no effective main protection**; authorized admin must configure main ruleset and independent required reviews before genuine protected signing can ever pass. No script can self-approve or authorize production.
+- [ ] Approved publisher certificate/HSM, human-approved archives, real Hostinger/customer Windows and offsite DB restore receipt: **PENDING**.
+
+See [N71 acceptance](PHASE-N-STAGE71-ACCEPTANCE.md) and [live governance blocker #62](https://github.com/rehman2671/Aaditech-toolkit-new/issues/62).
+
 ## Stage N68 — authoritative Hostinger VPS live health admission (MERGED; MAIN DIAGNOSTIC CI 4/4 + SAFETY 2/2; CUSTOMER PRODUCTION BLOCKED)
 
 - [x] Replace text-grep acceptance in supported `deploy-mysql.sh` with mandatory exact-JSON, DNS-pinned, system-CA HTTPS health + same-origin HTTP redirect verifier; any degraded/malformed live outcome blocks success and preserves existing .env secrets.

@@ -1,4 +1,7 @@
 # Hostinger Shared Hosting (Business Plan) Deployment Guide
+
+> **OPTIONAL/HISTORICAL SHARED HOSTING GUIDE — NOT A REQUIRED PLATFORM HOST (2026-11-23):** AadiTech's primary product is intranet-first and must function without public internet or Hostinger. This guide's shared-hosting steps and example endpoint/database claims are not independent acceptance evidence for the current Node/MySQL Docker stack. Do not copy example secrets or use this as an approved deployment procedure. See [current product scope](docs/product/README.md) and [installation target](docs/product/INSTALLER-AND-SETUP-ACCEPTANCE.md). §tool.aaditechs.in§ is an optional **future** service, not a dependency.
+
 ## IT-Toolkit Enterprise (Node.js + MySQL)
 
 This step-by-step guide walks you through deploying **IT-Toolkit Enterprise** on a **Hostinger Business Web Hosting** account using **Hostinger hPanel**, **MySQL/phpMyAdmin**, and the **Node.js application selector**.

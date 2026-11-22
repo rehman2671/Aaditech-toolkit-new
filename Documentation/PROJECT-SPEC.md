@@ -1,5 +1,8 @@
 # IT-Toolkit - Project Spec (Clean-Room Conceptual Specification)
 
+> **CURRENT PRODUCT BASELINE (2026-11-23):** This is a *historical clean-room design*, not the implemented production architecture. Its FastAPI/PostgreSQL and historical mTLS assumptions are superseded for current delivery by [the intranet-first product architecture](../docs/product/INTRANET-ARCHITECTURE.md) and [requirements](../docs/product/PRODUCT-REQUIREMENTS.md). Actual code: Node.js/Express + MySQL 8; no verified offline one-click office installer yet. Preserve this document for design history, not as an operator deployment procedure.
+
+
 > **Purpose:** This document describes the complete IT-Toolkit platform **by
 > concept** - what each part does, why it exists, how it should behave, and the
 > clean design-level contracts between components. It is written to let a

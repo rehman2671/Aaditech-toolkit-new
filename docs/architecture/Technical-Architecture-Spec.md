@@ -1,4 +1,7 @@
 # Technical Architecture Specification
+
+> **HISTORICAL CONCEPT ONLY (2026-11-23):** The Go/PostgreSQL/TimescaleDB/React stack described below is **not** this repository's current implementation. The authoritative baseline is [Node.js/MySQL intranet-first architecture](../product/INTRANET-ARCHITECTURE.md); feature evidence is in [the current matrix](../product/FEATURE-ACCEPTANCE-MATRIX.md). Never use these conceptual tables to provision a production server or mark features complete.
+
 ## Aaditech Endpoint Monitoring & Management Platform
 
 **Document Version:** 1.0.0  

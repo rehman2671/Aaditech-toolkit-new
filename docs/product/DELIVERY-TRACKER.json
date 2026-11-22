@@ -82,6 +82,23 @@
       "blocked": false
     },
     {
+      "key": "M3",
+      "title": "Air-gapped multi-device office E2E acceptance",
+      "priority": "P0",
+      "state": "NOT_STARTED",
+      "owner": "enterprise_it_operator",
+      "requires": [
+        "M1",
+        "M2",
+        "PR-004"
+      ],
+      "evidence": [
+        "No witnessed office LAN acceptance or physical Windows deployment in repository evidence"
+      ],
+      "next": "Verify fresh host, HTTPS trust, 2 devices, telemetry, signed command, restart, upgrade and recovery with WAN absent",
+      "blocked": true
+    },
+    {
       "key": "PR-005",
       "title": "Generic signed MSI and local enrollment",
       "priority": "P0",

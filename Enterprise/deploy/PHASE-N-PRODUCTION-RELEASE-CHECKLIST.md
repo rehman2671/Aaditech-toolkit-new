@@ -1,5 +1,13 @@
 # Phase N — Production release acceptance and sign-off
 
+## Stage N73 — complete live ruleset pagination (PR validation pending; production BLOCKED)
+
+- [x] Code rejects incomplete/paginated GitHub main-governance inspection, missing/duplicate policy IDs, detail mismatch, failed later pages and unbounded rule counts; offline regressions added to CI lint.
+- [ ] Exact-head PR test results, merge, fresh main Windows diagnostic MSI/safety run: **PENDING**.
+- [ ] Independent human review, active no-bypass repository policy, protected signing, Hostinger/Windows/offsite restore: **PENDING**.
+
+See [N73 proposed acceptance](PHASE-N-STAGE73-ACCEPTANCE.md).
+
 ## Stage N72 — strictly up-to-date main checks and admin-ready ruleset (MERGED; PR CI 3/3 + SAFETY 2/2; MAIN MSI 4/4 + SAFETY 2/2; PRODUCTION BLOCKED)
 
 - [x] Runtime live-protection gate now requires all five trusted GitHub Actions checks in **one** strictly up-to-date main ruleset; no loose/stale-context union can approve a signed release.

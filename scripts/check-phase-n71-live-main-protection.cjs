@@ -84,17 +84,49 @@ async function github(path, token) {
   if (!resp.ok) throw new Error('N71 cannot verify required GitHub governance metadata (HTTP ' + resp.status + ')');
   return resp.json();
 }
-async function readLiveSnapshot(repo, token) {
+// GitHub paginates repository rulesets. A first-page-only inspection is not
+// admissible for protected signing: a later page could hide a main bypass.
+// Reject truncated/duplicate/inconsistent responses instead of assuming safety.
+const RULESET_PAGE_SIZE = 100;
+const MAX_RULESET_PAGES = 10;
+async function readLiveSnapshot(repo, token, request = github) {
   if (!REPO.test(repo || '')) throw new Error('N71 requires an exact owner/repository identity');
   const prefix = '/repos/' + repo;
-  const repository = await github(prefix, token);
-  const branch = await github(prefix + '/branches/main', token);
-  const summaries = await github(prefix + '/rulesets?includes_parents=true', token);
-  if (!Array.isArray(summaries)) throw new Error('N71 invalid GitHub ruleset response');
-  const rulesets = await Promise.all(summaries.map(async r => {
-    if (!Number.isInteger(r.id)) throw new Error('N71 invalid ruleset identifier');
-    return github(prefix + '/rulesets/' + r.id, token);
-  }));
+  const repository = await request(prefix, token);
+  const branch = await request(prefix + '/branches/main', token);
+  const summaries = [];
+  const seenIds = new Set();
+  for (let page = 1; page <= MAX_RULESET_PAGES; page++) {
+    const batch = await request(prefix +
+      '/rulesets?includes_parents=true&per_page=' + RULESET_PAGE_SIZE + '&page=' + page, token);
+    if (!Array.isArray(batch) || batch.length > RULESET_PAGE_SIZE) {
+      throw new Error('N73 incomplete or invalid GitHub ruleset page');
+    }
+    for (const item of batch) {
+      if (!Number.isSafeInteger(item?.id) || item.id <= 0 || seenIds.has(item.id)) {
+        throw new Error('N73 missing or duplicate GitHub ruleset identifier');
+      }
+      seenIds.add(item.id);
+      summaries.push(item);
+    }
+    if (batch.length < RULESET_PAGE_SIZE) break;
+    if (page === MAX_RULESET_PAGES) {
+      throw new Error('N73 GitHub ruleset page limit exceeded; governance cannot be proven');
+    }
+  }
+  const rulesets = [];
+  // Bounded fetch concurrency avoids an unbounded fan-out on large repositories.
+  for (let offset = 0; offset < summaries.length; offset += 10) {
+    const part = summaries.slice(offset, offset + 10);
+    const details = await Promise.all(part.map(item =>
+      request(prefix + '/rulesets/' + item.id, token)));
+    for (let i = 0; i < part.length; i++) {
+      if (!details[i] || details[i].id !== part[i].id) {
+        throw new Error('N73 ruleset details do not match enumerated policy identity');
+      }
+      rulesets.push(details[i]);
+    }
+  }
   return { repository, branch, rulesets };
 }
 async function live(repo, sha, token) {

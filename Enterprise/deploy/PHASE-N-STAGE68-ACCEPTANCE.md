@@ -1,6 +1,6 @@
 # Phase N Stage 68 — Real VPS deployment requires authoritative pinned HTTPS, structured MySQL and redirect acceptance
 
-**Status: CODE + SYNTHETIC TESTS PROPOSED; PR CI/REVIEW PENDING; REAL HOSTINGER / CUSTOMER PRODUCTION NOT APPROVED (2026-11-22 IST).**
+**Status: MERGED; PR CI 3/3 + SAFETY 2/2 SUCCESS; MAIN CI 4/4 + SAFETY 2/2 SUCCESS; REAL HOSTINGER/CUSTOMER PRODUCTION NOT APPROVED (2026-11-23 IST).**
 
 ## Failure mode fixed
 
@@ -19,8 +19,8 @@ The pre-existing `verify-hostinger-acceptance.sh` was already substantially more
 ## Evidence/limits
 
 - [x] Code and offline mock regressions added in the N68 PR branch. No production DNS or Hostinger account was queried; no real Docker daemon or customer MySQL volume was modified.
-- [ ] PR CI/real MySQL isolation and deployment-safety suite: **PENDING**.
-- [ ] PR merge and fresh main safety regression: **PENDING**.
+- [x] [PR #68](https://github.com/rehman2671/Aaditech-toolkit-new/pull/68) merged at `d3ef78605d068c51ef8c8572c98f875497032e24`; PR [CI #45052878778](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45052878778) **3/3 SUCCESS**, [safety #45052878701](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45052878701) **2/2 SUCCESS**, including the actual N68 mock-Docker/verifier regression and isolated real MySQL restore rehearsal.
+- [x] Merged main [CI #45054244204](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45054244204) **4/4 SUCCESS**, diagnostic Windows MSI build and install/uninstall/tenant-preserving major upgrade; [safety #45054244194](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45054244194) **2/2 SUCCESS**. No real Hostinger/customer rollout or signing performed.
 - [ ] Operator-approved Hostinger Docker VPS, real DNS/ACME and live server MySQL/API/tenant, off-host restore, Windows tenant enrollment, approval/signing/publisher evidence: **PENDING**.
 - [ ] Independent security owner / customer production sign-off: **NOT APPROVED**.
 

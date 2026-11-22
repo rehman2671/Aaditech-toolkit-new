@@ -42,8 +42,20 @@ test('unauthorized main publisher changes and absent trusted CI inputs fail',()=
     'wrong target branch');
   deny(src.replace('environment: production-installer','environment: testing'),
     'missing production review');
-  deny(src.replace('          GH_TOKEN: $'+'{{ secrets.GITHUB_TOKEN }}',
-    '          GH_TOKEN: $'+'{{ secrets.UNTRUSTED_TOKEN }}'),'wrong GH admission token');
+  // Target the *source-run validation* step, not the preceding N70 gate.
+  // Several steps carry GH_TOKEN, so replacing the first occurrence alone
+  // does not exercise the publisher admission control.
+  deny(src.replace('          GH_TOKEN: 
+  deny(src.replace("          CI_RUN_ID: $"+'{{ inputs.source_run_id }}',
+    "          CI_RUN_ID: $"+'{{ inputs.wrong_source_run_id }}'), 'wrong source run id');
+});
++'{{ secrets.GITHUB_TOKEN }}\n          CI_RUN_ID:',
+    '          GH_TOKEN: 
+  deny(src.replace("          CI_RUN_ID: $"+'{{ inputs.source_run_id }}',
+    "          CI_RUN_ID: $"+'{{ inputs.wrong_source_run_id }}'), 'wrong source run id');
+});
++'{{ secrets.UNTRUSTED_TOKEN }}\n          CI_RUN_ID:'),
+    'wrong GH admission token');
   deny(src.replace("          CI_RUN_ID: $"+'{{ inputs.source_run_id }}',
     "          CI_RUN_ID: $"+'{{ inputs.wrong_source_run_id }}'), 'wrong source run id');
 });

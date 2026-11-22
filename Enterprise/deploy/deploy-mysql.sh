@@ -88,8 +88,14 @@ bash "$HERE/deploy/verify-hostinger-acceptance.sh" --host "$HOST" --dry-run >/de
     die 'Hostinger strict public DNS syntax admission failed.'
 
 if [ "$DRY_RUN" -eq 1 ]; then
-    [ ! -f "$ENV_FILE" ] || validate_env
-    log "DRY RUN: hostname $HOST is syntactically valid; no files or containers changed."
+    if [ -f "$ENV_FILE" ]; then
+        # N68: a pre-existing private env must pass exactly the same strong,
+        # unique secret and hostname checks as a real deployment. A new
+        # machine without .env can still inspect the public-host syntax.
+        bash "$HERE/deploy/preflight-stage14.sh" --env-file "$ENV_FILE" >/dev/null ||
+            die 'Existing private credentials are not ready for deployment.'
+    fi
+    log "DRY RUN: hostname $HOST and existing private config (when present) passed offline validation; no files or containers changed."
     log "Production requires public DNS, accessible ports 80/443, Docker Compose and a working ACME issuer."
     exit 0
 fi

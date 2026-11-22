@@ -41,7 +41,13 @@ jobs:
     environment: production-installer
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+
+      - name: N70 verify live protected main before signed publication
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node ./scripts/check-phase-n70-live-main-protection.cjs --live
 
       - name: Validate source GitHub CI run provenance and manual confirmation
         shell: pwsh
@@ -65,17 +71,18 @@ jobs:
               $source.conclusion -ne 'success' -or $source.head_branch -ne 'main' -or
               $source.head_repository.full_name -ne $env:GITHUB_REPOSITORY -or
               $source.head_sha -notmatch '^[0-9a-f]{40}$' -or
-              $source.head_sha -cne $env:APPROVED_SOURCE_SHA.ToLowerInvariant()) {
+              $source.head_sha -cne $env:APPROVED_SOURCE_SHA.ToLowerInvariant() -or
+              $source.head_sha -cne $env:GITHUB_SHA) {
             throw 'Source must be a successful manually dispatched same-repository main branch CI run.'
           }
           "SOURCE_SHA=$($source.head_sha)" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           ref: ${{ env.SOURCE_SHA }}
           persist-credentials: false
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
           name: it-toolkit-agent
           run-id: ${{ inputs.source_run_id }}
@@ -147,6 +154,7 @@ jobs:
           # publishes immediately after upload, without independent checks
           # against GitHub's hosted digests. A failed attestation leaves the
           # draft hidden for security-owner review, never auto-deletes tags.
+          if ($env:SOURCE_SHA -cne $env:GITHUB_SHA) { throw 'N73 approved signed source differs from publisher main SHA.' }
           & gh release create $env:RELEASE_TAG @assets --draft --target $env:SOURCE_SHA --title "Aaditech agent $env:RELEASE_TAG" --notes 'Trusted, timestamped Authenticode-signed agent; verify SHA256SUMS.txt and publisher before install.' --latest=false
           if ($LASTEXITCODE -ne 0) { throw 'GitHub draft release staging failed; inspect drafts before retry.' }
           # The REST /releases/tags endpoint DOES NOT return draft releases,
@@ -171,6 +179,9 @@ jobs:
           ./Enterprise/agent/build/Assert-PublicationReviewerApproval.ps1 -ArtifactDir release -ApprovedSourceSha $env:APPROVED_SOURCE_SHA -ReleaseTag $env:RELEASE_TAG
           ./Enterprise/agent/build/Verify-ReleaseArtifact.ps1 -ArtifactDir release -ApprovedThumbprint $env:CODESIGN_APPROVED_THUMBPRINT -ApprovedMsiSha256 $env:APPROVED_MSI_SHA256 -ApprovedSqliteExeSha256 $env:SQLITE3_EXE_SHA256_APPROVED
           ./Enterprise/agent/build/Assert-RemoteReleaseAssets.ps1 -ArtifactDir release -ReleaseId $releaseId -RequireDraft
+          node ./scripts/check-phase-n70-live-main-protection.cjs --live
+          if ($LASTEXITCODE -ne 0) { throw 'N70 live governance changed before publication.' }
+          if ($env:SOURCE_SHA -cne $env:GITHUB_SHA) { throw 'N73 approved signed source differs from publisher main SHA.' }
           & gh release edit $env:RELEASE_TAG --draft=false --latest=false
           if ($LASTEXITCODE -ne 0) { throw 'N59 cannot publish verified draft; manual security review required.' }
           # A successful edit response alone does not establish integrity.

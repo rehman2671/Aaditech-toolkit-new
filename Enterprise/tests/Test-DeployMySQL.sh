@@ -7,6 +7,8 @@ WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 mkdir -p "$WORK/Enterprise/deploy"
 cp "$ROOT/Enterprise/deploy/deploy-mysql.sh" "$WORK/Enterprise/deploy/"
+cp "$ROOT/Enterprise/deploy/verify-hostinger-acceptance.sh" "$WORK/Enterprise/deploy/"
+cp "$ROOT/Enterprise/deploy/preflight-stage14.sh" "$WORK/Enterprise/deploy/"
 cp "$ROOT/Enterprise/docker-compose.yml" "$WORK/Enterprise/"
 DEPLOY="$WORK/Enterprise/deploy/deploy-mysql.sh"
 ENV_FILE="$WORK/Enterprise/.env"
@@ -17,37 +19,40 @@ expect_failure() {
     fi
 }
 # --dry-run with hostname must never generate a secret file or touch Docker.
-bash "$DEPLOY" --host toolkit.example.org --dry-run
+bash "$DEPLOY" --host toolkit.aaditech.net --dry-run
 [ ! -e "$ENV_FILE" ] || die "dry-run created .env"
 expect_failure --dry-run
 expect_failure --host 192.0.2.5 --dry-run
 expect_failure --host toolkit.example.test --dry-run
-expect_failure --host 'https://toolkit.example.org' --dry-run
-expect_failure --host 'domain.example.org/evil' --dry-run
+expect_failure --host TOOLKIT.EXAMPLE.COM --dry-run
+expect_failure --host test.localhost --dry-run
+expect_failure --host 'https://toolkit.aaditech.net' --dry-run
+expect_failure --host 'domain.aaditech.net/evil' --dry-run
 
 cat > "$ENV_FILE" <<'EOF'
 MYSQL_DATABASE=it_toolkit
 MYSQL_USER=itk_user
-MYSQL_PASSWORD=secret_pass_1234567890
-MYSQL_ROOT_PASSWORD=root_secret_1234567890
-API_TOKEN=agent_secret_1234567890
-JWT_SECRET=jwt_secret_1234567890
-BOOTSTRAP_SECRET=bootstrap_secret_1234567890
-HMAC_SECRET=hmac_secret_1234567890
-COMMAND_SIGNING_KEY=command_secret_1234567890
-SETUP_TOKEN=setup_secret_123456789012345678901234567890
-SERVER_HOST=toolkit.example.org
-CADDY_HOST=toolkit.example.org
+MYSQL_PASSWORD=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+MYSQL_ROOT_PASSWORD=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+API_TOKEN=cccccccccccccccccccccccccccccccc
+JWT_SECRET=dddddddddddddddddddddddddddddddd
+BOOTSTRAP_SECRET=eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+HMAC_SECRET=ffffffffffffffffffffffffffffffff
+COMMAND_SIGNING_KEY=gggggggggggggggggggggggggggggggg
+SETUP_TOKEN=hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh
+SERVER_HOST=toolkit.aaditech.net
+CADDY_HOST=toolkit.aaditech.net
 ENVIRONMENT=prod
 EOF
+chmod 600 "$ENV_FILE"
 BEFORE="$(sha256sum "$ENV_FILE" | cut -d' ' -f1)"
 bash "$DEPLOY" --dry-run
-bash "$DEPLOY" --host other.example.org --update-host --dry-run
+bash "$DEPLOY" --host other.aaditech.net --update-host --dry-run
 [ "$BEFORE" = "$(sha256sum "$ENV_FILE" | cut -d' ' -f1)" ] || die "dry-run changed existing credentials"
 
-expect_failure --host other.example.org --dry-run
-expect_failure --host other.example.org
+expect_failure --host other.aaditech.net --dry-run
+expect_failure --host other.aaditech.net
 expect_failure --host bogus.example.test --update-host --dry-run
-sed -i 's/API_TOKEN=agent_secret_1234567890/API_TOKEN=change-me/' "$ENV_FILE"
+sed -i 's/API_TOKEN=cccccccccccccccccccccccccccccccc/API_TOKEN=change-me/' "$ENV_FILE"
 expect_failure --dry-run
 echo "[test] MySQL deployment dry-run safety tests passed."

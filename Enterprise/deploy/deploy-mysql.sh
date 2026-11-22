@@ -81,10 +81,21 @@ elif [ -z "$HOST" ]; then
     die "No Enterprise/.env exists. Use --host with the future public DNS hostname."
 fi
 check_hostname "$HOST"
+# N68: dry-run and live deployment agree on the same strict hostname
+# admission (including case-insensitive reserved zones). This is an OFFLINE
+# call: no DNS query, TLS probe or secret generation is performed here.
+bash "$HERE/deploy/verify-hostinger-acceptance.sh" --host "$HOST" --dry-run >/dev/null ||
+    die 'Hostinger strict public DNS syntax admission failed.'
 
 if [ "$DRY_RUN" -eq 1 ]; then
-    [ ! -f "$ENV_FILE" ] || validate_env
-    log "DRY RUN: hostname $HOST is syntactically valid; no files or containers changed."
+    if [ -f "$ENV_FILE" ]; then
+        # N68: a pre-existing private env must pass exactly the same strong,
+        # unique secret and hostname checks as a real deployment. A new
+        # machine without .env can still inspect the public-host syntax.
+        bash "$HERE/deploy/preflight-stage14.sh" --env-file "$ENV_FILE" >/dev/null ||
+            die 'Existing private credentials are not ready for deployment.'
+    fi
+    log "DRY RUN: hostname $HOST and existing private config (when present) passed offline validation; no files or containers changed."
     log "Production requires public DNS, accessible ports 80/443, Docker Compose and a working ACME issuer."
     exit 0
 fi
@@ -138,27 +149,38 @@ fi
 
 chmod 600 "$ENV_FILE"
 validate_env
+# N68: before contacting Docker, enforce the existing Stage N14 private
+# credential and hostname constraints; never source or echo an .env secret.
+bash "$HERE/deploy/preflight-stage14.sh" --env-file "$ENV_FILE" >/dev/null ||
+    die 'Private production credentials or hostname preflight blocked deployment.'
 compose() { docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "$@"; }
 log "Validating Node/MySQL Compose environment."
 compose config --quiet || die "Invalid Compose configuration; no containers started."
 log "Starting MySQL, Node API, and Caddy with automatic HTTPS."
 compose up -d --build --wait --wait-timeout 180
 
-# Verify real HTTPS reachability AND MySQL database health. /healthz itself
-# returns HTTP 200 in degraded mode, so a simple HTTP status check is not enough.
+# N68: never use grep against an arbitrary health response. The real
+# Hostinger verifier validates PUBLIC HTTPS, OS-trusted CA and hostname,
+# pins the resolved public DNS address against rebinding, parses the exact
+# top-level status/components.database JSON without duplicate fields, and
+# requires an actual HTTP-to-same-origin-HTTPS redirect.
+#
+# A live deployment command is itself the operator's explicit intent to
+# contact this server. Pass the verifier's separate live-probe confirmation
+# only AFTER Docker Compose started the intended service. Keep all repeated
+# errors redacted; no fallback curl, proxy, plaintext HTTP or JSON grep.
+log 'Verifying publicly trusted HTTPS, persistent MySQL health and HTTP redirect.'
 HEALTHY=0
 for i in $(seq 1 18); do
-    if response="$(curl --fail --silent --show-error --max-time 8 "https://$HOST/healthz" 2>/dev/null)"; then
-        if printf '%s' "$response" | grep -Eq '"database"[[:space:]]*:[[:space:]]*"HEALTHY"'; then
-            HEALTHY=1
-            break
-        fi
+    if bash "$HERE/deploy/verify-hostinger-acceptance.sh" --host "$HOST" --confirm-live PROBE_PUBLIC_HEALTH >/dev/null 2>&1; then
+        HEALTHY=1
+        break
     fi
-    sleep 5
+    if [ "$i" -lt 18 ]; then sleep 5; fi
 done
 if [ "$HEALTHY" -ne 1 ]; then
-    die "HTTPS/database acceptance failed. Confirm DNS A/AAAA, ports 80/443, Caddy ACME and MySQL readiness. Inspect: docker compose --env-file $ENV_FILE -f $COMPOSE_FILE logs"
+    die 'Strict public HTTPS, structured MySQL health or redirect acceptance failed. Confirm DNS A/AAAA, ports 80/443, Caddy ACME and MySQL readiness. Inspect private Docker logs on the VPS.'
 fi
-log "Server reachable at https://$HOST/ and database reports HEALTHY."
-log "Build a generic MSI, then configure each Windows device with Configure-Agent.ps1 using an admin-issued single-use bootstrap token."
-log "TLS + agent credentials are enabled; legacy :9443 mTLS is NOT implemented by the Node backend."
+log "Strict HTTPS, MySQL HEALTHY and same-origin redirect verified at https://$HOST/."
+log 'Build a generic MSI, then configure each Windows device with Configure-Agent.ps1 using an admin-issued single-use bootstrap token.'
+log 'TLS + agent credentials are enabled; legacy :9443 mTLS is NOT implemented by the Node backend.'

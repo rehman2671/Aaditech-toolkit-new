@@ -48,9 +48,21 @@ the new API is started; no database passwords should be rotated.
  subsequent runs preserve them. It aborts
 when an existing MySQL Docker volume exists without its original .env.
 Never delete a volume to make a deployment appear successful.
-Successful completion requires genuine publicly trusted HTTPS and MySQL
-reporting `HEALTHY` on `/healthz`. A dry run is only a configuration
-check. Live Hostinger/Windows acceptance is still pending.
+N68 strengthens supported deployment admission. Both dry-run and live
+deployment first apply the existing Hostinger verifier's strict public-DNS
+**offline** syntax check, including reserved domain rejection. Real deployment
+also runs the Stage N14 private secret and hostname preflight before Docker
+Compose. Following startup, the deployer uses
+`verify-hostinger-acceptance.sh --host "$HOST" --confirm-live PROBE_PUBLIC_HEALTH`
+on bounded retries, not raw grep over arbitrary JSON. This checks a
+publicly trusted TLS chain, publicly routable pinned DNS, exact top-level
+`status="ok"` and `components.database="HEALTHY"` without duplicate keys,
+and a genuine same-origin HTTP-to-HTTPS redirect.
+
+A dry run is **offline syntax and configuration validation only**. A
+successful live health probe is still **not** tenant/API, backup, Windows
+or signed-publication acceptance. Real Hostinger/Windows acceptance remains
+pending until an authorized operator supplies and tests their infrastructure.
 
 **First-run account protection:** While initial setup is incomplete, the
 production API refuses ordinary login. Browser setup requires the private

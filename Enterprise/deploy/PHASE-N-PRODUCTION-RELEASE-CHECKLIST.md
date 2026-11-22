@@ -1,5 +1,14 @@
 # Phase N — Production release acceptance and sign-off
 
+## Stage N68 — authoritative Hostinger VPS live health admission (PR CODE READY; CI PENDING; CUSTOMER PRODUCTION BLOCKED)
+
+- [x] Replace text-grep acceptance in supported `deploy-mysql.sh` with mandatory exact-JSON, DNS-pinned, system-CA HTTPS health + same-origin HTTP redirect verifier; any degraded/malformed live outcome blocks success and preserves existing .env secrets.
+- [x] Enforce the verifier's reserved/public hostname dry-run before Docker or secret mutations, and Stage N14 strong/private deployment credentials before real Compose startup.
+- [x] Offline mocked Docker/verifier tests added and deployment-safety CI gated. **CI not yet claimed green**.
+- [ ] PR/main CI/safety review; verified real Hostinger VPS/DNS/ACME, offsite MySQL restoration, physical Windows tenant enrollment, independently signed release and security owner acceptance: **PENDING**.
+
+See [N68 acceptance](PHASE-N-STAGE68-ACCEPTANCE.md).
+
 ## Stage N67 — signed installer configuration is strictly generic (MERGED; PR 3/3 + SAFETY 2/2; MAIN DIAGNOSTIC MSI 4/4 + SAFETY 2/2; PRODUCTION BLOCKED)
 
 - [x] Every external/embedded signed release JSON must have exact first-run fields and proper JSON data types. Reject extra keys, duplicate keys, credentials/server URL, nonempty script allowlist, mismatched version/interval and any feature/elevation/script discrepancy from the source-controlled manifest.
@@ -476,9 +485,9 @@ This runbook applies to the repository's Node.js/Express + MySQL 8 service and W
 
 - [ ] Confirm a Docker-capable VPS (not ordinary Hostinger shared hosting), ownership, IP, correct actual public DNS A/AAAA record, firewall 80/443 and Caddy trusted TLS. Do not deploy to a placeholder host.
 - [ ] Ensure restricted private `Enterprise/.env` exists on the VPS (mode 600), includes cryptographically random unique required secrets, authorized `PLATFORM_ADMIN_USER_ID` and `PLATFORM_OWNER_TENANT_ID`, and is absent from the repository.
-- [ ] Before changing running services, run the **read-only** `bash Enterprise/deploy/preflight-stage14.sh --release` against the private environment; do not interpret `--dry-run` as a live success.
+- [ ] Before initial deployment, run the **read-only** `bash Enterprise/deploy/preflight-stage14.sh --env-file Enterprise/.env` against the private environment; `deploy-mysql.sh` enforces this gate before Compose startup. Use the stricter `--release` only **after** authorized platform-owner IDs and independently approved signed MSI hash are configured. An initial server bootstrap with no signed MSI is not a release approval.
 - [ ] Run on the authorized VPS: `cd Enterprise/deploy && bash deploy-mysql.sh --host actual.yourdomain.com --dry-run`. After change approval, the VPS operator may run the actual `bash deploy-mysql.sh --host actual.yourdomain.com` and record the deployment SHA, host and incident rollback contact. Existing secrets/database volumes must be preserved.
-- [ ] From an independent public network run `bash Enterprise/deploy/verify-hostinger-acceptance.sh --host actual.yourdomain.com`. Confirm HTTPS certificate chain, HTTP redirect, `/healthz` and MySQL HEALTHY. Capture the unredacted HTTP status and a *redacted* certificate/host proof (no credentials).
+- [ ] From an independent public network, with explicit operator consent, run `bash Enterprise/deploy/verify-hostinger-acceptance.sh --host actual.yourdomain.com --confirm-live PROBE_PUBLIC_HEALTH`. Confirm TLS chain, pinned public DNS, same-origin HTTP redirect, strict `/healthz` JSON and MySQL HEALTHY. The verifier intentionally refuses unconfirmed live probes. Capture the unredacted HTTP status and a *redacted* certificate/host proof (no credentials).
 
 **Evidence:** host/domain and DNS proof: ______________ · TLS and live health: ______________ · approver/date: ______________
 

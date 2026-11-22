@@ -605,7 +605,7 @@ jobs:
 
   agent-build:
     name: Build agent exe + MSI
-    needs: [node-tests, api-tests]
+    needs: [powershell-validation, node-tests, api-tests]
     runs-on: windows-latest
     # Only manually dispatched signing builds use the human-reviewed,
     # branch-restricted production-installer environment. Normal push CI

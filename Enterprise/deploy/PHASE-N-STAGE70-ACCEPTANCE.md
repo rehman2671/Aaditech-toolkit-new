@@ -1,6 +1,6 @@
 # Phase N Stage 70 — Universal required safety checks and immutable GitHub Actions
 
-**Status: CODE/NEGATIVE TESTS PROPOSED; CI AND INDEPENDENT ACTION-PROVENANCE REVIEW PENDING; PRODUCTION RELEASE BLOCKED (2026-11-22).**
+**Status: MERGED; PR CI 3/3 + SAFETY 2/2 SUCCESS; MAIN DIAGNOSTIC WINDOWS EXE/MSI 4/4 + SAFETY 2/2 SUCCESS; HUMAN ACTION REVIEW/PRODUCTION RELEASE BLOCKED (2026-11-23 IST).**
 
 ## Required-check deadlock addressed
 
@@ -28,8 +28,9 @@ These are **observed upstream Git commit pins**, not independently human-reviewe
 ## Acceptance and outstanding blockers
 
 - [x] Code, exact source-pin evidence and offline regression tests proposed in N70 branch.
-- [ ] PR CI + deployment safety and explicit independent supply-chain action pin review: **PENDING**.
-- [ ] Fresh merged-main Windows diagnostic EXE/MSI, tenant-preserving MSI upgrade, universal safety check proof: **PENDING**.
+- [x] [PR #70](https://github.com/rehman2671/Aaditech-toolkit-new/pull/70) merged at `4885502956cb2e630fa482d7a4a822ad5c4b63b7`; [PR CI #45054792334](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45054792334) **3/3 SUCCESS** and [PR safety #45054792284](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45054792284) **2/2 SUCCESS**.
+- [x] [Fresh main CI #45055096722](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45055096722) **4/4 SUCCESS**, including diagnostic Windows EXE/MSI build, install, uninstall and tenant-preserving major upgrade; [main safety #45055096741](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45055096741) **2/2 SUCCESS**, [index #45055096740](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45055096740) **SUCCESS**. Signing/release upload were correctly skipped.
+- [ ] **Independent security-owner action pin code review** remains pending; CI source pinning does not equal independent review.
 - [ ] Authorized GitHub admin enables non-bypassable main ruleset requiring five original job contexts and independent latest-commit reviewer approval: **PENDING**. This cannot be created by a YAML file and is not yet enabled.
 - [ ] Protected signed installer, actual approved package hashes, Hostinger VPS, offsite DB restore and physical Windows customer acceptance: **PENDING**.
 

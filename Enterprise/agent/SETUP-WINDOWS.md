@@ -12,6 +12,10 @@ scheduled agent cannot send telemetry until configuration is completed.
 The Windows graphical wizard prompts for an HTTPS server hostname and a
 hidden tenant-scoped enrollment token after the server is deployed. It
 prompts for administrator approval via UAC and supports later reconfiguration.
+When the GUI requests UAC elevation it now forwards an explicitly selected
+config file path and rejects ambiguous quoted/newline paths, rather than
+silently editing the default machine configuration on relaunch.
+
 The installer does **not** yet open a native graphical dialog as part of
 `msiexec` itself; setup is launched from the Start Menu after installation.
 

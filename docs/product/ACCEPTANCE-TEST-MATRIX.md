@@ -24,6 +24,12 @@
 | AT-TR-04 | P1 | Dashboard incidents reconcile retries, reopened issues, unique users/devices and verified outcomes; denominator published | **PENDING** |
 | AT-EXT-01 | P2 | Optional central service can disconnect for 7+ days without blocking local use; no data transfer without opt-in | **PENDING / not a P0 release blocker** |
 
+## Critical status-authenticity gate
+
+| Test | Priority | Required evidence | Status |
+|---|---|---|---|
+| AT-SEC-05 | P0 | With Azure/Intune disconnected and null/stale BitLocker/Defender telemetry, Cloud Identity Audit shows neutral UNKNOWN/NOT_CONNECTED, **not** static green compliant badges; validate real verified source fields | **FAIL in current UI source** at `Enterprise/portal/index.html` lines 2114–2117; fix and regression pending |
+
 ## Original-scope sign-off gates
 
 | Test | Original requirement | State |

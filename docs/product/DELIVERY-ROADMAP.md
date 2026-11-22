@@ -32,6 +32,10 @@ Before M1/M2 work, DEC-001 must be explicitly resolved by product owner, then th
 6. Only then start controlled issue playbooks (read-only first), user self-service, policy and audit/verification dashboard.
 7. Optional cloud/integrations come after independent local product acceptance.
 
+## P0 dashboard security truthfulness gate
+
+**FE-38 / AT-SEC-05:** current portal's Cloud Identity Audit renders green Azure AD, Intune, BitLocker and Defender badges even when backend states NOT_CONNECTED or unknown. Marked release blocking until a future reviewed implementation renders actual field values with neutral unknown states and tests; this documentation PR does not repair runtime UI.
+
 ## Existing review/production blocker
 
 - [N73 PR #75](https://github.com/rehman2671/Aaditech-toolkit-new/pull/75): 3/3 CI + 2/2 safety green; not merged or independently reviewed.

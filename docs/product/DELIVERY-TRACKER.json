@@ -677,6 +677,22 @@
       ],
       "next": "Atomize requirement, decide owner acceptance, then code/tests and witnessed E2E evidence",
       "blocked": true
+    },
+    {
+      "key": "FE-38",
+      "title": "Stop false-positive cloud/security compliance badges",
+      "priority": "P0",
+      "state": "NOT_STARTED",
+      "owner": "dashboard_security_engineering",
+      "requires": [
+        "DEC-001"
+      ],
+      "evidence": [
+        "Enterprise/portal/index.html 2114-2118 hard-coded green Active/Enrolled/Encrypted",
+        "server.js /api/v1/compliance/cloud-audit returns NOT_CONNECTED for cloud"
+      ],
+      "next": "Render verified source fields with neutral UNKNOWN/NOT_CONNECTED, add absent/stale/known UI regression, independently verify",
+      "blocked": true
     }
   ],
   "original_sources": [

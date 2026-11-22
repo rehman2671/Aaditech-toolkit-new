@@ -1,5 +1,14 @@
 # Phase N — Production release acceptance and sign-off
 
+## Stage N65 — approved compiler NUPKG ZIP-entry safety (PR CODE READY; CI PENDING; PRODUCTION BLOCKED)
+
+- [x] Read-only ZIP entry preflight is added after independently approved N63 package SHA verification and before any PS2EXE extraction or WiX local-only restore. Windows traversal, archive ambiguity, symlink/reparse entries and decompression bombs fail closed; the copied PS2EXE ZIP is rehashed against the original approved SHA immediately before extraction.
+- [x] Offline synthetic archive tests and dual Windows PowerShell 5.1/7 CI jobs added on the PR branch; **do not mark green until independent GitHub Actions evidence exists**.
+- [ ] PR/main CI, human code review, real Windows diagnostic MSI upgrade: **PENDING**.
+- [ ] Independently approved real PS2EXE/WiX NUPKG bytes, protected live manual installation, publisher/HSM certificate signing, reviewer release authorization, actual Hostinger/customer/physical Windows/offsite MySQL evidence: **PENDING**. No public signed MSI has been released.
+
+See [N65 acceptance](PHASE-N-STAGE65-ACCEPTANCE.md).
+
 ## Stage N64 — protected compiler module tree continuity (MERGED; PR CI 3/3 + SAFETY 2/2; MAIN DIAGNOSTIC MSI 4/4 + SAFETY 2/2; PRODUCTION BLOCKED)
 
 - [x] The protected PS2EXE installation now hashes the entire independently reviewed N63 archive's extracted module tree (names, lengths, files, nested dependencies and directory entries) and compares the complete installed tree. A matching `ps2exe.psd1` alone is not sufficient; edited `ps2exe.psm1`, stale/extra files and missing companions fail closed.

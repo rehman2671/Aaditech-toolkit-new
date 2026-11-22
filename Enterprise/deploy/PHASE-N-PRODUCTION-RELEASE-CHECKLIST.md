@@ -1,5 +1,15 @@
 # Phase N — Production release acceptance and sign-off
 
+## Stage N72 — enforce strictly up-to-date required checks and prepare owner ruleset (PR CODE READY; CI PENDING; PRODUCTION BLOCKED)
+
+- [x] Runtime live-protection gate now requires all five trusted GitHub Actions checks in **one** strictly up-to-date main ruleset; no loose/stale-context union can approve a signed release.
+- [x] New **offline** deterministic exact active-main ruleset JSON generator, negative tests and [admin handoff](MAIN-RULESET-ADMIN-HANDOFF.md) provide production-owner steps without a token or repository write side effect.
+- [ ] PR CI/merge and fresh main Windows MSI acceptance: **PENDING**.
+- [ ] Authorized repo admin must create/activate ruleset, enroll an independent reviewer, and independently validate N71's live bypass metadata and app identity. **Do not** grant repository Administration-write PAT to general build jobs to make N71 pass.
+- [ ] Protected signed Windows release, live Hostinger VPS, real enrolment and encrypted offsite MySQL restore: **PENDING**.
+
+See [N72 acceptance](PHASE-N-STAGE72-ACCEPTANCE.md).
+
 ## Stage N71 — live non-bypass main protection before actual signing and public release (MERGED; PR 3/3 + SAFETY 2/2; MAIN WINDOWS MSI 4/4 + SAFETY 2/2; PRODUCTION BLOCKED)
 
 - [x] New read-only GitHub REST gate verifies current protected main SHA, active non-bypass ruleset, independent latest-head review policy, no force-push/delete, and 5 exact GitHub Actions app ID 15368 contexts.

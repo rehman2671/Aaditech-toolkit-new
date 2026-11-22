@@ -25,12 +25,12 @@ test('manual main preflight cannot be removed, bypassed or given another token',
 test('public publisher cannot bypass first or last protected-main verification',()=>{
   denied(ci,pub.replace(PUB,'untrusted publish'),sign,'publisher first gate');
   denied(ci,pub.replace(CMD,'Write-Host skip'),sign,'publisher command');
-  denied(ci,pub.replace("if ($LASTEXITCODE -ne 0) { throw 'N71 live governance changed before publication.' }",
+  denied(ci,pub.replace("if ($LASTEXITCODE -ne 0) { throw 'N71 live main policy blocked public release.' }",
     'Write-Host ignore'),sign,'last-moment live guard');
 });
 test('signer validates fingerprint locally, then live main before PFX access',()=>{
   denied(ci,pub,sign.replace('& node $preflight --live','Write-Host accepted'),'signer');
-  denied(ci,pub,sign.replace('N71 protected main preflight denied signing','N71 accept'), 'signer fail closed');
+  denied(ci,pub,sign.replace('N71 live protected-main governance denied signing.','N71 accept'), 'signer fail closed');
   const check="if ($expected -cnotmatch '^[A-F0-9]{40}$')";
   denied(ci,pub,sign.replace(check,'if ($false)'), 'removed thumbprint admission');
   const first = sign.indexOf('$expected = (');

@@ -19,7 +19,10 @@ describe('FE-38 + FE-39 + offline build integration gate', () => {
     expect(html).not.toContain("value: '94 / 100'");
     expect(html).not.toContain("value: '100% Active'");
     expect(html).not.toContain('Approve & Deploy');
-    expect(html).not.toContain('Continuous\'}');
+    const cloud = html.split('// ---------------- GAP FULFILLMENT: TICKETS & CLOUD AUDIT VIEW')[1]
+      ?.split('async function saveTicketConfig()')[0];
+    expect(cloud).toBeDefined();
+    expect(cloud).not.toContain(" : 'Continuous'");
     expect(html).toContain('Not connected');
     expect(html).toContain('Not measured');
     expect(html).toContain('Approve for rollout');

@@ -24,6 +24,15 @@ The shared `server.js` edits are reconciled manually: N91 database admission; N9
 
 No local office installer, WAN-disconnected E2E, real signed MSI/publisher key custody, protected main reviewer/ruleset, physical Windows signed command/ACK, encrypted offsite restore, externally verified CA or production deployment is supplied here. Owner ADR DEC-001 remains pending. **Production: NOT APPROVED.**
 
+## Combined cross-feature staging runtime E2E contract
+
+New deterministic `tests/integration/p0-non-test-security-boundaries.integration.test.js` exercises all guards in a single imported server/app context:
+
+- DB-disconnected `NODE_ENV=staging`: healthz 503 with database DEGRADED and no invented MSI/worker READY; agent poll 503 DATABASE_UNAVAILABLE despite a forged Host and HMAC header; no generated CA, agent Host fallback, or stale JWT principal default acceptance.
+- DB-connected staging mock: agent origin is operator-owned HTTPS; both legacy CA routes refuse 410 without contacting SQL. The mock is **only an isolated test fixture**, not customer DB certification.
+
+The old four/five-feature green CI runs precede this added regression. **Latest exact HEAD must pass full CI and deployment safety** before treating the combined branch as regression verified. This does not establish deployed MSI signing, real DB replicas, LAN PKI or customer source-to-incident E2E.
+
 ## N92 integrated test checkpoint
 
 The new shared-source reconciliation includes [#92](https://github.com/rehman2671/Aaditech-toolkit-new/pull/92) code/test fixtures **only in this draft**. Recheck the latest exact integration head CI after the combined commit; historical #93 green runs are not proof of this addition. External LAN internal CA design remains blocked by DEC-001 and does not follow from this public-DNS posture.

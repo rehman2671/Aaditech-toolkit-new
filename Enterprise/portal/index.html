@@ -1986,6 +1986,77 @@ async function triggerSelfHealing(hostname, action_type) {
 }
 
 // ---------------- GAP FULFILLMENT: TICKETS & CLOUD AUDIT VIEW ----------------
+// FE-38: display observed cloud/agent evidence; never infer health from enrollment.
+function cloudAuditBadge(status) {
+  const tone = ['ok', 'off', 'warn', 'info'].includes(status.tone) ? ' ' + status.tone : '';
+  return `<span class="badge${tone}">${esc(status.label)}</span>`;
+}
+
+function cloudIdentityStatus(value, connected, positiveLabel) {
+  if (!connected) return { label: 'Not connected', tone: '' };
+  if (value === null || value === undefined || typeof value !== 'boolean')
+    return { label: 'Not verified', tone: '' };
+  return value
+    ? { label: positiveLabel + ' (cloud-reported)', tone: 'ok' }
+    : { label: 'Not ' + positiveLabel.toLowerCase() + ' (cloud-reported)', tone: 'off' };
+}
+
+function freshAgentEvidence(agent) {
+  if (!agent || agent.evidence_status !== 'AGENT_REPORTED') return false;
+  const timestamp = Date.parse(agent.posture_reported_at || '');
+  const age = Date.now() - timestamp;
+  return Number.isFinite(timestamp) && age >= 0 && age <= 24 * 60 * 60 * 1000;
+}
+
+function localSecurityStatus(agent, field, positiveLabel, negativeLabel) {
+  if (!freshAgentEvidence(agent)) {
+    return { label: agent?.evidence_status === 'STALE' || agent?.evidence_status === 'AGENT_REPORTED'
+      ? 'Stale — not verified' : 'Not verified', tone: '' };
+  }
+  if (typeof agent[field] !== 'boolean') return { label: 'Not verified', tone: '' };
+  return agent[field]
+    ? { label: positiveLabel + ' (agent-reported)', tone: 'ok' }
+    : { label: negativeLabel + ' (agent-reported)', tone: 'off' };
+}
+
+function localComplianceStatus(agent) {
+  if (!freshAgentEvidence(agent)) {
+    return { label: agent?.evidence_status === 'STALE' || agent?.evidence_status === 'AGENT_REPORTED'
+      ? 'Stale — not verified' : 'Not verified', tone: '' };
+  }
+  if (agent.compliance_status === 'Agent-reported noncompliant')
+    return { label: 'Agent-reported noncompliant', tone: 'off' };
+  // A positive total is permitted only for known positive local fields and
+  // an explicit fresh complete assessment produced by the backend.
+  if (agent.compliance_status === 'Agent-reported compliant' &&
+      agent.bitlocker_encrypted === true && agent.antivirus_active === true &&
+      agent.firewall_active === true)
+    return { label: 'Agent-reported compliant', tone: 'ok' };
+  return { label: 'Not verified', tone: '' };
+}
+
+function cloudServiceStatus(service, connected) {
+  if (!connected) return { label: 'Not connected', tone: '' };
+  const value = typeof service?.status === 'string' ? service.status.trim() : '';
+  const normalized = value.toUpperCase();
+  if (['CONNECTED', 'HEALTHY', 'ACTIVE'].includes(normalized))
+    return { label: value, tone: 'ok' };
+  if (['FAILED', 'ERROR', 'DISCONNECTED'].includes(normalized))
+    return { label: value, tone: 'off' };
+  return { label: value || 'Unknown', tone: '' };
+}
+
+function cloudSyncLabel(value) {
+  if (!value) return 'N/A';
+  const timestamp = new Date(value);
+  return Number.isFinite(timestamp.getTime()) ? timestamp.toLocaleString() : 'N/A';
+}
+
+function cloudLatencyLabel(value) {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0
+    ? value + ' ms' : 'N/A';
+}
+
 async function renderIntegrations() {
   const [config, tickets, cloud] = await Promise.all([
     api('/api/tickets/config'),
@@ -1994,11 +2065,19 @@ async function renderIntegrations() {
   ]);
   if (!config || !tickets || !cloud) return;
 
-  const cs = cloud.summary;
+  const cs = cloud.summary || {};
+  const connected = cloud.configured === true && cloud.status === 'CONNECTED';
+  const serviceRows = Array.isArray(cloud.cloud_services) ? cloud.cloud_services : [];
+  const agentRows = Array.isArray(cloud.agent_compliance) ? cloud.agent_compliance : [];
+  const measured = agentRows.filter(a => freshAgentEvidence(a) &&
+    typeof a.bitlocker_encrypted === 'boolean');
+  const protectedPercent = measured.length
+    ? Math.round(100 * measured.filter(a => a.bitlocker_encrypted === true).length / measured.length) + '%'
+    : 'N/A';
   statCardsEl([
-    { label: "Azure AD Sync", value: cs.azure_ad_sync, sub: "Identity Health", icon: "shield", tone: "ok" },
-    { label: "Intune Enrollment", value: cs.intune_enrolled_pct, sub: "MDM Posture", icon: "devices", tone: "ok" },
-    { label: "BitLocker Encryption", value: cs.bitlocker_compliant_pct, sub: "Fleet Encryption", icon: "key", tone: "ok" },
+    { label: "Azure AD Sync", value: connected ? (cs.azure_ad_sync || 'Unknown') : 'Not connected', sub: "Cloud connector state", icon: "shield", tone: "info" },
+    { label: "Intune Enrollment", value: connected ? (cs.intune_enrolled_pct || 'N/A') : 'Not connected', sub: "Cloud connector state", icon: "devices", tone: "info" },
+    { label: "BitLocker Encryption", value: protectedPercent, sub: "Fresh agent-reported devices only", icon: "key", tone: "info" },
     { label: "Open Local Tickets", value: tickets.filter(t => t.status !== 'Closed').length, sub: "No external ticket sync", icon: "briefcase", tone: "accent" }
   ]);
 
@@ -2069,7 +2148,7 @@ async function renderIntegrations() {
     <div class="card" style="margin-top:20px">
       <div class="row" style="align-items:center;margin-bottom:12px">
         <h3 style="margin:0">${ic('shield')} Hybrid & Cloud Identity Audit (Azure AD & Intune)</h3>
-        <span class="muted" style="margin-left:auto">Local device telemetry only — cloud services not connected</span>
+        <span class="muted" style="margin-left:auto">${connected ? "Connected cloud data must be independently attested" : "Local agent observations only — cloud services not connected"}</span>
       </div>
       <div style="overflow-x:auto">
         <table>
@@ -2082,12 +2161,14 @@ async function renderIntegrations() {
             </tr>
           </thead>
           <tbody>
-            ${cloud.cloud_services.map(cs => `
+            ${!connected || !serviceRows.length
+              ? '<tr><td colspan="4" class="muted">No cloud service connected — no sync or latency evidence</td></tr>'
+              : serviceRows.map(service => `
               <tr>
-                <td><strong>${esc(cs.name)}</strong></td>
-                <td><span class="badge ok">${esc(cs.status)}</span></td>
-                <td>${cs.last_sync ? new Date(cs.last_sync).toLocaleTimeString() : 'Continuous'}</td>
-                <td>${esc(cs.latency_ms)} ms</td>
+                <td><strong>${esc(service?.name)}</strong></td>
+                <td>${cloudAuditBadge(cloudServiceStatus(service, connected))}</td>
+                <td>${esc(cloudSyncLabel(service?.last_sync))}</td>
+                <td>${esc(cloudLatencyLabel(service?.latency_ms))}</td>
               </tr>
             `).join('')}
           </tbody>
@@ -2103,19 +2184,21 @@ async function renderIntegrations() {
               <th>Azure AD Joined</th>
               <th>Intune Managed</th>
               <th>BitLocker Encrypted</th>
-              <th>Windows Defender Realtime</th>
+              <th>Antivirus Active (agent-reported)</th>
               <th>Compliance Status</th>
             </tr>
           </thead>
           <tbody>
-            ${cloud.agent_compliance.map(ac => `
+            ${!agentRows.length
+              ? '<tr><td colspan="6" class="muted">No enrolled-agent security evidence is available</td></tr>'
+              : agentRows.map(ac => `
               <tr>
-                <td><strong>${esc(ac.hostname)}</strong></td>
-                <td><span class="badge ok">${ic('check')} Active</span></td>
-                <td><span class="badge ok">${ic('check')} Enrolled</span></td>
-                <td><span class="badge ok">${ic('check')} Encrypted</span></td>
-                <td><span class="badge ok">${ic('check')} Active</span></td>
-                <td><span class="badge ok">${esc(ac.compliance_status)}</span></td>
+                <td><strong>${esc(ac?.hostname)}</strong></td>
+                <td>${cloudAuditBadge(cloudIdentityStatus(ac?.azure_ad_joined, connected, 'Joined'))}</td>
+                <td>${cloudAuditBadge(cloudIdentityStatus(ac?.intune_managed, connected, 'Enrolled'))}</td>
+                <td>${cloudAuditBadge(localSecurityStatus(ac, 'bitlocker_encrypted', 'Encrypted', 'Not encrypted'))}</td>
+                <td>${cloudAuditBadge(localSecurityStatus(ac, 'antivirus_active', 'Active', 'Inactive'))}</td>
+                <td>${cloudAuditBadge(localComplianceStatus(ac))}</td>
               </tr>
             `).join('')}
           </tbody>

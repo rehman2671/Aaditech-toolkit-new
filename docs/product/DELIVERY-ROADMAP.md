@@ -8,7 +8,7 @@
 |---|---|---|---|
 | M0 — Scope and evidence alignment | P0 | Product PRD, architecture, feature matrix, installation contract, 26 issue catalog, test matrix, tracker; independent review of docs | **DOCS PROPOSED in this PR** |
 | M0A — Original source reconciliation and architecture decision | P0 | Confirm text mirrors versus DOCX, produce atomized RTM, approve Go/PostgreSQL versus Node/MySQL ADR (DEC-001), OS phasing and MSI model | **OWNER APPROVAL PENDING** |
-| M1 — LAN install foundation | P0 | Reconcile Node/MySQL deployment; private network binding; offline runtime bundle; local PKI with operator trust; Windows + Linux supported host paths, non-destructive secrets/data handling | **NOT_STARTED / BLOCKED by architecture work** |
+| M1 — LAN install foundation | P0 | Choose approved stack after DEC-001; private network binding; offline runtime bundle; local PKI with operator trust; Windows + Linux supported host paths, non-destructive secrets/data handling. Existing Node/MySQL public-DNS deployment is evidence of current code, not stack approval | **NOT_STARTED / BLOCKED by architecture work** |
 | M2 — One-click setup + installation ID | P0 | Single launcher + first-run web wizard, stored unique installation ID, safe reconfiguration/reinstall/clone/restore; multi-tenant bootstrap, admin | **PARTIAL existing wizard / remaining NOT_STARTED** |
 | M3 — Real enterprise end-to-end acceptance | P0 | Fresh air-gapped office, 2+ Windows devices, telemetry, signed commands, ACK/retry, endpoint upgrades and backup/restore on physical endpoints | **PENDING physical evidence** |
 | M4 — Troubleshooting platform | P1 | Incident catalog, D0-D3 policy, user self-service + proactive intake, versioned signed allowlisted playbooks, approval, rollback, after-check | **NOT_STARTED as integrated product** |
@@ -17,6 +17,8 @@
 | M7 — Original mandatory capability parity | Mandatory phased | macOS/Linux, full signed MSI factory, rich metrics and health scores, scheduled reports and HA/observability | **OPEN, owner-approved scheduling required** |
 
 Security reviews, signed package integrity and isolated regression tests are **cross-cutting requirements every milestone**, not deferred to the final phase. M3 E2E should happen early and repeat after any critical update.
+
+**Tracker milestone parity:** M0A now has its own blocked machine-readable row; normalized DOCX text verification was completed, but owner approval of DEC-001/002/003 and independent source RTM review remain outstanding. M1 is intentionally stack-neutral before DEC-001 approval.
 
 ## Decision completeness
 

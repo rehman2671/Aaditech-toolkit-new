@@ -35,8 +35,29 @@
       "blocked": false
     },
     {
+      "key": "M0A",
+      "title": "Original-source reconciliation and independent architecture/scope decision signoff",
+      "priority": "P0",
+      "state": "BLOCKED",
+      "owner": "product_owner_and_architecture_security_reviewers",
+      "requires": [
+        "M0",
+        "DEC-001",
+        "DEC-002",
+        "DEC-003"
+      ],
+      "evidence": [
+        "Original DOCX Word-body text matches doc1_full.txt / doc2_full.txt after normalization; semantic owner decisions not approved",
+        "docs/product/OWNER-DECISION-REVIEW-PACKET.md",
+        "docs/product/ORIGINAL-REQUIREMENTS-TRACEABILITY.md",
+        "Issue #79 DEC-001 remains open"
+      ],
+      "next": "Obtain independent reviewed source RTM/ADR and explicit owner decisions DEC-001/002/003, retain original source scope and distinguish approved phase plan from production acceptance",
+      "blocked": true
+    },
+    {
       "key": "M1",
-      "title": "Intranet one-click Node/MySQL server deployment",
+      "title": "Intranet one-click server deployment (backend stack pending DEC-001)",
       "priority": "P0",
       "state": "NOT_STARTED",
       "owner": "deployment_engineering",
@@ -49,7 +70,8 @@
         "legacy deploy scripts intentionally refuse incompatible stack",
         "Design backlog docs/product/LAN-INSTALLATION-IMPLEMENTATION-BACKLOG.md (not implemented)",
         "Source audit: Enterprise/docker-compose.yml mutable mysql:8.0/caddy:2-alpine and Dockerfile node:20-alpine; npm ci fallback to npm install",
-        "AT-LAN-08 offline signed reproducible bundle and Windows Server runtime support test pending"
+        "AT-LAN-08 offline signed reproducible bundle and Windows Server runtime support test pending",
+        "M1 is stack-neutral until DEC-001 owner signoff; current public DNS Node/MySQL path is implementation reality, not an approved final LAN stack"
       ],
       "next": "After DEC-001: validate Windows Server/Linux runtime support, signed digest-pinned offline image/npm bundle, internal PKI and read-only preflight; see AT-LAN-08",
       "blocked": true,

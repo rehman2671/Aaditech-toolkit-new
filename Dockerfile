@@ -3,9 +3,11 @@ FROM node:20-alpine AS base
 
 WORKDIR /app
 
-# Install dependencies first for cached layer build
-COPY package*.json ./
-RUN npm ci --omit=dev || npm install --omit=dev
+# FE-40: install only the exact reviewed lockfile graph; never fall back
+# to a different dependency graph after npm ci fails. The offline LAN
+# deliverable still needs pinned image digests and an attested offline bundle.
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev --no-audit --no-fund
 
 # Copy application source code
 COPY . .

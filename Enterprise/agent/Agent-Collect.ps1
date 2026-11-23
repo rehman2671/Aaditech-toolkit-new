@@ -59,7 +59,7 @@ function Get-ElevatedTaskRequestPath {
     return (Join-Path (Split-Path $ConfigPath -Parent) 'elevated-job.json')
 }
 
-# E4: hand an admin-required operation (msiexec self-upgrade, reboot) to the
+# E4: hand ONLY reviewed agent update requests to the
 # on-demand elevated task (ITToolkitAgentElevated). The main task is unprivileged,
 # so any action that needs SYSTEM is staged as a small JSON request file and the
 # elevated task is asked to run it once. Returns $true when the request was
@@ -69,6 +69,12 @@ function Request-ElevatedJob {
         [string]$Action,
         [hashtable]$Payload = @{}
     )
+    # Reboot requires a separate signed maintenance-window/owner-consent
+    # workflow that is not implemented. Never stage it for a SYSTEM task.
+    if ($Action -eq 'reboot') {
+        Write-AgentLog 'REBOOT_APPROVAL_REQUIRED: no privileged reboot request was staged'
+        return $false
+    }
     try {
         $req = [ordered]@{ action = $Action; requested = (Get-Date).ToString('o') } + $Payload
         ($req | ConvertTo-Json -Compress -Depth 6) | Set-Content (Get-ElevatedTaskRequestPath) -ErrorAction Stop
@@ -1078,20 +1084,10 @@ function Invoke-RemoteCommand {
     $payload = $Cmd.payload
     switch ($kind) {
         'reboot' {
-            $delay = [int]$payload.delay_seconds
-            # E4: reboot needs SeShutdownPrivilege; the routine task runs as
-            # NETWORK SERVICE, so defer to the on-demand elevated task.
-            if (-not (Test-IsElevated)) {
-                $ok = Request-ElevatedJob -Action 'reboot' -Payload @{ delay_seconds = $delay }
-                return @{ status = if ($ok) { 'completed' } else { 'failed' }; output = 'Reboot deferred to elevated task (least privilege)'; exit_code = if ($ok) { 0 } else { 1 } }
-            }
-            if ($delay -gt 0) {
-                & shutdown.exe /r /t $delay /f 2>&1 | Out-Null
-            }
-            else {
-                Restart-Computer -Force -ErrorAction Stop
-            }
-            return @{ status = 'completed'; output = "Reboot issued (delay $delay s)"; exit_code = 0 }
+            # A signed command proves transport integrity, NOT user consent,
+            # a maintenance window or authorized interruption approval.
+            # Until that workflow exists, never reboot or mark it completed.
+            return @{ status = 'failed'; output = 'REBOOT_APPROVAL_REQUIRED: no reboot executed; owner consent and maintenance approval required'; exit_code = 403 }
         }
         'wake' {
             try {
@@ -1180,25 +1176,17 @@ Write-AgentLog "Agent cycle start (endpoint: $($Config.endpoint))"
 $null = Ensure-ClientCert -Config $Config
 
 # E4: on-demand elevated task (-ElevatedOnce). Runs exactly one privileged
-# cycle (elevated collectors run, self-upgrade installs, reboot is possible)
+# cycle (elevated collectors run, self-upgrade installs, reboot remains disabled without human approval)
 # then clears any staged elevated request. Never loops.
 if ($ElevatedOnce) {
     Write-AgentLog "Elevated once run (privileged cycle)"
 
-    # Perform any staged reboot. The routine (NETWORK SERVICE) task cannot
-    # reboot, so it stages a request that this privileged pass consumes.
+    # Never interpret an old elevated-job.json 'reboot' instruction.
+    # Historical files were writable without a signed change-approval record;
+    # the privileged pass must not consume them as authorization.
     $jobPath = Get-ElevatedTaskRequestPath
     if (Test-Path $jobPath) {
-        try {
-            $job = (Get-Content $jobPath -Raw | ConvertFrom-Json)
-            if ($job.action -eq 'reboot') {
-                $delay = [int]$job.delay_seconds
-                if ($delay -gt 0) { & shutdown.exe /r /t $delay /f 2>&1 | Out-Null }
-                else { Restart-Computer -Force -ErrorAction Stop }
-                Write-AgentLog "Elevated reboot executed (delay $delay s)"
-            }
-        }
-        catch { Write-AgentLog "Elevated reboot failed: $($_.Exception.Message)" }
+        Write-AgentLog 'Ignoring staged elevated-job.json action; unapproved reboot execution is disabled'
     }
 
     Prune-Queue

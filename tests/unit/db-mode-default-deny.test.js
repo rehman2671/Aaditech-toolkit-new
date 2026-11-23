@@ -33,6 +33,9 @@ describe('P0 persistent MySQL admission in every deployed runtime', () => {
       expect(health.status).toBe(503);
       expect(health.body.status).toBe('degraded');
       expect(health.body.components.database).toBe('DEGRADED');
+      const api = await request(app).get('/api/v1/devices');
+      expect(api.status).toBe(503);
+      expect(api.body.error).toBe('DATABASE_UNAVAILABLE');
     });
   }
 

@@ -2029,7 +2029,7 @@ function localComplianceStatus(agent) {
   // A positive total is permitted only for known positive local fields and
   // an explicit fresh complete assessment produced by the backend.
   if (agent.compliance_status === 'Agent-reported compliant' &&
-      agent.bitlocker_encrypted === true && agent.defender_realtime_on === true &&
+      agent.bitlocker_encrypted === true && agent.antivirus_active === true &&
       agent.firewall_active === true)
     return { label: 'Agent-reported compliant', tone: 'ok' };
   return { label: 'Not verified', tone: '' };

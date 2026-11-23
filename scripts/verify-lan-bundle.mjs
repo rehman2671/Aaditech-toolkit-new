@@ -133,7 +133,7 @@ async function assertRegularNoLinks(file, label) {
 // Extra empty trees have no authenticated payload bytes, but could otherwise
 // exhaust memory, file descriptors, or the call stack during an offline scan.
 const MAX_SCAN_DEPTH = 64;
-const MAX_EXTRA_TREE_ENTRIES = 64;
+const MAX_EXTRA_TREE_ENTRIES = 128;
 
 async function walkExactPayload(root, expectedPaths) {
   const observed = new Set();

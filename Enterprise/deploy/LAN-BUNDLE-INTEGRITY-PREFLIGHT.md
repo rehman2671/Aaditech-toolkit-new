@@ -30,14 +30,14 @@ The `--trusted-manifest-sha256` value **MUST** be distributed out of band in an 
 }
 ```
 
-The manifest is a JSON file **outside** the payload directory. Every payload file must appear once, with a safe portable relative path, exact byte size, and SHA-256 checksum. The verifier rejects duplicate/case-colliding paths, path traversal, symlinks, missing files, extra files, mismatched sizes and hashes, invalid schemas, untrusted manifest digests, and unexpected CLI options. It returns nonzero on failure before any downstream install action.
+The manifest is a JSON file **outside** the payload directory. Every payload file must appear once, with a safe portable relative path, exact byte size, and SHA-256 checksum. The verifier rejects duplicate/case-colliding paths, path traversal, symlinks, **hard-linked payload/manifest files**, missing files, extra files, mismatched sizes and hashes, invalid schemas, untrusted manifest digests, and unexpected CLI options. For each payload it also compares the opened file descriptor against its original/current filesystem identity and modification timestamps to detect common file substitutions during hashing. It returns nonzero on failure before any downstream install action.
 
 ## Trust and scope limits
 
 - This is **content integrity**, not a publisher signature, certificate chain, code signing, trusted release identity or root of trust by itself.
 - A trusted manifest digest must be authenticated independently; a production installer requires a signed, expiring release manifest with public-key rotation/revocation and verified binary provenance.
 - The script runs with an available Node.js runtime: a clean Windows Server/Linux host may **not** have Node installed. A future signed installer must bundle or supply its own trusted verified verifier/runtime and fail closed on unsupported hosts.
-- File verification is read-only. Do not mount attacker-writable payloads concurrently with privileged installs; atomic unpack/verified-staging permissions and TOCTOU-resistant consumption remain required.
+- File verification is read-only. Hardlinks are denied to reduce out-of-directory mutation aliases, but filesystem replacement after verification remains possible. Do not mount attacker-writable payloads concurrently with privileged installs; atomic unpack/verified-staging permissions and TOCTOU-resistant consumption remain required. These checks **do not** make validation and installation one atomic transaction.
 - This does not pin Docker OCI image digests, perform offline `docker load`, create a CA, start a server, configure firewall, migrate DB, register an installation ID, enroll agents or test WAN disconnection. All remain under [#80](https://github.com/rehman2671/Aaditech-toolkit-new/issues/80) after authorized stack decision [#79](https://github.com/rehman2671/Aaditech-toolkit-new/issues/79).
 
 See `tests/unit/lan-bundle-integrity.test.js` for tamper/negative/CLI tests.

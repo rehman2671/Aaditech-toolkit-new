@@ -12,6 +12,20 @@
 - `Enterprise/agent/SETUP-WINDOWS.md` describes a generic Windows MSI and post-install GUI; it does **not** establish a complete office server installer.
 - Multi-OS endpoint and signed per-tenant MSI factory scope from the original requirements must be preserved even if initial office rollout is intentionally phased (owner DEC-002/003).
 
+## Offline supply-chain and Windows host reality — source-level gap
+
+The existing `Enterprise/docker-compose.yml` uses **mutable** `mysql:8.0` and `caddy:2-alpine` image tags. `Dockerfile` uses mutable `node:20-alpine` and runs `npm ci --omit=dev || npm install --omit=dev`. The fallback means a failed lockfile install may use a different dependency resolution; an offline first-install may need network registry access. The public deployment's active `Enterprise/deploy/Caddyfile` still assumes DNS/ACME. **None is proof of a signed, reproducible, WAN-disconnected package.**
+
+Future installer acceptance must:
+1. Supply a reviewed, pinned **image-digest and npm-dependency manifest**, package provenance/signing, offline image archive import and hashes. Never fetch from Docker Hub/npm/public CA when the operator selected fully offline mode.
+2. Ensure package/build reproducibility: build the signed release artifact in a controlled environment with strict lockfile enforcement, or a verified offline dependency cache; reject cache tampering, lockfile mismatch, unapproved image drift and missing artifacts *before* database or secret mutation.
+3. Explicitly choose and test how supported **Windows Server host releases** run the service/runtime. A Linux-container Compose file does not by itself demonstrate native Windows Server compatibility. Document an approved VM/runtime model or supported alternative, elevation, lifecycle and backup behavior.
+4. Make a reviewed intranet-only ingress profile with server-bound SAN, local CA/enterprise PKI and controlled firewall interfaces. Compose currently maps host 80/443 but does **not** publish MySQL/API host ports; preserve that containment and test unauthorized-network denial.
+5. Test **WAN physically disconnected before the installer is run**, not only after a successful online installation. Include first-run install, upgrade, rollback and artifact cache checks.
+6. Retain active public-DNS/ACME safeguards; never relax `deploy-mysql.sh` hostname validation simply to accept local IPs. Implement separate LAN mode with independent acceptance.
+
+**P0 gate:** `AT-LAN-08` requires an immutable signed offline bundle and positive/negative host compatibility tests. These are target requirements, *not* implemented capabilities. Full source evidence and acceptance discussion: [issue #80](https://github.com/rehman2671/Aaditech-toolkit-new/issues/80).
+
 ## Implementation slices — work only after design approval
 
 | ID | Depends on | Deliverable | Explicit non-destructive exit test |

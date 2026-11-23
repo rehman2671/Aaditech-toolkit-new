@@ -47,9 +47,11 @@
       "evidence": [
         "Enterprise/deploy/deploy-mysql.sh currently requires public DNS",
         "legacy deploy scripts intentionally refuse incompatible stack",
-        "Design backlog docs/product/LAN-INSTALLATION-IMPLEMENTATION-BACKLOG.md (not implemented)"
+        "Design backlog docs/product/LAN-INSTALLATION-IMPLEMENTATION-BACKLOG.md (not implemented)",
+        "Source audit: Enterprise/docker-compose.yml mutable mysql:8.0/caddy:2-alpine and Dockerfile node:20-alpine; npm ci fallback to npm install",
+        "AT-LAN-08 offline signed reproducible bundle and Windows Server runtime support test pending"
       ],
-      "next": "Design LAN profile, prerequisites and offline dependencies without weakening TLS",
+      "next": "After DEC-001: validate Windows Server/Linux runtime support, signed digest-pinned offline image/npm bundle, internal PKI and read-only preflight; see AT-LAN-08",
       "blocked": true,
       "issue_url": "https://github.com/rehman2671/Aaditech-toolkit-new/issues/80"
     },

@@ -11,6 +11,7 @@
 | AT-LAN-05 | P0 | Two separate office installations have distinct persistent installation UUIDs and cannot read/share any device or tenant secrets | **PENDING**; independent installation ID not implemented |
 | AT-LAN-06 | P0 | Upgrade and preserve data, identity, agent schedule, policy, certificates; rollback or safe stop after interruption | **PENDING physical**; isolated MSI major-upgrade CI exists |
 | AT-LAN-07 | P0 | Intermittent LAN, hostname change, service restart and lost-ACK retry do not duplicate accepted data or leak credentials | **PENDING real LAN**; synthetic MySQL fault tests exist |
+| AT-LAN-08 | P0 | Fully offline clean install with signed digest-pinned image/npm bundle; no network fetch; tampered/missing image and unsupported Windows Server/Linux runtime rejected at read-only preflight; local 80/443 ingress scoped safely | **PENDING**; current mutable image tags and npm install fallback are not reproducible offline acceptance |
 | AT-SEC-01 | P0 | Internal CA or enterprise PKI trust, hostname SAN verification, invalid/expired/untrusted cert fail closed | **PENDING LAN**; existing public-TLS checks not equivalent |
 | AT-SEC-02 | P0 | OS ACLs on setup/agent/database secrets; no printed/embedded shared tokens; approver and user policy enforced | **PENDING physical**; N74 PR CI passed, not merged |
 | AT-SEC-03 | P0 | Cross-tenant/cross-installation/duplicate hostname/UID enrollment, commands and reports refused under race and restore | **PENDING multi-office**; isolated tenant tests exist |

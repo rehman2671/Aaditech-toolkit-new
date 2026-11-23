@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { resolveVerifiedUserPrincipal } from '../../auth-principal.js';
+import { resolveVerifiedUserPrincipal, requiresPersistedUserAuthorization } from '../../auth-principal.js';
 
 const norm = r => String(r || '').toUpperCase();
 const base = {
@@ -9,6 +9,18 @@ const base = {
 };
 const claims = { id: 81, username: 'tenant-admin', email: 'tenant@example.org',
   tenant_id: base.tenant_id, role: 'SUPER_ADMIN', jti: 'j-81' };
+
+describe('Default-deny auth mode selection', () => {
+  it('requires current database authorization when NODE_ENV is missing or not explicit test', () => {
+    for (const nodeEnv of [undefined, '', 'development', 'staging', 'Production', 'production']) {
+      expect(requiresPersistedUserAuthorization(nodeEnv)).toBe(true);
+      expect(resolveVerifiedUserPrincipal(claims, null, norm,
+        requiresPersistedUserAuthorization(nodeEnv))).toBeNull();
+    }
+    expect(requiresPersistedUserAuthorization('test')).toBe(false);
+    expect(resolveVerifiedUserPrincipal(claims, null, norm, false)?.tenant_id).toBe(claims.tenant_id);
+  });
+});
 
 describe('Stage 12 current-user production JWT binding', () => {
   it('accepts exactly the active current tenant identity', () => {

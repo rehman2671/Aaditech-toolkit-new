@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import request from 'supertest';
 import JSZip from 'jszip';
+import { readFileSync } from 'node:fs';
 import { app } from '../../server.js';
 
 async function download(path) {
@@ -10,6 +11,14 @@ async function download(path) {
 }
 
 describe('P0 generated Windows installers reject unsigned or unapproved MSI execution', () => {
+  it('checked-in legacy installer contains no privileged unverified SYSTEM-task path', () => {
+    const content = readFileSync(new URL('../../Enterprise/agent/install-agent.cmd', import.meta.url), 'utf8');
+    expect(content).toContain('Legacy unchecked PowerShell agent installer is permanently disabled.');
+    expect(content).toContain('exit /b 3');
+    expect(content).not.toMatch(/schtasks\s+\/(create|delete|change)/i);
+    expect(content).not.toMatch(/-ExecutionPolicy\s+Bypass/i);
+    expect(content).not.toMatch(/\b(?:msiexec|xcopy|reg\s+add|powershell\.exe)\b/i);
+  });
   it('PowerShell requires both fingerprints and valid Authenticode before any file write', async () => {
     const script = await download('/api/v1/agent/install.ps1');
     for (const key of ['AADITECH_APPROVED_MSI_SHA256',

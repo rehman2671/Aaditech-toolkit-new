@@ -59,6 +59,8 @@
 
 **Dedicated follow-up:** [Issue #78 — false-positive cloud/security health badges](https://github.com/rehman2671/Aaditech-toolkit-new/issues/78). Unlike the stack choice, this P0 frontend truthfulness bug can be corrected in its own reviewed code PR **without waiting on [DEC-001 issue #79](https://github.com/rehman2671/Aaditech-toolkit-new/issues/79)**.
 
+**Targeted implementation specification:** [FE-38 cloud/security evidence-to-UI contract](FE38-SECURITY-STATUS-RENDERING-CONTRACT.md). Includes summary cards, stale evidence, overall compliance badge, missing sync time, null fields and accessibility; `AT-SEC-05` still fails until source fix.
+
 ## Live governance snapshot (not a durable approval)
 
 On 2026-11-23 live checks returned **`main.protected=false`**, **0 effective rulesets**, **0 releases**, **0 reviews** for #75 and #76. These are time-sensitive; always re-query before production. [Production blocker #62](https://github.com/rehman2671/Aaditech-toolkit-new/issues/62) remains OPEN.

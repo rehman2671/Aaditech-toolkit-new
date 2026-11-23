@@ -31,6 +31,11 @@ For implementation proposals, read the original requirements and [crosswalk](ORI
 
 Do not assume a user interface tab, API route, unit test, old checkmark, or historical `project-progress.json` 100% metric proves an end-to-end customer workflow. Generated `project-progress.json` measures *historical audit issue closure only* and is maintained by `Scripts/Index/Update-ProjectIndex.ps1`; do not manually convert it into a product-completion percentage. Product evidence and gaps live in this directory.
 
+## Implementation-ready design backlogs
+
+- [FE-38 security status rendering contract](FE38-SECURITY-STATUS-RENDERING-CONTRACT.md) — P0 field-by-field tri-state evidence and dashboard regression cases (not fixed).
+- [M1/M2 local installer implementation backlog](LAN-INSTALLATION-IMPLEMENTATION-BACKLOG.md) — design slices, trust model and real WAN-disconnected acceptance (not built).
+
 ## Status vocabulary (never collapse levels)
 
 - **NOT_STARTED**: no implementation or verified evidence.

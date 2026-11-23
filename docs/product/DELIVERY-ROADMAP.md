@@ -22,10 +22,15 @@ Security reviews, signed package integrity and isolated regression tests are **c
 
 Before M1/M2 work, DEC-001 must be explicitly resolved by product owner, then the original source text/DOCX fidelity and independent review recorded in [decision handoff](REVIEW-AND-ACCEPTANCE-HANDOFF.md). This doc PR does **not** grant a stack change or production approval.
 
+## Implementation design handoffs
+
+The P0 frontend accuracy fix uses [FE-38's exact rendering contract](FE38-SECURITY-STATUS-RENDERING-CONTRACT.md), independent of the backend stack decision. The P0 LAN installer uses [the implementation backlog](LAN-INSTALLATION-IMPLEMENTATION-BACKLOG.md) and requires the approved [DEC-001 decision](STACK-DECISION-DOSSIER.md) before changing runtime architecture. Both design handoffs still require new reviewed code PRs.
+
 ## Actionable GitHub blockers
 
 - [DEC-001 owner architecture ADR, issue #79](https://github.com/rehman2671/Aaditech-toolkit-new/issues/79): **P0 / unresolved owner decision** before choosing backend-language/database implementation work.
 - [FE-38 security dashboard misinformation, issue #78](https://github.com/rehman2671/Aaditech-toolkit-new/issues/78): **P0 / runtime bug, fix independent of DEC-001**. The existing portal must never display unknown Azure/Intune/BitLocker/Defender values as healthy green badges; tracked as `AT-SEC-05`.
+- [M1/M2 intranet server installer, issue #80](https://github.com/rehman2671/Aaditech-toolkit-new/issues/80): **P0 design/deployment**. Needs architecture ADR plus independent physical office acceptance before any 'one-click LAN ready' claim.
 - [Original main protection/release blocker #62](https://github.com/rehman2671/Aaditech-toolkit-new/issues/62): repo owner and independent reviewers must activate and accept safeguards before signed production release.
 
 Tracking issues do not implement or independently accept the capability. No issue should be closed on documentation-only evidence.

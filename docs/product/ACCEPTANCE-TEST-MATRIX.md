@@ -30,6 +30,10 @@
 |---|---|---|---|
 | AT-SEC-05 | P0 | With Azure/Intune disconnected and null/stale BitLocker/Defender telemetry, Cloud Identity Audit shows neutral UNKNOWN/NOT_CONNECTED, **not** static green compliant badges; validate real verified source fields | **FAIL in current UI source** at `Enterprise/portal/index.html` lines 2114–2117; fix and regression pending |
 
+**AT-SEC-05 granular cases:** see [FE-38 status-rendering contract](FE38-SECURITY-STATUS-RENDERING-CONTRACT.md); include neutral `Not connected` summary card tones, `Not verified` overall compliance, stale/unknown rows and no invented cloud sync time. Backend posture unit tests alone do not validate displayed status.
+
+**AT-LAN suite detailed implementation mapping:** see [LAN implementation backlog](LAN-INSTALLATION-IMPLEMENTATION-BACKLOG.md) and [issue #80](https://github.com/rehman2671/Aaditech-toolkit-new/issues/80). A public-DNS Docker installation does not satisfy this suite.
+
 ## Original-scope sign-off gates
 
 | Test | Original requirement | State |

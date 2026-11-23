@@ -46,10 +46,12 @@
       ],
       "evidence": [
         "Enterprise/deploy/deploy-mysql.sh currently requires public DNS",
-        "legacy deploy scripts intentionally refuse incompatible stack"
+        "legacy deploy scripts intentionally refuse incompatible stack",
+        "Design backlog docs/product/LAN-INSTALLATION-IMPLEMENTATION-BACKLOG.md (not implemented)"
       ],
       "next": "Design LAN profile, prerequisites and offline dependencies without weakening TLS",
-      "blocked": true
+      "blocked": true,
+      "issue_url": "https://github.com/rehman2671/Aaditech-toolkit-new/issues/80"
     },
     {
       "key": "M2",
@@ -62,10 +64,12 @@
       ],
       "evidence": [
         "server.js /api/setup",
-        "Enterprise/portal/index.html renderSetup"
+        "Enterprise/portal/index.html renderSetup",
+        "Design backlog docs/product/LAN-INSTALLATION-IMPLEMENTATION-BACKLOG.md (not implemented)"
       ],
       "next": "Implement installer-to-wizard handoff and automated safe local secrets/DB/PKI provisioning",
-      "blocked": true
+      "blocked": true,
+      "issue_url": "https://github.com/rehman2671/Aaditech-toolkit-new/issues/80"
     },
     {
       "key": "PR-004",
@@ -691,7 +695,8 @@
       "evidence": [
         "Enterprise/portal/index.html 2114-2118 hard-coded green Active/Enrolled/Encrypted",
         "server.js /api/v1/compliance/cloud-audit returns NOT_CONNECTED for cloud",
-        "Tracking issue #78 opened; no source-code change in docs PR"
+        "Tracking issue #78 opened; no source-code change in docs PR",
+        "Design acceptance docs/product/FE38-SECURITY-STATUS-RENDERING-CONTRACT.md, runtime unchanged"
       ],
       "next": "Implement independent P0 dashboard truthfulness fix without waiting for DEC-001; issue #78 provides backend-field/null/stale/security acceptance matrix",
       "blocked": true,
@@ -729,5 +734,9 @@
       "original requirements fully implemented",
       "production acceptance"
     ]
+  },
+  "design_acceptance_specs": {
+    "FE38": "docs/product/FE38-SECURITY-STATUS-RENDERING-CONTRACT.md",
+    "M1_M2": "docs/product/LAN-INSTALLATION-IMPLEMENTATION-BACKLOG.md"
   }
 }

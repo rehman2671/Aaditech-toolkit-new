@@ -62,7 +62,11 @@ function exactKeys(object, keys) {
 
 async function assertRegularNoLinks(file, label) {
   const info = await lstat(file);
-  if (info.isSymbolicLink() || !info.isFile()) fail(label + ' is not a regular non-link file');
+  // Symlinks are not the only alias risk: a hard link lets an outside path
+  // mutate the same inode after verification. Offline payload/manifest files
+  // must have exactly one link before the verifier reads them.
+  if (info.isSymbolicLink() || !info.isFile() || info.nlink !== 1)
+    fail(label + ' must be a regular single-link file');
   return info;
 }
 
@@ -108,7 +112,10 @@ async function digestFile(file, expectedSize) {
   const handle = await open(file, flags);
   try {
     const st = await handle.stat();
-    if (!st.isFile() || st.size !== expectedSize) fail('Payload changed during validation');
+    if (!st.isFile() || st.nlink !== 1 || st.size !== expectedSize ||
+        st.dev !== info.dev || st.ino !== info.ino) {
+      fail('Payload changed during validation');
+    }
     const hash = createHash('sha256');
     let size = 0;
     for await (const chunk of handle.createReadStream({ autoClose: false })) {
@@ -116,6 +123,19 @@ async function digestFile(file, expectedSize) {
       hash.update(chunk);
     }
     if (size !== expectedSize) fail('Payload byte count changed during validation');
+    // Recheck the open descriptor and current pathname. This detects common
+    // file replacement/mutation during read; it does NOT make a later
+    // privileged install atomic against concurrent untrusted writers.
+    const after = await handle.stat();
+    const current = await lstat(file);
+    if (!after.isFile() || after.nlink !== 1 ||
+        after.dev !== st.dev || after.ino !== st.ino ||
+        after.size !== expectedSize ||
+        after.mtimeMs !== st.mtimeMs || after.ctimeMs !== st.ctimeMs ||
+        current.isSymbolicLink() || !current.isFile() || current.nlink !== 1 ||
+        current.dev !== st.dev || current.ino !== st.ino) {
+      fail('Payload changed during validation');
+    }
     return hash.digest('hex');
   } finally {
     await handle.close();

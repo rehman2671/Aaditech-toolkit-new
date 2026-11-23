@@ -40,6 +40,19 @@ Do not assume a user interface tab, API route, unit test, old checkmark, or hist
 - [FE-38 security status rendering contract](FE38-SECURITY-STATUS-RENDERING-CONTRACT.md) — P0 field-by-field tri-state evidence and dashboard regression cases (not fixed).
 - [M1/M2 local installer implementation backlog](LAN-INSTALLATION-IMPLEMENTATION-BACKLOG.md) — design slices, trust model and real WAN-disconnected acceptance (not built).
 
+## 2026-11-24 implementation and acceptance checkpoint — unmerged branches only
+
+The following **exact branch heads** have completed automated PR CI and deployment-safety regression; they are **not** part of the main executable baseline, have **zero recorded independent human approvals**, and have **not** passed physical office deployment or signed-release gates.
+
+| PR | Scope and exact head | Automated PR evidence | Current status |
+| --- | --- | --- | --- |
+| [#75](https://github.com/rehman2671/Aaditech-toolkit-new/pull/75) | N73 GitHub governance ruleset pagination fail-closed — `67abb1bf` | [CI 3/3](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45072083622), [safety 2/2](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45072083593) | CI_VERIFIED; unreviewed/unmerged |
+| [#76](https://github.com/rehman2671/Aaditech-toolkit-new/pull/76) | N74 Windows enrollment ACL **and trusted ownership before secret write** — `b56eaf9e` | [CI 3/3](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45279445596), [safety 2/2](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45279445423) | CI_VERIFIED; unreviewed/unmerged |
+| [#85](https://github.com/rehman2671/Aaditech-toolkit-new/pull/85) | Combined FE-38/FE-39/FE-41 truthful security, patch approval and MSI UI plus strict Docker build — `f74b17ea` | [CI](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45165040239), [safety](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45165040286) successful | CI_VERIFIED; unreviewed/unmerged |
+| [#86](https://github.com/rehman2671/Aaditech-toolkit-new/pull/86) | LAN-01 read-only offline manifest and bundle hash preflight **including duplicate-key rejection** — `734f4e38` | [CI 3/3](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45279208002), [safety 2/2](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45279208076) | CI_VERIFIED; unreviewed/unmerged |
+
+The overlapping FE-38, FE-39 and strict-build source PRs **#81/#84/#82** must not be merged again if combined PR **#85** is selected by an independent reviewer. On all PRs above, the diagnostic Windows MSI build was intentionally **skipped**, so main installer acceptance must be rerun after any authorized merges. The actual current `main` branch remains **unprotected**, with **no active rulesets** at the last connected GitHub read; governance blocker [#62](https://github.com/rehman2671/Aaditech-toolkit-new/issues/62) remains OPEN. Original stack owner decision [#79](https://github.com/rehman2671/Aaditech-toolkit-new/issues/79) and offline one-click LAN deployment [#80](https://github.com/rehman2671/Aaditech-toolkit-new/issues/80) are unresolved. Do not confuse a standalone content-hash verifier or portal badge rendering with a production-ready office installation.
+
 ## Status vocabulary (never collapse levels)
 
 - **NOT_STARTED**: no implementation or verified evidence.

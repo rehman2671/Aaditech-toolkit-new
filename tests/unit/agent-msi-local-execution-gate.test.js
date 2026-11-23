@@ -26,11 +26,18 @@ describe('P0 generated Windows installers reject unsigned or unapproved MSI exec
     expect(script).not.toContain('registers Enterprise Root CA');
   });
   it('downloadable ZIP never distributes legacy SYSTEM-task installer as its install.cmd entry', async () => {
-    const response = await request(app).get('/api/v1/agent/bundle.zip').set('Host', '127.0.0.1:3000');
+    const binaryParser = (response, callback) => {
+      const chunks = [];
+      response.on('data', chunk => chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)));
+      response.on('end', () => callback(null, Buffer.concat(chunks)));
+      response.on('error', callback);
+    };
+    const response = await request(app).get('/api/v1/agent/bundle.zip')
+      .set('Host', '127.0.0.1:3000').buffer(true).parse(binaryParser);
     expect(response.status).toBe(200);
     expect(response.headers['content-type']).toContain('application/zip');
-    const bytes = Buffer.isBuffer(response.body) ? response.body : Buffer.from(response.text || '', 'binary');
-    const zip = await JSZip.loadAsync(bytes);
+    expect(Buffer.isBuffer(response.body)).toBe(true);
+    const zip = await JSZip.loadAsync(response.body);
     const cmd = await zip.file('install-agent.cmd').async('string');
     const ps1 = await zip.file('install-agent.ps1').async('string');
     for (const downloaded of [cmd, ps1]) {

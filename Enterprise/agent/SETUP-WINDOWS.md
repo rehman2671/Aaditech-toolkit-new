@@ -21,6 +21,8 @@ The installer does **not** yet open a native graphical dialog as part of
 
 ### N74 — private configuration before first credential write
 
+The administrator setup wizard transfers ownership of the secret-bearing directory and files to the built-in Administrators group (SID `S-1-5-32-544`) **before** writing a token, and verifies that owner on disk. Merely clearing untrusted ACL entries while retaining an untrusted owner is insufficient: Windows owners can re-grant themselves file access. If trusted ownership cannot be established, setup stops without writing new credential bytes.
+
 The administrator setup wizard now restricts the ProgramData agent directory,
 any existing runtime configuration, and an **empty** same-directory temporary
 file to explicit SYSTEM/Administrators/NETWORK SERVICE permissions before a

@@ -119,6 +119,9 @@ try {
     if ($env:OS -eq 'Windows_NT') {
         foreach ($protectedPath in @($tmpDir, $cfgPath)) {
             $acl = Get-Acl -LiteralPath $protectedPath
+            if ($acl.GetOwner([Security.Principal.SecurityIdentifier]).Value -ne 'S-1-5-32-544') {
+                throw "Wizard retained untrusted credential file owner: $protectedPath"
+            }
             if (-not $acl.AreAccessRulesProtected -or @($acl.Access).Count -ne 3) {
                 throw "Wizard did not install a private, explicit credential ACL: $protectedPath"
             }
@@ -178,6 +181,9 @@ try {
     }
     if ($env:OS -eq 'Windows_NT') {
         $freshAcl = Get-Acl -LiteralPath $blankConfigPath
+        if ($freshAcl.GetOwner([Security.Principal.SecurityIdentifier]).Value -ne 'S-1-5-32-544') {
+            throw 'Fresh setup left untrusted owner able to rewrite the credential DACL'
+        }
         if (-not $freshAcl.AreAccessRulesProtected -or @($freshAcl.Access).Count -ne 3) {
             throw 'Fresh setup wrote token before private credential ACL was established'
         }

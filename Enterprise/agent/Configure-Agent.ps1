@@ -134,6 +134,10 @@ if (-not $old.ContainsKey('interval_minutes')) { $old['interval_minutes'] = 30 }
 # Retain the file owner while replacing the DACL with trusted SID grants.
 function Set-PrivateAgentAcl([string]$Path, [bool]$IsDirectory) {
     $acl = Get-Acl -LiteralPath $Path -ErrorAction Stop
+    # DACL-only hardening is ineffective if an untrusted former owner retains
+    # WRITE_DAC via Windows owner rights. Ownership must be trusted BEFORE a
+    # new enrollment token is written; inability to set it fails closed.
+    $acl.SetOwner([System.Security.Principal.SecurityIdentifier]::new('S-1-5-32-544'))
     $acl.SetAccessRuleProtection($true, $false)
     foreach ($entry in @($acl.Access)) {
         $acl.PurgeAccessRules($entry.IdentityReference)
@@ -161,6 +165,9 @@ function Set-PrivateAgentAcl([string]$Path, [bool]$IsDirectory) {
     }
     Set-Acl -LiteralPath $Path -AclObject $acl -ErrorAction Stop
     $verified = Get-Acl -LiteralPath $Path -ErrorAction Stop
+    if ($verified.GetOwner([System.Security.Principal.SecurityIdentifier]).Value -ne 'S-1-5-32-544') {
+        throw 'Agent credential owner is not trusted Administrators; refusing to save secrets.'
+    }
     if (-not $verified.AreAccessRulesProtected -or
         @($verified.Access).Count -ne 3) {
         throw 'Agent credential ACL is not verifiably private; refusing to save secrets.'

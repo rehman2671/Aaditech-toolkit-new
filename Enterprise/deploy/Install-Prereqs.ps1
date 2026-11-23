@@ -185,7 +185,7 @@ if (-not $SkipDocker) {
         # Nonempty error text is not proof of an installed Compose v2 plugin.
         $composeVer = (& docker compose version --short 2>$null | Out-String).Trim()
         $composeOk = ($LASTEXITCODE -eq 0) -and
-            ($composeVer -match '^v?2\\.[0-9]+\\.[0-9]+([+.-][0-9A-Za-z.-]+)?$')
+            ($composeVer -match '^v?2\.[0-9]+\.[0-9]+([+.-][0-9A-Za-z.-]+)?$')
     }
     $dockerComposeVerified = $composeOk
     if ($docker -and $composeOk) {

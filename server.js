@@ -307,8 +307,10 @@ app.get(['/healthz', '/api/health', '/api/v1/health'], async (req, res) => {
   // Readiness must reflect the backing database, not just an open HTTP port.
   // Test fixtures intentionally exercise the in-memory fallback separately.
   const databaseReady = await db.probeDbReadiness();
-  const isProductionDatabaseDown = process.env.NODE_ENV === 'production' &&
-    process.env.VITEST !== 'true' && process.env.VITEST !== '1' && !databaseReady;
+  // Only the explicit isolated test profile permits a healthy synthetic
+  // database. Never let VITEST=true or an unset/staging NODE_ENV disguise a
+  // missing persistent MySQL backing store in an actual deployment.
+  const isProductionDatabaseDown = process.env.NODE_ENV !== 'test' && !databaseReady;
   res.status(isProductionDatabaseDown ? 503 : 200).json({
     status: isProductionDatabaseDown ? 'degraded' : 'ok',
     timestamp: new Date().toISOString(),

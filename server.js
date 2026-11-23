@@ -32,7 +32,7 @@ import * as db from './db.js';
 import { isValidSetupKey, isSeededDemoPasswordHash } from './setup-security.js';
 import { validateEnrollmentIdentity } from './enrollment-security.js';
 import { resolveAgentOrigin } from './agent-origin.js';
-import { resolveVerifiedUserPrincipal } from './auth-principal.js';
+import { resolveVerifiedUserPrincipal, requiresPersistedUserAuthorization } from './auth-principal.js';
 import { isPlatformSettingsAdmin } from './platform-settings-admin.js';
 import { belongsToCurrentTenant, publicDeviceRecord } from './device-visibility.js';
 import { normalizeAgentPosture, agentReportedCoverage } from './security-posture.js';
@@ -419,7 +419,10 @@ function extractToken(req) {
 // Resolve the current production workspace from persistent account identity
 // and active membership, never only from the signed JWT's tenant/role claims.
 async function resolveCurrentUserPrincipal(decoded) {
-  const production = process.env.NODE_ENV === 'production';
+  // All runtime modes except isolated automated tests must re-authorize JWT
+  // role/tenant against the current database account + workspace membership.
+  // Otherwise a misconfigured server can honor stale or forged-by-old-key roles.
+  const production = requiresPersistedUserAuthorization(process.env.NODE_ENV);
   const stored = production ? await db.getUserById(decoded.id) : null;
   let membership = null;
   if (production && stored &&

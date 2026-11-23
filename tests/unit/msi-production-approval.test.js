@@ -26,6 +26,26 @@ describe('Production MSI download approval', () => {
       expect(matchesApprovedReleaseHash(file)).toBe(false);
     } finally { fs.rmSync(dir, { recursive: true, force: true }); }
   });
+  it('denies unapproved MSI bytes outside explicit tests, even with NODE_ENV unset', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'itk-release-'));
+    const file = path.join(dir, 'agent.msi');
+    try {
+      const bytes = crypto.randomBytes(30000);
+      fs.writeFileSync(file, bytes);
+      const exact = crypto.createHash('sha256').update(bytes).digest('hex');
+      for (const environment of [undefined, 'development', 'staging', 'Production']) {
+        if (environment === undefined) delete process.env.NODE_ENV;
+        else process.env.NODE_ENV = environment;
+        delete process.env.APPROVED_MSI_SHA256;
+        expect(matchesApprovedReleaseHash(file)).toBe(false);
+        process.env.APPROVED_MSI_SHA256 = '0'.repeat(64);
+        expect(matchesApprovedReleaseHash(file)).toBe(false);
+        process.env.APPROVED_MSI_SHA256 = exact;
+        expect(matchesApprovedReleaseHash(file)).toBe(true);
+      }
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  });
+
   it('requires exact approved bytes and refuses synthetic MSI placeholder', () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'itk-release-'));
     const file = path.join(dir, 'agent.msi');

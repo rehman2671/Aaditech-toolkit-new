@@ -2197,7 +2197,7 @@ async function renderIntegrations() {
                 <td>${cloudAuditBadge(cloudIdentityStatus(ac?.azure_ad_joined, connected, 'Joined'))}</td>
                 <td>${cloudAuditBadge(cloudIdentityStatus(ac?.intune_managed, connected, 'Enrolled'))}</td>
                 <td>${cloudAuditBadge(localSecurityStatus(ac, 'bitlocker_encrypted', 'Encrypted', 'Not encrypted'))}</td>
-                <td>${cloudAuditBadge(localSecurityStatus(ac, 'defender_realtime_on', 'Active', 'Inactive'))}</td>
+                <td>${cloudAuditBadge(localSecurityStatus(ac, 'antivirus_active', 'Active', 'Inactive'))}</td>
                 <td>${cloudAuditBadge(localComplianceStatus(ac))}</td>
               </tr>
             `).join('')}

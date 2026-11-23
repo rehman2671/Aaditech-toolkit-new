@@ -3375,6 +3375,7 @@ app.get(['/api/v1/compliance/cloud-audit', '/api/compliance/cloud-audit'], async
       azure_ad_joined: null,
       intune_managed: null,
       bitlocker_encrypted: postures[i].bitlocker_encrypted,
+      antivirus_active: postures[i].antivirus_active,
       defender_realtime_on: postures[i].defender_realtime_on,
       firewall_active: postures[i].firewall_active,
       evidence_status: postures[i].evidence_status,

@@ -33,7 +33,7 @@ async function renderAudit(cloud, tickets = []) {
 const now = () => new Date(Date.now() - 30_000).toISOString();
 const current = (extra = {}) => ({
   hostname: 'OFFICE-01', azure_ad_joined: null, intune_managed: null,
-  bitlocker_encrypted: true, defender_realtime_on: true, firewall_active: true,
+  bitlocker_encrypted: true, antivirus_active: true, firewall_active: true,
   posture_reported_at: now(), evidence_status: 'AGENT_REPORTED',
   compliance_status: 'Agent-reported compliant', ...extra
 });
@@ -48,7 +48,7 @@ describe('FE-38 portal hybrid/cloud audit status truthfulness', () => {
   it('never paints disconnected Azure/Intune or unknown local security as success', async () => {
     const { html, stats } = await renderAudit(response([{
       hostname: 'OFFICE-01', azure_ad_joined: null, intune_managed: null,
-      bitlocker_encrypted: null, defender_realtime_on: null,
+      bitlocker_encrypted: null, antivirus_active: null,
       evidence_status: 'UNVERIFIED', posture_reported_at: null,
       compliance_status: 'Not verified'
     }]));
@@ -86,7 +86,7 @@ describe('FE-38 portal hybrid/cloud audit status truthfulness', () => {
 
   it('does not turn negative evidence or overall noncompliance green', async () => {
     const { html, stats } = await renderAudit(response([
-      current({ bitlocker_encrypted: false, defender_realtime_on: false,
+      current({ bitlocker_encrypted: false, antivirus_active: false,
         compliance_status: 'Agent-reported noncompliant' })
     ]));
     expect(html).toContain('Not encrypted (agent-reported)');

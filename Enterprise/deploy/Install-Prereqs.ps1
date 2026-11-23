@@ -56,7 +56,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $rebootRequired = $false
 $warnings = [System.Collections.Generic.List[string]]::new()
-# No readiness approval when optional Windows feature state or Compose is unknown.
+# Readiness must deny unknown/disabled Windows features or bogus Compose.
 $wslStateUnverified = $false
 $dockerComposeVerified = $false
 
@@ -185,154 +185,7 @@ if (-not $SkipDocker) {
         # Nonempty error text is not proof of an installed Compose v2 plugin.
         $composeVer = (& docker compose version --short 2>$null | Out-String).Trim()
         $composeOk = ($LASTEXITCODE -eq 0) -and
-            ($composeVer -match '^v?2\.[0-9]+\.[0-9]+([+.-][0-9A-Za-z.-]+)?
-        Ok "Docker + compose v2 already installed: $composeVer"
-    } elseif ($VerifyOnly) {
-        Warn "Docker Desktop missing - would run: winget install -e --id $WingetIdDocker"
-    } elseif (-not (Test-Winget)) {
-        Warn "winget not available - install Docker Desktop manually from https://www.docker.com/products/docker-desktop/"
-    } else {
-        Install-WingetPackage -Id $WingetIdDocker -Display "Docker Desktop"
-        $rebootRequired = $true
-    }
-} else {
-    Log 'Skipping Docker + WSL2 install (-SkipDocker)'
-}
-
-# ---------------------------------------------------------------- 3. .NET SDK (WiX)
-
-$dotnet = Get-CommandPath 'dotnet'
-if ($dotnet) {
-    Ok "dotnet already installed: $dotnet"
-} elseif ($VerifyOnly) {
-    Warn ".NET SDK missing - would run: winget install -e --id $WingetIdDotnet"
-} elseif (-not (Test-Winget)) {
-    Warn "winget not available - install .NET SDK manually: https://dotnet.microsoft.com/download"
-} else {
-    Install-WingetPackage -Id $WingetIdDotnet -Display ".NET SDK"
-}
-
-# ---------------------------------------------------------------- 4. ps2exe (5.1 ONLY)
-
-# Must install under Windows PowerShell 5.1 (pwsh 7 will happily install the
-# module but it will fail at build time). Re-exec powershell.exe.
-$ps51Exe = "${env:SystemRoot}\System32\WindowsPowerShell\v1.0\powershell.exe"
-$ps2exe51 = & $ps51Exe -NoProfile -Command "(Get-Module ps2exe -ListAvailable | Select-Object -First 1).Version.ToString()"
-if ($LASTEXITCODE -eq 0 -and $ps2exe51) {
-    Ok "ps2exe installed for Windows PowerShell 5.1: $ps2exe51"
-} elseif ($VerifyOnly) {
-    Warn 'ps2exe module missing (5.1) - would run: powershell.exe -Command "Install-Module ps2exe -Scope CurrentUser -Force"'
-} else {
-    Log 'Installing ps2exe module under Windows PowerShell 5.1...'
-    & $ps51Exe -NoProfile -ExecutionPolicy RemoteSigned -Command "Install-Module ps2exe -Scope CurrentUser -Force"
-    if ($LASTEXITCODE -ne 0) {
-        Warn "ps2exe install returned exit code $LASTEXITCODE"
-        $warnings.Add('ps2exe install failed - agent .exe build will fail; try: Install-Module ps2exe -Scope CurrentUser -Force')
-    }
-}
-
-# ---------------------------------------------------------------- 5. wix dotnet tool
-
-if ($dotnet) {
-    $wix = Get-Command wix -ErrorAction SilentlyContinue
-    if ($wix) {
-        Ok "WiX toolset already installed: $($wix.Source)"
-    } elseif ($VerifyOnly) {
-        Warn 'WiX toolset missing - would run: dotnet tool install --global wix --version "5.*"'
-    } else {
-        Log 'Installing WiX toolset (dotnet global tool)...'
-        dotnet tool install --global wix --version "5.*" 2>&1 | Out-Null
-        if ($LASTEXITCODE -ne 0) {
-            Warn "wix install returned exit code $LASTEXITCODE"
-            $warnings.Add('WiX install failed - MSI build will fail; try: dotnet tool install --global wix --version "5.*"')
-        }
-    }
-} else {
-    Warn 'dotnet missing - cannot install WiX toolset'
-}
-
-# ---------------------------------------------------------------- 6. optional: signtool
-
-if ($IncludeSdk) {
-    $sdk = "${env:ProgramFiles(x86)}\Windows Kits\10\bin"
-    $signtool = $null
-    if (Test-Path $sdk) {
-        $signtool = Get-ChildItem $sdk -Recurse -Filter signtool.exe -ErrorAction SilentlyContinue |
-            Where-Object { $_.FullName -match '\d+\.\d+\.\d+\.\d+\\x64' } |
-            Sort-Object FullName -Descending | Select-Object -First 1
-    }
-    if ($signtool) {
-        Ok "signtool already present: $($signtool.FullName)"
-    } elseif ($VerifyOnly) {
-        Warn 'Windows SDK missing - would run: winget install -e --id Microsoft.WindowsSDK'
-    } elseif (Test-Winget) {
-        Install-WingetPackage -Id "Microsoft.WindowsSDK" -Display "Windows SDK"
-    } else {
-        Warn 'winget not available - install Windows SDK manually (optional: MSI ships unsigned otherwise)'
-    }
-} else {
-    Log 'Skipping Windows SDK (-IncludeSdk not passed; MSI will ship UNSIGNED - deploy.ps1 warns)'
-}
-
-# ---------------------------------------------------------------- 7. path check
-
-$repoRoot = Split-Path -Parent $PSScriptRoot
-$repoRoot = Split-Path -Parent $repoRoot
-if ($repoRoot -match ' ') {
-    Warn "Repo path contains spaces: $repoRoot - MSI/WiX/ps2exe are fragile with spaces; copy to e.g. C:\IT-Toolkit"
-    $warnings.Add('Repo path has spaces - move to C:\IT-Toolkit before deploy.ps1')
-} else {
-    Ok "Repo path OK: $repoRoot"
-}
-
-# ---------------------------------------------------------------- 8. summary
-
-Write-Host ""
-Write-Host ("-" * 70)
-Write-Host "Prerequisite install summary"
-Write-Host ("-" * 70)
-
-$stillMissing = @()
-foreach ($item in 'git','docker','dotnet','wix','ps2exe') {
-    $present = switch ($item) {
-        'git'    { [bool](Get-CommandPath 'git') }
-        'docker' { [bool](Get-CommandPath 'docker') }
-        'dotnet' { [bool](Get-CommandPath 'dotnet') }
-        'wix'    { [bool](Get-Command wix -ErrorAction SilentlyContinue) }
-        'ps2exe' {
-            $v = & $ps51Exe -NoProfile -Command "(Get-Module ps2exe -ListAvailable | Select-Object -First 1)" 2>$null
-            [bool]$v
-        }
-    }
-    if (-not $present) { $stillMissing += $item }
-}
-
-if ($stillMissing.Count -eq 0) {
-    Ok "All required tools present: git, docker+compose, dotnet, wix, ps2exe"
-} else {
-    Warn "Still missing: $($stillMissing -join ', ')"
-}
-foreach ($w in $warnings) { Warn $w }
-
-if ($rebootRequired) {
-    Write-Host ""
-    Write-Host "[prereq] A reboot is required before running deploy.ps1 (WSL2/Docker changed)." -ForegroundColor Yellow
-    Write-Host "  Reboot, then RE-RUN this script to verify Docker, then run deploy.ps1." -ForegroundColor Yellow
-    Write-Host ""
-    Write-Host "Next: Restart-Computer   (then re-run this script, then:)  pwsh ./Enterprise/deploy/deploy.ps1" -ForegroundColor Cyan
-    exit 2
-}
-
-if ($stillMissing.Count -gt 0 -or $policyReviewRequired -or
-    ($VerifyOnly -and -not $elevated) -or
-    (-not $SkipDocker -and ($wslStateUnverified -or -not $dockerComposeVerified))) {
-    Write-Host '[prereq][BLOCKED] Inventory contains missing or unverified prerequisites. No readiness approval.' -ForegroundColor Yellow
-    exit 3
-}
-Write-Host ""
-Write-Host "Ready. Next: pwsh ./Enterprise/deploy/deploy.ps1" -ForegroundColor Green
-exit 0
-)
+            ($composeVer -match '^v?2\\.[0-9]+\\.[0-9]+([+.-][0-9A-Za-z.-]+)?$')
     }
     $dockerComposeVerified = $composeOk
     if ($docker -and $composeOk) {
@@ -473,7 +326,9 @@ if ($rebootRequired) {
     exit 2
 }
 
-if ($stillMissing.Count -gt 0 -or $policyReviewRequired -or ($VerifyOnly -and -not $elevated)) {
+if ($stillMissing.Count -gt 0 -or $policyReviewRequired -or
+    ($VerifyOnly -and -not $elevated) -or
+    (-not $SkipDocker -and ($wslStateUnverified -or -not $dockerComposeVerified))) {
     Write-Host '[prereq][BLOCKED] Inventory contains missing or unverified prerequisites. No readiness approval.' -ForegroundColor Yellow
     exit 3
 }

@@ -1627,7 +1627,9 @@ app.post('/api/v1/msi/generate', requireRole(['SUPER_ADMIN']), validateBody(msiG
 
   await db.createMsiPackage(pkgRecord);
 
-  logAudit(req.user, "MSI_PACKAGE_GENERATED", `MSIPackage:${pkgName}`, {
+  // The portal creates a package request and may only copy a generic prebuilt
+  // artifact. No new tenant-custom MSI is built/signed by this endpoint.
+  logAudit(req.user, "MSI_PACKAGE_REQUEST_CREATED", `MSIPackage:${pkgName}`, {
     package_id: pkgId,
     version: pkgVer,
     status: packageStatus,

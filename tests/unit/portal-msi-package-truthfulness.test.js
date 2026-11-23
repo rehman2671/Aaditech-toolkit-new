@@ -42,6 +42,16 @@ const ready=(extra={})=>({
   token_expires_at:future(),download_url:'https://evil.test/download',...extra
 });
 
+describe('FE-41 backend package request audit contract',()=> {
+  it('records request creation, never claims a new signed MSI build',()=> {
+    const backend = readFileSync(new URL('../../server.js', import.meta.url), 'utf8');
+    expect(backend).toContain('MSI_PACKAGE_REQUEST_CREATED');
+    expect(backend).not.toContain('logAudit(req.user, "MSI_PACKAGE_GENERATED"');
+    expect(backend).toContain("let packageStatus = 'PENDING'");
+    expect(backend).toContain("packageStatus = 'READY'");
+  });
+});
+
 describe('FE-41 MSI portal truthful signed-artifact status',()=>{
   it('shows a clear empty-state and no claimed signer or artifact',async()=>{
     const x=await renderMsi([]);

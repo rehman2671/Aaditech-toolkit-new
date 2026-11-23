@@ -13,7 +13,9 @@ function isPublicDns(host) {
 }
 
 export function resolveAgentOrigin(request, branding = {}) {
-  const production = process.env.NODE_ENV === 'production';
+  // Any deployed runtime, including absent/staging/development NODE_ENV,
+  // must use operator-owned SERVER_HOST over HTTPS. Host headers are untrusted.
+  const production = process.env.NODE_ENV !== 'test';
   if (production) {
     const host = String(process.env.SERVER_HOST || '').trim();
     if (!isPublicDns(host)) return null;

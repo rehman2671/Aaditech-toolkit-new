@@ -37,7 +37,7 @@ export function getAgentVersion() {
 export function getCaCertificate() {
   // Production TLS trust comes from the public OS CA store/Caddy certificate.
   // This legacy helper must not manufacture or distribute a private root CA.
-  if (process.env.NODE_ENV === 'production') return '';
+  if (process.env.NODE_ENV !== 'test') return '';
   const candidatePaths = [
     path.join(__dirname, 'certs', 'ca.crt'),
     path.join(__dirname, 'Enterprise', 'certs', 'ca.crt'),

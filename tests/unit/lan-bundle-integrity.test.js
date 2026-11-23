@@ -136,6 +136,28 @@ describe('LAN-01 offline payload integrity verifier', () => {
   });
 
 
+  it('rejects deeply nested unmanifested directories without recursive scan overflow', async () => {
+    const f = await fresh();
+    let current = f.root;
+    // A 65-level empty tree is not declared in the signed manifest and
+    // must not consume arbitrary call-stack depth during offline preflight.
+    for (let depth = 0; depth < 65; depth++) {
+      current = join(current, 'd');
+      await mkdir(current);
+    }
+    await expect(verifyLanBundle(f)).rejects.toThrow('Payload directory nesting limit exceeded');
+  });
+
+  it('bounds unexpected directory entry work even when each directory is empty', async () => {
+    const f = await fresh();
+    // A manifest with one file cannot authorize an unbounded number of
+    // empty unmanifested directory entries or memory-heavy readdir scans.
+    for (let i = 0; i < 135; i++) {
+      await mkdir(join(f.root, 'extra-' + i));
+    }
+    await expect(verifyLanBundle(f)).rejects.toThrow('Too many payload directory entries');
+  });
+
   it('rejects ambiguous duplicate JSON keys even with a matching manifest digest', async () => {
     const f = await fresh();
     const original = await readFile(f.manifest, 'utf8');

@@ -307,8 +307,10 @@ app.get(['/healthz', '/api/health', '/api/v1/health'], async (req, res) => {
   // Readiness must reflect the backing database, not just an open HTTP port.
   // Test fixtures intentionally exercise the in-memory fallback separately.
   const databaseReady = await db.probeDbReadiness();
-  const isProductionDatabaseDown = process.env.NODE_ENV === 'production' &&
-    process.env.VITEST !== 'true' && process.env.VITEST !== '1' && !databaseReady;
+  // Only the explicit isolated test profile permits a healthy synthetic
+  // database. Never let VITEST=true or an unset/staging NODE_ENV disguise a
+  // missing persistent MySQL backing store in an actual deployment.
+  const isProductionDatabaseDown = process.env.NODE_ENV !== 'test' && !databaseReady;
   res.status(isProductionDatabaseDown ? 503 : 200).json({
     status: isProductionDatabaseDown ? 'degraded' : 'ok',
     timestamp: new Date().toISOString(),
@@ -816,8 +818,9 @@ async function authenticateAgentOrUser(req, res, next) {
 // Never fall back to in-memory tenant/device state while a production
 // database is unavailable. Leave /healthz readable for diagnostics.
 app.use((req, res, next) => {
-  const realProduction = process.env.NODE_ENV === 'production' &&
-    process.env.VITEST !== 'true' && process.env.VITEST !== '1';
+  // Never bypass persistent DB authorization for unset/development/staging
+  // environments or when a deployed process inherits VITEST=true.
+  const realProduction = process.env.NODE_ENV !== 'test';
   if (realProduction && /^\/api(?:\/|$)/.test(req.path) && !isMysqlConnected()) {
     return res.status(503).set('Retry-After', '5').json({
       error: 'DATABASE_UNAVAILABLE',
@@ -3398,7 +3401,7 @@ app.get('*', (req, res) => {
 let serverInstance = null;
 const runningUnderVitest = process.env.VITEST === 'true' || process.env.VITEST === '1';
 if (!runningUnderVitest) {
-  const isProduction = process.env.NODE_ENV === 'production';
+  const isProduction = process.env.NODE_ENV !== 'test';
   if (isProduction) {
     const missing = ['DB_HOST', 'DB_USER', 'DB_PASSWORD', 'DB_NAME']
       .filter(name => !process.env[name] || !process.env[name].trim());

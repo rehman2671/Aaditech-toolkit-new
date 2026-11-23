@@ -69,6 +69,8 @@ jobs:
         run: pwsh -NoProfile -File ./Enterprise/tests/Test-ConfigureAgent.ps1
       - name: Test per-device signed command verification in installed worker
         run: pwsh -NoProfile -File ./Enterprise/tests/Test-CommandVerification.ps1
+      - name: Legacy standalone telemetry-only, remote execution disabled
+        run: pwsh -NoProfile -File ./Enterprise/tests/Test-LegacyAgentTelemetryOnly.ps1
       - name: Test one-use enrollment bootstrap token is cleared after provisioning
         run: pwsh -NoProfile -File ./Enterprise/tests/Test-EnrollmentBootstrapCleanup.ps1
 

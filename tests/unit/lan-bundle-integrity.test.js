@@ -135,6 +135,23 @@ describe('LAN-01 offline payload integrity verifier', () => {
     await expect(verifyLanBundle(f)).rejects.toThrow(/single-link file/);
   });
 
+
+  it('rejects ambiguous duplicate JSON keys even with a matching manifest digest', async () => {
+    const f = await fresh();
+    const original = await readFile(f.manifest, 'utf8');
+    const ambiguous = [
+      original.replace('"schema_version":1', '"schema_version":1,"schema_version":1'),
+      original.replace('"files":[', '"files":[],"files":['),
+      original.replace('"path":"images/agent.tar"',
+        '"path":"images/agent.tar","p\\u0061th":"images/agent.tar"')
+    ];
+    for (const text of ambiguous) {
+      await writeFile(f.manifest, text);
+      f.trustedManifestSha256 = sha(text);
+      await expect(verifyLanBundle(f)).rejects.toThrow('Duplicate JSON object key');
+    }
+  });
+
   it('rejects wrong mode, unexpected manifest fields and empty list', async () => {
     const f=await fresh();
     const doc=JSON.parse(await readFile(f.manifest,'utf8'));

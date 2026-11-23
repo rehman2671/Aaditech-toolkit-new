@@ -60,6 +60,65 @@ function exactKeys(object, keys) {
   }
 }
 
+
+function rejectDuplicateJsonKeys(source) {
+  // JSON.parse accepts duplicate keys and keeps the last value. Reject that
+  // ambiguity before using a cross-platform release manifest.
+  let offset = 0;
+  const whitespace = () => {
+    while (offset < source.length && /[\t\r\n ]/.test(source[offset])) offset++;
+  };
+  const string = () => {
+    const from = offset++;
+    while (offset < source.length) {
+      if (source[offset] === '\\') { offset += 2; continue; }
+      if (source[offset++] === '"') return JSON.parse(source.slice(from, offset));
+    }
+    fail('Invalid JSON string');
+  };
+  const value = () => {
+    whitespace();
+    if (source[offset] === '{') {
+      offset++;
+      const keys = new Set();
+      whitespace();
+      if (source[offset] === '}') { offset++; return; }
+      while (true) {
+        whitespace();
+        const key = string();
+        if (keys.has(key)) fail('Duplicate JSON object key in LAN manifest');
+        keys.add(key);
+        whitespace();
+        if (source[offset++] !== ':') fail('Malformed JSON object');
+        value();
+        whitespace();
+        const separator = source[offset++];
+        if (separator === '}') return;
+        if (separator !== ',') fail('Malformed JSON object separator');
+      }
+    }
+    if (source[offset] === '[') {
+      offset++;
+      whitespace();
+      if (source[offset] === ']') { offset++; return; }
+      while (true) {
+        value();
+        whitespace();
+        const separator = source[offset++];
+        if (separator === ']') return;
+        if (separator !== ',') fail('Malformed JSON array separator');
+      }
+    }
+    if (source[offset] === '"') { string(); return; }
+    const from = offset;
+    while (offset < source.length && !/[\s,\]}]/.test(source[offset])) offset++;
+    if (from === offset) fail('Malformed JSON value');
+  };
+  value();
+  whitespace();
+  if (offset !== source.length) fail('Malformed JSON manifest trailing content');
+}
+
 async function assertRegularNoLinks(file, label) {
   const info = await lstat(file);
   // Symlinks are not the only alias risk: a hard link lets an outside path
@@ -164,8 +223,10 @@ export async function verifyLanBundle({manifest, root, trustedManifestSha256}) {
   if (digest !== trustedManifestSha256.toLowerCase())
     fail('Manifest SHA-256 does not match the externally trusted digest');
   let doc;
-  try { doc = JSON.parse(bytes.toString('utf8')); }
+  const manifestText = bytes.toString('utf8');
+  try { doc = JSON.parse(manifestText); }
   catch { fail('Invalid JSON manifest'); }
+  rejectDuplicateJsonKeys(manifestText);
   exactKeys(doc, ['schema_version', 'installation_mode', 'files']);
   if (doc.schema_version !== 1 || doc.installation_mode !== 'intranet' ||
       !Array.isArray(doc.files) || !doc.files.length || doc.files.length > MAX_FILES)

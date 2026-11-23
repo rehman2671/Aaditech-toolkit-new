@@ -30,7 +30,7 @@ The `--trusted-manifest-sha256` value **MUST** be distributed out of band in an 
 }
 ```
 
-The manifest is a JSON file **outside** the payload directory. Every payload file must appear once, with a safe portable relative path, exact byte size, and SHA-256 checksum. The verifier rejects duplicate/case-colliding paths, path traversal, symlinks, **hard-linked payload/manifest files**, missing files, extra files, mismatched sizes and hashes, invalid schemas, untrusted manifest digests, and unexpected CLI options. For each payload it also compares the opened file descriptor against its original/current filesystem identity and modification timestamps to detect common file substitutions during hashing. It returns nonzero on failure before any downstream install action.
+The manifest is a JSON file **outside** the payload directory. Duplicate JSON object keys (including Unicode-escaped aliases such as `p\u0061th` and `path`) are refused instead of silently letting JavaScript's last-key-wins parsing disagree with a future installer. A matching manifest hash does not resolve cross-parser field ambiguity. Every payload file must appear once, with a safe portable relative path, exact byte size, and SHA-256 checksum. The verifier rejects duplicate/case-colliding paths, path traversal, symlinks, **hard-linked payload/manifest files**, missing files, extra files, mismatched sizes and hashes, invalid schemas, untrusted manifest digests, and unexpected CLI options. For each payload it also compares the opened file descriptor against its original/current filesystem identity and modification timestamps to detect common file substitutions during hashing. It returns nonzero on failure before any downstream install action.
 
 ## Trust and scope limits
 

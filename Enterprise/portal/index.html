@@ -304,7 +304,7 @@ const VIEW_META = {
   integrations: ['Tickets & Cloud Audit', 'Jira/ServiceNow ticketing integration and Azure AD / Intune compliance audit', 'briefcase'],
   patches: ['Patch & Security Compliance', 'OS security patch inventory, BitLocker/FileVault posture, and approved software policy', 'shield'],
   audit: ['Audit Logs', 'Immutable audit trail of administrative actions, command dispatches, and security events', 'shield'],
-  msi: ['Secure MSI Subsystem', 'Generate signed Windows MSI packages with short-lived HMAC bootstrap tokens', 'package'],
+  msi: ['MSI Package Requests', 'Record package requests and inspect artifacts; signed installer builds require separate approval', 'package'],
   groups: ['Groups & Policies', 'Organize endpoints into groups and manage collection/auto-update policies', 'users'],
   retention: ['Data Retention & Webhooks', 'Configure time-series retention windows and Slack/Teams notification channels', 'sliders'],
   reports: ['Reports', 'Fleet and per-agent CSV / JSON export', 'file-text'],
@@ -2286,18 +2286,54 @@ function filterAuditTable() {
 }
 
 // ---------------------------------------------------------------- MSI Subsystem
+// FE-41: a package row is metadata, not a signed, tenant-custom MSI build.
+// Download can be attempted only for a plausible stored artifact record;
+// the server independently enforces approved release hash and tenant identity.
+function msiPackageState(pkg) {
+  const status = pkg?.status === 'READY' ? 'READY' : pkg?.status === 'PENDING' ? 'PENDING' : 'UNKNOWN';
+  const hash = typeof pkg?.file_hash_sha256 === 'string' && /^[0-9a-f]{64}$/i.test(pkg.file_hash_sha256)
+    ? pkg.file_hash_sha256.toLowerCase() : null;
+  const size = Number.isSafeInteger(pkg?.file_size_bytes) && pkg.file_size_bytes > 0
+    ? pkg.file_size_bytes : null;
+  const issuedExpiry = pkg?.token_expires_at ? Date.parse(pkg.token_expires_at) : NaN;
+  const expiry = Number.isFinite(issuedExpiry) ? new Date(issuedExpiry).toLocaleString() : 'N/A';
+  const active = Number.isFinite(issuedExpiry) && issuedExpiry > Date.now();
+  const idValid = typeof pkg?.id === 'string' &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(pkg.id);
+  const possibleArtifact = status === 'READY' && hash !== null && size !== null;
+  const download = possibleArtifact && active && idValid
+    ? '/api/v1/msi/download/' + encodeURIComponent(pkg.id) : null;
+  return {
+    label: possibleArtifact
+      ? 'Artifact recorded (signing not verified here)'
+      : status === 'PENDING'
+        ? 'Pending — no built MSI' : 'Unverified artifact',
+    tone: possibleArtifact ? 'info' : 'warn',
+    expiry: active ? expiry : Number.isFinite(issuedExpiry) ? 'Expired' : 'N/A',
+    hash: hash ? hash.slice(0, 16) + '…' : 'N/A',
+    downloads: Number.isSafeInteger(pkg?.downloads_count) && pkg.downloads_count >= 0
+      ? pkg.downloads_count : 'N/A',
+    download
+  };
+}
+
 async function renderMsi() {
-  const pkgs = await api('/api/v1/msi/packages') || [];
+  const raw = await api('/api/v1/msi/packages');
+  if (raw == null) return;
+  const pkgs = Array.isArray(raw) ? raw
+    : Array.isArray(raw?.data) ? raw.data
+    : Array.isArray(raw?.items) ? raw.items : [];
+  const localArtifacts = pkgs.filter(p => msiPackageState(p).label === 'Artifact recorded (signing not verified here)').length;
   statCardsEl([
-    { label: 'Generated Packages', value: pkgs.length, icon: 'package', tone: 'accent' },
-    { label: 'HMAC Bootstrap Security', value: 'SHA256', icon: 'key', tone: 'accent' },
-    { label: 'Default Token Expiry', value: '24 Hours', icon: 'clock', tone: 'accent' }
+    { label: 'MSI package requests', value: pkgs.length, icon: 'package', tone: 'info' },
+    { label: 'Locally indexed artifacts', value: localArtifacts, sub: 'Signing/approval not established', icon: 'download', tone: 'info' },
+    { label: 'Signed installer factory', value: 'Not connected', sub: 'Protected external signing release required', icon: 'key', tone: 'info' }
   ]);
 
   app.innerHTML = `
     <div class="card" style="margin-bottom:20px">
-      <h3>${ic('package')} Generate Secure Agent MSI Package</h3>
-      <p class="muted">Creates a custom Windows MSI payload embedded with a short-lived HMAC-SHA256 bootstrap token. Used for zero-touch mass enterprise deployments via GPO, Intune, or SCCM.</p>
+      <h3>${ic('package')} Create MSI package request</h3>
+      <p class="muted">This request creates a tenant-scoped package record and short-lived enrollment credential. It does not compile, customize, embed a token into, or sign a new Windows MSI. A separately approved release artifact is required before any installer download or rollout.</p>
       <div class="row" style="gap:16px;margin-top:16px">
         <div style="flex:1">
           <label>Package Name</label>
@@ -2317,7 +2353,7 @@ async function renderMsi() {
         </div>
       </div>
       <div style="margin-top:16px">
-        <button class="action" onclick="generateMsiPackage()">${ic('zap')} Generate Signed MSI Package</button>
+        <button class="action" onclick="generateMsiPackage()">${ic('file-text')} Create package request</button>
       </div>
     </div>
 
@@ -2329,27 +2365,30 @@ async function renderMsi() {
             <tr>
               <th>Package Name</th>
               <th>Version</th>
-              <th>Bootstrap Token Status</th>
-              <th>Token Expires At</th>
-              <th>SHA-256 Hash</th>
+              <th>Artifact record status</th>
+              <th>Enrollment token expiry</th>
+              <th>Artifact hash (not a signature)</th>
               <th>Downloads</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
-            ${pkgs.length === 0 ? '<tr><td colspan="7" class="muted">No custom packages generated yet. Use the form above to build your first signed MSI.</td></tr>' : pkgs.map(p => `
+            ${pkgs.length === 0 ? '<tr><td colspan="7" class="muted">No package requests yet. This portal does not build or sign a new MSI.</td></tr>' : pkgs.map(p => {
+              const state = msiPackageState(p);
+              return `
               <tr>
-                <td><strong>${esc(p.package_name)}</strong></td>
-                <td><span class="badge info">${esc(p.version)}</span></td>
-                <td><span class="badge ok">HMAC-SHA256 Valid</span></td>
-                <td>${new Date(p.token_expires_at).toLocaleString()}</td>
-                <td><code style="font-size:10px">${p.file_hash_sha256.substring(0, 16)}...</code></td>
-                <td>${p.downloads_count}</td>
+                <td><strong>${esc(p?.package_name)}</strong></td>
+                <td><span class="badge info">${esc(p?.version)}</span></td>
+                <td><span class="badge ${state.tone}">${esc(state.label)}</span></td>
+                <td>${esc(state.expiry)}</td>
+                <td><code style="font-size:10px">${esc(state.hash)}</code></td>
+                <td>${esc(state.downloads)}</td>
                 <td>
-                  <a class="action" href="${esc(p.download_url)}" style="font-size:12px;padding:4px 8px">${ic('download')} Download MSI</a>
+                  ${state.download ? `<a class="action" href="${esc(state.download)}" style="font-size:12px;padding:4px 8px">${ic('download')} Attempt approved artifact download</a>`
+                    : '<span class="muted">No approved installer download available</span>'}
                 </td>
-              </tr>
-            `).join('')}
+              </tr>`;
+            }).join('')}
           </tbody>
         </table>
       </div>
@@ -2367,7 +2406,7 @@ async function generateMsiPackage() {
 
   const res = await api('/api/v1/msi/generate', { method: 'POST', body: JSON.stringify(body) });
   if (res) {
-    alert(`MSI Package ${res.package_name} v${res.version} generated successfully with HMAC Bootstrap token!`);
+    alert(`MSI package request saved for ${res.package_name || 'agent'} v${res.version || 'unspecified'} (status: ${res.status || 'PENDING'}). No new signed installer was built. Artifact downloads still require separately approved release signing.`);
     renderMsi();
   }
 }

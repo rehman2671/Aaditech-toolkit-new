@@ -4,7 +4,7 @@
 // The trusted manifest SHA-256 MUST be obtained out of band from the release owner.
 import { createHash } from 'node:crypto';
 import { constants } from 'node:fs';
-import { open, lstat, readdir, readFile } from 'node:fs/promises';
+import { open, lstat, opendir, readFile } from 'node:fs/promises';
 import { resolve, relative, sep, isAbsolute, join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -129,14 +129,30 @@ async function assertRegularNoLinks(file, label) {
   return info;
 }
 
+// Keep directory traversal bounded independently of the declared file count.
+// Extra empty trees have no authenticated payload bytes, but could otherwise
+// exhaust memory, file descriptors, or the call stack during an offline scan.
+const MAX_SCAN_DEPTH = 64;
+const MAX_EXTRA_TREE_ENTRIES = 64;
+
 async function walkExactPayload(root, expectedPaths) {
   const observed = new Set();
-  async function walk(dir) {
-    for (const item of await readdir(dir, { withFileTypes: true })) {
+  // One distinct parent directory per manifested file is already generous;
+  // allow a small fixed overhead for harmless empty directories.
+  const maxEntries = expectedPaths.size * 2 + MAX_EXTRA_TREE_ENTRIES;
+  const stack = [{dir: root, depth: 0}];
+  let seenEntries = 0;
+  while (stack.length) {
+    const {dir, depth} = stack.pop();
+    // opendir streams directory entries rather than materializing an untrusted
+    // directory with unbounded readdir() memory in one operation.
+    for await (const item of await opendir(dir)) {
+      if (++seenEntries > maxEntries) fail('Too many payload directory entries');
       if (item.isSymbolicLink()) fail('Symlink inside payload is not permitted');
       const full = join(dir, item.name);
       if (item.isDirectory()) {
-        await walk(full);
+        if (depth + 1 > MAX_SCAN_DEPTH) fail('Payload directory nesting limit exceeded');
+        stack.push({dir: full, depth: depth + 1});
       } else if (item.isFile()) {
         const rel = relative(root, full).split(sep).join('/');
         const canonical = rel.toLowerCase();
@@ -148,7 +164,6 @@ async function walkExactPayload(root, expectedPaths) {
       }
     }
   }
-  await walk(root);
   if (observed.size !== expectedPaths.size) fail('Manifested payload files are missing');
 }
 

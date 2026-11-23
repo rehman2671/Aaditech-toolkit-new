@@ -96,6 +96,17 @@ describe('LAN-01 offline payload integrity verifier', () => {
     await expect(verifyLanBundle(f)).rejects.toThrow(/Duplicate or case-colliding/);
   });
 
+  it('rejects Windows special device paths even on Linux builders', async () => {
+    const f = await fresh();
+    const doc = JSON.parse(await readFile(f.manifest, 'utf8'));
+    for (const candidate of ['CON', 'NUL.txt', 'images/COM1.tar', 'lpt9']) {
+      doc.files[0].path = candidate;
+      await writeFile(f.manifest, JSON.stringify(doc));
+      f.trustedManifestSha256 = sha(await readFile(f.manifest));
+      await expect(verifyLanBundle(f)).rejects.toThrow(/Windows reserved device/);
+    }
+  });
+
   it('rejects symlinks instead of chasing to an external file', async () => {
     const f = await fresh();
     await rm(join(f.root,'images/agent.tar'));

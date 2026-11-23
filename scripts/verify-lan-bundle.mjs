@@ -12,6 +12,7 @@ const MAX_MANIFEST_BYTES = 2 * 1024 * 1024;
 const MAX_FILES = 10000;
 const HEX256 = /^[a-fA-F0-9]{64}$/;
 const VALID_NAME = /^[A-Za-z0-9_][A-Za-z0-9_.+\/-]*$/;
+const WINDOWS_RESERVED_DEVICE = /^(?:con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\..*)?$/i;
 const REQUIRED_ARGS = ['--manifest', '--root', '--trusted-manifest-sha256'];
 
 function fail(message) {
@@ -44,8 +45,11 @@ function safeEntryName(name) {
         part.endsWith('.') || part.endsWith(' ') || part === '')) {
     fail('Invalid relative payload entry path');
   }
-  // Prevent Windows drive/UNC and portable case-insensitive collision ambiguity.
+  // Prevent Windows drive/UNC, DOS special device names (including extensions),
+  // and portable case-insensitive collision ambiguity.
   if (name.includes(':')) fail('Windows drive or special path not supported');
+  if (name.split('/').some(part => WINDOWS_RESERVED_DEVICE.test(part)))
+    fail('Windows reserved device filename not permitted');
   return name;
 }
 

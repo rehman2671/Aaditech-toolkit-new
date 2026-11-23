@@ -315,9 +315,12 @@ app.get(['/healthz', '/api/health', '/api/v1/health'], async (req, res) => {
     uptime_seconds: Math.floor(process.uptime()),
     components: {
       database: databaseReady ? "HEALTHY" : "DEGRADED",
-      ingest_queue: "OPERATIONAL",
-      msi_builder: "READY",
-      audit_engine: "ACTIVE"
+      // No readiness probe exists for these subsystems. Claiming READY or
+      // ACTIVE here would make an unbuilt/unsigned MSI factory or a failed
+      // background audit/ingest worker appear healthy to operators.
+      ingest_queue: "NOT_VERIFIED",
+      msi_builder: "EXTERNAL_SIGNING_REQUIRED",
+      audit_engine: "NOT_VERIFIED"
     },
     data_retention: retentionRun ? {
       last_run_at: retentionRun.timestamp,

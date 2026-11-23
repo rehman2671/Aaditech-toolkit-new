@@ -1577,7 +1577,11 @@ app.post('/api/v1/msi/generate', requireRole(['SUPER_ADMIN']), validateBody(msiG
   const pkgName = package_name || "Aaditech-Agent-Installer";
   const expiryHours = bootstrap_expiry_hours || req.body.expires_in_hours || 24;
 
-  const tenantId = req.user.tenant_id || "00000000-0000-0000-0000-000000000001";
+  // Creating an MSI request issues a sensitive single-use enrollment token.
+  // A platform-only/unscoped principal must never silently fall back to the
+  // default tenant. Package list and download already require tenant scope.
+  if (!req.user?.tenant_id) return res.status(403).json({ error: 'TENANT_REQUIRED' });
+  const tenantId = req.user.tenant_id;
   const bootstrapToken = generateBootstrapToken(tenantId, group_id || "default", expiryHours);
   const tokenHash = crypto.createHash('sha256').update(bootstrapToken).digest('hex');
   const pkgId = crypto.randomUUID();

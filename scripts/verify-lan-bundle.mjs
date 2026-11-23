@@ -4,8 +4,9 @@
 // The trusted manifest SHA-256 MUST be obtained out of band from the release owner.
 import { createHash } from 'node:crypto';
 import { constants } from 'node:fs';
-import { open, lstat, readdir, readFile, realpath } from 'node:fs/promises';
+import { open, lstat, readdir, readFile } from 'node:fs/promises';
 import { resolve, relative, sep, isAbsolute, join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const MAX_MANIFEST_BYTES = 2 * 1024 * 1024;
 const MAX_FILES = 10000;
@@ -178,7 +179,7 @@ async function main() {
     ' declared files. SHA-256 integrity only; publisher signature, TLS, installer and host checks NOT verified.\n');
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === resolve(new URL(import.meta.url).pathname)) {
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   main().catch(err => {
     process.stderr.write('LAN bundle verification FAILED: ' + err.message + '\n');
     process.exitCode = 1;

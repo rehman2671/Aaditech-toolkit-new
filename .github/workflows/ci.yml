@@ -65,6 +65,9 @@ jobs:
       - name: Run Phase 1 regression suite
         run: pwsh -NoProfile -File ./Scripts/Tests/Phase1-Regression.Tests.ps1
 
+      - name: Test Windows prerequisite dry-run never changes execution policy
+        run: pwsh -NoProfile -File ./Enterprise/tests/Test-PrereqsVerifyOnly.ps1
+
       - name: Test generic MSI HTTPS setup and server reconfiguration
         run: pwsh -NoProfile -File ./Enterprise/tests/Test-ConfigureAgent.ps1
       - name: Test per-device signed command verification in installed worker

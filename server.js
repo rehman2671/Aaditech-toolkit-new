@@ -3140,7 +3140,10 @@ const handleAgentBundleZip = async (req, res) => {
 
   const agentScript = fs.existsSync(agentScriptPath) ? fs.readFileSync(agentScriptPath, 'utf8') : '';
   const agentCollectScript = fs.existsSync(agentCollectPath) ? fs.readFileSync(agentCollectPath, 'utf8') : '';
-  const installCmd = fs.existsSync(installCmdPath) ? fs.readFileSync(installCmdPath, 'utf8') : getInstallCmdContent(host, protocol, version);
+  // The legacy static install-agent.cmd schedules unsigned PowerShell as
+  // SYSTEM and bypasses signed MSI release admission. Never package it.
+  const installCmd = getInstallCmdContent(host, protocol, version);
+  const installPs1 = getInstallPs1Content(host, protocol, version);
   const testCmd = fs.existsSync(testCmdPath) ? fs.readFileSync(testCmdPath, 'utf8') : '';
   const uninstallCmd = fs.existsSync(uninstallCmdPath) ? fs.readFileSync(uninstallCmdPath, 'utf8') : '';
   const caCert = getCaCertificate();
@@ -3159,6 +3162,7 @@ const handleAgentBundleZip = async (req, res) => {
     }
   }
   zip.file("install-agent.cmd", installCmd);
+  zip.file("install-agent.ps1", installPs1);
   zip.file("run-agent-once.cmd", testCmd);
   zip.file("uninstall-agent.cmd", uninstallCmd);
   zip.file("README-HOSTINGER.txt",

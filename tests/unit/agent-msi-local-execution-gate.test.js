@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import request from 'supertest';
+import JSZip from 'jszip';
 import { app } from '../../server.js';
 
 async function download(path) {
@@ -23,6 +24,23 @@ describe('P0 generated Windows installers reject unsigned or unapproved MSI exec
     expect(script).not.toContain('Get-ChildItem -Path $ScriptDir -Filter "*.msi"');
     expect(script).not.toContain('Created configuration files for standalone run.');
     expect(script).not.toContain('registers Enterprise Root CA');
+  });
+  it('downloadable ZIP never distributes legacy SYSTEM-task installer as its install.cmd entry', async () => {
+    const response = await request(app).get('/api/v1/agent/bundle.zip').set('Host', '127.0.0.1:3000');
+    expect(response.status).toBe(200);
+    expect(response.headers['content-type']).toContain('application/zip');
+    const bytes = Buffer.isBuffer(response.body) ? response.body : Buffer.from(response.text || '', 'binary');
+    const zip = await JSZip.loadAsync(bytes);
+    const cmd = await zip.file('install-agent.cmd').async('string');
+    const ps1 = await zip.file('install-agent.ps1').async('string');
+    for (const downloaded of [cmd, ps1]) {
+      expect(downloaded).toContain('AADITECH_APPROVED_MSI_SHA256');
+      expect(downloaded).toContain('AADITECH_APPROVED_SIGNER_CERT_SHA256');
+      expect(downloaded).toContain('Get-AuthenticodeSignature');
+    }
+    expect(cmd).not.toContain('schtasks /delete /tn "AaditechAgent"');
+    expect(cmd).not.toContain('-ExecutionPolicy Bypass');
+    expect(cmd).not.toContain('Aaditech-Agent.ps1');
   });
   it('CMD uses both pins and Windows signature preflight before config and msiexec', async () => {
     const script = await download('/api/v1/agent/install.cmd');

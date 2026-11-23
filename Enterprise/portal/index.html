@@ -2290,24 +2290,99 @@ async function generateMsiPackage() {
 }
 
 // ---------------------------------------------------------------- Patch & Security Compliance
-async function renderPatches() {
-  const [patches, posture] = await Promise.all([
-    api('/api/v1/patches/summary') || [],
-    api('/api/v1/security/posture') || []
-  ]);
+// FE-39: do not treat enrolled devices, patch approvals, or stale snapshots as
+// proof that an endpoint is protected or that a patch was installed.
+function patchAgentFresh(row) {
+  if (!row || row.evidence_status !== 'AGENT_REPORTED') return false;
+  const time = Date.parse(row.posture_reported_at || '');
+  const age = Date.now() - time;
+  return Number.isFinite(time) && age >= 0 && age <= 24 * 60 * 60 * 1000;
+}
 
-  const pending = (patches || []).filter(p => p.status === 'PENDING_APPROVAL').length;
+function patchStatusBadge(label, tone = '') {
+  const css = ['on', 'off', 'warn', 'info'].includes(tone) ? ' ' + tone : '';
+  return `<span class="badge${css}">${esc(label)}</span>`;
+}
+
+function patchUnknownLabel(row) {
+  return row?.evidence_status === 'STALE' || row?.evidence_status === 'AGENT_REPORTED'
+    ? 'Stale — not verified' : 'Not verified';
+}
+
+function patchFirewallState(row) {
+  if (!patchAgentFresh(row)) return patchStatusBadge(patchUnknownLabel(row));
+  if (row.firewall_active === true) return patchStatusBadge('Enabled (agent-reported)', 'on');
+  if (row.firewall_active === false) return patchStatusBadge('Disabled (agent-reported)', 'off');
+  return patchStatusBadge('Not verified');
+}
+
+function patchAntivirusState(row) {
+  if (!patchAgentFresh(row)) return patchStatusBadge(patchUnknownLabel(row));
+  if (row.antivirus_status === 'ACTIVE') return patchStatusBadge('Active (agent-reported)', 'on');
+  if (['INACTIVE', 'DISABLED'].includes(row.antivirus_status))
+    return patchStatusBadge(row.antivirus_status + ' (agent-reported)', 'off');
+  return patchStatusBadge('Not verified');
+}
+
+function patchEncryptionState(row) {
+  if (!patchAgentFresh(row)) return patchStatusBadge(patchUnknownLabel(row));
+  if (['PROTECTED', 'ENCRYPTED'].includes(row.disk_encryption))
+    return patchStatusBadge(row.disk_encryption + ' (agent-reported)', 'on');
+  if (['UNPROTECTED', 'SUSPENDED'].includes(row.disk_encryption))
+    return patchStatusBadge(row.disk_encryption + ' (agent-reported)', 'off');
+  return patchStatusBadge('Not verified');
+}
+
+function patchSecureBootState(row) {
+  // The current API explicitly returns secure_boot=null; no measured source.
+  if (!patchAgentFresh(row) || typeof row.secure_boot !== 'boolean')
+    return patchStatusBadge('Not measured');
+  return row.secure_boot
+    ? patchStatusBadge('Enabled (agent-reported)', 'on')
+    : patchStatusBadge('Disabled (agent-reported)', 'off');
+}
+
+function patchMeasuredScore(row) {
+  return patchAgentFresh(row) && Number.isInteger(row.security_score) &&
+    row.security_score >= 0 && row.security_score <= 100
+    ? row.security_score : null;
+}
+
+async function renderPatches() {
+  const [rawPatches, rawPosture] = await Promise.all([
+    api('/api/v1/patches/summary'),
+    api('/api/v1/security/posture')
+  ]);
+  if (rawPatches == null || rawPosture == null) return;
+  const patches = Array.isArray(rawPatches) ? rawPatches : [];
+  const posture = Array.isArray(rawPosture) ? rawPosture : [];
+  const pending = patches.filter(p => p?.status === 'PENDING_APPROVAL').length;
+  const scores = posture.map(patchMeasuredScore).filter(x => x !== null);
+  const encryption = posture.filter(p => patchAgentFresh(p) &&
+    typeof p.bitlocker_encrypted === 'boolean');
+  const antivirus = posture.filter(p => patchAgentFresh(p) &&
+    ['ACTIVE', 'INACTIVE', 'DISABLED'].includes(p.antivirus_status));
+  const countPercent = (rows, isPositive) => rows.length
+    ? Math.round(rows.filter(isPositive).length / rows.length * 100) + '%'
+    : 'N/A';
+  const averageScore = scores.length
+    ? Math.round(scores.reduce((sum, score) => sum + score, 0) / scores.length) + ' / 100'
+    : 'N/A';
   statCardsEl([
-    { label: 'Security Scorecard', value: '94 / 100', icon: 'shield', tone: 'good' },
-    { label: 'Pending OS Updates', value: pending, icon: 'alert-triangle', tone: pending ? 'warn' : 'good' },
-    { label: 'BitLocker / Encryption', value: '100% Active', icon: 'check', tone: 'accent' },
-    { label: 'Antivirus Protection', value: 'Protected', icon: 'check', tone: 'good' }
+    { label: 'Agent-reported security score', value: averageScore,
+      sub: scores.length + ' fresh measured devices', icon: 'shield', tone: 'info' },
+    { label: 'Patches pending approval', value: pending, sub: 'Approval is not installation',
+      icon: 'alert-triangle', tone: pending ? 'warn' : 'info' },
+    { label: 'Encryption observations', value: countPercent(encryption, p => p.bitlocker_encrypted === true),
+      sub: encryption.length + ' fresh measured devices', icon: 'key', tone: 'info' },
+    { label: 'Antivirus observations', value: countPercent(antivirus, p => p.antivirus_status === 'ACTIVE'),
+      sub: antivirus.length + ' fresh measured devices', icon: 'shield', tone: 'info' }
   ]);
 
   app.innerHTML = `
     <div class="card" style="margin-bottom:20px">
       <h3>${ic('shield')} Endpoint Security Posture Inventory</h3>
-      <p class="muted">Real-time BitLocker, Firewall, Antivirus, and TPM/Secure Boot compliance across all registered endpoints.</p>
+      <p class="muted">Agent-reported posture is shown only with fresh measurement evidence. TPM/Secure Boot is not currently measured; unknown or stale status is not compliance.</p>
       <div style="overflow-x:auto;margin-top:12px">
         <table>
           <thead>
@@ -2322,15 +2397,17 @@ async function renderPatches() {
             </tr>
           </thead>
           <tbody>
-            ${posture.map(s => `
+            ${!posture.length
+              ? '<tr><td colspan="7" class="muted">No enrolled-agent security observations available</td></tr>'
+              : posture.map(s => `
               <tr>
-                <td><strong>${esc(s.hostname)}</strong></td>
-                <td>${esc(s.os)}</td>
-                <td><span class="badge on">Active</span></td>
-                <td><span class="badge on">${esc(s.antivirus_status)}</span></td>
-                <td><span class="badge info">${esc(s.disk_encryption)}</span></td>
-                <td><span class="badge on">Enabled</span></td>
-                <td><strong>${s.security_score} / 100</strong></td>
+                <td><strong>${esc(s?.hostname)}</strong></td>
+                <td>${esc(s?.os || 'N/A')}</td>
+                <td>${patchFirewallState(s)}</td>
+                <td>${patchAntivirusState(s)}</td>
+                <td>${patchEncryptionState(s)}</td>
+                <td>${patchSecureBootState(s)}</td>
+                <td><strong>${patchMeasuredScore(s) === null ? 'N/A' : esc(patchMeasuredScore(s)) + ' / 100 (agent-reported)'}</strong></td>
               </tr>
             `).join('')}
           </tbody>
@@ -2353,17 +2430,19 @@ async function renderPatches() {
             </tr>
           </thead>
           <tbody>
-            ${(patches || []).map(p => `
+            ${!patches.length
+              ? '<tr><td colspan="6" class="muted">No OS patch approval records available; this is not a claim that all endpoints are patched</td></tr>'
+              : patches.map(p => `
               <tr>
-                <td><strong>${esc(p.title)}</strong></td>
-                <td><span class="badge ${p.severity === 'Critical' ? 'off' : 'warn'}">${esc(p.severity)}</span></td>
-                <td>${esc(p.release_date)}</td>
-                <td>${p.affected_devices} Devices</td>
-                <td><span class="badge ${p.status === 'APPROVED' ? 'on' : 'warn'}">${esc(p.status)}</span></td>
+                <td><strong>${esc(p?.title)}</strong></td>
+                <td><span class="badge ${p?.severity === 'Critical' ? 'off' : 'warn'}">${esc(p?.severity)}</span></td>
+                <td>${esc(p?.release_date)}</td>
+                <td>${Number.isInteger(p?.affected_devices) && p.affected_devices >= 0 ? p.affected_devices : 'N/A'} Devices</td>
+                <td>${patchStatusBadge(p?.status === 'APPROVED' ? 'Approved for rollout (not installed)' : p?.status || 'Unknown', 'info')}</td>
                 <td>
-                  ${p.status === 'PENDING_APPROVAL' 
-                    ? `<button class="action" style="font-size:12px" onclick="approvePatch('${esc(p.id)}')">${ic('check')} Approve & Deploy</button>`
-                    : '<span class="muted">Approved for rollout</span>'}
+                  ${p?.status === 'PENDING_APPROVAL'
+                    ? `<button class="action" style="font-size:12px" data-patch-id="${esc(p?.id)}" onclick="approvePatch(this.dataset.patchId)">${ic('check')} Approve for rollout</button>`
+                    : '<span class="muted">No installation confirmed</span>'}
                 </td>
               </tr>
             `).join('')}
@@ -2375,9 +2454,9 @@ async function renderPatches() {
 }
 
 async function approvePatch(kbId) {
-  const res = await api(`/api/v1/patches/${kbId}/approve`, { method: 'POST' });
+  const res = await api(`/api/v1/patches/${encodeURIComponent(kbId)}/approve`, { method: 'POST' });
   if (res) {
-    alert(`Patch ${kbId} approved for fleet deployment!`);
+    alert(`Patch ${kbId} approved for rollout. No patch installation was triggered or verified.`);
     renderPatches();
   }
 }

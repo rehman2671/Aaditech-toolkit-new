@@ -31,6 +31,10 @@ For implementation proposals, read the original requirements and [crosswalk](ORI
 
 Do not assume a user interface tab, API route, unit test, old checkmark, or historical `project-progress.json` 100% metric proves an end-to-end customer workflow. Generated `project-progress.json` measures *historical audit issue closure only* and is maintained by `Scripts/Index/Update-ProjectIndex.ps1`; do not manually convert it into a product-completion percentage. Product evidence and gaps live in this directory.
 
+## Owner decisions and decision records
+
+[Proposed owner decision review packet](OWNER-DECISION-REVIEW-PACKET.md) covers DEC-001 through DEC-005 with choices, alternatives, proof and unsigned approval fields. None is selected or accepted by this documentation.
+
 ## Implementation-ready design backlogs
 
 - [FE-38 security status rendering contract](FE38-SECURITY-STATUS-RENDERING-CONTRACT.md) — P0 field-by-field tri-state evidence and dashboard regression cases (not fixed).

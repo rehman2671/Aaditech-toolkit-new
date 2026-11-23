@@ -410,52 +410,55 @@
     },
     {
       "key": "DEC-001",
-      "title": "Owner ADR: original Go/PostgreSQL versus current Node/MySQL",
+      "title": "Go/PostgreSQL source lock versus implemented Node.js/MySQL",
       "priority": "P0",
       "state": "BLOCKED",
-      "owner": "product_owner_and_architect",
+      "owner": "product_owner_and_architecture_reviewer",
       "requires": [
         "M0"
       ],
       "evidence": [
         "doc1_full.txt / doc2_full.txt source mirrors",
         "docs/product/ORIGINAL-REQUIREMENTS-TRACEABILITY.md",
-        "Owner decision issue #79 opened; architecture remains unapproved"
+        "Owner decision issue #79 opened; architecture remains unapproved",
+        "Open owner options: A: owner-approved amendment retaining Node/MySQL; B: migrate to Go/PostgreSQL"
       ],
-      "next": "Atomize requirement, decide owner acceptance, then code/tests and witnessed E2E evidence",
+      "next": "Record signed architecture decision with data-schema/agent compatibility/security and migration/no-migration plan",
       "blocked": true,
       "issue_url": "https://github.com/rehman2671/Aaditech-toolkit-new/issues/79"
     },
     {
       "key": "DEC-002",
-      "title": "Approve Windows-first release phasing without waiving macOS/Linux",
+      "title": "Phased release Windows-first versus all three endpoint operating systems",
       "priority": "P0",
       "state": "BLOCKED",
-      "owner": "product_owner",
+      "owner": "product_owner_and_endpoint_owner",
       "requires": [
         "M0"
       ],
       "evidence": [
         "doc1_full.txt / doc2_full.txt source mirrors",
-        "docs/product/ORIGINAL-REQUIREMENTS-TRACEABILITY.md"
+        "docs/product/ORIGINAL-REQUIREMENTS-TRACEABILITY.md",
+        "Open owner options: A: approve first signed Windows-agent release, retain macOS/Linux as required product scope; B: require all platform agents in initial release"
       ],
-      "next": "Atomize requirement, decide owner acceptance, then code/tests and witnessed E2E evidence",
+      "next": "Explicitly approve initial-release exit criteria and funded macOS/Linux parity milestone without waiving original requirements",
       "blocked": true
     },
     {
       "key": "DEC-003",
-      "title": "Reconcile server-side signed MSI factory and Windows service expectation",
+      "title": "First-class signed per-tenant MSI factory and Windows service versus scheduled task",
       "priority": "P0",
       "state": "BLOCKED",
-      "owner": "product_owner_and_security",
+      "owner": "product_owner_and_endpoint_security",
       "requires": [
         "M0"
       ],
       "evidence": [
         "doc1_full.txt / doc2_full.txt source mirrors",
-        "docs/product/ORIGINAL-REQUIREMENTS-TRACEABILITY.md"
+        "docs/product/ORIGINAL-REQUIREMENTS-TRACEABILITY.md",
+        "Open owner options: A: implement original Windows service and approved in-platform MSI factory; B: approve functional equivalence for task via ADR and design a signed factory"
       ],
-      "next": "Atomize requirement, decide owner acceptance, then code/tests and witnessed E2E evidence",
+      "next": "Define owner-reviewed required MSI package profiles/short-lived enrollment/signing/role approvals and service-versus-task acceptance",
       "blocked": true
     },
     {
@@ -701,6 +704,40 @@
       "next": "Implement independent P0 dashboard truthfulness fix without waiting for DEC-001; issue #78 provides backend-field/null/stale/security acceptance matrix",
       "blocked": true,
       "issue_url": "https://github.com/rehman2671/Aaditech-toolkit-new/issues/78"
+    },
+    {
+      "key": "DEC-004",
+      "title": "Original feature and telemetry/reporting sequencing",
+      "priority": "P0",
+      "state": "BLOCKED",
+      "owner": "product_owner_and_enterprise_it",
+      "requires": [
+        "M0"
+      ],
+      "evidence": [
+        "docs/product/REVIEW-AND-ACCEPTANCE-HANDOFF.md",
+        "docs/product/OWNER-DECISION-REVIEW-PACKET.md",
+        "Open owner options: A: phase advanced telemetry and reporting after LAN acceptance while preserving full scope; B: block initial release until full original metrics/report/export coverage"
+      ],
+      "next": "Approve per-feature release tiers and acceptance of 1h/24h/7d/30d charts, policy health score, app usage, scheduled reports and SRE observability",
+      "blocked": true
+    },
+    {
+      "key": "DEC-005",
+      "title": "Auto-healing D0-D3 risk/consent/approval and verified outcomes",
+      "priority": "P0",
+      "state": "BLOCKED",
+      "owner": "product_owner_and_security_it_lead",
+      "requires": [
+        "M0"
+      ],
+      "evidence": [
+        "docs/product/REVIEW-AND-ACCEPTANCE-HANDOFF.md",
+        "docs/product/OWNER-DECISION-REVIEW-PACKET.md",
+        "Open owner options: A: approve read-only first then safe, limited verified repair pilots; B: diagnostics only until separate policy approval"
+      ],
+      "next": "Approve playbook tier rules, employee consent, change approvals, privacy/retention, never-auto-fix categories and independent verified outcome definition",
+      "blocked": true
     }
   ],
   "original_sources": [
@@ -738,5 +775,6 @@
   "design_acceptance_specs": {
     "FE38": "docs/product/FE38-SECURITY-STATUS-RENDERING-CONTRACT.md",
     "M1_M2": "docs/product/LAN-INSTALLATION-IMPLEMENTATION-BACKLOG.md"
-  }
+  },
+  "owner_decision_packet": "docs/product/OWNER-DECISION-REVIEW-PACKET.md"
 }

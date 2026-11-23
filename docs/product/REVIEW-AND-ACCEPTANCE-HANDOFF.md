@@ -2,6 +2,8 @@
 
 **Scope:** PR #77 documentation baseline for AadiTech intranet-first enterprise platform; no software implementation, production data or customer hosting changes authorized by this handoff.
 
+**Single proposed decision comparison:** [Owner decision review packet](OWNER-DECISION-REVIEW-PACKET.md). All five choices remain **PENDING** until explicit human approval; recommendations are not approval.
+
 ## What an owner must decide (no implicit defaults)
 
 | ID | Required input | Reason | Decision state |

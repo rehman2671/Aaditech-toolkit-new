@@ -943,8 +943,8 @@ async function handleLogin(req, res) {
   // Issue real HS256 signed JWT
   const token = issueUserToken(user);
 
-  res.cookie('auth_token', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', maxAge: 8 * 3600 * 1000 });
-  res.cookie('itk_session', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', maxAge: 8 * 3600 * 1000 });
+  res.cookie('auth_token', token, { httpOnly: true, secure: process.env.NODE_ENV !== 'test', sameSite: 'lax', maxAge: 8 * 3600 * 1000 });
+  res.cookie('itk_session', token, { httpOnly: true, secure: process.env.NODE_ENV !== 'test', sameSite: 'lax', maxAge: 8 * 3600 * 1000 });
 
   logAudit(user, "USER_LOGIN_SUCCESS", "AuthService", { result: "SUCCESS" }, req);
 
@@ -1748,9 +1748,9 @@ app.post('/api/v1/workspaces/select', validateBody(workspaceSelectSchema), async
   // The old JWT remains bound to its prior tenant; it never grants privileges
   // in the new workspace by adding a query or header.
   const token = issueUserToken({ ...owner, tenant_id: selected.tenant_id, role: selected.role });
-  res.cookie('auth_token', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production',
+  res.cookie('auth_token', token, { httpOnly: true, secure: process.env.NODE_ENV !== 'test',
     sameSite: 'lax', maxAge: 8 * 3600 * 1000 });
-  res.cookie('itk_session', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production',
+  res.cookie('itk_session', token, { httpOnly: true, secure: process.env.NODE_ENV !== 'test',
     sameSite: 'lax', maxAge: 8 * 3600 * 1000 });
   logAudit(req.user, 'WORKSPACE_SELECTED', `Tenant:${selected.tenant_id}`,
     { tenant_id: selected.tenant_id }, req);
@@ -2353,8 +2353,8 @@ app.post(['/api/v1/setup', '/api/setup'], async (req, res, next) => {
   // Only finalize the setup flag after the admin credentials are persisted.
   await db.updateBranding(updates);
   const token = issueUserToken(adminUser);
-  res.cookie('auth_token', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', maxAge: 8 * 3600 * 1000 });
-  res.cookie('itk_session', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', maxAge: 8 * 3600 * 1000 });
+  res.cookie('auth_token', token, { httpOnly: true, secure: process.env.NODE_ENV !== 'test', sameSite: 'lax', maxAge: 8 * 3600 * 1000 });
+  res.cookie('itk_session', token, { httpOnly: true, secure: process.env.NODE_ENV !== 'test', sameSite: 'lax', maxAge: 8 * 3600 * 1000 });
 
   res.json({
     company: updates.company_name || "Aaditech Enterprise",
@@ -2383,7 +2383,7 @@ app.get(['/api/v1/bootstrap', '/api/bootstrap'], async (req, res) => {
   res.json({
     user: safeUser,
     company_name: tenantBrand.company_name || companies[0]?.name || branding.company_name,
-    server_host: process.env.NODE_ENV === 'production'
+    server_host: process.env.NODE_ENV !== 'test'
       ? process.env.SERVER_HOST : (branding.server_host || 'localhost'),
     branding: { ...branding.branding,
       logo_text: tenantBrand.logo_text || branding.branding?.logo_text || 'IT-Toolkit',
@@ -2715,7 +2715,7 @@ app.post(['/api/v1/users', '/api/users'], requireRole(['SUPER_ADMIN']), validate
   }
 
   if (!req.user?.tenant_id) return res.status(403).json({ error: 'TENANT_REQUIRED' });
-  if (process.env.NODE_ENV === 'production' && !password) {
+  if (process.env.NODE_ENV !== 'test' && !password) {
     return res.status(400).json({ error: 'EXPLICIT_PASSWORD_REQUIRED' });
   }
   const companies = await db.getCompanies(req.user.tenant_id);
@@ -3156,7 +3156,7 @@ app.get('/api/agent/bundle.zip', handleAgentBundleZip);
 app.get('/api/v1/agent/bundle.zip', handleAgentBundleZip);
 
 app.get(['/api/v1/ca.crt', '/api/ca.crt'], (req, res) => {
-  if (process.env.NODE_ENV === 'production') {
+  if (process.env.NODE_ENV !== 'test') {
     return res.status(410).json({ error: 'LEGACY_CA_DISTRIBUTION_DISABLED', detail: 'Production HTTPS uses publicly trusted server TLS. Custom root import is not supported.' });
   }
   const caCert = getCaCertificate();

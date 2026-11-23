@@ -77,6 +77,35 @@ describe('Stage N24 measured, fresh agent security posture', () => {
     expect(bad.compliance_status).toBe('Agent-reported noncompliant');
   });
 
+  it('separates third-party AV activity from Defender-specific claims', () => {
+    const other = normalizeAgentPosture({ ...legacyHealth,
+      posture_reported_at: reportedAt, antivirus_name: 'Bitdefender Endpoint Security' }, now);
+    expect(other.antivirus_active).toBe(true);
+    expect(other.defender_realtime_on).toBeNull();
+    expect(other.antivirus_name).toBe('Bitdefender Endpoint Security');
+
+    const unnamed = normalizeAgentPosture({ ...legacyHealth,
+      posture_reported_at: reportedAt, antivirus_name: null }, now);
+    expect(unnamed.antivirus_active).toBe(true);
+    expect(unnamed.defender_realtime_on).toBeNull();
+
+    const defender = normalizeAgentPosture({ ...legacyHealth,
+      posture_reported_at: reportedAt, antivirus_name: 'Microsoft Defender Antivirus' }, now);
+    expect(defender.antivirus_active).toBe(true);
+    expect(defender.defender_realtime_on).toBe(true);
+
+    const disabled = normalizeAgentPosture({ ...legacyHealth,
+      posture_reported_at: reportedAt, antivirus_name: 'Windows Defender',
+      antivirus_status: 'DISABLED' }, now);
+    expect(disabled.antivirus_active).toBe(false);
+    expect(disabled.defender_realtime_on).toBe(false);
+
+    const stale = normalizeAgentPosture({ ...legacyHealth,
+      posture_reported_at: new Date(now - 25 * 60 * 60 * 1000) }, now);
+    expect(stale.antivirus_active).toBeNull();
+    expect(stale.defender_realtime_on).toBeNull();
+  });
+
   it('percentages exclude missing/stale fields and show N/A instead of fake 0% when no evidence', () => {
     const fresh = normalizeAgentPosture({ ...legacyHealth, posture_reported_at: reportedAt }, now);
     const unknown = normalizeAgentPosture(legacyHealth, now);

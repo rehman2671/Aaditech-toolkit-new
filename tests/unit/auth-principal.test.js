@@ -17,6 +17,9 @@ describe('Default-deny auth mode selection', () => {
       expect(resolveVerifiedUserPrincipal(claims, null, norm,
         requiresPersistedUserAuthorization(nodeEnv))).toBeNull();
     }
+    // Forgetting the mode argument must default to DB-bound security, not
+    // permissive synthetic JWT fixture acceptance.
+    expect(resolveVerifiedUserPrincipal(claims, null, norm)).toBeNull();
     expect(requiresPersistedUserAuthorization('test')).toBe(false);
     expect(resolveVerifiedUserPrincipal(claims, null, norm, false)?.tenant_id).toBe(claims.tenant_id);
   });

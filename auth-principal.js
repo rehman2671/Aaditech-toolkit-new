@@ -9,7 +9,7 @@ export function requiresPersistedUserAuthorization(nodeEnv) {
 // record. Production privileges must be derived from the current database
 // user AND an approved, active membership for a secondary workspace.
 export function resolveVerifiedUserPrincipal(claims, stored, normalizeRole,
-  production = false, membership = null) {
+  production = true, membership = null) {
   if (!claims || typeof claims !== 'object' || typeof normalizeRole !== 'function') return null;
 
   const hasStoredIdentity = Boolean(stored &&

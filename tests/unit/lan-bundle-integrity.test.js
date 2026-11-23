@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { createHash } from 'node:crypto';
-import { mkdtemp, mkdir, writeFile, readFile, rm, symlink } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, readFile, rm, symlink, link } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -115,7 +115,24 @@ describe('LAN-01 offline payload integrity verifier', () => {
       if (process.platform==='win32' && err.code==='EPERM') return;
       throw err;
     }
-    await expect(verifyLanBundle(f)).rejects.toThrow(/not a regular non-link file/);
+    await expect(verifyLanBundle(f)).rejects.toThrow(/regular single-link file/);
+  });
+
+  it('rejects hard-linked payload bytes even when digest and size match', async () => {
+    const f = await fresh();
+    // Same inode is writable via an out-of-bundle path, even though both
+    // the preflight hash and declared payload file look legitimate.
+    const outside = join(f.temp, 'external-writable-alias.tar');
+    await link(join(f.root, 'images/agent.tar'), outside);
+    expect(await readFile(outside, 'utf8')).toBe('verified-agent');
+    await expect(verifyLanBundle(f)).rejects.toThrow(/single-link file/);
+  });
+
+  it('rejects a hard-linked manifest instead of trusting an alternate writable alias', async () => {
+    const f = await fresh();
+    const alias = join(f.temp, 'another-manifest-alias.json');
+    await link(f.manifest, alias);
+    await expect(verifyLanBundle(f)).rejects.toThrow(/single-link file/);
   });
 
   it('rejects wrong mode, unexpected manifest fields and empty list', async () => {

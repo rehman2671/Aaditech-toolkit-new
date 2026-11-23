@@ -11,6 +11,8 @@ The source directive explicitly makes Go the backend implementation language, ap
 
 User-approved **product direction**: intranet-first, independent office installs, local first-run wizard and optional `tool.aaditechs.in`. This product direction does not by itself decide the backend language.
 
+**Decision ticket:** [Issue #79 — owner ADR on Go/PostgreSQL versus Node.js/MySQL](https://github.com/rehman2671/Aaditech-toolkit-new/issues/79). Opening this issue is **not an approval** of either option.
+
 ## Mutually exclusive decision options
 
 | Criterion | DEC-001A — formally retain Node.js/MySQL | DEC-001B — restore mandated Go/PostgreSQL |

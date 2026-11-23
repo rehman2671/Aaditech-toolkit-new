@@ -415,10 +415,12 @@
       ],
       "evidence": [
         "doc1_full.txt / doc2_full.txt source mirrors",
-        "docs/product/ORIGINAL-REQUIREMENTS-TRACEABILITY.md"
+        "docs/product/ORIGINAL-REQUIREMENTS-TRACEABILITY.md",
+        "Owner decision issue #79 opened; architecture remains unapproved"
       ],
       "next": "Atomize requirement, decide owner acceptance, then code/tests and witnessed E2E evidence",
-      "blocked": true
+      "blocked": true,
+      "issue_url": "https://github.com/rehman2671/Aaditech-toolkit-new/issues/79"
     },
     {
       "key": "DEC-002",
@@ -685,15 +687,15 @@
       "priority": "P0",
       "state": "NOT_STARTED",
       "owner": "dashboard_security_engineering",
-      "requires": [
-        "DEC-001"
-      ],
+      "requires": [],
       "evidence": [
         "Enterprise/portal/index.html 2114-2118 hard-coded green Active/Enrolled/Encrypted",
-        "server.js /api/v1/compliance/cloud-audit returns NOT_CONNECTED for cloud"
+        "server.js /api/v1/compliance/cloud-audit returns NOT_CONNECTED for cloud",
+        "Tracking issue #78 opened; no source-code change in docs PR"
       ],
-      "next": "Render verified source fields with neutral UNKNOWN/NOT_CONNECTED, add absent/stale/known UI regression, independently verify",
-      "blocked": true
+      "next": "Implement independent P0 dashboard truthfulness fix without waiting for DEC-001; issue #78 provides backend-field/null/stale/security acceptance matrix",
+      "blocked": true,
+      "issue_url": "https://github.com/rehman2671/Aaditech-toolkit-new/issues/78"
     }
   ],
   "original_sources": [

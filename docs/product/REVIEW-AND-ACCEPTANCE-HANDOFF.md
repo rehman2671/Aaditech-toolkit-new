@@ -21,6 +21,12 @@
 - [26-issue troubleshooting safety specification](TROUBLESHOOTING-AUTOHEALING.md).
 - [Roadmap](DELIVERY-ROADMAP.md) and [tracker](DELIVERY-TRACKER.json).
 
+## Dedicated follow-up issues
+
+- [#79 DEC-001 — source stack lock decision](https://github.com/rehman2671/Aaditech-toolkit-new/issues/79), owner ADR still pending.
+- [#78 FE-38 — false-positive cloud/security badges](https://github.com/rehman2671/Aaditech-toolkit-new/issues/78), P0 front-end accuracy fix independent of architecture stack.
+- [#62 — main protection and release gate](https://github.com/rehman2671/Aaditech-toolkit-new/issues/62), independently approved governance changes still pending.
+
 ## Reviewer checklist
 
 - [x] Verify both original DOCX **Word-body texts** against extracted mirrors: exact after whitespace and typography normalization (source blob SHAs recorded in line register). The DOCX binaries themselves are **not byte-identical** to text files and that is not the acceptance criterion.

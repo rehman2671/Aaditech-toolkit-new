@@ -57,6 +57,8 @@
 |---|---|---|
 | FE-38 | `Enterprise/portal/index.html` lines 2114–2118 hard-code green `Active`, `Enrolled`, `Encrypted` and `Active` in Cloud Identity Audit cells; `server.js` `/api/v1/compliance/cloud-audit` reports Azure/Intune as `NOT_CONNECTED` | **P0 / release gate failed**. Dashboard misrepresents unknown data as verified security health. Future code PR must render verified field-specific status (neutral UNKNOWN/NOT_CONNECTED on missing data), with regression tests for absent/stale/null evidence. This docs PR DOES NOT FIX the dashboard. |
 
+**Dedicated follow-up:** [Issue #78 — false-positive cloud/security health badges](https://github.com/rehman2671/Aaditech-toolkit-new/issues/78). Unlike the stack choice, this P0 frontend truthfulness bug can be corrected in its own reviewed code PR **without waiting on [DEC-001 issue #79](https://github.com/rehman2671/Aaditech-toolkit-new/issues/79)**.
+
 ## Live governance snapshot (not a durable approval)
 
 On 2026-11-23 live checks returned **`main.protected=false`**, **0 effective rulesets**, **0 releases**, **0 reviews** for #75 and #76. These are time-sensitive; always re-query before production. [Production blocker #62](https://github.com/rehman2671/Aaditech-toolkit-new/issues/62) remains OPEN.

@@ -22,6 +22,14 @@ Security reviews, signed package integrity and isolated regression tests are **c
 
 Before M1/M2 work, DEC-001 must be explicitly resolved by product owner, then the original source text/DOCX fidelity and independent review recorded in [decision handoff](REVIEW-AND-ACCEPTANCE-HANDOFF.md). This doc PR does **not** grant a stack change or production approval.
 
+## Actionable GitHub blockers
+
+- [DEC-001 owner architecture ADR, issue #79](https://github.com/rehman2671/Aaditech-toolkit-new/issues/79): **P0 / unresolved owner decision** before choosing backend-language/database implementation work.
+- [FE-38 security dashboard misinformation, issue #78](https://github.com/rehman2671/Aaditech-toolkit-new/issues/78): **P0 / runtime bug, fix independent of DEC-001**. The existing portal must never display unknown Azure/Intune/BitLocker/Defender values as healthy green badges; tracked as `AT-SEC-05`.
+- [Original main protection/release blocker #62](https://github.com/rehman2671/Aaditech-toolkit-new/issues/62): repo owner and independent reviewers must activate and accept safeguards before signed production release.
+
+Tracking issues do not implement or independently accept the capability. No issue should be closed on documentation-only evidence.
+
 ## Immediate work order after docs approval
 
 1. Obtain DEC-001 owner ADR on original locked Go/PostgreSQL vs current Node/MySQL; preserve full original requirements and estimate impact.

@@ -81,7 +81,10 @@ export function getCaCertificate() {
 // independent Windows publisher/Authenticode verification. A hash pin
 // verifies exact bytes; it does not replace certificate trust validation.
 export function matchesApprovedReleaseHash(filePath) {
-  if (process.env.NODE_ENV !== 'production') return true;
+  // Only explicit automated tests may bypass the published-release pin.
+  // A misconfigured staging/desktop/server deployment with NODE_ENV unset
+  // or "development" must NOT silently distribute an unapproved MSI.
+  if (process.env.NODE_ENV === 'test') return true;
   const approved = String(process.env.APPROVED_MSI_SHA256 || '').trim().toLowerCase();
   if (!/^[0-9a-f]{64}$/.test(approved)) return false;
   try {

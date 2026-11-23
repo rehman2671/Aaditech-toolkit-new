@@ -4,7 +4,7 @@ FROM node:20-alpine AS base
 WORKDIR /app
 
 # FE-40: install only the exact reviewed lockfile graph; never fall back
-# to a registry-resolved npm install after npm ci fails. The offline LAN
+# to a different dependency graph after npm ci fails. The offline LAN
 # deliverable still needs pinned image digests and an attested offline bundle.
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev --no-audit --no-fund

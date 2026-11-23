@@ -18,6 +18,17 @@ describe('Windows prerequisite VerifyOnly must be non-mutating', () => {
     expect(source).toContain("if ($VerifyOnly -and -not $elevated)");
     expect(source).toContain("WSL2/VirtualMachinePlatform feature state NOT VERIFIED");
   });
+  it('requires real WSL feature evidence and successful Compose v2 output for full readiness', () => {
+    expect(source).toContain("$wslStateUnverified = $true");
+    expect(source).toContain("if (-not $wslFeature -or -not $vmFeature)");
+    expect(source).toContain("WSL2/VirtualMachinePlatform feature readiness NOT VERIFIED");
+    expect(source).toContain("docker compose version --short");
+    expect(source).toContain("$LASTEXITCODE -eq 0");
+    expect(source).toContain("$dockerComposeVerified = $composeOk");
+    expect(source).toContain("($wslStateUnverified -or -not $dockerComposeVerified)");
+    expect(source).not.toContain("$composeOk = [bool]$composeVer");
+  });
+
   it('guards winget from accidental invocation in VerifyOnly and fails unverified readiness', () => {
     expect(source).toContain("if ($VerifyOnly) { throw 'READ_ONLY_VERIFY_MODE:");
     expect(source).toContain("if ($stillMissing.Count -gt 0 -or $policyReviewRequired");

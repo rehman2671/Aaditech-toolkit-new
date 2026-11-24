@@ -154,7 +154,7 @@ export async function sendSmtpMessage(config, recipient, event) {
 export async function deliverTenantEmail(
   tenantId, config, event, sender = sendSmtpMessage, env = process.env
 ) {
-  if (!tenantId || !config?.enabled) return { accepted: false, reason: 'DISABLED' };
+  if (typeof tenantId !== 'string' || !tenantId.trim() || config?.enabled !== true) return { accepted: false, reason: 'DISABLED' };
   const smtp = smtpTransportConfig(env);
   if (!smtp) return { accepted: false, reason: 'SMTP_NOT_CONFIGURED' };
   if (!isApprovedEmailRecipient(config.recipient, smtp)) {

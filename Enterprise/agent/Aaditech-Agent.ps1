@@ -227,7 +227,11 @@ function Send-TelemetryPayload {
     $procs = Get-TopProcesses
     $sec = Get-SecurityPosture
 
+    # One unique key per sample. Unlike the installed MSI worker, this
+    # compatibility script has no durable outbox across process restarts.
+    $batchId = [Guid]::NewGuid().ToString('N')
     $body = @{
+        batch_id        = $batchId
         device_id       = $env:COMPUTERNAME
         hostname        = $env:COMPUTERNAME
         os_version      = $hw.os_version
@@ -252,18 +256,14 @@ function Send-TelemetryPayload {
 
     try {
         $response = Invoke-RestMethod -Uri $Endpoint -Method Post -Body $jsonBody -Headers $headers -TimeoutSec 15
+        if (-not $response -or [string]$response.status -cne 'OK' -or
+            [string]$response.batch_id -cne $batchId -or -not $response.recorded_at) {
+            throw 'Telemetry receipt was missing or did not match this batch.'
+        }
         Write-Host "[$((Get-Date).ToString('HH:mm:ss'))] [+] Telemetry uploaded successfully to $Endpoint" -ForegroundColor Green
         
-        # If server issued a new device token upon enrollment/first check-in, update config
-        if ($response -and $response.new_device_token) {
-            $Token = $response.new_device_token
-            $config.token = $response.new_device_token
-            $config.device_token = $response.new_device_token
-            try {
-                ($config | ConvertTo-Json -Depth 6) | Set-Content -Path $ConfigPath -Force -ErrorAction SilentlyContinue
-                Write-Host "[$((Get-Date).ToString('HH:mm:ss'))] [+] Enrolled successfully! Stored unique per-device token." -ForegroundColor Green
-            } catch {}
-        }
+        # Telemetry must never issue or install a replacement credential.
+        # Use the supported installer and independently authorized recovery.
     } catch {
         Write-Host "[$((Get-Date).ToString('HH:mm:ss'))] [!] Upload warning: $($_.Exception.Message)" -ForegroundColor Yellow
     }

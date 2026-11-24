@@ -94,4 +94,4 @@ This directory contains ordered, idempotent, versioned schema migrations managed
 
 ## Phase O migration 016 — app-usage provenance
 
-One bounded snapshot per device, committed with telemetry; no Redis backfill. Current active credential fingerprint and tenant must match, server-owned snapshot age at most 15 minutes for display. Empty observation is distinct from absence. Device deletion cascades; stale rows remain bounded to one per device pending retention policy. Verify encrypted backup/restore and migration on staging before production. No production acceptance implied.
+One bounded snapshot per device inside mandatory keyed telemetry. No Redis backfill or deployed fallback. Current unique active credential and tenant must match; 15-minute freshness, explicit empty observation, no replay overwrite. Verify backup/restore and migration on staging before production.

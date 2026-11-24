@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import * as db from '../../db.js';
 import { telemetryIngestSchema } from '../../validation.js';
 import fs from 'node:fs';
+import { appUsageCredentialCacheKey } from '../../telemetry-security.js';
 
 const mode=process.env.NODE_ENV;
 afterEach(()=>{
@@ -73,5 +74,44 @@ describe('Phase O durable telemetry credential fence',()=>{
       await expect(db.ingestTelemetryBatchOnce(batch,credential)).rejects.toThrow('TELEMETRY_DEVICE_OWNER_MISMATCH');
       expect(f.query).toHaveBeenCalledTimes(1);
     }
+  });
+});
+
+describe('Phase O app usage credential-generation isolation',()=>{
+  const base={tenantId:'tenant-a',deviceId:'device-a',tokenHash:'a'.repeat(64),revoked:0};
+  it('uses an opaque namespace that changes across tenants, devices and token generations',()=>{
+    const key=appUsageCredentialCacheKey(base);
+    expect(key).toMatch(/^app_usage:v2:[a-f0-9]{64}$/);
+    expect(key).not.toContain(base.tokenHash);
+    for(const patch of [{tenantId:'tenant-b'},{deviceId:'device-b'},{tokenHash:'b'.repeat(64)}]){
+      expect(appUsageCredentialCacheKey({...base,...patch})).not.toBe(key);
+    }
+    for(const patch of [{revoked:1},{revoked:null},{revoked:undefined},{tokenHash:'bad'},{tenantId:''}]){
+      expect(appUsageCredentialCacheKey({...base,...patch})).toBeNull();
+    }
+  });
+  it('re-resolves the current scoped DB row and rejects revoked or ambiguous authority',async()=>{
+    const row={id:base.deviceId,tenant_id:base.tenantId,device_token_hash:base.tokenHash,agent_token_revoked:0,hash_matches:1};
+    const query=vi.fn(async()=>[[row]]);
+    db.setConnectionStateForTesting(true,{query});
+    const resolve=()=>db.getActiveDeviceAppUsageCacheKey(base.deviceId,base.tenantId);
+    expect(await resolve()).toBe(appUsageCredentialCacheKey(base));
+    expect(query.mock.calls[0][0]).toContain('d.tenant_id = ?');
+    expect(query.mock.calls[0][1]).toEqual([base.deviceId,base.tenantId]);
+    query.mockResolvedValueOnce([[{...row,device_token_hash:'b'.repeat(64)}]]);
+    expect(await resolve()).toBe(appUsageCredentialCacheKey({...base,tokenHash:'b'.repeat(64)}));
+    for(const rows of [[],[row,row],[{...row,agent_token_revoked:1}],
+      [{...row,agent_token_revoked:null}],[{...row,hash_matches:2}],[{...row,tenant_id:'foreign'}]]){
+      query.mockResolvedValueOnce([rows]);
+      expect(await resolve()).toBeNull();
+    }
+    db.setConnectionStateForTesting(false,null);
+    await expect(resolve()).rejects.toThrow('APP_USAGE_DATABASE_UNAVAILABLE');
+  });
+  it('legacy standalone sends and checks a keyed receipt without installing response credentials',()=>{
+    const legacy=fs.readFileSync(new URL('../../Enterprise/agent/Aaditech-Agent.ps1',import.meta.url),'utf8');
+    expect(legacy).toContain('batch_id        = $batchId');
+    expect(legacy).toContain('[string]$response.batch_id -cne $batchId');
+    expect(legacy).not.toContain('$response.new_device_token');
   });
 });

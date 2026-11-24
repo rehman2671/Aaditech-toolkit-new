@@ -119,46 +119,6 @@ try {
   const bad=await post({...body,batch_id:'invalid batch id'});
   assert.equal(bad.status,400,'malformed batch key rejected');
 
-  // A legacy transaction has no stable replay key; it must not create a
-  // receipt, and must still enforce the active credential before any write.
-  const {batch_id:ignoredBatch,...legacy}=base;
-  const proof={tokenHash};
-  const historyBeforeLegacy=await countHistory();
-  const receiptsBeforeLegacy=await single('SELECT COUNT(*) AS n FROM telemetry_batches WHERE tenant_id=? AND device_id=?',[tenantA,devA]);
-  const sample={...legacy,events:[],alerts:[],metrics:{cpu:12,ram:20,disk:0,latency:null}};
-  const legacyAck=await db.ingestLegacyTelemetryAtomic(sample,proof);
-  assert.equal(legacyAck.batch_id,undefined);
-  assert.equal(legacyAck.duplicate,false);
-  assert.equal(await countHistory(),historyBeforeLegacy+1);
-  await assert.rejects(()=>db.ingestLegacyTelemetryAtomic({...sample,batch_id:key},proof),/TELEMETRY_BATCH_INVALID/);
-  await assert.rejects(()=>db.ingestLegacyTelemetryAtomic(sample,{tokenHash:'b'.repeat(64)}),/TELEMETRY_CREDENTIAL_CHANGED/);
-  await pool.query('UPDATE devices SET agent_token_revoked=1 WHERE id=?',[devA]);
-  try {
-    await assert.rejects(()=>db.ingestLegacyTelemetryAtomic(sample,proof),/TELEMETRY_CREDENTIAL_CHANGED/);
-  } finally { await pool.query('UPDATE devices SET agent_token_revoked=0 WHERE id=?',[devA]); }
-  await assert.rejects(()=>db.ingestLegacyTelemetryAtomic({...sample,alerts:[{...plan,notifications:[{channel:'email',destination_hash:'bad',event:notification}]}]},proof),/INVALID_NOTIFICATION_CHANNEL/);
-  assert.equal(await countHistory(),historyBeforeLegacy+1,'legacy rejection/rollback must not create history');
-  assert.equal(await single('SELECT COUNT(*) AS n FROM telemetry_batches WHERE tenant_id=? AND device_id=?',[tenantA,devA]),receiptsBeforeLegacy,'unkeyed requests never create synthetic receipts');
-  console.log('[PASS] Legacy atomic telemetry enforces credential, rolls back failed writes and creates no synthetic receipt.');
-  // Persistent app-usage provenance is tied to the same transaction and
-  // credential. No legacy Redis value may become live evidence.
-  const usageSample={...sample,app_usage:[{name:'CI inert app',seconds:12}]};
-  await db.ingestLegacyTelemetryAtomic(usageSample,proof);
-  const firstUsage=await db.getCurrentAppUsageSnapshot(devA,tenantA);
-  assert.deepEqual(firstUsage.app_usage,usageSample.app_usage);
-  assert.equal(await db.getCurrentAppUsageSnapshot(devA,tenantB),null);
-  await pool.query('UPDATE devices SET agent_token_revoked=1 WHERE id=?',[devA]);
-  assert.equal(await db.getCurrentAppUsageSnapshot(devA,tenantA),null);
-  await pool.query('UPDATE devices SET agent_token_revoked=0,device_token_hash=? WHERE id=?',['c'.repeat(64),devA]);
-  assert.equal(await db.getCurrentAppUsageSnapshot(devA,tenantA),null);
-  await pool.query('UPDATE devices SET device_token_hash=? WHERE id=?',[tokenHash,devA]);
-  await pool.query('UPDATE device_app_usage_snapshots SET recorded_at=DATE_SUB(NOW(3),INTERVAL 16 MINUTE) WHERE device_id=?',[devA]);
-  assert.equal(await db.getCurrentAppUsageSnapshot(devA,tenantA),null);
-  await db.ingestLegacyTelemetryAtomic({...sample,app_usage:[]},proof);
-  assert.deepEqual((await db.getCurrentAppUsageSnapshot(devA,tenantA)).app_usage,[]);
-  await assert.rejects(()=>db.ingestLegacyTelemetryAtomic({...sample,app_usage:[{name:'x'.repeat(65537)}]},proof),/TELEMETRY_APP_USAGE_INVALID/);
-  assert.deepEqual((await db.getCurrentAppUsageSnapshot(devA,tenantA)).app_usage,[]);
-  console.log('[PASS] App usage persistent snapshot rejects foreign/revoked/rotated/expired evidence; explicit empty and size bound preserved.');
   const parallelId='p-'+crypto.randomBytes(8).toString('hex');
   const parallel={hostname:hostA,batch_id:parallelId,metrics:{cpu:{utilization_pct:91}}};
   const together=await Promise.all(Array.from({length:8},()=>post(parallel)));
@@ -170,8 +130,27 @@ try {
   const bound = { tokenHash };
   const prior = await db.ingestTelemetryBatchOnce(base, bound);
   assert.equal(prior.duplicate,true);
+  const usageKey=key+'-usage', emptyKey=key+'-empty';
+  const usage={...base,batch_id:usageKey,request_hash:sha(usageKey),events:[],alerts:[],metrics:null,app_usage:[{name:'CI inert app',seconds:12}]};
+  const empty={...usage,batch_id:emptyKey,request_hash:sha(emptyKey),app_usage:[]};
+  await db.ingestTelemetryBatchOnce(usage,bound);
+  assert.deepEqual((await db.getCurrentAppUsageSnapshot(devA,tenantA)).app_usage,usage.app_usage);
+  assert.equal(await db.getCurrentAppUsageSnapshot(devA,tenantB),null);
+  await db.ingestTelemetryBatchOnce(empty,bound);
+  assert.equal((await db.ingestTelemetryBatchOnce(usage,bound)).duplicate,true);
+  assert.deepEqual((await db.getCurrentAppUsageSnapshot(devA,tenantA)).app_usage,[]);
+  await assert.rejects(()=>db.ingestTelemetryBatchOnce({...usage,batch_id:key+'-oversize',app_usage:[{name:'x'.repeat(65537)}]},bound),/TELEMETRY_APP_USAGE_INVALID/);
+  assert.equal(await countReceipt(key+'-oversize'),0);
+  await pool.query('UPDATE devices SET device_token_hash=? WHERE id=?',['c'.repeat(64),devA]);
+  assert.equal(await db.getCurrentAppUsageSnapshot(devA,tenantA),null);
+  await pool.query('UPDATE devices SET device_token_hash=? WHERE id=?',[tokenHash,devA]);
+  await pool.query('UPDATE device_app_usage_snapshots SET recorded_at=DATE_SUB(NOW(3),INTERVAL 16 MINUTE) WHERE device_id=?',[devA]);
+  assert.equal(await db.getCurrentAppUsageSnapshot(devA,tenantA),null);
+  await db.ingestTelemetryBatchOnce({...usage,batch_id:key+'-fresh',request_hash:sha(key+'-fresh')},bound);
+  assert.ok(await db.getCurrentAppUsageSnapshot(devA,tenantA));
   const historyBeforeRevocation = await countHistory();
   await pool.query('UPDATE devices SET agent_token_revoked=1 WHERE id=?',[devA]);
+  assert.equal(await db.getCurrentAppUsageSnapshot(devA,tenantA),null);
   await assert.rejects(()=>db.ingestTelemetryBatchOnce(base,bound),/TELEMETRY_CREDENTIAL_CHANGED/);
   await assert.rejects(()=>db.ingestTelemetryBatchOnce({...base,batch_id:key+'-revoked'},bound),/TELEMETRY_CREDENTIAL_CHANGED/);
   assert.equal(await countReceipt(key+'-revoked'),0);

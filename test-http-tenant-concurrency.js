@@ -60,7 +60,7 @@ async function agentCall(workerPort, hostname, deviceToken) {
   const response = await fetch('http://127.0.0.1:' + workerPort + '/api/v1/ingest/telemetry', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'X-Device-Token': deviceToken },
-    body: JSON.stringify({ hostname, cpu_usage: '6%', memory_usage: '12%' }),
+    body: JSON.stringify({ hostname, batch_id: crypto.randomUUID(), cpu_usage: '6%', memory_usage: '12%' }),
     signal: AbortSignal.timeout(15000)
   });
   const text = await response.text();

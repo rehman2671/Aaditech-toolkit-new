@@ -8,6 +8,7 @@ import bcrypt from 'bcrypt';
 import { fileURLToPath } from 'url';
 import { getAgentVersion } from './agent-artifacts.js';
 import { classifyDeviceCredentialRecovery } from './enrollment-security.js';
+import { appUsageCredentialCacheKey } from './telemetry-security.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -1485,6 +1486,22 @@ export async function getDeviceByUid(deviceUid) {
   return rec;
 }
 
+// Resolve cache visibility from a fresh authoritative row, never a stale
+// formatted device or Redis value. Ambiguous credentials are not authoritative.
+export async function getActiveDeviceAppUsageCacheKey(deviceId, tenantId) {
+  if (typeof deviceId !== 'string' || !deviceId || typeof tenantId !== 'string' || !tenantId) return null;
+  if (!isMysqlConnected() || !pool?.query) throw new Error('APP_USAGE_DATABASE_UNAVAILABLE');
+  const [rows] = await pool.query(
+    'SELECT d.id, d.tenant_id, d.device_token_hash, d.agent_token_revoked, ' +
+    '(SELECT COUNT(*) FROM devices x WHERE x.device_token_hash = d.device_token_hash) AS hash_matches ' +
+    'FROM devices d WHERE d.id = ? AND d.tenant_id = ? LIMIT 2',
+    [deviceId, tenantId]);
+  if (!Array.isArray(rows) || rows.length !== 1 || rows[0].id !== deviceId ||
+      rows[0].tenant_id !== tenantId || Number(rows[0].hash_matches) !== 1) return null;
+  const row = rows[0];
+  return appUsageCredentialCacheKey({tenantId,deviceId,tokenHash:row.device_token_hash,revoked:row.agent_token_revoked});
+}
+
 export async function getDeviceByTokenHash(hash) {
   if (!hash) return null;
   const production = process.env.NODE_ENV !== 'test';
@@ -1800,23 +1817,11 @@ export async function deleteDevice(id) {
 // MySQL's tenant/device/batch unique key serializes parallel workers and
 // an immutable receipt makes ACK-loss replay a read-only operation.
 export async function ingestTelemetryBatchOnce(batch, credential = undefined) {
-  return ingestTelemetryTransaction(batch, credential, false);
-}
-
-// Explicit compatibility path: a legacy report has no durable batch ID.
-// It shares the transaction but never claims an idempotency receipt.
-export async function ingestLegacyTelemetryAtomic(batch, credential) {
-  if (batch?.batch_id !== undefined || !credential) throw new Error('TELEMETRY_BATCH_INVALID');
-  return ingestTelemetryTransaction(batch, credential, true);
-}
-
-async function ingestTelemetryTransaction(batch, credential, legacy) {
   const { tenant_id: tenantId, device_id: deviceId, batch_id: batchId,
     request_hash: hash, device_updates: updates = {},
     metrics: measured, processes = [], events = [], alerts = [], app_usage: appUsage } = batch || {};
   if (!tenantId || !deviceId ||
-      (!legacy && !/^[A-Za-z0-9][A-Za-z0-9:._-]{0,63}$/.test(String(batchId || ''))) ||
-      (legacy && batchId !== undefined) ||
+      !/^[A-Za-z0-9][A-Za-z0-9:._-]{0,63}$/.test(String(batchId || '')) ||
       !/^[0-9a-f]{64}$/.test(String(hash || ''))) throw new Error('TELEMETRY_BATCH_INVALID');
   if (!isMysqlConnected() || !pool?.getConnection) throw new Error('TELEMETRY_BATCH_MYSQL_REQUIRED');
   const conn = await pool.getConnection();
@@ -1840,34 +1845,26 @@ async function ingestTelemetryTransaction(batch, credential, legacy) {
         throw new Error('TELEMETRY_CREDENTIAL_CHANGED');
       }
     }
-    let recordedAt;
-    if (!legacy) {
-      const nonce = crypto.randomBytes(16).toString('hex');
-      await conn.query(
-        'INSERT INTO telemetry_batches (tenant_id, device_id, batch_id, request_hash, insert_nonce, accepted_count) ' +
-        'VALUES (?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE batch_id = batch_id',
-        [tenantId, deviceId, batchId, hash, nonce, events.length]
-      );
-      // No affectedRows inference: mysql2 CLIENT_FOUND_ROWS reports 1 for no-op.
-      const [claims] = await conn.query(
-        'SELECT request_hash, insert_nonce, accepted_count, recorded_at FROM telemetry_batches ' +
-        'WHERE tenant_id = ? AND device_id = ? AND batch_id = ? FOR UPDATE',
-        [tenantId, deviceId, batchId]
-      );
-      const claim = claims[0];
-      if (claims.length !== 1 || claim.request_hash !== hash ||
-          Number(claim.accepted_count) !== events.length) throw new Error('TELEMETRY_BATCH_ID_CONFLICT');
-      if (claim.insert_nonce !== nonce) {
-        await conn.commit();
-        committed = true;
-        return { duplicate: true, accepted: Number(claim.accepted_count),
-          recorded_at: claim.recorded_at, batch_id: batchId };
-      }
-      recordedAt = claim.recorded_at;
-    } else {
-      const [clock] = await conn.query('SELECT NOW(3) AS recorded_at');
-      recordedAt = clock[0]?.recorded_at;
-      if (!recordedAt || !Number.isFinite(new Date(recordedAt).getTime())) throw new Error('TELEMETRY_CLOCK_UNAVAILABLE');
+    const nonce = crypto.randomBytes(16).toString('hex');
+    await conn.query(
+      'INSERT INTO telemetry_batches (tenant_id, device_id, batch_id, request_hash, insert_nonce, accepted_count) ' +
+      'VALUES (?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE batch_id = batch_id',
+      [tenantId, deviceId, batchId, hash, nonce, events.length]
+    );
+    // No affectedRows inference: mysql2 CLIENT_FOUND_ROWS reports 1 for no-op.
+    const [claims] = await conn.query(
+      'SELECT request_hash, insert_nonce, accepted_count, recorded_at FROM telemetry_batches ' +
+      'WHERE tenant_id = ? AND device_id = ? AND batch_id = ? FOR UPDATE',
+      [tenantId, deviceId, batchId]
+    );
+    const claim = claims[0];
+    if (claims.length !== 1 || claim.request_hash !== hash ||
+        Number(claim.accepted_count) !== events.length) throw new Error('TELEMETRY_BATCH_ID_CONFLICT');
+    if (claim.insert_nonce !== nonce) {
+      await conn.commit();
+      committed = true;
+      return { duplicate: true, accepted: Number(claim.accepted_count),
+        recorded_at: claim.recorded_at, batch_id: batchId };
     }
 
     if (appUsage !== undefined) {
@@ -1884,7 +1881,7 @@ async function ingestTelemetryTransaction(batch, credential, legacy) {
         'INSERT INTO device_app_usage_snapshots (device_id,tenant_id,credential_fingerprint,payload_json,recorded_at) ' +
         'VALUES (?,?,?,?,?) ON DUPLICATE KEY UPDATE tenant_id=VALUES(tenant_id), ' +
         'credential_fingerprint=VALUES(credential_fingerprint),payload_json=VALUES(payload_json),recorded_at=VALUES(recorded_at)',
-        [deviceId,tenantId,fingerprint,payload,recordedAt]);
+        [deviceId,tenantId,fingerprint,payload,claim.recorded_at]);
     }
 
     const safeColumns = new Set(['status','os_version','ip_address','cpu_usage',
@@ -1982,7 +1979,7 @@ async function ingestTelemetryTransaction(batch, credential, legacy) {
     invalidateDeviceCache(deviceId);
     await cacheDel('cache:devices:list');
     return { duplicate: false, accepted: events.length,
-      recorded_at: recordedAt, batch_id: batchId };
+      recorded_at: claim.recorded_at, batch_id: batchId };
   } catch (err) {
     if (!committed) {
       try { await conn.rollback(); }
@@ -1992,9 +1989,6 @@ async function ingestTelemetryTransaction(batch, credential, legacy) {
   } finally { if (!discard) conn.release(); }
 }
 
-// Persistent snapshot authority: one joined read checks active credential,
-// tenant ownership and a 15-minute server-owned freshness window.
-// No Redis fallback, raw hashes, or synthetic application observations.
 export async function getCurrentAppUsageSnapshot(deviceId, tenantId) {
   if (!deviceId || !tenantId) return null;
   if (!isMysqlConnected() || !pool?.query) throw new Error('APP_USAGE_DATABASE_UNAVAILABLE');
@@ -2002,6 +1996,7 @@ export async function getCurrentAppUsageSnapshot(deviceId, tenantId) {
     "SELECT s.device_id,s.tenant_id,s.payload_json,s.recorded_at FROM device_app_usage_snapshots s " +
     "INNER JOIN devices d ON d.id=s.device_id AND d.tenant_id=s.tenant_id " +
     "WHERE s.device_id=? AND s.tenant_id=? AND d.agent_token_revoked=0 " +
+    "AND (SELECT COUNT(*) FROM devices x WHERE x.device_token_hash=d.device_token_hash)=1 " +
     "AND BINARY s.credential_fingerprint=BINARY SHA2(CONCAT('aaditech:app-usage:v1:',d.device_token_hash),256) " +
     "AND s.recorded_at BETWEEN DATE_SUB(NOW(3),INTERVAL 15 MINUTE) AND NOW(3) LIMIT 2",
     [String(deviceId),String(tenantId)]);

@@ -1441,6 +1441,14 @@ app.post(['/api/v1/ingest/telemetry', '/api/ingest'], agentLimiter, validateBody
   }
 
   const dev = ver.device;
+  // Every deployed ingest must go through the atomic keyed transaction.
+  // Old clients must upgrade, not receive a fabricated retry-safe receipt.
+  if (process.env.NODE_ENV !== 'test' && !req.body.batch_id) {
+    return res.status(400).json({ error: 'TELEMETRY_BATCH_ID_REQUIRED',
+      detail: 'Upgrade the agent to submit a stable batch_id for each telemetry sample.' });
+  }
+  const telemetryCredential = process.env.NODE_ENV === 'test' ? undefined :
+    { tokenHash: hashDeviceToken(extractEnrolledDeviceHeaderToken(req.headers)) };
 
   // High-frequency protection: verify per-device rate limit via in-memory Map
   const rateLimitKey = dev.id || dev.hostname || effectiveHost;
@@ -1497,19 +1505,16 @@ app.post(['/api/v1/ingest/telemetry', '/api/ingest'], agentLimiter, validateBody
   // N29 canonical requests: the receipt, device update, measured history,
   // event rows, alerts and notification jobs MUST share a single SQL commit.
   // A lost HTTPS ACK results in a read-only duplicate response, not fresh
-  // measured evidence or repeated alert fan-out. Legacy agents without a
-  // batch_id use the same transaction without a durable replay receipt in
-  // deployed runtimes. The old demo-only path remains isolated to tests.
-  if (req.body.batch_id || process.env.NODE_ENV !== 'test') {
+  // measured evidence or repeated alert fan-out. Only explicit test
+  // fixtures may use the unkeyed compatibility path below.
+  if (req.body.batch_id) {
     try {
       const plans = hasMeasurement ? await getAtomicTelemetryAlertPlans(dev, measured) : [];
-      const keyed = req.body.batch_id !== undefined;
-      const ingest = keyed ? db.ingestTelemetryBatchOnce : db.ingestLegacyTelemetryAtomic;
-      const receipt = await ingest({
+      const receipt = await db.ingestTelemetryBatchOnce({
         tenant_id: dev.tenant_id,
         device_id: dev.id,
         hostname: dev.hostname,
-        ...(keyed ? { batch_id: req.body.batch_id } : {}),
+        batch_id: req.body.batch_id,
         request_hash: crypto.createHash('sha256')
           .update(JSON.stringify(req.body)).digest('hex'),
         device_updates: devUpdates,
@@ -1518,17 +1523,9 @@ app.post(['/api/v1/ingest/telemetry', '/api/ingest'], agentLimiter, validateBody
         events: Array.isArray(req.body.events) ? req.body.events : [],
         alerts: plans,
         ...(process.env.NODE_ENV !== 'test' && app_usage !== undefined ? {app_usage} : {})
-      }, process.env.NODE_ENV === 'test' ? undefined :
-        { tokenHash: hashDeviceToken(extractEnrolledDeviceHeaderToken(req.headers)) });
+      }, telemetryCredential);
       if (process.env.NODE_ENV === 'test' && !receipt.duplicate && Array.isArray(app_usage) && app_usage.length) {
         await db.cacheSet('app_usage:' + dev.id, app_usage, 900);
-      }
-      if (!keyed) {
-        return res.status(200).json({
-          status: 'OK', accepted: Array.isArray(req.body.events) ? receipt.accepted : 1,
-          recorded_at: new Date(receipt.recorded_at).toISOString(),
-          sequence_number: sequence_number || 1, hostname: dev.hostname
-        });
       }
       return res.status(200).json({
         status: 'OK', batch_id: receipt.batch_id, accepted: receipt.accepted,
@@ -1541,9 +1538,7 @@ app.post(['/api/v1/ingest/telemetry', '/api/ingest'], agentLimiter, validateBody
         return res.status(409).json({ error: err.message,
           detail: 'An authenticated device already submitted a different payload under the same message/batch ID.' });
       }
-      if (err.message === 'TELEMETRY_APP_USAGE_INVALID') {
-        return res.status(400).json({error:err.message});
-      }
+      if (err.message === 'TELEMETRY_APP_USAGE_INVALID') return res.status(400).json({error:err.message});
       if (['TELEMETRY_CREDENTIAL_CHANGED', 'TELEMETRY_DEVICE_OWNER_MISMATCH'].includes(err.message)) {
         return res.status(401).json({ error: 'DEVICE_CREDENTIAL_CHANGED' });
       }
@@ -2292,22 +2287,20 @@ app.get('/api/v1/devices/:id/app-usage', async (req, res) => {
   if (!belongsToCurrentTenant(req.user, dev)) {
     return res.status(404).json({ error: 'Device not found' });
   }
-  if (process.env.NODE_ENV !== 'test') {
-    res.set('Cache-Control','no-store');
-    try {
-      const snapshot=await db.getCurrentAppUsageSnapshot(dev.id, req.user.tenant_id);
-      if (snapshot) return res.json({device_id:dev.id,hostname:dev.hostname,
-        source:'live_agent_telemetry',...snapshot});
-    } catch (_) {
-      return res.status(503).json({error:'APP_USAGE_DATABASE_UNAVAILABLE'});
+  res.set('Cache-Control', 'no-store');
+  // Persistent current-generation evidence, never a deployed Redis value.
+  try {
+    if (process.env.NODE_ENV !== 'test') {
+      const snapshot=await db.getCurrentAppUsageSnapshot(dev.id,req.user.tenant_id);
+      if (snapshot) return res.json({device_id:dev.id,hostname:dev.hostname,source:'live_agent_telemetry',...snapshot});
+    } else {
+      const liveUsage=await db.cacheGet(`app_usage:${dev.id}`);
+      if (dev.telemetry_status==='AGENT_REPORTED' && Array.isArray(liveUsage) && liveUsage.length) {
+        return res.json({device_id:dev.id,hostname:dev.hostname,source:'live_agent_telemetry',app_usage:liveUsage});
+      }
     }
-  } else {
-    // Historical demo fixtures only; no deployed Redis fallback.
-    const liveUsage = await db.cacheGet(`app_usage:${dev.id}`);
-    if (dev.telemetry_status === 'AGENT_REPORTED' &&
-        liveUsage && Array.isArray(liveUsage) && liveUsage.length > 0) {
-      return res.json({device_id:dev.id,hostname:dev.hostname,source:'live_agent_telemetry',app_usage:liveUsage});
-    }
+  } catch (_) {
+    return res.status(503).json({error:'APP_USAGE_DATABASE_UNAVAILABLE'});
   }
 
   return res.json({

@@ -274,14 +274,27 @@ try {
   const batchRetry = await agentPost(peerPort,'/api/v1/ingest/telemetry',telemetry);
   assert.equal(batchRetry.status,200);
   assert.equal(batchRetry.body.duplicate,true);
-  const legacy = {hostname:deviceHost,events:[]};
-  const legacyResponse=await agentPost(peerPort,'/api/ingest',legacy);
-  assert.equal(legacyResponse.status,200);
-  assert.equal(legacyResponse.body.accepted,0);
-  assert.equal(Object.hasOwn(legacyResponse.body,'batch_id'),false);
+  const [before] = await pool.execute('SELECT last_seen_at FROM devices WHERE id = ?', [deviceId]);
+  for (const port of [mainPort,peerPort]) {
+    for (const path of ['/api/v1/ingest/telemetry','/api/ingest']) {
+      const legacy = await agentPost(port,path,{hostname:deviceHost,events:[]});
+      assert.equal(legacy.status,400);
+      assert.equal(legacy.body.error,'TELEMETRY_BATCH_ID_REQUIRED');
+    }
+  }
+  const [legacyState] = await pool.execute('SELECT last_seen_at FROM devices WHERE id=?',[deviceId]);
+  assert.equal(String(legacyState[0].last_seen_at),String(before[0].last_seen_at));
+  const [legacyReceipts] = await pool.execute('SELECT COUNT(*) AS total FROM telemetry_batches WHERE tenant_id=? AND device_id=?',[tenantId,deviceId]);
+  assert.equal(Number(legacyReceipts[0].total),1);
+  const activeReconcile = await fetch('http://127.0.0.1:'+mainPort+'/api/v1/devices/'+deviceId+'/credentials/reconcile-pending',{
+    method:'POST',headers:{'Content-Type':'application/json',...auth},
+    body:JSON.stringify({confirm_device_id:deviceId,action:'CANCEL_NEVER_CLAIMED_PENDING'}),signal:AbortSignal.timeout(12000)});
+  assert.equal(activeReconcile.status,409);
+  assert.equal((await activeReconcile.json()).error,'DEVICE_MUST_BE_REVOKED');
+  const suspiciousId=crypto.randomUUID();
+  await pool.execute("INSERT INTO command_queue (id,device_id,command_type,status,picked_up_at) VALUES (?,?,?,'PENDING',NOW(3))",[suspiciousId,deviceId,'DIAGNOSTIC']);
   const pendingId=crypto.randomUUID();
   await pool.execute("INSERT INTO command_queue (id,device_id,command_type,status) VALUES (?,?,?,'PENDING')",[pendingId,deviceId,'DIAGNOSTIC']);
-  const [before] = await pool.execute('SELECT last_seen_at FROM devices WHERE id = ?', [deviceId]);
   const revocations = await Promise.all([revoke(mainPort, auth), revoke(peerPort, auth)]);
   for (const result of revocations) {
     assert.equal(result.status, 200);
@@ -313,13 +326,12 @@ try {
     assert.equal(recovery.body.credential_revoked, true);
     assert.equal(recovery.body.replacement_allowed, false);
     assert.ok(recovery.body.blockers.includes('AUTHORIZED_RECOVERY_HANDOFF_REQUIRED'));
-    assert.equal(recovery.body.outstanding_commands, 1);
+    assert.equal(recovery.body.outstanding_commands, 2);
     assert.ok(recovery.body.blockers.includes('COMMAND_RECONCILIATION_REQUIRED'));
     assert.equal((await result(port, outstandingId)).status, 401);
     for (const [path,body] of [
       ['/api/v1/agent/heartbeat',{hostname:deviceHost}],
       ['/api/v1/ingest/telemetry',telemetry],
-      ['/api/ingest',legacy],
       ['/api/v1/ingest/telemetry',{...telemetry,batch_id:batchId+'-revoked'}]
     ]) {
       const response = await agentPost(port,path,body);
@@ -351,7 +363,7 @@ try {
   assert.equal((await reconcile(mainPort,{Cookie:'auth_token='+adminToken})).status,403);
   assert.equal((await reconcile(mainPort,auth,crypto.randomUUID())).status,400);
   const reconciled=await Promise.all([reconcile(mainPort,auth),reconcile(peerPort,auth)]);
-  assert.ok(reconciled.every(r=>r.status===200&&r.body.replacement_allowed===false&&r.body.remaining_outstanding_commands===1));
+  assert.ok(reconciled.every(r=>r.status===200&&r.body.replacement_allowed===false&&r.body.remaining_outstanding_commands===2));
   assert.deepEqual(reconciled.map(r=>r.body.cancelled_pending_commands).sort(),[0,1]);
   const [reconciliationAudits]=await pool.execute("SELECT COUNT(*) AS total FROM audit_logs WHERE tenant_id=? AND action='REVOKED_DEVICE_PENDING_COMMANDS_RECONCILED'",[tenantId]);
   assert.equal(Number(reconciliationAudits[0].total),1);
@@ -360,7 +372,11 @@ try {
   assert.equal(unfinished[0].status, 'IN_PROGRESS');
   assert.equal(unfinished[0].completed_at, null);
   const [queueCount] = await pool.execute('SELECT COUNT(*) AS total FROM command_queue WHERE device_id = ?', [deviceId]);
-  assert.equal(Number(queueCount[0].total), 4, 'Only explicit CI fixture rows may exist for revoked device');
+  assert.equal(Number(queueCount[0].total), 5, 'Only explicit CI fixture rows may exist for revoked device');
+  const [suspicious]=await pool.execute('SELECT status,picked_up_at,completed_at FROM command_queue WHERE id=?',[suspiciousId]);
+  assert.equal(suspicious[0].status,'PENDING');
+  assert.ok(suspicious[0].picked_up_at);
+  assert.equal(suspicious[0].completed_at,null);
   console.log('[PASS] Two production workers enforce durable revocation/audit, credential-bound claim/result and preserve unresolved commands.');
 } finally {
   setPartition(true);

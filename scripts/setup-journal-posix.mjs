@@ -122,3 +122,18 @@ export async function inspectAnchoredSetupJournal({directory,installationId,rele
  return Object.freeze({...state,checkpoint_verified:true,checkpoint_sha256:expectedCheckpointSha256,
    execution_authorized:false,production_accepted:false});
 }
+
+// Browser-facing projection reference. Only a freshly verified, independently
+// pinned journal may yield recorded stage status. Recorded completion is NOT
+// actual resource readiness; no pins, paths, IDs, or evidence hashes escape.
+export async function inspectSetupProgress(anchor){
+ const state=await inspectAnchoredSetupJournal(anchor);
+ const steps=Object.freeze(STEPS.map((step,index)=>Object.freeze({
+   step,status:index<state.completed?'RECORDED_COMPLETE':
+      step===state.pending?'RECONCILIATION_REQUIRED':'NOT_RECORDED'
+ })));
+ return Object.freeze({steps,checkpoint_verified:true,
+   next_step:state.pending??STEPS[state.completed]??null,
+   decision:state.pending?'OPERATOR_RECONCILIATION_REQUIRED':'REVALIDATE_ACTUAL_EVIDENCE',
+   actual_readiness_verified:false,execution_authorized:false,production_accepted:false});
+}

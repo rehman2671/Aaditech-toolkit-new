@@ -3,7 +3,7 @@ import {mkdtemp,chmod,rm,realpath,readFile,writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {createHash,generateKeyPairSync,sign} from 'node:crypto';
-import {inspectSetupJournal,appendSetupJournalEvent,inspectAnchoredSetupJournal} from '../../scripts/setup-journal-posix.mjs';
+import {inspectSetupJournal,appendSetupJournalEvent,inspectAnchoredSetupJournal,inspectSetupProgress} from '../../scripts/setup-journal-posix.mjs';
 const id='6f8c5ad9-e52e-4ea4-a1c7-f1dc23688a9e';
 const release='a'.repeat(64),evidence='b'.repeat(64);
 async function fixture(run){
@@ -97,5 +97,29 @@ describe.skipIf(process.platform==='win32')('independently pinned journal checkp
   await expect(inspectAnchoredSetupJournal({...anchor,signature:Buffer.alloc(64)})).rejects.toThrow('CHECKPOINT_SIGNATURE_INVALID');
   await expect(inspectAnchoredSetupJournal({...anchor,releaseSha256:'c'.repeat(64)})).rejects.toThrow('CHECKPOINT_BINDING_INVALID');
   expect(await inspectAnchoredSetupJournal(anchor)).toMatchObject({decision:'OPERATOR_RECONCILIATION_REQUIRED',execution_authorized:false});
+ }));
+});
+
+describe.skipIf(process.platform==='win32')('redacted setup progress projection',()=>{
+ it('distinguishes recorded completion from actual readiness and pending work',()=>fixture(async f=>{
+  await f.append('PREFLIGHT','STARTED');await f.append('PREFLIGHT','COMPLETED');
+  await f.append('TRUST','STARTED');
+  const anchor=checkpoint(f.input,await f.read());
+  const view=await inspectSetupProgress(anchor);
+  expect(view).toMatchObject({next_step:'TRUST',decision:'OPERATOR_RECONCILIATION_REQUIRED',
+    checkpoint_verified:true,actual_readiness_verified:false,execution_authorized:false,production_accepted:false});
+  expect(view.steps.map(s=>s.status)).toEqual(['RECORDED_COMPLETE','RECONCILIATION_REQUIRED',...Array(4).fill('NOT_RECORDED')]);
+  for(const secret of [id,release,evidence,f.directory,anchor.expectedCheckpointSha256])expect(JSON.stringify(view)).not.toContain(secret);
+  expect(Object.isFrozen(view.steps)).toBe(true);
+  await f.append('TRUST','COMPLETED');
+  await expect(inspectSetupProgress(anchor)).rejects.toThrow('CHECKPOINT_HEAD_MISMATCH');
+ }));
+ it('all recorded steps are not release acceptance',()=>fixture(async f=>{
+  for(const step of ['PREFLIGHT','TRUST','DATABASE','API','ADMIN','AGENT']){
+    await f.append(step,'STARTED');await f.append(step,'COMPLETED');
+  }
+  const view=await inspectSetupProgress(checkpoint(f.input,await f.read()));
+  expect(view.next_step).toBeNull();expect(view.steps.every(s=>s.status==='RECORDED_COMPLETE')).toBe(true);
+  expect(view.actual_readiness_verified).toBe(false);expect(view.production_accepted).toBe(false);
  }));
 });

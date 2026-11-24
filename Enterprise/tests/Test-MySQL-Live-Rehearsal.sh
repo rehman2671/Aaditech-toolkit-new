@@ -16,14 +16,15 @@ grep -q '^MYSQL_DATABASE=it_toolkit_rehearsal$' "$ENV_FILE" || {
 }
 
 compose up -d --wait --wait-timeout 180 db
-# The official MySQL image can briefly report healthy during initial
-# restart while its Unix socket is unavailable. This is an isolated CI-only
-# bootstrap fixture: retry its idempotent SQL until the app credentials work.
+# MySQL's temporary initialization server may accept Unix-socket
+# queries and then shut down. Require TCP to the final server (the temporary
+# server uses --skip-networking) before any migration or non-idempotent seed.
+# Retry only the idempotent initial marker; do not retry ambiguous commits.
 initialized=0
 for attempt in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
   if compose exec -T db sh -ec '
       export MYSQL_PWD="$MYSQL_PASSWORD"
-      mysql --user="$MYSQL_USER" --database="$MYSQL_DATABASE" --execute="
+      mysql --protocol=TCP --host=127.0.0.1 --connect-timeout=3 --user="$MYSQL_USER" --database="$MYSQL_DATABASE" --execute="
         CREATE TABLE IF NOT EXISTS rehearsal_marker (
           id INT PRIMARY KEY,
           content VARCHAR(64) NOT NULL
@@ -47,9 +48,11 @@ done
 sql() {
   compose exec -T db sh -ec '
     export MYSQL_PWD="$MYSQL_PASSWORD"
-    exec mysql --user="$MYSQL_USER" --database="$MYSQL_DATABASE" --batch --skip-column-names
+    exec mysql --protocol=TCP --host=127.0.0.1 --connect-timeout=3 --user="$MYSQL_USER" --database="$MYSQL_DATABASE" --batch --skip-column-names
   '
 }
+# Require an additional successful final-server probe before seeding.
+sql <<< 'SELECT 1' >/dev/null
 for migration in 016_app_usage_snapshot.sql 017_device_recovery_reviews.sql; do
   sql < "$HERE/../database/migrations/$migration"
 done

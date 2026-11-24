@@ -1,5 +1,8 @@
 # IT-Toolkit Enterprise (Phase 3)
 
+> **PRODUCT DIRECTION UPDATE (2026-11-23):** Primary goal is an **intranet-first, independent office installation** with an integrated setup wizard, no mandatory internet/Hostinger. The currently documented Docker/Linux VPS public-DNS path is **not** proof that the LAN one-click installer exists. Use the authoritative [product baseline](../docs/product/README.md), [feature evidence matrix](../docs/product/FEATURE-ACCEPTANCE-MATRIX.md) and [intranet installer acceptance criteria](../docs/product/INSTALLER-AND-SETUP-ACCEPTANCE.md). Existing API/MySQL/Windows diagnostic CI success must not be mistaken for customer E2E production approval.
+
+
 > **Phase N status (November 2026):** The authoritative stack is Node.js +
 > MySQL 8. Use [`deploy/deploy-mysql.sh`](deploy/deploy-mysql.sh) on a
 > Docker-capable Linux VPS with a real DNS hostname and public HTTPS.

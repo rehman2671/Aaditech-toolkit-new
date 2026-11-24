@@ -1,5 +1,8 @@
 # IT Toolkit - Documentation Index
 
+> **AADI TECH ENTERPRISE SOURCE OF TRUTH (2026-11-23):** This index primarily documents the standalone Windows toolkit and historical development. For the current enterprise goal—offline-capable intranet server, one-click setup, unique installation identity, device management and 26 safe troubleshooting issue classes—start at [docs/product/README.md](../docs/product/README.md). Historic Go/PostgreSQL or FastAPI/PostgreSQL specs are not executable deployment guidance.
+
+
 Complete guide to all documentation files and resources in the toolkit.
 
 ---

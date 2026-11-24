@@ -165,9 +165,10 @@
         "server.js workspaces/agent endpoints",
         "tests/integration/workspace-selection.integration.test.js",
         "#110 e5804047673b05915023b27accdb21f6a6aba008: CI #45447614754 SUCCESS 3/3 executed, both MSI jobs skipped, no separate deployment safety run; current unique device hash authority, not actual rotation workflow",
-        "Proposed current #110 follow-up: header-only current enrolled token admission with malformed/conflicting-header tests; fresh exact-head CI pending"
+        "Proposed current #110 follow-up: header-only current enrolled token admission with malformed/conflicting-header tests; fresh exact-head CI pending",
+        "Proposed #110: explicit bearer tenant SUPER_ADMIN credential revocation by immutable device ID + reason code; MySQL row lock, atomic audit/write, read-only already-revoked retry and no fallback. Mocked transaction regressions added; fresh CI and real API/replica rehearsal pending."
       ],
-      "next": "Implement separately authorized credential rotation/revocation, legacy migration, device proof and independent multi-replica and physical endpoint acceptance; review fresh #110 CI.",
+      "next": "Verify #110 exact-head CI and real MySQL/HTTP multi-replica revocation, in-flight command policy and physical endpoint behavior; implement authorized replacement/rotation and legacy migration; owner DEC-003 remains open.",
       "blocked": true
     },
     {
@@ -686,9 +687,10 @@
         "doc1_full.txt / doc2_full.txt source mirrors",
         "docs/product/ORIGINAL-REQUIREMENTS-TRACEABILITY.md",
         "#110 e5804047673b05915023b27accdb21f6a6aba008: CI #45447614754 SUCCESS 3/3 executed, both MSI jobs skipped, no separate deployment safety run; current unique device hash authority, not actual rotation workflow",
-        "Proposed current #110 follow-up: header-only current enrolled token admission with malformed/conflicting-header tests; fresh exact-head CI pending"
+        "Proposed current #110 follow-up: header-only current enrolled token admission with malformed/conflicting-header tests; fresh exact-head CI pending",
+        "Proposed #110: explicit bearer tenant SUPER_ADMIN credential revocation by immutable device ID + reason code; MySQL row lock, atomic audit/write, read-only already-revoked retry and no fallback. Mocked transaction regressions added; fresh CI and real API/replica rehearsal pending."
       ],
-      "next": "Implement separately authorized credential rotation/revocation, legacy migration, device proof and independent multi-replica and physical endpoint acceptance; review fresh #110 CI.",
+      "next": "Verify #110 exact-head CI and real MySQL/HTTP multi-replica revocation, in-flight command policy and physical endpoint behavior; implement authorized replacement/rotation and legacy migration; owner DEC-003 remains open.",
       "blocked": true
     },
     {

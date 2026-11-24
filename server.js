@@ -30,7 +30,7 @@ import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 import * as db from './db.js';
 import { isValidSetupKey, isSeededDemoPasswordHash } from './setup-security.js';
-import { validateEnrollmentIdentity, validateFreshEnrollment, matchesEnrolledDeviceIdentifier, extractEnrolledDeviceHeaderToken } from './enrollment-security.js';
+import { validateEnrollmentIdentity, validateFreshEnrollment, matchesEnrolledDeviceIdentifier, extractEnrolledDeviceHeaderToken, validateDeviceRevocationRequest } from './enrollment-security.js';
 import { resolveAgentOrigin } from './agent-origin.js';
 import { resolveVerifiedUserPrincipal, requiresPersistedUserAuthorization } from './auth-principal.js';
 import { isPlatformSettingsAdmin } from './platform-settings-admin.js';
@@ -1082,6 +1082,27 @@ app.delete(['/api/v1/devices/:id', '/api/devices/:id', '/api/agents/:id'], requi
   await db.deleteDevice(dev.id);
   logAudit(req.user, "DEVICE_DELETED", `Device:${dev.hostname}`, { device_id: dev.id }, req);
   res.json({ ok: true, deleted: dev.id });
+});
+
+// Require a deliberate authenticated bearer request, not an ambient cookie
+// or form submission. No route to issue replacement credentials is implied.
+app.post('/api/v1/devices/:id/credentials/revoke', requireRole(['SUPER_ADMIN']), async (req, res) => {
+  const authorization = req.headers.authorization;
+  if (typeof authorization !== 'string' || !authorization.startsWith('Bearer ') ||
+      authorization.slice(7).trim() !== req.token || !req.is('application/json')) {
+    return res.status(403).json({ error: 'EXPLICIT_ADMIN_BEARER_REQUIRED' });
+  }
+  const request = validateDeviceRevocationRequest(req.params.id, req.body);
+  if (!request) return res.status(400).json({ error: 'DEVICE_REVOCATION_CONFIRMATION_REQUIRED' });
+  try {
+    const result = await db.revokeDeviceCredential({
+      principal: req.user, ...request, ipAddress: req.ip
+    });
+    if (result.status === 'not_found') return res.status(404).json({ error: 'DEVICE_NOT_FOUND' });
+    return res.json({ device_id: request.deviceId, credential_revoked: true, already_revoked: result.status === 'already_revoked' });
+  } catch (_) {
+    return res.status(503).json({ error: 'DEVICE_REVOCATION_UNCONFIRMED' });
+  }
 });
 
 app.post('/api/v1/devices', requireRole(['SUPER_ADMIN', 'OPERATOR']), validateBody(deviceRegistrationSchema), async (req, res) => {

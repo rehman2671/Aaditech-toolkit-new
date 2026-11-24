@@ -1640,6 +1640,61 @@ export async function updateDevice(id, updates) {
   return true;
 }
 
+// Administrative revocation is durable and audited in the same transaction.
+// No demo fallback, no credential issuance, and no synthetic check-in update.
+export async function revokeDeviceCredential({ principal, deviceId, reasonCode, ipAddress }) {
+  if (!principal?.id || !principal?.tenant_id || principal.role !== 'SUPER_ADMIN' ||
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(deviceId || '')) ||
+      !['COMPROMISED','DEVICE_LOST','DECOMMISSIONED','ADMINISTRATIVE_HOLD'].includes(reasonCode)) {
+    throw new Error('DEVICE_REVOCATION_INVALID');
+  }
+  if (!isMysqlConnected() || !pool?.getConnection) throw new Error('DEVICE_REVOCATION_MYSQL_REQUIRED');
+  const conn = await pool.getConnection();
+  let committed = false;
+  let discard = false;
+  try {
+    await conn.beginTransaction();
+    const [rows] = await conn.query(
+      'SELECT id, tenant_id, agent_token_revoked FROM devices WHERE id = ? AND tenant_id = ? FOR UPDATE',
+      [deviceId, principal.tenant_id]
+    );
+    if (rows.length !== 1 || String(rows[0].tenant_id) !== String(principal.tenant_id) ||
+        String(rows[0].id).toLowerCase() !== deviceId.toLowerCase()) {
+      await conn.rollback();
+      committed = true;
+      return { status: 'not_found' };
+    }
+    if ([true, 1, '1'].includes(rows[0].agent_token_revoked)) {
+      await conn.commit();
+      committed = true;
+      return { status: 'already_revoked' };
+    }
+    const [changed] = await conn.query(
+      'UPDATE devices SET agent_token_revoked = 1 WHERE id = ? AND tenant_id = ?',
+      [deviceId, principal.tenant_id]
+    );
+    if (changed.affectedRows !== 1) throw new Error('DEVICE_REVOCATION_WRITE_FAILED');
+    const [audit] = await conn.query(
+      'INSERT INTO audit_logs (id, tenant_id, actor_id, actor_email, actor, action, target_resource, details, ip_address, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(3))',
+      [crypto.randomUUID(), principal.tenant_id, principal.id, principal.email || null,
+       principal.username || principal.id, 'DEVICE_CREDENTIAL_REVOKED', 'Device:' + deviceId,
+       JSON.stringify({device_id:deviceId,reason_code:reasonCode}), ipAddress || '127.0.0.1']
+    );
+    if (audit.affectedRows !== 1) throw new Error('DEVICE_REVOCATION_AUDIT_FAILED');
+    await conn.commit();
+    committed = true;
+    invalidateDeviceCache();
+    await cacheDel('cache:devices:list');
+    return { status: 'revoked' };
+  } finally {
+    if (!committed) {
+      try { await conn.rollback(); }
+      catch (_) { discard = true; if (typeof conn.destroy === 'function') conn.destroy(); }
+    }
+    if (!discard) conn.release();
+  }
+}
+
 export async function deleteDevice(id) {
   const memIdx = memDevices.findIndex(d => String(d.id) === String(id));
   if (memIdx >= 0) {

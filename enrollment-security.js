@@ -71,3 +71,17 @@ export function extractEnrolledDeviceHeaderToken(headers = {}) {
   if (canonical !== undefined && bearer !== undefined && canonical !== bearer) return null;
   return canonical ?? bearer ?? null;
 }
+
+
+// Explicit administrative confirmation, fixed non-secret audit reason codes,
+// and an immutable enrolled device ID, not a hostname alias.
+export function validateDeviceRevocationRequest(deviceId, body) {
+  const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const reasons = ['COMPROMISED', 'DEVICE_LOST', 'DECOMMISSIONED', 'ADMINISTRATIVE_HOLD'];
+  if (typeof deviceId !== 'string' || !uuid.test(deviceId) ||
+      !body || typeof body !== 'object' || Array.isArray(body) ||
+      Object.keys(body).length !== 2 ||
+      body.confirm_device_id !== deviceId ||
+      !reasons.includes(body.reason_code)) return null;
+  return { deviceId, reasonCode: body.reason_code };
+}

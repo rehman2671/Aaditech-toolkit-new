@@ -1692,24 +1692,89 @@ export async function revokeDeviceCredential({ principal, deviceId, reasonCode, 
       [deviceId, principal.tenant_id]
     );
     if (changed.affectedRows !== 1) throw new Error('DEVICE_REVOCATION_WRITE_FAILED');
+    // Claim and dispatch acquire this same device row first. Retire only
+    // commands with no evidence of delivery or execution. Never fabricate
+    // a terminal execution outcome for an already claimed/uncertain row.
+    const [quarantine] = await conn.query(
+      "UPDATE command_queue SET status = 'CANCELLED' WHERE device_id = ? AND status = 'PENDING' " +
+      "AND picked_up_at IS NULL AND executed_at IS NULL AND completed_at IS NULL",
+      [rows[0].id]
+    );
+    const cancelled = quarantine?.affectedRows;
+    if (!Number.isSafeInteger(cancelled) || cancelled < 0) throw new Error('DEVICE_REVOCATION_QUARANTINE_UNCONFIRMED');
     const [audit] = await conn.query(
       'INSERT INTO audit_logs (id, tenant_id, actor_id, actor_email, actor, action, target_resource, details, ip_address, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(3))',
       [crypto.randomUUID(), principal.tenant_id, principal.id, principal.email || null,
        principal.username || principal.id, 'DEVICE_CREDENTIAL_REVOKED', 'Device:' + deviceId,
-       JSON.stringify({device_id:deviceId,reason_code:reasonCode}), ipAddress || '127.0.0.1']
+       JSON.stringify({device_id:deviceId,reason_code:reasonCode,cancelled_pending_commands:cancelled}), ipAddress || '127.0.0.1']
     );
     if (audit.affectedRows !== 1) throw new Error('DEVICE_REVOCATION_AUDIT_FAILED');
     await conn.commit();
     committed = true;
     invalidateDeviceCache();
     await cacheDel('cache:devices:list');
-    return { status: 'revoked' };
+    return { status: 'revoked', cancelled_pending_commands: cancelled };
   } finally {
     if (!committed) {
       try { await conn.rollback(); }
       catch (_) { discard = true; if (typeof conn.destroy === 'function') conn.destroy(); }
     }
     if (!discard) conn.release();
+  }
+}
+
+// Separate, explicit reconciliation for devices revoked before quarantine
+// was deployed. This never changes a credential or claims endpoint execution.
+export async function reconcileRevokedDevicePendingCommands({principal,deviceId,action,ipAddress}) {
+  if (!principal?.id || !principal?.tenant_id || principal.role !== 'SUPER_ADMIN' ||
+      typeof deviceId !== 'string' ||
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(deviceId) ||
+      action !== 'CANCEL_NEVER_CLAIMED_PENDING') throw new Error('DEVICE_RECONCILIATION_INVALID');
+  if (!isMysqlConnected() || !pool?.getConnection) throw new Error('DEVICE_RECONCILIATION_MYSQL_REQUIRED');
+  const conn=await pool.getConnection();
+  let settled=false,discard=false;
+  try {
+    await conn.beginTransaction();
+    const [rows]=await conn.query(
+      'SELECT id,tenant_id,agent_token_revoked FROM devices WHERE id=? AND tenant_id=? FOR UPDATE',
+      [deviceId,principal.tenant_id]);
+    const owner=Array.isArray(rows)&&rows.length===1?rows[0]:null;
+    if (!owner || String(owner.id).toLowerCase()!==deviceId.toLowerCase() ||
+        String(owner.tenant_id)!==String(principal.tenant_id)) {
+      await conn.rollback(); settled=true; return {status:'not_found'};
+    }
+    if (![true,1,'1'].includes(owner.agent_token_revoked)) {
+      await conn.rollback(); settled=true; return {status:'not_revoked'};
+    }
+    const [changed]=await conn.query(
+      "UPDATE command_queue SET status='CANCELLED' WHERE device_id=? AND status='PENDING' "+
+      "AND picked_up_at IS NULL AND executed_at IS NULL AND completed_at IS NULL",[owner.id]);
+    const cancelled=changed?.affectedRows;
+    if (!Number.isSafeInteger(cancelled)||cancelled<0) throw new Error('DEVICE_RECONCILIATION_UNCONFIRMED');
+    // Count uncertain work while holding the same lock as claim/dispatch.
+    const [counts]=await conn.query(
+      "SELECT COUNT(*) AS outstanding FROM command_queue WHERE device_id=? "+
+      "AND (status IS NULL OR UPPER(status) NOT IN ('COMPLETED','FAILED','CANCELLED','EXPIRED'))",[owner.id]);
+    const count=counts?.[0]?.outstanding;
+    const outstanding=Number(count);
+    if (count==null||!Number.isSafeInteger(outstanding)||outstanding<0) throw new Error('DEVICE_RECONCILIATION_UNCONFIRMED');
+    if (cancelled>0) {
+      const [audit]=await conn.query(
+        'INSERT INTO audit_logs (id,tenant_id,actor_id,actor_email,actor,action,target_resource,details,ip_address,created_at) VALUES (?,?,?,?,?,?,?,?,?,NOW(3))',
+        [crypto.randomUUID(),principal.tenant_id,principal.id,principal.email||null,
+         principal.username||principal.id,'REVOKED_DEVICE_PENDING_COMMANDS_RECONCILED','Device:'+owner.id,
+         JSON.stringify({device_id:owner.id,cancelled_pending_commands:cancelled,remaining_outstanding_commands:outstanding}),
+         ipAddress||'127.0.0.1']);
+      if(audit?.affectedRows!==1) throw new Error('DEVICE_RECONCILIATION_AUDIT_FAILED');
+    }
+    await conn.commit(); settled=true;
+    return {status:'reconciled',cancelled_pending_commands:cancelled,remaining_outstanding_commands:outstanding,replacement_allowed:false};
+  } finally {
+    if(!settled) {
+      try{await conn.rollback();}
+      catch(_){discard=true;if(typeof conn.destroy==='function')conn.destroy();}
+    }
+    if(!discard)conn.release();
   }
 }
 

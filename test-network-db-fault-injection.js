@@ -286,6 +286,15 @@ try {
   assert.equal(String(legacyState[0].last_seen_at),String(before[0].last_seen_at));
   const [legacyReceipts] = await pool.execute('SELECT COUNT(*) AS total FROM telemetry_batches WHERE tenant_id=? AND device_id=?',[tenantId,deviceId]);
   assert.equal(Number(legacyReceipts[0].total),1);
+  const activeReconcile = await fetch('http://127.0.0.1:'+mainPort+'/api/v1/devices/'+deviceId+'/credentials/reconcile-pending',{
+    method:'POST',headers:{'Content-Type':'application/json',...auth},
+    body:JSON.stringify({confirm_device_id:deviceId,action:'CANCEL_NEVER_CLAIMED_PENDING'}),signal:AbortSignal.timeout(12000)});
+  assert.equal(activeReconcile.status,409);
+  assert.equal((await activeReconcile.json()).error,'DEVICE_MUST_BE_REVOKED');
+  const suspiciousId=crypto.randomUUID();
+  await pool.execute("INSERT INTO command_queue (id,device_id,command_type,status,picked_up_at) VALUES (?,?,?,'PENDING',NOW(3))",[suspiciousId,deviceId,'DIAGNOSTIC']);
+  const pendingId=crypto.randomUUID();
+  await pool.execute("INSERT INTO command_queue (id,device_id,command_type,status) VALUES (?,?,?,'PENDING')",[pendingId,deviceId,'DIAGNOSTIC']);
   const revocations = await Promise.all([revoke(mainPort, auth), revoke(peerPort, auth)]);
   for (const result of revocations) {
     assert.equal(result.status, 200);
@@ -294,6 +303,11 @@ try {
   }
   assert.equal(revocations.filter(r => r.body.already_revoked === false).length, 1);
   assert.equal(revocations.filter(r => r.body.already_revoked === true).length, 1);
+  assert.equal(revocations.find(r=>!r.body.already_revoked).body.cancelled_pending_commands,1);
+  assert.equal(revocations.find(r=>r.body.already_revoked).body.cancelled_pending_commands,null);
+  const [quarantined]=await pool.execute('SELECT status,picked_up_at,executed_at,completed_at FROM command_queue WHERE id=?',[pendingId]);
+  assert.equal(quarantined[0].status,'CANCELLED');
+  for(const key of ['picked_up_at','executed_at','completed_at']) assert.equal(quarantined[0][key],null);
   const [after] = await pool.execute('SELECT agent_token_revoked, last_seen_at FROM devices WHERE id = ?', [deviceId]);
   assert.equal(Number(after[0].agent_token_revoked), 1);
   assert.equal(String(after[0].last_seen_at), String(before[0].last_seen_at));
@@ -312,7 +326,7 @@ try {
     assert.equal(recovery.body.credential_revoked, true);
     assert.equal(recovery.body.replacement_allowed, false);
     assert.ok(recovery.body.blockers.includes('AUTHORIZED_RECOVERY_HANDOFF_REQUIRED'));
-    assert.equal(recovery.body.outstanding_commands, 1);
+    assert.equal(recovery.body.outstanding_commands, 2);
     assert.ok(recovery.body.blockers.includes('COMMAND_RECONCILIATION_REQUIRED'));
     assert.equal((await result(port, outstandingId)).status, 401);
     for (const [path,body] of [
@@ -336,11 +350,33 @@ try {
   assert.equal(Number(batchCount[0].total),1);
   const [finalDevice] = await pool.execute('SELECT last_seen_at FROM devices WHERE id=?',[deviceId]);
   assert.equal(String(finalDevice[0].last_seen_at),String(before[0].last_seen_at));
+  // Simulate a pre-quarantine legacy row created before the new policy.
+  const legacyPendingId=crypto.randomUUID();
+  await pool.execute("INSERT INTO command_queue (id,device_id,command_type,status) VALUES (?,?,?,'PENDING')",[legacyPendingId,deviceId,'DIAGNOSTIC']);
+  async function reconcile(port,headers,confirm=deviceId){
+    const r=await fetch('http://127.0.0.1:'+port+'/api/v1/devices/'+deviceId+'/credentials/reconcile-pending',{
+      method:'POST',headers:{'Content-Type':'application/json',...headers},
+      body:JSON.stringify({confirm_device_id:confirm,action:'CANCEL_NEVER_CLAIMED_PENDING'}),signal:AbortSignal.timeout(12000)});
+    return {status:r.status,body:await r.json()};
+  }
+  assert.equal((await reconcile(mainPort,{Authorization:'Bearer '+foreignToken})).status,404);
+  assert.equal((await reconcile(mainPort,{Cookie:'auth_token='+adminToken})).status,403);
+  assert.equal((await reconcile(mainPort,auth,crypto.randomUUID())).status,400);
+  const reconciled=await Promise.all([reconcile(mainPort,auth),reconcile(peerPort,auth)]);
+  assert.ok(reconciled.every(r=>r.status===200&&r.body.replacement_allowed===false&&r.body.remaining_outstanding_commands===2));
+  assert.deepEqual(reconciled.map(r=>r.body.cancelled_pending_commands).sort(),[0,1]);
+  const [reconciliationAudits]=await pool.execute("SELECT COUNT(*) AS total FROM audit_logs WHERE tenant_id=? AND action='REVOKED_DEVICE_PENDING_COMMANDS_RECONCILED'",[tenantId]);
+  assert.equal(Number(reconciliationAudits[0].total),1);
+  console.log('[PASS] Previously revoked device reconciliation cancels only legacy never-claimed pending work with one audit.');
   const [unfinished] = await pool.execute('SELECT status, completed_at FROM command_queue WHERE id = ?', [outstandingId]);
   assert.equal(unfinished[0].status, 'IN_PROGRESS');
   assert.equal(unfinished[0].completed_at, null);
   const [queueCount] = await pool.execute('SELECT COUNT(*) AS total FROM command_queue WHERE device_id = ?', [deviceId]);
-  assert.equal(Number(queueCount[0].total), 2, 'Revoked-device dispatch must not create a queue row');
+  assert.equal(Number(queueCount[0].total), 5, 'Only explicit CI fixture rows may exist for revoked device');
+  const [suspicious]=await pool.execute('SELECT status,picked_up_at,completed_at FROM command_queue WHERE id=?',[suspiciousId]);
+  assert.equal(suspicious[0].status,'PENDING');
+  assert.ok(suspicious[0].picked_up_at);
+  assert.equal(suspicious[0].completed_at,null);
   console.log('[PASS] Two production workers enforce durable revocation/audit, credential-bound claim/result and preserve unresolved commands.');
 } finally {
   setPartition(true);

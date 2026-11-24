@@ -137,3 +137,40 @@ export async function inspectSetupProgress(anchor){
    decision:state.pending?'OPERATOR_RECONCILIATION_REQUIRED':'REVALIDATE_ACTUAL_EVIDENCE',
    actual_readiness_verified:false,execution_authorized:false,production_accepted:false});
 }
+
+// Handoff evidence is a short-lived signed display binding, NOT a browser
+// login credential, bearer token, consumed grant or execution authorization.
+// expectedChallengeSha256, expectedSessionSha256 and clock must be supplied
+// by trusted local custody; never taken from the signed envelope or browser.
+export async function inspectSetupHandoff({anchor,handoffBytes,signature,signerPublicKeyPem,
+ expectedSignerSpkiSha256,expectedHandoffSha256,expectedChallengeSha256,expectedSessionSha256,nowMs}={}){
+ const validDigest=x=>hex(x)&&x!=='0'.repeat(64);
+ if(!anchor||![expectedSignerSpkiSha256,expectedHandoffSha256,expectedChallengeSha256,
+   expectedSessionSha256,anchor.expectedCheckpointSha256].every(validDigest)||
+   !Number.isSafeInteger(nowMs)||nowMs<=0||!Buffer.isBuffer(handoffBytes)||
+   handoffBytes.length<1||handoffBytes.length>2048||!Buffer.isBuffer(signature)||signature.length!==64||
+   typeof signerPublicKeyPem!=='string'||signerPublicKeyPem.length>4096||
+   !signerPublicKeyPem.startsWith('-----BEGIN PUBLIC KEY-----\n'))fail('HANDOFF_TRUST_REQUIRED');
+ const b=binding(anchor.installationId,anchor.releaseSha256);
+ const bytes=Buffer.from(handoffBytes),sig=Buffer.from(signature);
+ if(hash(bytes)!==expectedHandoffSha256)fail('HANDOFF_DIGEST_MISMATCH');
+ const key=createPublicKey(signerPublicKeyPem);
+ if(key.asymmetricKeyType!=='ed25519'||hash(key.export({type:'spki',format:'der'}))!==expectedSignerSpkiSha256||
+    !verify(null,bytes,key,sig))fail('HANDOFF_SIGNATURE_INVALID');
+ let r;try{r=JSON.parse(bytes.toString('utf8'))}catch{fail('HANDOFF_FORMAT_INVALID')}
+ if(!r||typeof r!=='object'||Array.isArray(r)||r.schema_version!==1||
+    r.purpose!=='DISPLAY_SETUP_PROGRESS_ONLY'||r.installation_id!==b.installation_id||
+    r.release_sha256!==b.release_sha256||r.checkpoint_sha256!==anchor.expectedCheckpointSha256||
+    r.challenge_sha256!==expectedChallengeSha256||r.session_sha256!==expectedSessionSha256||
+    !Number.isSafeInteger(r.issued_at_ms)||!Number.isSafeInteger(r.expires_at_ms)||
+    r.issued_at_ms<=0||r.issued_at_ms>nowMs||r.expires_at_ms<=nowMs||
+    r.expires_at_ms-r.issued_at_ms>120000)fail('HANDOFF_BINDING_OR_EXPIRY_INVALID');
+ const canonical=Buffer.from(JSON.stringify({schema_version:1,purpose:'DISPLAY_SETUP_PROGRESS_ONLY',
+   installation_id:r.installation_id,release_sha256:r.release_sha256,checkpoint_sha256:r.checkpoint_sha256,
+   challenge_sha256:r.challenge_sha256,session_sha256:r.session_sha256,
+   issued_at_ms:r.issued_at_ms,expires_at_ms:r.expires_at_ms})+'\n');
+ if(!bytes.equals(canonical))fail('HANDOFF_FORMAT_INVALID');
+ const progress=await inspectSetupProgress(anchor);
+ return Object.freeze({handoff_evidence_verified:true,progress,session_authenticated:false,
+   challenge_consumed:false,execution_authorized:false,production_accepted:false});
+}

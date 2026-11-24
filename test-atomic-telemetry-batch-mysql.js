@@ -6,6 +6,7 @@ import mysql from 'mysql2/promise';
 import request from 'supertest';
 import * as db from './db.js';
 import {createRecoveryReviewRequest,reserveRecoveryReview,inspectRecoveryReview} from './device-recovery-review.js';
+import {createTroubleshootingIncident,inspectTroubleshootingIncident} from './troubleshooting-incidents.js';
 
 if (process.env.GITHUB_ACTIONS !== 'true' ||
     process.env.AADITECH_ATOMIC_BATCH_REHEARSAL !== 'isolated-ci' ||
@@ -202,6 +203,21 @@ try {
   assert.notEqual(newRequest.request_id,req.request_id);
   assert.equal(await single('SELECT COUNT(*) AS n FROM device_recovery_reviews WHERE tenant_id=? AND device_id=?',[reviewTenant,reviewDevice]),2);
   console.log('[PASS] Durable review request and reservation serialize across connections, expired reservation permits fresh review, no credential mutation.');
+  const installationId=crypto.randomUUID(),requestId=crypto.randomUUID();
+  const incidentInput={principal:admins[0],installationId,deviceId:reviewDevice,requestId,categoryId:'TR-24',hazard:'PHYSICAL_HAZARD'};
+  const incidents=await Promise.all(Array.from({length:6},()=>createTroubleshootingIncident(pool,incidentInput)));
+  assert.equal(new Set(incidents.map(x=>x.incident_id)).size,1);
+  assert.equal(incidents.filter(x=>!x.duplicate).length,1);
+  assert.equal(incidents[0].status,'ESCALATED');
+  assert.equal(incidents[0].repair_authorized,false);
+  await assert.rejects(()=>createTroubleshootingIncident(pool,{...incidentInput,categoryId:'TR-01'}),/INCIDENT_IDEMPOTENCY_CONFLICT/);
+  const incidentArgs={principal:admins[0],installationId,deviceId:reviewDevice,incidentId:incidents[0].incident_id};
+  assert.equal((await inspectTroubleshootingIncident(pool,incidentArgs)).status,'ESCALATED');
+  await assert.rejects(()=>inspectTroubleshootingIncident(pool,{...incidentArgs,principal:admins[1]}),/INCIDENT_NOT_FOUND/);
+  await assert.rejects(()=>inspectTroubleshootingIncident(pool,{...incidentArgs,installationId:crypto.randomUUID()}),/INCIDENT_NOT_FOUND/);
+  assert.equal(await single("SELECT COUNT(*) AS n FROM troubleshooting_incidents WHERE tenant_id=?",[reviewTenant]),1);
+  assert.equal(await single("SELECT COUNT(*) AS n FROM audit_logs WHERE tenant_id=? AND action='TROUBLESHOOTING_INCIDENT_RECORDED'",[reviewTenant]),1);
+  console.log('[PASS] Incident concurrent intake, exact replay, conflict, scoped inspection and one audit; no action authorized.');
   console.log('N29 PASS: atomic rollback, MySQL worker races, single history/alert/outbox, HTTP replay, 409 and revoked credential write fencing');
 } catch(err) {
   failure=err;
@@ -216,6 +232,7 @@ try {
     await pool.query('DELETE FROM events WHERE tenant_id IN (?,?)',[tenantA,tenantB]);
     await pool.query('DELETE FROM telemetry_batches WHERE tenant_id IN (?,?)',[tenantA,tenantB]);
     await pool.query('DELETE FROM devices WHERE id IN (?,?)',[devA,devB]);
+    await pool.query('DELETE FROM troubleshooting_incidents WHERE tenant_id=?',[reviewTenant]);
     await pool.query('DELETE FROM device_recovery_reviews WHERE tenant_id=?',[reviewTenant]);
     await pool.query('DELETE FROM audit_logs WHERE tenant_id=?',[reviewTenant]);
     await pool.query('DELETE FROM users WHERE tenant_id=?',[reviewTenant]);

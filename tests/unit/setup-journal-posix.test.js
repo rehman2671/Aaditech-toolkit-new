@@ -3,7 +3,7 @@ import {mkdtemp,chmod,rm,realpath,readFile,writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {createHash,generateKeyPairSync,sign} from 'node:crypto';
-import {inspectSetupJournal,appendSetupJournalEvent,inspectAnchoredSetupJournal,inspectSetupProgress} from '../../scripts/setup-journal-posix.mjs';
+import {inspectSetupJournal,appendSetupJournalEvent,inspectAnchoredSetupJournal,inspectSetupProgress,inspectSetupHandoff} from '../../scripts/setup-journal-posix.mjs';
 const id='6f8c5ad9-e52e-4ea4-a1c7-f1dc23688a9e';
 const release='a'.repeat(64),evidence='b'.repeat(64);
 async function fixture(run){
@@ -121,5 +121,37 @@ describe.skipIf(process.platform==='win32')('redacted setup progress projection'
   const view=await inspectSetupProgress(checkpoint(f.input,await f.read()));
   expect(view.next_step).toBeNull();expect(view.steps.every(s=>s.status==='RECORDED_COMPLETE')).toBe(true);
   expect(view.actual_readiness_verified).toBe(false);expect(view.production_accepted).toBe(false);
+ }));
+});
+
+describe.skipIf(process.platform==='win32')('short-lived signed setup display binding',()=>{
+ it('verifies exact signed handoff and current journal, never authenticates or consumes session',()=>fixture(async f=>{
+  await f.append('PREFLIGHT','STARTED');
+  const anchor=checkpoint(f.input,await f.read());
+  const keys=generateKeyPairSync('ed25519'),nowMs=1700000000000;
+  const expectedChallengeSha256='d'.repeat(64),expectedSessionSha256='e'.repeat(64);
+  const doc={schema_version:1,purpose:'DISPLAY_SETUP_PROGRESS_ONLY',installation_id:id,release_sha256:release,
+    checkpoint_sha256:anchor.expectedCheckpointSha256,challenge_sha256:expectedChallengeSha256,
+    session_sha256:expectedSessionSha256,issued_at_ms:nowMs-1000,expires_at_ms:nowMs+1000};
+  const handoff=patch=>{
+   const handoffBytes=Buffer.from(JSON.stringify({...doc,...patch})+'\n');
+   return {anchor,handoffBytes,signature:sign(null,handoffBytes,keys.privateKey),nowMs,
+     expectedChallengeSha256,expectedSessionSha256,expectedHandoffSha256:digest(handoffBytes),
+     signerPublicKeyPem:keys.publicKey.export({type:'spki',format:'pem'}),
+     expectedSignerSpkiSha256:digest(keys.publicKey.export({type:'spki',format:'der'}))};
+  };
+  const args=handoff({}),result=await inspectSetupHandoff(args);
+  expect(result).toMatchObject({handoff_evidence_verified:true,session_authenticated:false,
+    challenge_consumed:false,execution_authorized:false,production_accepted:false,
+    progress:{decision:'OPERATOR_RECONCILIATION_REQUIRED'}});
+  expect(JSON.stringify(result)).not.toContain(expectedSessionSha256);
+  for(const patch of [{purpose:'LOGIN'},{expires_at_ms:nowMs},{issued_at_ms:nowMs+1},
+    {expires_at_ms:nowMs+120001},{session_sha256:'a'.repeat(64)},{challenge_sha256:'a'.repeat(64)},
+    {checkpoint_sha256:'a'.repeat(64)},{installation_id:'00000000-0000-4000-8000-000000000001'},{extra:true}])
+    await expect(inspectSetupHandoff(handoff(patch))).rejects.toThrow();
+  await expect(inspectSetupHandoff({...args,signature:Buffer.alloc(64)})).rejects.toThrow();
+  await expect(inspectSetupHandoff({...args,expectedHandoffSha256:'a'.repeat(64)})).rejects.toThrow();
+  await f.append('PREFLIGHT','COMPLETED');
+  await expect(inspectSetupHandoff(args)).rejects.toThrow('CHECKPOINT_HEAD_MISMATCH');
  }));
 });

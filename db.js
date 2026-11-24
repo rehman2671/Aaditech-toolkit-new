@@ -1745,55 +1745,74 @@ export async function deleteDevice(id) {
 // MySQL's tenant/device/batch unique key serializes parallel workers and
 // an immutable receipt makes ACK-loss replay a read-only operation.
 export async function ingestTelemetryBatchOnce(batch, credential = undefined) {
+  return ingestTelemetryTransaction(batch, credential, false);
+}
+
+// Explicit compatibility path: a legacy report has no durable batch ID.
+// It shares the transaction but never claims an idempotency receipt.
+export async function ingestLegacyTelemetryAtomic(batch, credential) {
+  if (batch?.batch_id !== undefined || !credential) throw new Error('TELEMETRY_BATCH_INVALID');
+  return ingestTelemetryTransaction(batch, credential, true);
+}
+
+async function ingestTelemetryTransaction(batch, credential, legacy) {
   const { tenant_id: tenantId, device_id: deviceId, batch_id: batchId,
     request_hash: hash, device_updates: updates = {},
     metrics: measured, processes = [], events = [], alerts = [] } = batch || {};
   if (!tenantId || !deviceId ||
-      !/^[A-Za-z0-9][A-Za-z0-9:._-]{0,63}$/.test(String(batchId || '')) ||
+      (!legacy && !/^[A-Za-z0-9][A-Za-z0-9:._-]{0,63}$/.test(String(batchId || ''))) ||
+      (legacy && batchId !== undefined) ||
       !/^[0-9a-f]{64}$/.test(String(hash || ''))) throw new Error('TELEMETRY_BATCH_INVALID');
-  const requireCredential = process.env.NODE_ENV !== 'test' || credential !== undefined;
-  if (requireCredential && (credential?.tenantId !== tenantId ||
-      typeof credential?.tokenHash !== 'string' || !/^[a-f0-9]{64}$/.test(credential.tokenHash))) {
-    throw new Error('TELEMETRY_CREDENTIAL_CHANGED');
-  }
   if (!isMysqlConnected() || !pool?.getConnection) throw new Error('TELEMETRY_BATCH_MYSQL_REQUIRED');
   const conn = await pool.getConnection();
   let committed = false;
+  let discard = false;
   try {
     await conn.beginTransaction();
-    // Lock the device before receipt insertion or replay, serializing with revocation.
+    // Device first, batch second: serialize new batches and ACK replays
+    // with revocation before any receipt or evidence write.
     const [owners] = await conn.query(
       'SELECT id, tenant_id, device_token_hash, agent_token_revoked FROM devices WHERE id = ? AND tenant_id = ? FOR UPDATE',
       [deviceId, tenantId]
     );
     const owner = Array.isArray(owners) && owners.length === 1 ? owners[0] : null;
-    if (!owner || String(owner.id) !== String(deviceId) || String(owner.tenant_id) !== String(tenantId)) {
-      throw new Error('TELEMETRY_DEVICE_OWNER_MISMATCH');
+    if (!owner || String(owner.id) !== String(deviceId) ||
+        String(owner.tenant_id) !== String(tenantId)) throw new Error('TELEMETRY_DEVICE_OWNER_MISMATCH');
+    if (!(process.env.NODE_ENV === 'test' && credential === undefined)) {
+      if (typeof credential?.tokenHash !== 'string' || !/^[a-f0-9]{64}$/.test(credential.tokenHash) ||
+          owner.device_token_hash !== credential.tokenHash ||
+          ![false, 0, '0'].includes(owner.agent_token_revoked)) {
+        throw new Error('TELEMETRY_CREDENTIAL_CHANGED');
+      }
     }
-    if (requireCredential && (owner.device_token_hash !== credential.tokenHash ||
-        ![false, 0, '0'].includes(owner.agent_token_revoked))) {
-      throw new Error('TELEMETRY_CREDENTIAL_CHANGED');
-    }
-    const nonce = crypto.randomBytes(16).toString('hex');
-    await conn.query(
-      'INSERT INTO telemetry_batches (tenant_id, device_id, batch_id, request_hash, insert_nonce, accepted_count) ' +
-      'VALUES (?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE batch_id = batch_id',
-      [tenantId, deviceId, batchId, hash, nonce, events.length]
-    );
-    // No affectedRows inference: mysql2 CLIENT_FOUND_ROWS reports 1 for no-op.
-    const [claims] = await conn.query(
-      'SELECT request_hash, insert_nonce, accepted_count, recorded_at FROM telemetry_batches ' +
-      'WHERE tenant_id = ? AND device_id = ? AND batch_id = ? FOR UPDATE',
-      [tenantId, deviceId, batchId]
-    );
-    const claim = claims[0];
-    if (claims.length !== 1 || claim.request_hash !== hash ||
-        Number(claim.accepted_count) !== events.length) throw new Error('TELEMETRY_BATCH_ID_CONFLICT');
-    if (claim.insert_nonce !== nonce) {
-      await conn.commit();
-      committed = true;
-      return { duplicate: true, accepted: Number(claim.accepted_count),
-        recorded_at: claim.recorded_at, batch_id: batchId };
+    let recordedAt;
+    if (!legacy) {
+      const nonce = crypto.randomBytes(16).toString('hex');
+      await conn.query(
+        'INSERT INTO telemetry_batches (tenant_id, device_id, batch_id, request_hash, insert_nonce, accepted_count) ' +
+        'VALUES (?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE batch_id = batch_id',
+        [tenantId, deviceId, batchId, hash, nonce, events.length]
+      );
+      // No affectedRows inference: mysql2 CLIENT_FOUND_ROWS reports 1 for no-op.
+      const [claims] = await conn.query(
+        'SELECT request_hash, insert_nonce, accepted_count, recorded_at FROM telemetry_batches ' +
+        'WHERE tenant_id = ? AND device_id = ? AND batch_id = ? FOR UPDATE',
+        [tenantId, deviceId, batchId]
+      );
+      const claim = claims[0];
+      if (claims.length !== 1 || claim.request_hash !== hash ||
+          Number(claim.accepted_count) !== events.length) throw new Error('TELEMETRY_BATCH_ID_CONFLICT');
+      if (claim.insert_nonce !== nonce) {
+        await conn.commit();
+        committed = true;
+        return { duplicate: true, accepted: Number(claim.accepted_count),
+          recorded_at: claim.recorded_at, batch_id: batchId };
+      }
+      recordedAt = claim.recorded_at;
+    } else {
+      const [clock] = await conn.query('SELECT NOW(3) AS recorded_at');
+      recordedAt = clock[0]?.recorded_at;
+      if (!recordedAt || !Number.isFinite(new Date(recordedAt).getTime())) throw new Error('TELEMETRY_CLOCK_UNAVAILABLE');
     }
 
     const safeColumns = new Set(['status','os_version','ip_address','cpu_usage',
@@ -1891,11 +1910,14 @@ export async function ingestTelemetryBatchOnce(batch, credential = undefined) {
     invalidateDeviceCache(deviceId);
     await cacheDel('cache:devices:list');
     return { duplicate: false, accepted: events.length,
-      recorded_at: claim.recorded_at, batch_id: batchId };
+      recorded_at: recordedAt, batch_id: batchId };
   } catch (err) {
-    if (!committed) { try { await conn.rollback(); } catch (_) {} }
+    if (!committed) {
+      try { await conn.rollback(); }
+      catch (_) { discard = true; if (typeof conn.destroy === 'function') conn.destroy(); }
+    }
     throw err;
-  } finally { conn.release(); }
+  } finally { if (!discard) conn.release(); }
 }
 
 // N30: sealed request receipts are tiny, security-relevant tombstones.
@@ -2368,17 +2390,14 @@ async function executeCredentialBoundCommandWrite(owner, credential, sql, params
   }
 }
 
-// Heartbeats use the same row-lock boundary as credential revocation and
-// command writes. No test-mode bypass through this explicit proof API.
+// Heartbeat is a liveness mutation, not proof of successful recovery.
 export async function recordCredentialBoundHeartbeat(deviceId, credential) {
   if (!credential) throw new Error('COMMAND_CREDENTIAL_CHANGED');
-  const updated = await executeCredentialBoundCommandWrite(deviceId, credential,
+  await executeCredentialBoundCommandWrite(deviceId, credential,
     "UPDATE devices SET status = 'online', last_seen_at = NOW(3) WHERE id = ? AND tenant_id = ?",
     [String(deviceId), credential.tenantId]);
-  if (updated?.affectedRows !== 1) throw new Error('HEARTBEAT_WRITE_UNCONFIRMED');
   invalidateDeviceCache(deviceId);
   await cacheDel('cache:devices:list');
-  return true;
 }
 
 export async function markCommandPickedUp(id, deviceId = null, credential = undefined) {

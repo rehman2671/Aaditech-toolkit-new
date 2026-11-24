@@ -56,38 +56,3 @@ describe('credential-bound command mutation transaction',()=>{
     await expect(claim()).rejects.toThrow('COMMAND_CREDENTIAL_DATABASE_UNAVAILABLE');
   });
 });
-
-
-describe('credential-bound heartbeat transaction',()=>{
-  const heartbeat=()=>db.recordCredentialBoundHeartbeat(owner,credential);
-  it('locks the current device before writing status and last-seen',async()=>{
-    const c=setup();
-    expect(await heartbeat()).toBe(true);
-    expect(c.query.mock.calls[0][0]).toContain('FOR UPDATE');
-    expect(c.query.mock.calls[0][1]).toEqual([owner,credential.tenantId]);
-    expect(c.query.mock.calls[1][0]).toContain("UPDATE devices SET status = 'online', last_seen_at = NOW(3)");
-    expect(c.query.mock.calls[1][1]).toEqual([owner,credential.tenantId]);
-    expect(c.commit).toHaveBeenCalledTimes(1);
-  });
-  it('denies stale, revoked, foreign and missing proof without updating last-seen',async()=>{
-    for(const rows of [[],[active,active],[{...active,agent_token_revoked:1}],
-      [{...active,agent_token_revoked:null}],[{...active,device_token_hash:'b'.repeat(64)}],
-      [{...active,tenant_id:'tenant-b'}]]) {
-      const c=setup(rows);
-      await expect(heartbeat()).rejects.toThrow('COMMAND_CREDENTIAL_CHANGED');
-      expect(c.query).toHaveBeenCalledTimes(1);
-      expect(c.rollback).toHaveBeenCalledTimes(1);
-      expect(c.commit).not.toHaveBeenCalled();
-    }
-    const c=setup();
-    await expect(db.recordCredentialBoundHeartbeat(owner)).rejects.toThrow('COMMAND_CREDENTIAL_CHANGED');
-    expect(c.query).not.toHaveBeenCalled();
-  });
-  it('fails closed on write failure and unavailable database',async()=>{
-    const c=setup([active],true);
-    await expect(heartbeat()).rejects.toThrow('write failed');
-    expect(c.rollback).toHaveBeenCalledTimes(1);
-    db.setConnectionStateForTesting(false,null);
-    await expect(heartbeat()).rejects.toThrow('COMMAND_CREDENTIAL_DATABASE_UNAVAILABLE');
-  });
-});

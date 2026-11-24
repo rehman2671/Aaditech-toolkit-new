@@ -1335,20 +1335,17 @@ app.post(['/api/v1/agent/heartbeat', '/api/agent/heartbeat'], agentLimiter, asyn
   }
 
   const dev = ver.device;
-  if (process.env.NODE_ENV === 'test') {
-    await db.updateDevice(dev.id, { status: "online" });
-  } else {
-    const token = extractEnrolledDeviceHeaderToken(req.headers);
-    try {
-      await db.recordCredentialBoundHeartbeat(dev.id, {
-        tenantId: dev.tenant_id, tokenHash: token ? hashDeviceToken(token) : null
-      });
-    } catch (err) {
-      if (err.message === 'COMMAND_CREDENTIAL_CHANGED') {
-        return res.status(401).json({ error: 'HEARTBEAT_CREDENTIAL_CHANGED' });
-      }
-      return res.status(503).json({ error: 'HEARTBEAT_WRITE_UNCONFIRMED' });
+  try {
+    if (process.env.NODE_ENV === 'test') await db.updateDevice(dev.id, { status: "online" });
+    else await db.recordCredentialBoundHeartbeat(dev.id, {
+      tenantId: dev.tenant_id,
+      tokenHash: hashDeviceToken(extractEnrolledDeviceHeaderToken(req.headers))
+    });
+  } catch (error) {
+    if (error.message === 'COMMAND_CREDENTIAL_CHANGED') {
+      return res.status(401).json({ error: 'DEVICE_CREDENTIAL_CHANGED' });
     }
+    return res.status(503).json({ error: 'HEARTBEAT_DATABASE_UNAVAILABLE' });
   }
 
   res.json({
@@ -1484,15 +1481,18 @@ app.post(['/api/v1/ingest/telemetry', '/api/ingest'], agentLimiter, validateBody
   // event rows, alerts and notification jobs MUST share a single SQL commit.
   // A lost HTTPS ACK results in a read-only duplicate response, not fresh
   // measured evidence or repeated alert fan-out. Legacy agents without a
-  // batch_id continue down the original compatibility route below.
-  if (req.body.batch_id) {
+  // batch_id use the same transaction without a durable replay receipt in
+  // deployed runtimes. The old demo-only path remains isolated to tests.
+  if (req.body.batch_id || process.env.NODE_ENV !== 'test') {
     try {
       const plans = hasMeasurement ? await getAtomicTelemetryAlertPlans(dev, measured) : [];
-      const receipt = await db.ingestTelemetryBatchOnce({
+      const keyed = req.body.batch_id !== undefined;
+      const ingest = keyed ? db.ingestTelemetryBatchOnce : db.ingestLegacyTelemetryAtomic;
+      const receipt = await ingest({
         tenant_id: dev.tenant_id,
         device_id: dev.id,
         hostname: dev.hostname,
-        batch_id: req.body.batch_id,
+        ...(keyed ? { batch_id: req.body.batch_id } : {}),
         request_hash: crypto.createHash('sha256')
           .update(JSON.stringify(req.body)).digest('hex'),
         device_updates: devUpdates,
@@ -1500,16 +1500,18 @@ app.post(['/api/v1/ingest/telemetry', '/api/ingest'], agentLimiter, validateBody
         processes: Array.isArray(processes) ? processes : [],
         events: Array.isArray(req.body.events) ? req.body.events : [],
         alerts: plans
-      }, process.env.NODE_ENV === 'test' ? undefined : {
-        tenantId: dev.tenant_id,
-        tokenHash: (() => {
-          const token = extractEnrolledDeviceHeaderToken(req.headers);
-          return token ? hashDeviceToken(token) : null;
-        })()
-      });
+      }, process.env.NODE_ENV === 'test' ? undefined :
+        { tokenHash: hashDeviceToken(extractEnrolledDeviceHeaderToken(req.headers)) });
       if (!receipt.duplicate && Array.isArray(app_usage) && app_usage.length) {
         // Redis is an optional cache, never the durable receipt authority.
         await db.cacheSet('app_usage:' + dev.id, app_usage, 900);
+      }
+      if (!keyed) {
+        return res.status(200).json({
+          status: 'OK', accepted: Array.isArray(req.body.events) ? receipt.accepted : 1,
+          recorded_at: new Date(receipt.recorded_at).toISOString(),
+          sequence_number: sequence_number || 1, hostname: dev.hostname
+        });
       }
       return res.status(200).json({
         status: 'OK', batch_id: receipt.batch_id, accepted: receipt.accepted,
@@ -1522,8 +1524,8 @@ app.post(['/api/v1/ingest/telemetry', '/api/ingest'], agentLimiter, validateBody
         return res.status(409).json({ error: err.message,
           detail: 'An authenticated device already submitted a different payload under the same message/batch ID.' });
       }
-      if (err.message === 'TELEMETRY_CREDENTIAL_CHANGED') {
-        return res.status(401).json({ error: 'TELEMETRY_CREDENTIAL_CHANGED' });
+      if (['TELEMETRY_CREDENTIAL_CHANGED', 'TELEMETRY_DEVICE_OWNER_MISMATCH'].includes(err.message)) {
+        return res.status(401).json({ error: 'DEVICE_CREDENTIAL_CHANGED' });
       }
       if (err.message === 'TELEMETRY_BATCH_MYSQL_REQUIRED') {
         return res.status(503).json({ error: 'DATABASE_UNAVAILABLE',

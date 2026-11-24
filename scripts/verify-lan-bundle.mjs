@@ -2,9 +2,9 @@
 // LAN-01 read-only bundle integrity preflight. Does not install, fetch, execute,
 // trust a manifest merely because it is present, or prove publisher signatures.
 // The trusted manifest SHA-256 MUST be obtained out of band from the release owner.
-import { createHash } from 'node:crypto';
+import { createHash, createPublicKey, verify } from 'node:crypto';
 import { constants } from 'node:fs';
-import { open, lstat, opendir, readFile } from 'node:fs/promises';
+import { open, lstat, opendir } from 'node:fs/promises';
 import { resolve, relative, sep, isAbsolute, join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -76,7 +76,8 @@ function rejectDuplicateJsonKeys(source) {
     }
     fail('Invalid JSON string');
   };
-  const value = () => {
+  const value = (depth = 0) => {
+    if (depth > 64) fail('Manifest JSON nesting limit exceeded');
     whitespace();
     if (source[offset] === '{') {
       offset++;
@@ -90,7 +91,7 @@ function rejectDuplicateJsonKeys(source) {
         keys.add(key);
         whitespace();
         if (source[offset++] !== ':') fail('Malformed JSON object');
-        value();
+        value(depth + 1);
         whitespace();
         const separator = source[offset++];
         if (separator === '}') return;
@@ -102,7 +103,7 @@ function rejectDuplicateJsonKeys(source) {
       whitespace();
       if (source[offset] === ']') { offset++; return; }
       while (true) {
-        value();
+        value(depth + 1);
         whitespace();
         const separator = source[offset++];
         if (separator === ']') return;
@@ -167,6 +168,33 @@ async function walkExactPayload(root, expectedPaths) {
   if (observed.size !== expectedPaths.size) fail('Manifested payload files are missing');
 }
 
+// Bounded descriptor reads prevent a concurrently growing manifest/signature
+// from exhausting memory before the independently approved digest is checked.
+async function readBoundedRegular(file, max, label) {
+  const info = await assertRegularNoLinks(file, label);
+  if (info.size < 1 || info.size > max) fail(label + ' exceeds allowed size or is empty');
+  const handle = await open(file, constants.O_RDONLY | (constants.O_NOFOLLOW || 0) |
+    (constants.O_NONBLOCK || 0));
+  try {
+    const st = await handle.stat();
+    if (!st.isFile() || st.nlink !== 1 ||
+        ['dev','ino','size','mtimeMs','ctimeMs'].some(k => st[k] !== info[k])) fail(label + ' changed during validation');
+    const bytes = Buffer.alloc(st.size + 1);
+    let count = 0;
+    while (count < bytes.length) {
+      const {bytesRead} = await handle.read(bytes,count,bytes.length-count,count);
+      if (!bytesRead) break;
+      count += bytesRead;
+    }
+    const after = await handle.stat(), current = await lstat(file);
+    if (count !== st.size || !after.isFile() || !current.isFile() ||
+        after.nlink !== 1 || current.nlink !== 1 ||
+        [after,current].some(x => ['dev','ino','size','mtimeMs','ctimeMs'].some(k=>x[k]!==st[k])))
+      fail(label + ' changed during validation');
+    return bytes.subarray(0,count);
+  } finally { await handle.close(); }
+}
+
 async function digestFile(file, expectedSize) {
   // Reject symlinks in each component, including a directory/junction segment.
   let part = dirname(file);
@@ -182,7 +210,7 @@ async function digestFile(file, expectedSize) {
   const info = await assertRegularNoLinks(file, 'Payload item');
   if (info.size !== expectedSize) fail('Payload file size mismatch');
 
-  const flags = constants.O_RDONLY | (constants.O_NOFOLLOW || 0);
+  const flags = constants.O_RDONLY | (constants.O_NOFOLLOW || 0) | (constants.O_NONBLOCK || 0);
   const handle = await open(file, flags);
   try {
     const st = await handle.stat();
@@ -192,9 +220,13 @@ async function digestFile(file, expectedSize) {
     }
     const hash = createHash('sha256');
     let size = 0;
-    for await (const chunk of handle.createReadStream({ autoClose: false })) {
-      size += chunk.length;
-      hash.update(chunk);
+    const chunk = Buffer.alloc(1024*1024);
+    while (size <= expectedSize) {
+      const {bytesRead} = await handle.read(chunk,0,Math.min(chunk.length,expectedSize-size+1),size);
+      if (!bytesRead) break;
+      size += bytesRead;
+      if (size > expectedSize) fail('Payload byte count changed during validation');
+      hash.update(chunk.subarray(0,bytesRead));
     }
     if (size !== expectedSize) fail('Payload byte count changed during validation');
     // Recheck the open descriptor and current pathname. This detects common
@@ -217,7 +249,7 @@ async function digestFile(file, expectedSize) {
 }
 
 export async function verifyLanBundle({manifest, root, trustedManifestSha256}) {
-  if (!HEX256.test(trustedManifestSha256 || '')) fail('Trusted manifest digest must be 64 hex characters');
+  if (typeof trustedManifestSha256 !== 'string' || trustedManifestSha256.length !== 64 || !HEX256.test(trustedManifestSha256)) fail('Trusted manifest digest must be 64 hex characters');
   const manifestPath = resolve(manifest);
   const rootPath = resolve(root);
   const stat = await lstat(rootPath);
@@ -229,11 +261,7 @@ export async function verifyLanBundle({manifest, root, trustedManifestSha256}) {
       manifestRelative !== '..' && !isAbsolute(manifestRelative))) {
     fail('Manifest must be outside payload root');
   }
-  const minfo = await assertRegularNoLinks(manifestPath, 'Manifest');
-  if (minfo.size > MAX_MANIFEST_BYTES) fail('Manifest exceeds allowed size');
-  const bytes = await readFile(manifestPath);
-  if (bytes.length !== minfo.size || bytes.length > MAX_MANIFEST_BYTES)
-    fail('Manifest changed during validation');
+  const bytes = await readBoundedRegular(manifestPath, MAX_MANIFEST_BYTES, 'Manifest');
   const digest = createHash('sha256').update(bytes).digest('hex');
   if (digest !== trustedManifestSha256.toLowerCase())
     fail('Manifest SHA-256 does not match the externally trusted digest');
@@ -266,6 +294,40 @@ export async function verifyLanBundle({manifest, root, trustedManifestSha256}) {
   // so an installer cannot accidentally execute an unchecked extra payload.
   await walkExactPayload(rootPath, expected);
   return { verified: true, files: expected.size, content_integrity_only: true };
+}
+
+// Publisher verification is a separate, stricter entry point. Both the
+// signer fingerprint and exact approved release manifest digest come from
+// an independently authenticated release record, not the bundle itself.
+export async function verifySignedLanBundle({manifest,root,signature,
+  trustedManifestSha256,trustedPublicKeyPem,trustedSignerSpkiSha256}) {
+  if (typeof trustedSignerSpkiSha256 !== 'string' || trustedSignerSpkiSha256.length !== 64 ||
+      !HEX256.test(trustedSignerSpkiSha256)) fail('Trusted publisher signer pin required');
+  if (typeof trustedManifestSha256 !== 'string' || trustedManifestSha256.length !== 64 ||
+      !HEX256.test(trustedManifestSha256)) fail('Independently approved manifest digest required');
+  if (typeof trustedPublicKeyPem !== 'string' || trustedPublicKeyPem.length > 8192 ||
+      !trustedPublicKeyPem.startsWith('-----BEGIN PUBLIC KEY-----\n')) fail('Trusted publisher public key required');
+  const key = createPublicKey(trustedPublicKeyPem);
+  if (key.asymmetricKeyType !== 'ed25519') fail('Unsupported publisher signing algorithm');
+  const pin = createHash('sha256').update(key.export({format:'der',type:'spki'})).digest('hex');
+  if (pin !== trustedSignerSpkiSha256.toLowerCase()) fail('Publisher signer pin mismatch');
+  const signaturePath = resolve(signature), rootPath = resolve(root);
+  const signatureRelative = relative(rootPath,signaturePath);
+  if (!signatureRelative || (!signatureRelative.startsWith('..'+sep) &&
+      signatureRelative !== '..' && !isAbsolute(signatureRelative))) fail('Signature must be outside payload root');
+  const manifestBytes = await readBoundedRegular(resolve(manifest),MAX_MANIFEST_BYTES,'Manifest');
+  const digest = createHash('sha256').update(manifestBytes).digest('hex');
+  if (digest !== trustedManifestSha256.toLowerCase()) fail('Manifest not independently approved');
+  const sig = await readBoundedRegular(signaturePath,64,'Signature');
+  if (sig.length !== 64 || !verify(null,manifestBytes,key,sig)) fail('Publisher manifest signature invalid');
+  // Re-reading is intentional: the same approved digest binds the exact
+  // bytes the existing verifier parses, including duplicate-key rejection.
+  const content = await verifyLanBundle({manifest,root,trustedManifestSha256:digest});
+  return Object.freeze({verified:content.verified,files:content.files,
+    publisher_signature_verified:true,payload_integrity_verified:true,
+    approved_manifest_sha256:digest,signer_spki_sha256:pin,
+    installation_authorized:false,host_runtime_verified:false,
+    offline_execution_verified:false});
 }
 
 async function main() {

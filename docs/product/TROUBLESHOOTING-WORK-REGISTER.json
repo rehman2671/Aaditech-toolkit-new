@@ -7,8 +7,8 @@
   "note": "Planning/implementation register, not verified delivery. Guidance and review formats are source-level only; existing reference collectors are partial, not platform acceptance. Parent tracker remains authoritative. No task is marked accepted. Combined review reconciliation preserves all 158 original IDs; partial entries identify local reference source/test files; no platform verification or acceptance inferred.",
   "counts": {
     "IMPLEMENTED_PENDING_COMBINED_CI": 42,
-    "PENDING": 109,
-    "PARTIAL_REFERENCE_ONLY": 7
+    "PENDING": 103,
+    "PARTIAL_REFERENCE_ONLY": 13
   },
   "tasks": [
     {
@@ -1099,11 +1099,15 @@
       "id": "DIAG-BLUETOOTH_STATUS-WINDOWS",
       "parent": "PR-015",
       "title": "Privacy-approved actual WINDOWS collector and physical endpoint acceptance",
-      "state": "PENDING",
+      "state": "PARTIAL_REFERENCE_ONLY",
       "requires": [
         "DIAG-BLUETOOTH_STATUS-CONTRACT"
       ],
-      "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+      "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution.",
+      "evidence": [
+        "Enterprise/deploy/LocalWindowsDiagnostics.ps1",
+        "Enterprise/tests/Test-LocalWindowsDiagnostics.ps1"
+      ]
     },
     {
       "id": "DIAG-BLUETOOTH_STATUS-MACOS",
@@ -1150,11 +1154,15 @@
       "id": "DIAG-PRINT_STATUS-WINDOWS",
       "parent": "PR-015",
       "title": "Privacy-approved actual WINDOWS collector and physical endpoint acceptance",
-      "state": "PENDING",
+      "state": "PARTIAL_REFERENCE_ONLY",
       "requires": [
         "DIAG-PRINT_STATUS-CONTRACT"
       ],
-      "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+      "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution.",
+      "evidence": [
+        "Enterprise/deploy/LocalWindowsDiagnostics.ps1",
+        "Enterprise/tests/Test-LocalWindowsDiagnostics.ps1"
+      ]
     },
     {
       "id": "DIAG-PRINT_STATUS-MACOS",
@@ -1344,21 +1352,29 @@
       "id": "DIAG-BATTERY_HEALTH-LINUX",
       "parent": "PR-015",
       "title": "Privacy-approved actual LINUX collector and physical endpoint acceptance",
-      "state": "PENDING",
+      "state": "PARTIAL_REFERENCE_ONLY",
       "requires": [
         "DIAG-BATTERY_HEALTH-CONTRACT"
       ],
-      "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+      "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution.",
+      "evidence": [
+        "scripts/local-battery-diagnostic.mjs",
+        "tests/unit/local-battery-diagnostic.test.js"
+      ]
     },
     {
       "id": "DIAG-BATTERY_HEALTH-WINDOWS",
       "parent": "PR-015",
       "title": "Privacy-approved actual WINDOWS collector and physical endpoint acceptance",
-      "state": "PENDING",
+      "state": "PARTIAL_REFERENCE_ONLY",
       "requires": [
         "DIAG-BATTERY_HEALTH-CONTRACT"
       ],
-      "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+      "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution.",
+      "evidence": [
+        "Enterprise/deploy/LocalWindowsDiagnostics.ps1",
+        "Enterprise/tests/Test-LocalWindowsDiagnostics.ps1"
+      ]
     },
     {
       "id": "DIAG-BATTERY_HEALTH-MACOS",
@@ -1558,11 +1574,15 @@
       "id": "DIAG-POWER_PLAN_STATUS-WINDOWS",
       "parent": "PR-015",
       "title": "Privacy-approved actual WINDOWS collector and physical endpoint acceptance",
-      "state": "PENDING",
+      "state": "PARTIAL_REFERENCE_ONLY",
       "requires": [
         "DIAG-POWER_PLAN_STATUS-CONTRACT"
       ],
-      "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+      "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution.",
+      "evidence": [
+        "Enterprise/deploy/LocalWindowsDiagnostics.ps1",
+        "Enterprise/tests/Test-LocalWindowsDiagnostics.ps1"
+      ]
     },
     {
       "id": "DIAG-POWER_PLAN_STATUS-MACOS",
@@ -1609,11 +1629,15 @@
       "id": "DIAG-FIREWALL_STATUS-WINDOWS",
       "parent": "PR-015",
       "title": "Privacy-approved actual WINDOWS collector and physical endpoint acceptance",
-      "state": "PENDING",
+      "state": "PARTIAL_REFERENCE_ONLY",
       "requires": [
         "DIAG-FIREWALL_STATUS-CONTRACT"
       ],
-      "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+      "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution.",
+      "evidence": [
+        "Enterprise/deploy/LocalWindowsDiagnostics.ps1",
+        "Enterprise/tests/Test-LocalWindowsDiagnostics.ps1"
+      ]
     },
     {
       "id": "DIAG-FIREWALL_STATUS-MACOS",

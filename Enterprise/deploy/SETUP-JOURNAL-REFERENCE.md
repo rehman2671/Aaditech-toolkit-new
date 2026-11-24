@@ -1,0 +1,5 @@
+# Setup journal reference (LAN-06 / M2)
+
+POSIX private dedicated directory, canonical append-only STARTED/COMPLETED event files, exact installation UUID and approved release digest, previous-event hash and caller evidence digest. Exclusive no-replacement publication, fsync, sequence CAS. A durable STARTED without completion requires operator reconciliation; never automatically replays a side effect. Gaps, malformed records, foreign binding and orphan temp files fail closed. Completion input is not proof of actual execution and the reference API cannot authorize it. No database, browser, PKI, service or installer mutations.
+
+Hash chaining detects accidental inconsistencies, not a malicious privileged writer, truncation of a valid suffix or rollback of the whole directory. Real adapter must anchor latest head independently, enforce trusted lock, authenticated evidence and actual resource reconciliation before recording completion, and use protected Windows ACL storage. Empty journal alone never proves fresh installation. Crash durability depends on local filesystem semantics. No certified acceptance stage; no production authorization. DEC-001 open.

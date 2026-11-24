@@ -2307,12 +2307,50 @@ export async function getPendingCommandsForDevice(deviceId, limit = 50) {
 // pending command, but only ONE can claim it for an enrolled device.
 // No automatic expiry/replay: destructive operations need human review when
 // the result is lost; the endpoint agent's local dedup is defense in depth.
-export async function markCommandPickedUp(id, deviceId = null) {
+// Serialize command mutations with administrative revocation using the
+// same persistent device row lock. Authentication before entering the
+// database is not sufficient: the credential may have changed meanwhile.
+// Only explicit historical test fixtures may omit the credential argument.
+async function executeCredentialBoundCommandWrite(owner, credential, sql, params) {
+  if (process.env.NODE_ENV === 'test' && credential === undefined) return executeQuery(sql, params);
+  if (!owner || typeof credential?.tenantId !== 'string' || !credential.tenantId ||
+      typeof credential?.tokenHash !== 'string' || !/^[a-f0-9]{64}$/.test(credential.tokenHash)) {
+    throw new Error('COMMAND_CREDENTIAL_CHANGED');
+  }
+  if (!isMysqlConnected() || !pool?.getConnection) throw new Error('COMMAND_CREDENTIAL_DATABASE_UNAVAILABLE');
+  const conn = await pool.getConnection();
+  let committed = false;
+  let discard = false;
+  try {
+    await conn.beginTransaction();
+    const [rows] = await conn.query(
+      'SELECT id, tenant_id, device_token_hash, agent_token_revoked FROM devices WHERE id = ? AND tenant_id = ? FOR UPDATE',
+      [String(owner), credential.tenantId]);
+    const row = Array.isArray(rows) && rows.length === 1 ? rows[0] : null;
+    if (!row || String(row.id) !== String(owner) || row.tenant_id !== credential.tenantId ||
+        row.device_token_hash !== credential.tokenHash ||
+        ![false, 0, '0'].includes(row.agent_token_revoked)) {
+      throw new Error('COMMAND_CREDENTIAL_CHANGED');
+    }
+    const [updated] = await conn.query(sql, params);
+    await conn.commit();
+    committed = true;
+    return updated;
+  } finally {
+    if (!committed) {
+      try { await conn.rollback(); }
+      catch (_) { discard = true; if (typeof conn.destroy === 'function') conn.destroy(); }
+    }
+    if (!discard) conn.release();
+  }
+}
+
+export async function markCommandPickedUp(id, deviceId = null, credential = undefined) {
   const c = process.env.NODE_ENV !== 'test' ? null :
     memCommands.find(x => String(x.id) === String(id));
   const owner = deviceId || c?.device_id;
   if (!owner) return false;
-  const updated = await executeQuery(
+  const updated = await executeCredentialBoundCommandWrite(owner, credential,
     "UPDATE command_queue SET status = 'IN_PROGRESS', picked_up_at = NOW(3) " +
     "WHERE id = ? AND device_id = ? AND status = 'PENDING'",
     [String(id), String(owner)]
@@ -2327,7 +2365,7 @@ export async function markCommandPickedUp(id, deviceId = null) {
 
 // Only the enrolled owning agent can commit a result, once, after a successful
 // claim. Duplicate, pre-poll, or stale reports MUST NOT overwrite final history.
-export async function completeCommandInDb(cmdId, status, stdout, stderr, exitCode, deviceId = null) {
+export async function completeCommandInDb(cmdId, status, stdout, stderr, exitCode, deviceId = null, credential = undefined) {
   if (!['completed', 'failed'].includes(status)) return false;
   const c = process.env.NODE_ENV !== 'test' ? null :
     memCommands.find(x => String(x.id) === String(cmdId));
@@ -2339,7 +2377,7 @@ export async function completeCommandInDb(cmdId, status, stdout, stderr, exitCod
       SET status = ?, stdout = ?, stderr = ?, exit_code = ?, executed_at = NOW(3), completed_at = NOW(3)
       WHERE id = ? AND device_id = ? AND status = 'IN_PROGRESS'
     `;
-    const updated = await executeQuery(sql, [
+    const updated = await executeCredentialBoundCommandWrite(owner, credential, sql, [
       status.toUpperCase(), stdout, stderr, exitCode, String(cmdId), String(owner)
     ]);
     if (updated?.affectedRows !== 1) return false;
@@ -2354,7 +2392,7 @@ export async function completeCommandInDb(cmdId, status, stdout, stderr, exitCod
     return true;
   } catch (err) {
     console.error('completeCommandInDb failed:', err.code || 'COMMAND_RESULT_WRITE_FAILED');
-    if (process.env.NODE_ENV !== 'test') throw err;
+    if (process.env.NODE_ENV !== 'test' || credential !== undefined) throw err;
     return false;
   }
 }

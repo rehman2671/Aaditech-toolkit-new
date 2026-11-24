@@ -2553,8 +2553,18 @@ app.get(['/api/commands/poll', '/api/v1/commands/poll'], async (req, res) => {
   const signedPending = [];
   for (const c of pending) {
     const sig = signDeviceCommand({ device, command: c, deviceToken: pollToken });
-    // Atomic claim fences concurrent polls across separate API instances.
-    if (!await db.markCommandPickedUp(c.id, device.id)) continue;
+    // Atomic claim also rechecks the current credential under the same
+    // device row lock as revocation. Preserve explicit legacy test fixtures.
+    try {
+      const credential = process.env.NODE_ENV === 'test' ? undefined :
+        { tenantId: device.tenant_id, tokenHash };
+      if (!await db.markCommandPickedUp(c.id, device.id, credential)) continue;
+    } catch (error) {
+      if (error.message === 'COMMAND_CREDENTIAL_CHANGED') {
+        return res.status(401).json({ error: 'COMMAND_CREDENTIAL_CHANGED' });
+      }
+      return res.status(503).json({ error: 'COMMAND_QUEUE_UNAVAILABLE' });
+    }
     signedPending.push({
       ...c,
       status: "running",
@@ -2599,9 +2609,14 @@ app.post(['/api/commands/:id/result', '/api/v1/commands/:id/result'], agentLimit
   let committed = false;
   try {
     committed = await db.completeCommandInDb(
-      cmd.id, status, output, stderr, exitCode, resultDevice.id
+      cmd.id, status, output, stderr, exitCode, resultDevice.id,
+      process.env.NODE_ENV === 'test' ? undefined :
+        { tenantId: resultDevice.tenant_id, tokenHash: hashDeviceToken(resultToken) }
     );
-  } catch (_) {
+  } catch (error) {
+    if (error.message === 'COMMAND_CREDENTIAL_CHANGED') {
+      return res.status(401).json({ error: 'COMMAND_CREDENTIAL_CHANGED' });
+    }
     return res.status(503).json({ error: 'COMMAND_RESULT_DATABASE_UNAVAILABLE' });
   }
   if (committed) {

@@ -230,6 +230,32 @@ try {
     assert.equal((await revoke(port, foreignAuth)).status, 404);
     assert.equal((await preflight(port, { Cookie: 'auth_token=' + adminToken })).status, 403);
   }
+  // Synthetic queue rows only: no command is executed on any endpoint.
+  // Exercise real production claims/results and recovery blockers.
+  const completedId = crypto.randomUUID(), outstandingId = crypto.randomUUID();
+  await pool.execute("INSERT INTO command_queue (id, device_id, hostname, command_type, payload, status) VALUES (?, ?, ?, 'run-script', ?, 'PENDING')",
+    [completedId, deviceId, deviceHost, JSON.stringify({script:'Scripts/QuickCheck.ps1'})]);
+  const claims = await Promise.all([poll(mainPort), poll(peerPort)]);
+  for (const claim of claims) assert.equal(claim.status, 200);
+  assert.equal(claims.flatMap(x => x.body).filter(x => x.id === completedId).length, 1);
+  async function result(port, id) {
+    const r = await fetch('http://127.0.0.1:' + port + '/api/v1/commands/' + id + '/result',
+      {method:'POST', headers:{'Content-Type':'application/json','X-Device-Token':deviceToken},
+       body:JSON.stringify({status:'completed',output:'CI synthetic receipt',exit_code:0}),
+       signal:AbortSignal.timeout(12000)});
+    return {status:r.status,body:await r.json()};
+  }
+  const receipt = await result(peerPort, completedId);
+  assert.equal(receipt.status, 200);
+  assert.equal(receipt.body.duplicate, false);
+  const retry = await result(mainPort, completedId);
+  assert.equal(retry.status, 200);
+  assert.equal(retry.body.duplicate, true);
+  await pool.execute("INSERT INTO command_queue (id, device_id, hostname, command_type, payload, status) VALUES (?, ?, ?, 'run-script', ?, 'IN_PROGRESS')",
+    [outstandingId, deviceId, deviceHost, JSON.stringify({script:'Scripts/QuickCheck.ps1'})]);
+  const blocked = await preflight(mainPort, auth);
+  assert.equal(blocked.body.outstanding_commands, 1);
+  assert.ok(blocked.body.blockers.includes('COMMAND_RECONCILIATION_REQUIRED'));
   assert.equal((await revoke(mainPort, auth, crypto.randomUUID())).status, 400);
   assert.equal((await revoke(peerPort, { Cookie: 'auth_token=' + adminToken })).status, 403);
   const [before] = await pool.execute('SELECT last_seen_at FROM devices WHERE id = ?', [deviceId]);
@@ -259,8 +285,14 @@ try {
     assert.equal(recovery.body.credential_revoked, true);
     assert.equal(recovery.body.replacement_allowed, false);
     assert.ok(recovery.body.blockers.includes('AUTHORIZED_RECOVERY_HANDOFF_REQUIRED'));
+    assert.equal(recovery.body.outstanding_commands, 1);
+    assert.ok(recovery.body.blockers.includes('COMMAND_RECONCILIATION_REQUIRED'));
+    assert.equal((await result(port, outstandingId)).status, 401);
   }
-  console.log('[PASS] Two production workers enforce one durable revocation/audit and deny subsequent agent authentication.');
+  const [unfinished] = await pool.execute('SELECT status, completed_at FROM command_queue WHERE id = ?', [outstandingId]);
+  assert.equal(unfinished[0].status, 'IN_PROGRESS');
+  assert.equal(unfinished[0].completed_at, null);
+  console.log('[PASS] Two production workers enforce durable revocation/audit, credential-bound claim/result and preserve unresolved commands.');
 } finally {
   setPartition(true);
   for (const child of live) child.kill('SIGTERM');
@@ -276,6 +308,7 @@ try {
       await pool.query('DELETE FROM user_workspace_memberships WHERE tenant_id = ?', [tenantId]);
       await pool.query('DELETE FROM users WHERE tenant_id = ?', [tenantId]);
       await pool.query('DELETE FROM used_bootstrap_tokens WHERE tenant_id = ?', [tenantId]);
+      await pool.query('DELETE cq FROM command_queue cq INNER JOIN devices d ON d.id = cq.device_id WHERE d.tenant_id = ?', [tenantId]);
       await pool.query('DELETE FROM devices WHERE tenant_id = ?', [tenantId]);
       await pool.query('DELETE FROM companies WHERE tenant_id = ?', [tenantId]);
       await pool.query('DELETE FROM tenants WHERE id = ?', [tenantId]);

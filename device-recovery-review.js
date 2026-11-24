@@ -8,20 +8,35 @@ const hex=/^[a-f0-9]{64}$/;
 const sha=x=>createHash('sha256').update(x).digest('hex');
 const fail=code=>{throw Error(code);};
 const isUuid=x=>typeof x==='string'&&x.length===36&&uuid.test(x);
-const isDigest=x=>typeof x==='string'&&x.length===64&&hex.test(x);
+const isDigest=x=>typeof x==='string'&&x.length===64&&hex.test(x)&&x!=='0'.repeat(64);
+const safeDbInt=x=>typeof x==='number'&&Number.isSafeInteger(x)?x:
+  typeof x==='string'&&/^(0|[1-9][0-9]*)$/.test(x)&&Number.isSafeInteger(Number(x))?Number(x):NaN;
+function validPending(row,now){
+  const created=safeDbInt(row.created_at_ms),expires=safeDbInt(row.expires_at_ms);
+  return Number.isSafeInteger(created)&&created>0&&created<=now&&
+    Number.isSafeInteger(expires)&&expires>created&&expires-created<=900000&&
+    row.reviewer_id==null&&row.evidence_sha256==null&&row.reviewer_spki_sha256==null&&
+    row.reviewed_at_ms==null&&row.review_expires_at_ms==null;
+}
 function validateContext(pool,principal,deviceId){
   if(!pool?.getConnection||!principal||!isUuid(principal.tenant_id)||
      !Number.isSafeInteger(principal.id)||principal.id<=0||
      principal.role!=='SUPER_ADMIN'||!isUuid(deviceId))fail('RECOVERY_REVIEW_INVALID');
 }
 async function transact(pool,fn){
-  const c=await pool.getConnection();let committed=false,discard=false;
+  const c=await pool.getConnection();let committed=false,discard=false,commitStarted=false;
   try{
     await c.beginTransaction();
     const value=await fn(c);
+    commitStarted=true;
     await c.commit();committed=true;return value;
   }finally{
-    if(!committed){try{await c.rollback();}catch(_){discard=true;c.destroy?.();}}
+    if(!committed){
+      // A failed COMMIT has an unknown outcome. Never return its session to the pool.
+      if(commitStarted)discard=true;
+      try{await c.rollback();}catch(_){discard=true;}
+      if(discard)c.destroy?.();
+    }
     if(!discard)c.release();
   }
 }
@@ -48,9 +63,9 @@ async function lockContext(c,principal,deviceId,{deferActor=false}={}){
     "(SELECT COUNT(*) FROM command_queue WHERE device_id=? AND (status IS NULL OR UPPER(status) NOT IN ('COMPLETED','FAILED','CANCELLED','EXPIRED'))) AS outstanding_count",
     [owner.device_token_hash,deviceId]);
   const n=counts?.[0];
-  if(!n||n.matches_count==null||n.outstanding_count==null||Number(n.matches_count)!==1||Number(n.outstanding_count)!==0)fail('RECOVERY_REVIEW_DEVICE_NOT_READY');
+  if(!n||n.matches_count==null||n.outstanding_count==null||safeDbInt(n.matches_count)!==1||safeDbInt(n.outstanding_count)!==0)fail('RECOVERY_REVIEW_DEVICE_NOT_READY');
   const [clock]=await c.query('SELECT CAST(UNIX_TIMESTAMP(NOW(3))*1000 AS UNSIGNED) AS now_ms');
-  const now=Number(clock?.[0]?.now_ms);
+  const now=safeDbInt(clock?.[0]?.now_ms);
   if(!Number.isSafeInteger(now)||now<=0)fail('RECOVERY_REVIEW_CLOCK_UNAVAILABLE');
   return {now,fingerprint:sha('aaditech:recovery-review:v1:'+owner.device_token_hash)};
 }
@@ -96,12 +111,12 @@ export async function reserveRecoveryReview(pool,{principal,deviceId,requestId,e
       [requestId,principal.tenant_id,deviceId]);
     const row=rows?.length===1?rows[0]:null;
     if(!row||row.request_id!==requestId||row.tenant_id!==principal.tenant_id||row.device_id!==deviceId||
-       row.state!=='PENDING'||Number(row.requester_id)===principal.id||
-       !Number.isSafeInteger(Number(row.expires_at_ms))||Number(row.expires_at_ms)<=now||
+       row.state!=='PENDING'||!validPending(row,now)||safeDbInt(row.requester_id)===principal.id||
+       safeDbInt(row.expires_at_ms)<=now||
        row.credential_fingerprint!==fingerprint||!isDigest(row.challenge_sha256))fail('RECOVERY_REVIEW_NOT_RESERVABLE');
     // Both independent actors must still be authorized. Lock them in
     // deterministic ID order even when reviewing two different devices.
-    const requesterId=Number(row.requester_id);
+    const requesterId=safeDbInt(row.requester_id);
     if(!Number.isSafeInteger(requesterId)||requesterId<=0)fail('RECOVERY_REVIEW_NOT_RESERVABLE');
     for(const id of [requesterId,principal.id].sort((a,b)=>a-b))
       await lockActiveAdmin(c,{...principal,id});
@@ -117,9 +132,9 @@ export async function reserveRecoveryReview(pool,{principal,deviceId,requestId,e
     // Re-read DB time after acquiring both administrator locks and verifying
     // signature, so waiting on a lock cannot extend the review window.
     const [clock]=await c.query('SELECT CAST(UNIX_TIMESTAMP(NOW(3))*1000 AS UNSIGNED) AS now_ms');
-    const commitNow=Number(clock?.[0]?.now_ms);
+    const commitNow=safeDbInt(clock?.[0]?.now_ms);
     if(!Number.isSafeInteger(commitNow)||commitNow<now||checked.expires_at_ms<=commitNow||
-       checked.expires_at_ms>Number(row.expires_at_ms))fail('RECOVERY_REVIEW_NOT_RESERVABLE');
+       checked.expires_at_ms>safeDbInt(row.expires_at_ms))fail('RECOVERY_REVIEW_NOT_RESERVABLE');
     const [updated]=await c.query("UPDATE device_recovery_reviews SET state='REVIEW_RESERVED',reviewer_id=?,evidence_sha256=?,reviewer_spki_sha256=?,reviewed_at_ms=?,review_expires_at_ms=? WHERE request_id=? AND tenant_id=? AND device_id=? AND state='PENDING' AND expires_at_ms>?",
       [principal.id,checked.evidence_sha256,trustedPins.reviewerSpkiSha256,commitNow,checked.expires_at_ms,requestId,principal.tenant_id,deviceId,commitNow]);
     if(updated?.affectedRows!==1)fail('RECOVERY_REVIEW_WRITE_UNCONFIRMED');
@@ -144,22 +159,23 @@ export async function inspectRecoveryReview(pool,{principal,deviceId,requestId}=
       [requestId,principal.tenant_id,deviceId]);
     const row=rows?.length===1?rows[0]:null;
     if(!row||row.request_id!==requestId||row.tenant_id!==principal.tenant_id||row.device_id!==deviceId)fail('RECOVERY_REVIEW_NOT_FOUND');
-    const requesterId=Number(row.requester_id),reviewerId=Number(row.reviewer_id);
-    const expires=Number(row.expires_at_ms),created=Number(row.created_at_ms);
+    const requesterId=safeDbInt(row.requester_id),reviewerId=safeDbInt(row.reviewer_id);
+    const expires=safeDbInt(row.expires_at_ms),created=safeDbInt(row.created_at_ms);
     if(!Number.isSafeInteger(requesterId)||requesterId<=0||
-       !Number.isSafeInteger(created)||created<=0||!Number.isSafeInteger(expires)||expires<=created||
+       !Number.isSafeInteger(created)||created<=0||created>now||!Number.isSafeInteger(expires)||expires<=created||expires-created>900000||
        !['PENDING','REVIEW_RESERVED'].includes(row.state)||!isDigest(row.credential_fingerprint)||
        !isDigest(row.challenge_sha256))fail('RECOVERY_REVIEW_STATE_INVALID');
     const reserved=row.state==='REVIEW_RESERVED';
-    const reviewExpiry=Number(row.review_expires_at_ms),reviewed=Number(row.reviewed_at_ms);
+    const reviewExpiry=safeDbInt(row.review_expires_at_ms),reviewed=safeDbInt(row.reviewed_at_ms);
+    if(!reserved&&!validPending(row,now))fail('RECOVERY_REVIEW_STATE_INVALID');
     if(reserved&&(!Number.isSafeInteger(reviewerId)||reviewerId<=0||reviewerId===requesterId||
-       !Number.isSafeInteger(reviewed)||reviewed<created||!Number.isSafeInteger(reviewExpiry)||
-       reviewExpiry<=reviewed||reviewExpiry>expires||!isDigest(row.evidence_sha256)||!isDigest(row.reviewer_spki_sha256)))
+       !Number.isSafeInteger(reviewed)||reviewed<created||reviewed>now||!Number.isSafeInteger(reviewExpiry)||
+       reviewExpiry<=reviewed||reviewExpiry>expires||reviewExpiry-reviewed>300000||!isDigest(row.evidence_sha256)||!isDigest(row.reviewer_spki_sha256)))
        fail('RECOVERY_REVIEW_STATE_INVALID');
     for(const id of [...new Set([principal.id,requesterId,...(reserved?[reviewerId]:[])])].sort((a,b)=>a-b))
       await lockActiveAdmin(c,{...principal,id});
     const [clock]=await c.query('SELECT CAST(UNIX_TIMESTAMP(NOW(3))*1000 AS UNSIGNED) AS now_ms');
-    const checkedNow=Number(clock?.[0]?.now_ms);
+    const checkedNow=safeDbInt(clock?.[0]?.now_ms);
     if(!Number.isSafeInteger(checkedNow)||checkedNow<now)fail('RECOVERY_REVIEW_CLOCK_UNAVAILABLE');
     const status=row.credential_fingerprint!==fingerprint?'STALE_CREDENTIAL':
       checkedNow>=expires||(reserved&&checkedNow>=reviewExpiry)?'EXPIRED':row.state;

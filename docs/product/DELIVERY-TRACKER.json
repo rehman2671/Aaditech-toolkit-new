@@ -95,9 +95,10 @@
         "Design backlog docs/product/LAN-INSTALLATION-IMPLEMENTATION-BACKLOG.md (not implemented)",
         "#107 ordered setup plan, fresh/reconfigure distinction, invalidated evidence and failed-stage refusal; no durable execution, browser handoff or persisted stage authorization",
         "#107 8e0696ad0505d46d090d94318c2c42fd06b329c5: exact-head CI and safety SUCCESS, native Windows PowerShell 5.1/7 host checks",
-        "#108 24761d2f5be59108ce175e8cd533c2d7c7926261: append-only STARTED/COMPLETED setup journal, identity/release binding and atomic no-replacement publication; exact-head CI #45381725526 SUCCESS (3/3 executed jobs, MSI build skipped), deployment safety #45381725923 SUCCESS (2/2); no runtime execution or external rollback anchor"
+        "#108 24761d2f5be59108ce175e8cd533c2d7c7926261: append-only STARTED/COMPLETED setup journal, identity/release binding and atomic no-replacement publication; exact-head CI #45381725526 SUCCESS (3/3 executed jobs, MSI build skipped), deployment safety #45381725923 SUCCESS (2/2); no runtime execution or external rollback anchor",
+        "#108 f88143083f4d9de8d980aaf215990e281d1218cd: signed pinned exact-head checkpoint verifier and rollback regression code; fresh exact-head CI pending; prior 24761d2f CI evidence does not certify new head"
       ],
-      "next": "After DEC-001, bind trusted evidence to actual runtime/installation/release and independently anchor journal head; implement installer locking, Windows ACL journal adapter, verified interrupted-stage reconciliation and authenticated installer-to-browser handoff",
+      "next": "After DEC-001, implement independently controlled current-checkpoint distribution/advancement, runtime locking, Windows ACL journal adapter, verified interrupted-stage reconciliation and authenticated installer-to-browser handoff; verify #108 latest-head CI",
       "blocked": true,
       "issue_url": "https://github.com/rehman2671/Aaditech-toolkit-new/issues/80"
     },
@@ -308,7 +309,8 @@
         "Enterprise/deploy/restore.sh",
         "deployment safety 45062353339",
         "#104 authenticated backup manifest reference: CI and deployment safety SUCCESS; no actual encryption or independent restore witnessed",
-        "#108 24761d2f5be59108ce175e8cd533c2d7c7926261: actual bounded AES-256-GCM file encryption and authenticated staged recovery reference, 64 MiB POSIX only; exact-head CI #45381725526 SUCCESS (3/3 executed jobs, MSI build skipped), deployment safety #45381725923 SUCCESS (2/2); no actual DB restore or witnessed recovery"
+        "#108 24761d2f5be59108ce175e8cd533c2d7c7926261: actual bounded AES-256-GCM file encryption and authenticated staged recovery reference, 64 MiB POSIX only; exact-head CI #45381725526 SUCCESS (3/3 executed jobs, MSI build skipped), deployment safety #45381725923 SUCCESS (2/2); no actual DB restore or witnessed recovery",
+        "#108 f88143083f4d9de8d980aaf215990e281d1218cd: signed pinned exact-head checkpoint verifier and rollback regression code; fresh exact-head CI pending; prior 24761d2f CI evidence does not certify new head"
       ],
       "next": "Implement streaming large database-consistent encrypted exports, independently controlled key/signer custody and nonce-use/rotation policy, Windows ACL storage, authenticated manifest binding and actual isolated restore; verify old-host fencing and witnessed offsite recovery",
       "blocked": true

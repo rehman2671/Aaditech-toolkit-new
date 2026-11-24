@@ -155,6 +155,7 @@ export const telemetryIngestSchema = z.object({
     client_msg_id: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$/).optional()
   }).passthrough()).max(50).optional(),
   processes: z.array(z.record(z.any())).optional(),
+  app_usage: z.array(z.record(z.any())).max(100).optional(),
   posture: z.object({
     bitlocker_status: z.string().max(32).optional(),
     antivirus_name: z.string().max(128).nullable().optional(),

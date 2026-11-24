@@ -90,3 +90,13 @@ This directory contains ordered, idempotent, versioned schema migrations managed
 - SHA-256 keyed batch receipts are compact deduplication tombstones: do **not** prune them based only on ordinary telemetry-history retention or device inactivity. Pruning an active tenant's receipt may allow an old HTTP replay to create history and alerts again.
 - `maintainTelemetryBatchReceipts()` defaults to **DRY_RUN**. An actual purge needs operator confirmation `PURGE_DECOMMISSIONED_BATCH_RECEIPTS`, minimum age 180 days, max 500 rows per call, and **both** tenant record and ALL of its registered device records must be absent at deletion time. The conditional SQL rechecks both predicates atomically. No scheduled automatic delete exists.
 - Review operator output and an independent tenant deprovision/backup process before authorizing cleanup. Safe storage sizing/retention policies for active tenants must not silently revoke retry guarantees. Public signing/Hostinger/physical-device checks remain separate gates.
+
+
+## Phase O migration 016 — app-usage provenance
+
+One bounded snapshot per device inside mandatory keyed telemetry. No Redis backfill or deployed fallback. Current unique active credential and tenant must match; 15-minute freshness, explicit empty observation, no replay overwrite. Verify backup/restore and migration on staging before production.
+
+
+## Phase O exact-head verification and coverage recovery (2026-11-24)
+
+Master #109 exact head 1c90d4492ecb8f192c28203bac502f772549651f CI #45456930486 4/4 executed SUCCESS (Node, PowerShell, real MySQL API, unsigned Windows MSI); deployment safety #45456930417 SUCCESS. Protected signed build skipped. #111 exact b1ff5176 CI #45457267890 all 483 tests/74 files passed, but statement coverage 69.73% below unchanged 70% threshold; API skipped. Added focused snapshot read/write, explicit empty/absent, duplicate receipt, invalid data, credential, rollback and DB-unavailable tests without reducing coverage gate. Fresh CI required; migration 016 staging backup/restore and physical source acquisition pending. Master quarantine/reconciliation verified at prior exact head, replacement issuance/independent ownership and secure handoff remain blocked.

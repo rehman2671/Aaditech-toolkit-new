@@ -38,7 +38,6 @@ import { belongsToCurrentTenant, publicDeviceRecord } from './device-visibility.
 import { normalizeAgentPosture, agentReportedCoverage } from './security-posture.js';
 import { extractMeasurements, analyzeMeasuredTelemetry, evaluateMeasuredAlert } from './device-metrics.js';
 import { signDeviceCommand } from './command-signing.js';
-import { appUsageCredentialCacheKey } from './telemetry-security.js';
 import {
   getAgentVersion,
   getAgentVersionInfo,
@@ -1522,15 +1521,11 @@ app.post(['/api/v1/ingest/telemetry', '/api/ingest'], agentLimiter, validateBody
         metrics: hasMeasurement ? measured : null,
         processes: Array.isArray(processes) ? processes : [],
         events: Array.isArray(req.body.events) ? req.body.events : [],
-        alerts: plans
+        alerts: plans,
+        ...(process.env.NODE_ENV !== 'test' && app_usage !== undefined ? {app_usage} : {})
       }, telemetryCredential);
-      if (!receipt.duplicate && Array.isArray(app_usage) && app_usage.length) {
-        // A delayed writer from a revoked/replaced generation cannot populate
-        // the current generation's namespace. Redis remains non-durable.
-        const usageKey = process.env.NODE_ENV === 'test' ? 'app_usage:' + dev.id :
-          appUsageCredentialCacheKey({tenantId:dev.tenant_id,deviceId:dev.id,
-            tokenHash:telemetryCredential.tokenHash,revoked:false});
-        if (usageKey) await db.cacheSet(usageKey, app_usage, 900);
+      if (process.env.NODE_ENV === 'test' && !receipt.duplicate && Array.isArray(app_usage) && app_usage.length) {
+        await db.cacheSet('app_usage:' + dev.id, app_usage, 900);
       }
       return res.status(200).json({
         status: 'OK', batch_id: receipt.batch_id, accepted: receipt.accepted,
@@ -1543,6 +1538,7 @@ app.post(['/api/v1/ingest/telemetry', '/api/ingest'], agentLimiter, validateBody
         return res.status(409).json({ error: err.message,
           detail: 'An authenticated device already submitted a different payload under the same message/batch ID.' });
       }
+      if (err.message === 'TELEMETRY_APP_USAGE_INVALID') return res.status(400).json({error:err.message});
       if (['TELEMETRY_CREDENTIAL_CHANGED', 'TELEMETRY_DEVICE_OWNER_MISMATCH'].includes(err.message)) {
         return res.status(401).json({ error: 'DEVICE_CREDENTIAL_CHANGED' });
       }
@@ -2292,24 +2288,19 @@ app.get('/api/v1/devices/:id/app-usage', async (req, res) => {
     return res.status(404).json({ error: 'Device not found' });
   }
   res.set('Cache-Control', 'no-store');
-  // Deployed reads never fall back to the old unversioned cache. Resolve
-  // current authority before and after Redis access, failing closed on DB loss.
-  let liveUsage = null;
+  // Persistent current-generation evidence, never a deployed Redis value.
   try {
-    if (process.env.NODE_ENV === 'test') liveUsage = await db.cacheGet(`app_usage:${dev.id}`);
-    else {
-      const usageKey = await db.getActiveDeviceAppUsageCacheKey(dev.id, req.user.tenant_id);
-      if (usageKey) {
-        const candidate = await db.cacheGet(usageKey);
-        if (await db.getActiveDeviceAppUsageCacheKey(dev.id, req.user.tenant_id) === usageKey) liveUsage = candidate;
+    if (process.env.NODE_ENV !== 'test') {
+      const snapshot=await db.getCurrentAppUsageSnapshot(dev.id,req.user.tenant_id);
+      if (snapshot) return res.json({device_id:dev.id,hostname:dev.hostname,source:'live_agent_telemetry',...snapshot});
+    } else {
+      const liveUsage=await db.cacheGet(`app_usage:${dev.id}`);
+      if (dev.telemetry_status==='AGENT_REPORTED' && Array.isArray(liveUsage) && liveUsage.length) {
+        return res.json({device_id:dev.id,hostname:dev.hostname,source:'live_agent_telemetry',app_usage:liveUsage});
       }
     }
   } catch (_) {
     return res.status(503).json({error:'APP_USAGE_DATABASE_UNAVAILABLE'});
-  }
-  if (dev.telemetry_status === 'AGENT_REPORTED' &&
-      liveUsage && Array.isArray(liveUsage) && liveUsage.length > 0) {
-    return res.json({ device_id: dev.id, hostname: dev.hostname, source: "live_agent_telemetry", app_usage: liveUsage });
   }
 
   return res.json({

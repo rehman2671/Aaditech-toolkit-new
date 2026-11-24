@@ -30,7 +30,7 @@ import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 import * as db from './db.js';
 import { isValidSetupKey, isSeededDemoPasswordHash } from './setup-security.js';
-import { validateEnrollmentIdentity, validateFreshEnrollment, matchesEnrolledDeviceIdentifier, extractEnrolledDeviceHeaderToken, validateDeviceRevocationRequest } from './enrollment-security.js';
+import { validateEnrollmentIdentity, validateFreshEnrollment, matchesEnrolledDeviceIdentifier, extractEnrolledDeviceHeaderToken, validateDeviceRevocationRequest, validatePendingCommandReconciliation } from './enrollment-security.js';
 import { resolveAgentOrigin } from './agent-origin.js';
 import { resolveVerifiedUserPrincipal, requiresPersistedUserAuthorization } from './auth-principal.js';
 import { isPlatformSettingsAdmin } from './platform-settings-admin.js';
@@ -1109,6 +1109,23 @@ app.post('/api/v1/devices/:id/credentials/revoke', requireRole(['SUPER_ADMIN']),
 
 // Recovery evidence only: explicit admin bearer, fresh persisted tenant
 // principal, immutable ID, no caching, no credential issuance.
+app.post('/api/v1/devices/:id/credentials/reconcile-pending', requireRole(['SUPER_ADMIN']), async (req,res)=>{
+  res.set('Cache-Control','no-store');
+  const authorization=req.headers.authorization;
+  if(typeof authorization!=='string'||!authorization.startsWith('Bearer ')||
+     authorization.slice(7).trim()!==req.token||!req.is('application/json')) {
+    return res.status(403).json({error:'EXPLICIT_ADMIN_BEARER_REQUIRED'});
+  }
+  const request=validatePendingCommandReconciliation(req.params.id,req.body);
+  if(!request)return res.status(400).json({error:'DEVICE_RECONCILIATION_CONFIRMATION_REQUIRED'});
+  try{
+    const result=await db.reconcileRevokedDevicePendingCommands({principal:req.user,...request,ipAddress:req.ip});
+    if(result.status==='not_found')return res.status(404).json({error:'DEVICE_NOT_FOUND'});
+    if(result.status==='not_revoked')return res.status(409).json({error:'DEVICE_MUST_BE_REVOKED'});
+    return res.json({device_id:request.deviceId,...result});
+  }catch(_){return res.status(503).json({error:'DEVICE_RECONCILIATION_UNCONFIRMED'});}
+});
+
 app.get('/api/v1/devices/:id/credentials/recovery-preflight', requireRole(['SUPER_ADMIN']), async (req, res) => {
   res.set('Cache-Control', 'no-store');
   const authorization = req.headers.authorization;

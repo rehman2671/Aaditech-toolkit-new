@@ -1,6 +1,6 @@
 import { describe,it,expect,vi,afterEach } from 'vitest';
 import * as db from '../../db.js';
-import { validateDeviceRevocationRequest, classifyDeviceCredentialRecovery } from '../../enrollment-security.js';
+import { validateDeviceRevocationRequest, classifyDeviceCredentialRecovery, validatePendingCommandReconciliation } from '../../enrollment-security.js';
 
 const id='00000000-0000-0000-0000-000000000123';
 const principal={id:'admin-id',tenant_id:'tenant-a',role:'SUPER_ADMIN',username:'admin'};
@@ -136,5 +136,52 @@ describe('read-only credential recovery preflight', () => {
     await expect(db.getDeviceCredentialRecoveryPreflight({principal:{...principal,role:'OPERATOR'},deviceId:id})).rejects.toThrow('DEVICE_RECOVERY_PREFLIGHT_INVALID');
     db.setConnectionStateForTesting(false,null);
     await expect(db.getDeviceCredentialRecoveryPreflight({principal,deviceId:id})).rejects.toThrow('DEVICE_RECOVERY_MYSQL_REQUIRED');
+  });
+});
+
+
+describe('explicit reconciliation of previously revoked devices',()=>{
+  const action='CANCEL_NEVER_CLAIMED_PENDING';
+  const args={principal,deviceId:id,action};
+  function setup({rows=[{id,tenant_id:'tenant-a',agent_token_revoked:1}],cancelled=1,outstanding=2,auditFailure=false}={}){
+    const conn={beginTransaction:vi.fn(async()=>{}),commit:vi.fn(async()=>{}),rollback:vi.fn(async()=>{}),release:vi.fn(),
+      query:vi.fn(async(sql)=>{
+        if(sql.startsWith('SELECT id'))return [rows];
+        if(sql.startsWith('UPDATE command_queue'))return [{affectedRows:cancelled}];
+        if(sql.startsWith('SELECT COUNT'))return [[{outstanding}]];
+        if(sql.startsWith('INSERT INTO audit_logs'))return [{affectedRows:auditFailure?0:1}];
+        throw Error('unexpected query');
+      })};
+    db.setConnectionStateForTesting(true,{getConnection:async()=>conn});
+    return conn;
+  }
+  it('requires explicit immutable identity and bounded action',()=>{
+    expect(validatePendingCommandReconciliation(id,{confirm_device_id:id,action})).toEqual({deviceId:id,action});
+    for(const body of [{confirm_device_id:id,action:'CANCEL_ALL'},{confirm_device_id:'other',action},{confirm_device_id:id,action,extra:true},null])expect(validatePendingCommandReconciliation(id,body)).toBeNull();
+  });
+  it('locks revoked owner, cancels only never-claimed rows, audits count and denies replacement',async()=>{
+    const c=setup();
+    expect(await db.reconcileRevokedDevicePendingCommands(args)).toEqual({status:'reconciled',cancelled_pending_commands:1,remaining_outstanding_commands:2,replacement_allowed:false});
+    expect(c.query.mock.calls[0][0]).toContain('FOR UPDATE');
+    expect(c.query.mock.calls[1][0]).toContain("status='PENDING'");
+    for(const field of ['picked_up_at','executed_at','completed_at'])expect(c.query.mock.calls[1][0]).toContain(field+' IS NULL');
+    expect(c.query.mock.calls[3][1]).toContain('REVOKED_DEVICE_PENDING_COMMANDS_RECONCILED');
+    expect(c.commit).toHaveBeenCalledTimes(1);
+  });
+  it('denies active, foreign and missing devices and does not duplicate audit on zero-change retry',async()=>{
+    for(const [rows,status] of [[[],'not_found'],[[{id,tenant_id:'other',agent_token_revoked:1}],'not_found'],[[{id,tenant_id:'tenant-a',agent_token_revoked:0}],'not_revoked']]){
+      const c=setup({rows});expect(await db.reconcileRevokedDevicePendingCommands(args)).toEqual({status});
+      expect(c.query).toHaveBeenCalledTimes(1);expect(c.rollback).toHaveBeenCalledTimes(1);
+    }
+    const c=setup({cancelled:0});expect((await db.reconcileRevokedDevicePendingCommands(args)).cancelled_pending_commands).toBe(0);
+    expect(c.query).toHaveBeenCalledTimes(3);
+  });
+  it('rolls back on unconfirmed audit or count and refuses non-admin',async()=>{
+    for(const settings of [{auditFailure:true},{outstanding:null},{cancelled:-1}]){
+      const c=setup(settings);await expect(db.reconcileRevokedDevicePendingCommands(args)).rejects.toThrow();
+      expect(c.rollback).toHaveBeenCalledTimes(1);expect(c.commit).not.toHaveBeenCalled();
+    }
+    const c=setup();await expect(db.reconcileRevokedDevicePendingCommands({...args,principal:{...principal,role:'OPERATOR'}})).rejects.toThrow('DEVICE_RECONCILIATION_INVALID');
+    expect(c.query).not.toHaveBeenCalled();
   });
 });

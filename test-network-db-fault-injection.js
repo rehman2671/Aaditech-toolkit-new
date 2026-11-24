@@ -338,11 +338,29 @@ try {
   assert.equal(Number(batchCount[0].total),1);
   const [finalDevice] = await pool.execute('SELECT last_seen_at FROM devices WHERE id=?',[deviceId]);
   assert.equal(String(finalDevice[0].last_seen_at),String(before[0].last_seen_at));
+  // Simulate a pre-quarantine legacy row created before the new policy.
+  const legacyPendingId=crypto.randomUUID();
+  await pool.execute("INSERT INTO command_queue (id,device_id,command_type,status) VALUES (?,?,?,'PENDING')",[legacyPendingId,deviceId,'DIAGNOSTIC']);
+  async function reconcile(port,headers,confirm=deviceId){
+    const r=await fetch('http://127.0.0.1:'+port+'/api/v1/devices/'+deviceId+'/credentials/reconcile-pending',{
+      method:'POST',headers:{'Content-Type':'application/json',...headers},
+      body:JSON.stringify({confirm_device_id:confirm,action:'CANCEL_NEVER_CLAIMED_PENDING'}),signal:AbortSignal.timeout(12000)});
+    return {status:r.status,body:await r.json()};
+  }
+  assert.equal((await reconcile(mainPort,{Authorization:'Bearer '+foreignToken})).status,404);
+  assert.equal((await reconcile(mainPort,{Cookie:'auth_token='+adminToken})).status,403);
+  assert.equal((await reconcile(mainPort,auth,crypto.randomUUID())).status,400);
+  const reconciled=await Promise.all([reconcile(mainPort,auth),reconcile(peerPort,auth)]);
+  assert.ok(reconciled.every(r=>r.status===200&&r.body.replacement_allowed===false&&r.body.remaining_outstanding_commands===1));
+  assert.deepEqual(reconciled.map(r=>r.body.cancelled_pending_commands).sort(),[0,1]);
+  const [reconciliationAudits]=await pool.execute("SELECT COUNT(*) AS total FROM audit_logs WHERE tenant_id=? AND action='REVOKED_DEVICE_PENDING_COMMANDS_RECONCILED'",[tenantId]);
+  assert.equal(Number(reconciliationAudits[0].total),1);
+  console.log('[PASS] Previously revoked device reconciliation cancels only legacy never-claimed pending work with one audit.');
   const [unfinished] = await pool.execute('SELECT status, completed_at FROM command_queue WHERE id = ?', [outstandingId]);
   assert.equal(unfinished[0].status, 'IN_PROGRESS');
   assert.equal(unfinished[0].completed_at, null);
   const [queueCount] = await pool.execute('SELECT COUNT(*) AS total FROM command_queue WHERE device_id = ?', [deviceId]);
-  assert.equal(Number(queueCount[0].total), 3, 'Revoked-device dispatch must not create a queue row');
+  assert.equal(Number(queueCount[0].total), 4, 'Only explicit CI fixture rows may exist for revoked device');
   console.log('[PASS] Two production workers enforce durable revocation/audit, credential-bound claim/result and preserve unresolved commands.');
 } finally {
   setPartition(true);

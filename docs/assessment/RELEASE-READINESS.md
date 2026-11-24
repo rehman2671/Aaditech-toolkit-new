@@ -116,3 +116,8 @@ Reconciled #111 6e82e7e3 with #109 dc746c31; retain master keyed telemetry/heart
 ## Phase O app-usage provenance (2026-11-24)
 
 Master #109 dc746c31 CI #45454627250 Node/PowerShell/API passed, MSI running at observation; safety #45454627043 passed. Prior #111 52b0a9ae Node CI #45455142038 passed, API/PowerShell running at observation. Proposed migration 016 moves deployed app-usage evidence into one bounded per-device MySQL snapshot within the credential-locked telemetry transaction, no Redis import/fallback; tenant/current-active credential fingerprint and 15-minute server freshness checked on read. Explicit empty observation and 100-row/64 KiB bound; real MySQL negative tests added. Migration staging/backup, fresh CI and production acceptance pending; no collector acquisition claim, previously revoked command reconciliation or credential rotation/handoff yet.
+
+
+## Phase O previously revoked device reconciliation (2026-11-24)
+
+Proposed #111 explicit tenant SUPER_ADMIN bearer-only previously revoked device reconciliation endpoint. Under same device-row lock, only never-claimed PENDING rows with null execution timestamps are cancelled; one atomic audit for actual changes, zero-change retry, outstanding count and replacement_allowed=false. Added mocked and real two-worker HTTP/SQL regressions. No uncertain/in-progress command resolution or replacement issuance. #109 116413a9 API failed due obsolete unkeyed tenant fixture; corrected on master a0848795, mandatory keyed policy preserved there. #111 alternative unkeyed compatibility and app-usage migration 016 need conflict-aware review against newer master. No exact-head migration CI observed; fresh CI and staging migration required; production not accepted.

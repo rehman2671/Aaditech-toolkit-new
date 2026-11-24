@@ -117,3 +117,14 @@ export function classifyDeviceCredentialRecovery(row) {
   return { credential_state: credentialState, credential_revoked: revoked,
     outstanding_commands: outstanding, blockers, replacement_allowed: false };
 }
+
+
+// Never treat a general recovery request as authorization to cancel commands.
+export function validatePendingCommandReconciliation(deviceId, body) {
+  if (typeof deviceId !== 'string' ||
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(deviceId) ||
+      !body || typeof body !== 'object' || Array.isArray(body) ||
+      Object.keys(body).length !== 2 || body.confirm_device_id !== deviceId ||
+      body.action !== 'CANCEL_NEVER_CLAIMED_PENDING') return null;
+  return {deviceId, action:body.action};
+}

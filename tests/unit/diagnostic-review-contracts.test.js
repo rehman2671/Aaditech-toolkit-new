@@ -74,7 +74,7 @@ describe('capability matrix',()=>{
   }
  });
  it('distinguishes review contract support from collector availability',()=>{
-  expect(inspectDiagnosticCapability({categoryId:'TR-26',platform:'windows'})).toMatchObject({availability:'NOT_IMPLEMENTED',artifact_schema:'aaditech-firewall-diagnostic-v1'});
+  expect(inspectDiagnosticCapability({categoryId:'TR-26',platform:'windows'})).toMatchObject({availability:'WINDOWS_PASSIVE_REFERENCE',artifact_schema:'aaditech-firewall-diagnostic-v1'});
   expect(inspectDiagnosticCapability({categoryId:'TR-02',platform:'linux'}).availability).toBe('LINUX_PASSIVE_REFERENCE');
   expect(inspectDiagnosticCapability({categoryId:'TR-02',platform:'windows'}).availability).toBe('NOT_IMPLEMENTED');
  });

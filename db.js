@@ -8,6 +8,7 @@ import bcrypt from 'bcrypt';
 import { fileURLToPath } from 'url';
 import { getAgentVersion } from './agent-artifacts.js';
 import { classifyDeviceCredentialRecovery } from './enrollment-security.js';
+import { appUsageCredentialCacheKey } from './telemetry-security.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -1483,6 +1484,22 @@ export async function getDeviceByUid(deviceUid) {
     if (rec.device_token_hash) deviceLookupCache.set(`hash:${rec.device_token_hash}`, { record: rec, expiresAt });
   }
   return rec;
+}
+
+// Resolve cache visibility from a fresh authoritative row, never a stale
+// formatted device or Redis value. Ambiguous credentials are not authoritative.
+export async function getActiveDeviceAppUsageCacheKey(deviceId, tenantId) {
+  if (typeof deviceId !== 'string' || !deviceId || typeof tenantId !== 'string' || !tenantId) return null;
+  if (!isMysqlConnected() || !pool?.query) throw new Error('APP_USAGE_DATABASE_UNAVAILABLE');
+  const [rows] = await pool.query(
+    'SELECT d.id, d.tenant_id, d.device_token_hash, d.agent_token_revoked, ' +
+    '(SELECT COUNT(*) FROM devices x WHERE x.device_token_hash = d.device_token_hash) AS hash_matches ' +
+    'FROM devices d WHERE d.id = ? AND d.tenant_id = ? LIMIT 2',
+    [deviceId, tenantId]);
+  if (!Array.isArray(rows) || rows.length !== 1 || rows[0].id !== deviceId ||
+      rows[0].tenant_id !== tenantId || Number(rows[0].hash_matches) !== 1) return null;
+  const row = rows[0];
+  return appUsageCredentialCacheKey({tenantId,deviceId,tokenHash:row.device_token_hash,revoked:row.agent_token_revoked});
 }
 
 export async function getDeviceByTokenHash(hash) {

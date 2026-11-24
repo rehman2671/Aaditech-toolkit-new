@@ -275,6 +275,17 @@ try {
   assert.equal(batchRetry.status,200);
   assert.equal(batchRetry.body.duplicate,true);
   const [before] = await pool.execute('SELECT last_seen_at FROM devices WHERE id = ?', [deviceId]);
+  for (const port of [mainPort,peerPort]) {
+    for (const path of ['/api/v1/ingest/telemetry','/api/ingest']) {
+      const legacy = await agentPost(port,path,{hostname:deviceHost,events:[]});
+      assert.equal(legacy.status,400);
+      assert.equal(legacy.body.error,'TELEMETRY_BATCH_ID_REQUIRED');
+    }
+  }
+  const [legacyState] = await pool.execute('SELECT last_seen_at FROM devices WHERE id=?',[deviceId]);
+  assert.equal(String(legacyState[0].last_seen_at),String(before[0].last_seen_at));
+  const [legacyReceipts] = await pool.execute('SELECT COUNT(*) AS total FROM telemetry_batches WHERE tenant_id=? AND device_id=?',[tenantId,deviceId]);
+  assert.equal(Number(legacyReceipts[0].total),1);
   const revocations = await Promise.all([revoke(mainPort, auth), revoke(peerPort, auth)]);
   for (const result of revocations) {
     assert.equal(result.status, 200);

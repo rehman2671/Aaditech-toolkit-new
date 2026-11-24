@@ -38,6 +38,7 @@ import { belongsToCurrentTenant, publicDeviceRecord } from './device-visibility.
 import { normalizeAgentPosture, agentReportedCoverage } from './security-posture.js';
 import { extractMeasurements, analyzeMeasuredTelemetry, evaluateMeasuredAlert } from './device-metrics.js';
 import { signDeviceCommand } from './command-signing.js';
+import { appUsageCredentialCacheKey } from './telemetry-security.js';
 import {
   getAgentVersion,
   getAgentVersionInfo,
@@ -1422,6 +1423,14 @@ app.post(['/api/v1/ingest/telemetry', '/api/ingest'], agentLimiter, validateBody
   }
 
   const dev = ver.device;
+  // Every deployed ingest must go through the atomic keyed transaction.
+  // Old clients must upgrade, not receive a fabricated retry-safe receipt.
+  if (process.env.NODE_ENV !== 'test' && !req.body.batch_id) {
+    return res.status(400).json({ error: 'TELEMETRY_BATCH_ID_REQUIRED',
+      detail: 'Upgrade the agent to submit a stable batch_id for each telemetry sample.' });
+  }
+  const telemetryCredential = process.env.NODE_ENV === 'test' ? undefined :
+    { tokenHash: hashDeviceToken(extractEnrolledDeviceHeaderToken(req.headers)) };
 
   // High-frequency protection: verify per-device rate limit via in-memory Map
   const rateLimitKey = dev.id || dev.hostname || effectiveHost;
@@ -1478,8 +1487,8 @@ app.post(['/api/v1/ingest/telemetry', '/api/ingest'], agentLimiter, validateBody
   // N29 canonical requests: the receipt, device update, measured history,
   // event rows, alerts and notification jobs MUST share a single SQL commit.
   // A lost HTTPS ACK results in a read-only duplicate response, not fresh
-  // measured evidence or repeated alert fan-out. Legacy agents without a
-  // batch_id continue down the original compatibility route below.
+  // measured evidence or repeated alert fan-out. Only explicit test
+  // fixtures may use the unkeyed compatibility path below.
   if (req.body.batch_id) {
     try {
       const plans = hasMeasurement ? await getAtomicTelemetryAlertPlans(dev, measured) : [];
@@ -1495,11 +1504,14 @@ app.post(['/api/v1/ingest/telemetry', '/api/ingest'], agentLimiter, validateBody
         processes: Array.isArray(processes) ? processes : [],
         events: Array.isArray(req.body.events) ? req.body.events : [],
         alerts: plans
-      }, process.env.NODE_ENV === 'test' ? undefined :
-        { tokenHash: hashDeviceToken(extractEnrolledDeviceHeaderToken(req.headers)) });
+      }, telemetryCredential);
       if (!receipt.duplicate && Array.isArray(app_usage) && app_usage.length) {
-        // Redis is an optional cache, never the durable receipt authority.
-        await db.cacheSet('app_usage:' + dev.id, app_usage, 900);
+        // A delayed writer from a revoked/replaced generation cannot populate
+        // the current generation's namespace. Redis remains non-durable.
+        const usageKey = process.env.NODE_ENV === 'test' ? 'app_usage:' + dev.id :
+          appUsageCredentialCacheKey({tenantId:dev.tenant_id,deviceId:dev.id,
+            tokenHash:telemetryCredential.tokenHash,revoked:false});
+        if (usageKey) await db.cacheSet(usageKey, app_usage, 900);
       }
       return res.status(200).json({
         status: 'OK', batch_id: receipt.batch_id, accepted: receipt.accepted,
@@ -2260,8 +2272,22 @@ app.get('/api/v1/devices/:id/app-usage', async (req, res) => {
   if (!belongsToCurrentTenant(req.user, dev)) {
     return res.status(404).json({ error: 'Device not found' });
   }
-  // Hostname-only cache keys are not tenant-unique across old enrollments.
-  const liveUsage = await db.cacheGet(`app_usage:${dev.id}`);
+  res.set('Cache-Control', 'no-store');
+  // Deployed reads never fall back to the old unversioned cache. Resolve
+  // current authority before and after Redis access, failing closed on DB loss.
+  let liveUsage = null;
+  try {
+    if (process.env.NODE_ENV === 'test') liveUsage = await db.cacheGet(`app_usage:${dev.id}`);
+    else {
+      const usageKey = await db.getActiveDeviceAppUsageCacheKey(dev.id, req.user.tenant_id);
+      if (usageKey) {
+        const candidate = await db.cacheGet(usageKey);
+        if (await db.getActiveDeviceAppUsageCacheKey(dev.id, req.user.tenant_id) === usageKey) liveUsage = candidate;
+      }
+    }
+  } catch (_) {
+    return res.status(503).json({error:'APP_USAGE_DATABASE_UNAVAILABLE'});
+  }
   if (dev.telemetry_status === 'AGENT_REPORTED' &&
       liveUsage && Array.isArray(liveUsage) && liveUsage.length > 0) {
     return res.json({ device_id: dev.id, hostname: dev.hostname, source: "live_agent_telemetry", app_usage: liveUsage });

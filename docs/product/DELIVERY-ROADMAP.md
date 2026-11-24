@@ -82,3 +82,8 @@ Historical #2 agent-trust review: the JS verifier accepted coercible fields and 
 ## Phase O revocation verification correction (2026-11-24)
 
 PR #109 exact head ebd4848d826e5bb8e764d95fce701d8a0a794835: Node/Vitest passed and deployment safety #45451309706 passed; CI #45451309686 API fault rehearsal failed at line 214 (401 vs expected 403 after prior revocation/audit/last-seen assertions). Corrected the test to require existing 401 DEVICE_TOKEN_REVOKED contract, retained exact error assertion, added real two-worker legacy/conflicting-header denial tests. Fresh combined CI required; no full revocation or production acceptance yet. Historical unsigned MSI verification remains exact-head evidence; no signer, owner ADR, protected merge or field acceptance.
+
+
+## Phase O command credential fence (2026-11-24)
+
+Proposed stacked O1 follow-up on #109 583a7e63: deployed command claim and terminal result mutation now lock the current tenant/device credential row in the same MySQL transaction as the command CAS; reject revoked, changed or missing token proof. API dispatch/remediation refuse known revoked/uncredentialed devices at admission. Mocked transaction tests updated. Dispatch insertion is not yet transactionally fenced; no cancellation of already-delivered commands, no rotation/recovery or real two-worker race certification. Fresh combined CI required.

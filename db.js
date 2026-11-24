@@ -2284,16 +2284,55 @@ export async function getPendingCommandsForDevice(deviceId, limit = 50) {
 // pending command, but only ONE can claim it for an enrolled device.
 // No automatic expiry/replay: destructive operations need human review when
 // the result is lost; the endpoint agent's local dedup is defense in depth.
-export async function markCommandPickedUp(id, deviceId = null) {
+async function withCurrentCommandCredential(deviceId, credential, mutate) {
+  if (!credential?.tenantId || typeof credential.tokenHash !== 'string' ||
+      !/^[a-f0-9]{64}$/.test(credential.tokenHash)) return false;
+  if (!isMysqlConnected() || !pool?.getConnection) throw new Error('COMMAND_CREDENTIAL_DATABASE_UNAVAILABLE');
+  const conn = await pool.getConnection();
+  let settled = false, discard = false;
+  try {
+    await conn.beginTransaction();
+    // Same device row lock as administrative revocation. No cached principal
+    // can admit a new claim or completion once revocation has committed.
+    const [rows] = await conn.query(
+      'SELECT id, tenant_id, device_token_hash, agent_token_revoked FROM devices WHERE id = ? AND tenant_id = ? FOR UPDATE',
+      [String(deviceId), credential.tenantId]
+    );
+    const owner = rows[0];
+    if (rows.length !== 1 || String(owner.id) !== String(deviceId) ||
+        String(owner.tenant_id) !== credential.tenantId ||
+        owner.device_token_hash !== credential.tokenHash ||
+        ![false, 0, '0'].includes(owner.agent_token_revoked)) {
+      await conn.rollback();
+      settled = true;
+      return false;
+    }
+    const result = await mutate(async (sql, params) => (await conn.query(sql, params))[0]);
+    await conn.commit();
+    settled = true;
+    return result;
+  } finally {
+    if (!settled) {
+      try { await conn.rollback(); }
+      catch (_) { discard = true; if (typeof conn.destroy === 'function') conn.destroy(); }
+    }
+    if (!discard) conn.release();
+  }
+}
+
+export async function markCommandPickedUp(id, deviceId = null, credential = null) {
   const c = process.env.NODE_ENV !== 'test' ? null :
     memCommands.find(x => String(x.id) === String(id));
   const owner = deviceId || c?.device_id;
   if (!owner) return false;
-  const updated = await executeQuery(
-    "UPDATE command_queue SET status = 'IN_PROGRESS', picked_up_at = NOW(3) " +
-    "WHERE id = ? AND device_id = ? AND status = 'PENDING'",
-    [String(id), String(owner)]
-  );
+  const sql = "UPDATE command_queue SET status = 'IN_PROGRESS', picked_up_at = NOW(3) " +
+    "WHERE id = ? AND device_id = ? AND status = 'PENDING'";
+  const params = [String(id), String(owner)];
+  if (process.env.NODE_ENV !== 'test') {
+    return withCurrentCommandCredential(owner, credential, async query =>
+      (await query(sql, params))?.affectedRows === 1);
+  }
+  const updated = await executeQuery(sql, params);
   if (updated?.affectedRows !== 1) return false;
   if (c) {
     c.status = 'in_progress';
@@ -2304,7 +2343,7 @@ export async function markCommandPickedUp(id, deviceId = null) {
 
 // Only the enrolled owning agent can commit a result, once, after a successful
 // claim. Duplicate, pre-poll, or stale reports MUST NOT overwrite final history.
-export async function completeCommandInDb(cmdId, status, stdout, stderr, exitCode, deviceId = null) {
+export async function completeCommandInDb(cmdId, status, stdout, stderr, exitCode, deviceId = null, credential = null) {
   if (!['completed', 'failed'].includes(status)) return false;
   const c = process.env.NODE_ENV !== 'test' ? null :
     memCommands.find(x => String(x.id) === String(cmdId));
@@ -2316,9 +2355,12 @@ export async function completeCommandInDb(cmdId, status, stdout, stderr, exitCod
       SET status = ?, stdout = ?, stderr = ?, exit_code = ?, executed_at = NOW(3), completed_at = NOW(3)
       WHERE id = ? AND device_id = ? AND status = 'IN_PROGRESS'
     `;
-    const updated = await executeQuery(sql, [
-      status.toUpperCase(), stdout, stderr, exitCode, String(cmdId), String(owner)
-    ]);
+    const params = [status.toUpperCase(), stdout, stderr, exitCode, String(cmdId), String(owner)];
+    if (process.env.NODE_ENV !== 'test') {
+      return await withCurrentCommandCredential(owner, credential, async query =>
+        (await query(sql, params))?.affectedRows === 1);
+    }
+    const updated = await executeQuery(sql, params);
     if (updated?.affectedRows !== 1) return false;
     if (c) {
       c.status = status;

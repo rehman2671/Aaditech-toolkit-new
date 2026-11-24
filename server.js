@@ -2473,6 +2473,10 @@ app.post(['/api/commands', '/api/v1/commands/dispatch'], requireRole(['SUPER_ADM
     return res.status(404).json({ error: 'Target agent/device not found' });
   }
 
+  if (process.env.NODE_ENV !== 'test' &&
+      (agent.agent_token_revoked || !/^[a-f0-9]{64}$/.test(agent.device_token_hash || ''))) {
+    return res.status(409).json({ error: 'DEVICE_CREDENTIAL_UNAVAILABLE' });
+  }
   const cmdId = crypto.randomUUID();
   const cmd = {
     id: cmdId,
@@ -2533,7 +2537,7 @@ app.get(['/api/commands/poll', '/api/v1/commands/poll'], async (req, res) => {
   for (const c of pending) {
     const sig = signDeviceCommand({ device, command: c, deviceToken: pollToken });
     // Atomic claim fences concurrent polls across separate API instances.
-    if (!await db.markCommandPickedUp(c.id, device.id)) continue;
+    if (!await db.markCommandPickedUp(c.id, device.id, { tenantId: String(device.tenant_id), tokenHash })) continue;
     signedPending.push({
       ...c,
       status: "running",
@@ -2578,7 +2582,8 @@ app.post(['/api/commands/:id/result', '/api/v1/commands/:id/result'], agentLimit
   let committed = false;
   try {
     committed = await db.completeCommandInDb(
-      cmd.id, status, output, stderr, exitCode, resultDevice.id
+      cmd.id, status, output, stderr, exitCode, resultDevice.id,
+      { tenantId: String(resultDevice.tenant_id), tokenHash: hashDeviceToken(resultToken) }
     );
   } catch (_) {
     return res.status(503).json({ error: 'COMMAND_RESULT_DATABASE_UNAVAILABLE' });
@@ -3334,6 +3339,10 @@ app.post(['/api/v1/remediation/trigger', '/api/remediation/trigger'], requireRol
   const device = await db.getDeviceByHostname(hostname);
   if (!belongsToCurrentTenant(req.user, device)) {
     return res.status(404).json({ error: 'Target agent/device not found' });
+  }
+  if (process.env.NODE_ENV !== 'test' &&
+      (device.agent_token_revoked || !/^[a-f0-9]{64}$/.test(device.device_token_hash || ''))) {
+    return res.status(409).json({ error: 'DEVICE_CREDENTIAL_UNAVAILABLE' });
   }
   // Never convert an unrecognized, client-chosen action_type into a script name.
   const policy = await db.getTenantRemediationPolicyByActionType(tenantId, action_type);

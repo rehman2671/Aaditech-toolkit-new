@@ -1335,7 +1335,21 @@ app.post(['/api/v1/agent/heartbeat', '/api/agent/heartbeat'], agentLimiter, asyn
   }
 
   const dev = ver.device;
-  await db.updateDevice(dev.id, { status: "online" });
+  if (process.env.NODE_ENV === 'test') {
+    await db.updateDevice(dev.id, { status: "online" });
+  } else {
+    const token = extractEnrolledDeviceHeaderToken(req.headers);
+    try {
+      await db.recordCredentialBoundHeartbeat(dev.id, {
+        tenantId: dev.tenant_id, tokenHash: token ? hashDeviceToken(token) : null
+      });
+    } catch (err) {
+      if (err.message === 'COMMAND_CREDENTIAL_CHANGED') {
+        return res.status(401).json({ error: 'HEARTBEAT_CREDENTIAL_CHANGED' });
+      }
+      return res.status(503).json({ error: 'HEARTBEAT_WRITE_UNCONFIRMED' });
+    }
+  }
 
   res.json({
     status: "ok",

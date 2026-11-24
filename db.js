@@ -2368,6 +2368,19 @@ async function executeCredentialBoundCommandWrite(owner, credential, sql, params
   }
 }
 
+// Heartbeats use the same row-lock boundary as credential revocation and
+// command writes. No test-mode bypass through this explicit proof API.
+export async function recordCredentialBoundHeartbeat(deviceId, credential) {
+  if (!credential) throw new Error('COMMAND_CREDENTIAL_CHANGED');
+  const updated = await executeCredentialBoundCommandWrite(deviceId, credential,
+    "UPDATE devices SET status = 'online', last_seen_at = NOW(3) WHERE id = ? AND tenant_id = ?",
+    [String(deviceId), credential.tenantId]);
+  if (updated?.affectedRows !== 1) throw new Error('HEARTBEAT_WRITE_UNCONFIRMED');
+  invalidateDeviceCache(deviceId);
+  await cacheDel('cache:devices:list');
+  return true;
+}
+
 export async function markCommandPickedUp(id, deviceId = null, credential = undefined) {
   const c = process.env.NODE_ENV !== 'test' ? null :
     memCommands.find(x => String(x.id) === String(id));

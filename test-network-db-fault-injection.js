@@ -183,6 +183,12 @@ try {
       { headers, signal: AbortSignal.timeout(12000) });
     return { status: r.status, body: await r.json() };
   }
+  async function heartbeat(port) {
+    const r = await fetch('http://127.0.0.1:' + port + '/api/v1/agent/heartbeat',
+      {method:'POST',headers:{'Content-Type':'application/json','X-Device-Token':deviceToken},
+       body:JSON.stringify({device_id:deviceId}),signal:AbortSignal.timeout(12000)});
+    return {status:r.status,body:await r.json()};
+  }
   async function revoke(port, headers, confirm = deviceId) {
     const r = await fetch('http://127.0.0.1:' + port + '/api/v1/devices/' + deviceId + '/credentials/revoke',
       { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers },
@@ -192,6 +198,7 @@ try {
   }
   for (const port of [mainPort, peerPort]) {
     assert.equal((await poll(port)).status, 200);
+    assert.equal((await heartbeat(port)).status,200);
     const otherToken = 'itk_dev_' + crypto.randomBytes(24).toString('hex');
     for (const headers of [
       { 'X-Agent-Token': deviceToken },
@@ -287,6 +294,9 @@ try {
     // Existing gateway contract: 401 plus the exact typed error.
     assert.equal(denied.status, 401);
     assert.equal(denied.body.error, 'DEVICE_TOKEN_REVOKED');
+    const deniedHeartbeat=await heartbeat(port);
+    assert.equal(deniedHeartbeat.status,401);
+    assert.equal(deniedHeartbeat.body.error,'DEVICE_TOKEN_REVOKED');
     const recovery = await preflight(port, auth);
     assert.equal(recovery.status, 200);
     assert.equal(recovery.body.credential_revoked, true);
@@ -303,6 +313,8 @@ try {
     assert.equal(dispatch.status, 409);
     assert.equal((await dispatch.json()).error, 'DEVICE_CREDENTIAL_NOT_ACTIVE');
   }
+  const [heartbeatState]=await pool.execute('SELECT last_seen_at FROM devices WHERE id=?',[deviceId]);
+  assert.equal(String(heartbeatState[0].last_seen_at),String(before[0].last_seen_at),'Revoked heartbeat must not refresh last seen');
   const [unfinished] = await pool.execute('SELECT status, completed_at FROM command_queue WHERE id = ?', [outstandingId]);
   assert.equal(unfinished[0].status, 'IN_PROGRESS');
   assert.equal(unfinished[0].completed_at, null);

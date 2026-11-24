@@ -111,3 +111,8 @@ Recovery authorization and replacement remain blocked pending transaction/teleme
 ## Phase O quarantine reconciliation and keyed telemetry fence (2026-11-24)
 
 Reconciled stacked #111 f3c692ce with latest #109 16c56b54, retaining master command-admission and repaired N23 fixtures rather than duplicating alternative command fence. Carried atomic never-claimed pending quarantine and audit count, merged unit coverage and two-worker quarantine fixture into master recovery/claim/result tests. Added keyed telemetry exact current credential proof and device row lock before receipt insertion/replay; isolated MySQL revoked/stale proof regressions. Master d5755e10 CI #45453396797 had three outdated N23 failures (470/473 passed), safety passed; 16c56b54 fresh CI #45454066429 in progress at observation. New reconciled source head requires fresh combined CI. Non-keyed telemetry, heartbeat, cache provenance, previously revoked reconciliation, rotation/handoff and physical acceptance remain pending. No production approval.
+
+
+## Phase O credential-bound heartbeat (2026-11-24)
+
+Master #109 16c56b54 CI #45454066429 Node/PowerShell/API jobs passed, MSI queued at observation; safety #45454066314 passed. Reconciled #111 89c8447f CI #45454328156 Node passed, API/PowerShell running at observation. Proposed heartbeat fence uses same persistent device lock and current credential hash as revocation/command mutations, explicit proof, fail-closed HTTP 401/503 and no stale last-seen mutation. Mock transaction and two-worker positive/revoked heartbeat tests added. Legacy non-keyed telemetry, cache provenance, real lock contention verification, previously revoked reconciliation and credential rotation/handoff remain open. Fresh CI required; no production acceptance.

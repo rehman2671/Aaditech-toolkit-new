@@ -77,3 +77,7 @@ node scripts/local-setup-continuity-cli.mjs --confirm-local-read-only < local-co
 ```
 
 Exit 2 means interruption or fresh-host blockers; exit 1 refusal; exit 0 no observed blockers, never permission to resume. No mutation, install, browser route or automatic replay. Fresh CI and independent review required.
+
+## Operator input ambiguity hardening (2026-11-25)
+
+2026-11-25 — PR #113 operator input hardening: both local LAN readiness and setup continuity JSON stdin entry points reuse the existing signed-bundle duplicate-key and 64-level nesting guard after fatal UTF-8 decoding and JSON syntax validation. Duplicate decoded keys (including escaped aliases), ambiguous nested inputs and excessive depth refuse before host/journal inspection. Existing read-only confirmation, byte bounds, redacted errors and exit-code semantics retained. Regression cases added; fresh exact-head CI and independent review pending. No installer/resume authorization, owner ADR, main merge or production acceptance.

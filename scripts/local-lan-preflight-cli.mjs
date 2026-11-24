@@ -3,6 +3,7 @@
 // long argument lists; configuration contains public pins, not secrets.
 import {fileURLToPath} from 'node:url';
 import {resolve,isAbsolute} from 'node:path';
+import {rejectDuplicateJsonKeys} from './verify-lan-bundle.mjs';
 import {inspectLocalLanReadiness} from './lan-combined-preflight.mjs';
 const MAX=32768;
 const fail=()=>{throw Error('LOCAL_PREFLIGHT_INPUT_INVALID')};
@@ -12,7 +13,11 @@ const abs=x=>typeof x==='string'&&x.length<=4096&&isAbsolute(x)&&!x.includes('\0
 export async function runLocalLanPreflightCli(bytes,argv){
  if(!Array.isArray(argv)||argv.length!==1||argv[0]!=='--confirm-local-read-only'||
     !Buffer.isBuffer(bytes)||!bytes.length||bytes.length>MAX)fail();
- let doc;try{doc=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(bytes))}catch{fail()}
+ let doc;try{
+  const source=new TextDecoder('utf-8',{fatal:true}).decode(bytes);
+  doc=JSON.parse(source);
+  rejectDuplicateJsonKeys(source);
+ }catch{fail()}
  if(!keys(doc,['bundle','host'])||!keys(doc.bundle,['manifest','root','signature','trustedManifestSha256',
     'trustedPublicKeyPem','trustedSignerSpkiSha256'])||!keys(doc.host,['targetDirectory','markerPaths','ports','minCpu','minMemoryBytes','minFreeBytes'])||
     !keys(doc.host.markerPaths,['database','credentials','service'])||

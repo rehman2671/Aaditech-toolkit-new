@@ -61,7 +61,7 @@ function exactKeys(object, keys) {
 }
 
 
-function rejectDuplicateJsonKeys(source) {
+export function rejectDuplicateJsonKeys(source) {
   // JSON.parse accepts duplicate keys and keeps the last value. Reject that
   // ambiguity before using a cross-platform release manifest.
   let offset = 0;

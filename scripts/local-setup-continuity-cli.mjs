@@ -3,6 +3,7 @@
 // automatic replay, installation execution or recovery authorization.
 import {fileURLToPath} from 'node:url';
 import {resolve,isAbsolute} from 'node:path';
+import {rejectDuplicateJsonKeys} from './verify-lan-bundle.mjs';
 import {inspectLocalSetupContinuity} from './local-setup-continuity.mjs';
 const MAX=65536;
 const fail=()=>{throw Error('LOCAL_SETUP_CONTINUITY_INPUT_INVALID')};
@@ -18,7 +19,11 @@ function decode(s,max){
 export async function runLocalSetupContinuityCli(bytes,argv){
  if(!Array.isArray(argv)||argv.length!==1||argv[0]!=='--confirm-local-read-only'||
     !Buffer.isBuffer(bytes)||bytes.length<1||bytes.length>MAX)fail();
- let doc;try{doc=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(bytes))}catch{fail()}
+ let doc;try{
+  const source=new TextDecoder('utf-8',{fatal:true}).decode(bytes);
+  doc=JSON.parse(source);
+  rejectDuplicateJsonKeys(source);
+ }catch{fail()}
  if(!exact(doc,['bundle','host','anchor'])||
  !exact(doc.bundle,['manifest','root','signature','trustedManifestSha256','trustedPublicKeyPem','trustedSignerSpkiSha256'])||
  !exact(doc.host,['targetDirectory','markerPaths','ports','minCpu','minMemoryBytes','minFreeBytes'])||

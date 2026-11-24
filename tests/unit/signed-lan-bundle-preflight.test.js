@@ -115,6 +115,16 @@ describe('operator local LAN readiness CLI',()=>{
   for(const bad of [{...cfg,password:'private'},{...cfg,bundle:{...cfg.bundle,manifest:'relative'}}])
    await expect(runLocalLanPreflightCli(Buffer.from(JSON.stringify(bad)),confirm)).rejects.toThrow('LOCAL_PREFLIGHT_INPUT_INVALID');
   await expect(runLocalLanPreflightCli(Buffer.alloc(32769),confirm)).rejects.toThrow('LOCAL_PREFLIGHT_INPUT_INVALID');
+ });
+ it('rejects duplicate top-level and escaped nested keys and excessive depth before local observation',()=>fixture(async({input})=>{
+  const raw=JSON.stringify(config(input));
+  const cases=['{"bundle":null,'+raw.slice(1),
+   raw.replace('"minCpu":1','"minCpu":999,"min\\u0043pu":1'),
+   raw.replace('"minCpu":1','"minCpu":'+ '['.repeat(65)+'1'+']'.repeat(65))];
+  for(const candidate of cases){
+   expect(candidate).not.toBe(raw);
+   await expect(runLocalLanPreflightCli(Buffer.from(candidate),confirm)).rejects.toThrow('LOCAL_PREFLIGHT_INPUT_INVALID');
+  }
  }));
 });
 
@@ -184,6 +194,16 @@ describe.skipIf(process.platform==='win32')('local setup continuity with actual 
     {...config,anchor:{...config.anchor,signatureBase64:config.anchor.signatureBase64+'\n'}}])
     await expect(runLocalSetupContinuityCli(Buffer.from(JSON.stringify(bad)),confirm)).rejects.toThrow('LOCAL_SETUP_CONTINUITY_INPUT_INVALID');
    await expect(runLocalSetupContinuityCli(bytes,[])).rejects.toThrow('LOCAL_SETUP_CONTINUITY_INPUT_INVALID');
+   const raw=bytes.toString('utf8');
+   const ambiguous=['{"anchor":null,'+raw.slice(1),
+    raw.replace('"signatureBase64":','"signatureBase64":"invalid","signature\\u0042ase64":'),
+    raw.replace('"minCpu":1','"minCpu":'+'['.repeat(65)+'1'+']'.repeat(65))];
+   for(const candidate of ambiguous){
+    expect(candidate).not.toBe(raw);
+    await expect(runLocalSetupContinuityCli(Buffer.from(candidate),confirm)).rejects.toThrow('LOCAL_SETUP_CONTINUITY_INPUT_INVALID');
+   }
+   const duplicate=spawnSync(process.execPath,[script,...confirm],{input:ambiguous[1],encoding:'utf8',timeout:10000});
+   expect(duplicate.status).toBe(1);expect(duplicate.stdout).toBe('');expect(duplicate.stderr).not.toContain(anchor.directory);
   });
  }));
 

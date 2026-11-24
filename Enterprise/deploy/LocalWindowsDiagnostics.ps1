@@ -52,9 +52,10 @@ function Convert-LocalPowerArtifact {
     $active = @($Plans | Where-Object { $_.IsActive -is [bool] -and $_.IsActive })
     if ($active.Count -ne 1) { return $doc }
     $instance = $active[0].InstanceID
-    if ($instance -isnot [string] -or $instance -notmatch '^Microsoft:PowerPlan\\{([0-9a-fA-F-]{36})\}$') { return $doc }
+    $prefix='Microsoft:PowerPlan\{'
+    if ($instance -isnot [string] -or -not $instance.StartsWith($prefix,[StringComparison]::Ordinal) -or -not $instance.EndsWith('}') -or $instance.Length -ne ($prefix.Length+37)) { return $doc }
     $id = [guid]::Empty
-    if (-not [guid]::TryParseExact($Matches[1],'D',[ref]$id)) { return $doc }
+    if (-not [guid]::TryParseExact($instance.Substring($prefix.Length,36),'D',[ref]$id)) { return $doc }
     switch ($id.ToString('D')) {
         'a1841308-3541-4fab-bc81-f71556f20b4a' { $doc.power_mode='POWER_SAVER' }
         '381b4222-f694-41f0-9685-ff5bb260df2e' { $doc.power_mode='BALANCED' }

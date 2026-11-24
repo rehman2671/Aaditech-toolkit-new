@@ -90,3 +90,8 @@ This directory contains ordered, idempotent, versioned schema migrations managed
 - SHA-256 keyed batch receipts are compact deduplication tombstones: do **not** prune them based only on ordinary telemetry-history retention or device inactivity. Pruning an active tenant's receipt may allow an old HTTP replay to create history and alerts again.
 - `maintainTelemetryBatchReceipts()` defaults to **DRY_RUN**. An actual purge needs operator confirmation `PURGE_DECOMMISSIONED_BATCH_RECEIPTS`, minimum age 180 days, max 500 rows per call, and **both** tenant record and ALL of its registered device records must be absent at deletion time. The conditional SQL rechecks both predicates atomically. No scheduled automatic delete exists.
 - Review operator output and an independent tenant deprovision/backup process before authorizing cleanup. Safe storage sizing/retention policies for active tenants must not silently revoke retry guarantees. Public signing/Hostinger/physical-device checks remain separate gates.
+
+
+## Phase O migration 016 — app-usage provenance
+
+One bounded snapshot per device, committed with telemetry; no Redis backfill. Current active credential fingerprint and tenant must match, server-owned snapshot age at most 15 minutes for display. Empty observation is distinct from absence. Device deletion cascades; stale rows remain bounded to one per device pending retention policy. Verify encrypted backup/restore and migration on staging before production. No production acceptance implied.

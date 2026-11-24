@@ -111,3 +111,8 @@ Lock order: device row before receipt or command row. Revocation cannot erase pr
 ## Phase O legacy telemetry transactional admission (2026-11-24)
 
 Reconciled #111 6e82e7e3 with #109 dc746c31; retain master keyed telemetry/heartbeat locks and tests, preserve unique first-revocation pending-command quarantine and receipt-count tests. Deployed unkeyed telemetry now shares the same credential-checked SQL transaction for device status, measurements, processes, events, alerts/outbox, with no synthetic batch receipt or false replay guarantee; demo-only prior compatibility path isolated to NODE_ENV=test. Added real MySQL positive/stale/revoked/rollback/no-receipt cases and two-worker legacy HTTP coverage. Master safety #45454627043 passed; CI #45454627250 running at observation. New exact-head CI required. Redis post-commit app-usage provenance, prior revoked device reconciliation, authorized rotation/handoff and physical acceptance remain open. No production approval.
+
+
+## Phase O app-usage provenance (2026-11-24)
+
+Master #109 dc746c31 CI #45454627250 Node/PowerShell/API passed, MSI running at observation; safety #45454627043 passed. Prior #111 52b0a9ae Node CI #45455142038 passed, API/PowerShell running at observation. Proposed migration 016 moves deployed app-usage evidence into one bounded per-device MySQL snapshot within the credential-locked telemetry transaction, no Redis import/fallback; tenant/current-active credential fingerprint and 15-minute server freshness checked on read. Explicit empty observation and 100-row/64 KiB bound; real MySQL negative tests added. Migration staging/backup, fresh CI and production acceptance pending; no collector acquisition claim, previously revoked command reconciliation or credential rotation/handoff yet.

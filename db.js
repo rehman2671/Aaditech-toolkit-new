@@ -285,7 +285,7 @@ export async function runDatabaseMigrations() {
       memAppliedMigrations.add('014');
       memAppliedMigrations.add('015');
     }
-    return { applied: [], skipped: ['001_init_schema.sql', '002_partitioning.sql', '003_rbac_and_audit.sql', '004_workspace_memberships.sql', '005_remediation_tenant_logs.sql', '006_notification_outbox.sql', '007_scrub_legacy_github_pat.sql', '008_scrub_legacy_ticket_keys.sql', '009_notification_destination_binding.sql', '010_events_tenant_device_identity.sql', '011_security_posture_provenance.sql', '012_measured_device_telemetry.sql', '013_events_idempotency.sql', '014_telemetry_batches.sql', '015_batch_receipt_retention_index.sql'], status: 'FALLBACK_MODE' };
+    return { applied: [], skipped: ['001_init_schema.sql', '002_partitioning.sql', '003_rbac_and_audit.sql', '004_workspace_memberships.sql', '005_remediation_tenant_logs.sql', '006_notification_outbox.sql', '007_scrub_legacy_github_pat.sql', '008_scrub_legacy_ticket_keys.sql', '009_notification_destination_binding.sql', '010_events_tenant_device_identity.sql', '011_security_posture_provenance.sql', '012_measured_device_telemetry.sql', '013_events_idempotency.sql', '014_telemetry_batches.sql', '015_batch_receipt_retention_index.sql', '016_app_usage_snapshot.sql'], status: 'FALLBACK_MODE' };
   }
 
   let lockAcquired = false;
@@ -1758,7 +1758,7 @@ export async function ingestLegacyTelemetryAtomic(batch, credential) {
 async function ingestTelemetryTransaction(batch, credential, legacy) {
   const { tenant_id: tenantId, device_id: deviceId, batch_id: batchId,
     request_hash: hash, device_updates: updates = {},
-    metrics: measured, processes = [], events = [], alerts = [] } = batch || {};
+    metrics: measured, processes = [], events = [], alerts = [], app_usage: appUsage } = batch || {};
   if (!tenantId || !deviceId ||
       (!legacy && !/^[A-Za-z0-9][A-Za-z0-9:._-]{0,63}$/.test(String(batchId || ''))) ||
       (legacy && batchId !== undefined) ||
@@ -1813,6 +1813,23 @@ async function ingestTelemetryTransaction(batch, credential, legacy) {
       const [clock] = await conn.query('SELECT NOW(3) AS recorded_at');
       recordedAt = clock[0]?.recorded_at;
       if (!recordedAt || !Number.isFinite(new Date(recordedAt).getTime())) throw new Error('TELEMETRY_CLOCK_UNAVAILABLE');
+    }
+
+    if (appUsage !== undefined) {
+      const payload = JSON.stringify(appUsage);
+      if (!Array.isArray(appUsage) || appUsage.length > 100 ||
+          appUsage.some(item => !item || typeof item !== 'object' || Array.isArray(item)) ||
+          typeof payload !== 'string' || Buffer.byteLength(payload,'utf8') > 65536) {
+        throw new Error('TELEMETRY_APP_USAGE_INVALID');
+      }
+      if (typeof owner.device_token_hash !== 'string' || !/^[a-f0-9]{64}$/.test(owner.device_token_hash) ||
+          ![false,0,'0'].includes(owner.agent_token_revoked)) throw new Error('TELEMETRY_CREDENTIAL_CHANGED');
+      const fingerprint=crypto.createHash('sha256').update('aaditech:app-usage:v1:'+owner.device_token_hash).digest('hex');
+      await conn.query(
+        'INSERT INTO device_app_usage_snapshots (device_id,tenant_id,credential_fingerprint,payload_json,recorded_at) ' +
+        'VALUES (?,?,?,?,?) ON DUPLICATE KEY UPDATE tenant_id=VALUES(tenant_id), ' +
+        'credential_fingerprint=VALUES(credential_fingerprint),payload_json=VALUES(payload_json),recorded_at=VALUES(recorded_at)',
+        [deviceId,tenantId,fingerprint,payload,recordedAt]);
     }
 
     const safeColumns = new Set(['status','os_version','ip_address','cpu_usage',
@@ -1918,6 +1935,30 @@ async function ingestTelemetryTransaction(batch, credential, legacy) {
     }
     throw err;
   } finally { if (!discard) conn.release(); }
+}
+
+// Persistent snapshot authority: one joined read checks active credential,
+// tenant ownership and a 15-minute server-owned freshness window.
+// No Redis fallback, raw hashes, or synthetic application observations.
+export async function getCurrentAppUsageSnapshot(deviceId, tenantId) {
+  if (!deviceId || !tenantId) return null;
+  if (!isMysqlConnected() || !pool?.query) throw new Error('APP_USAGE_DATABASE_UNAVAILABLE');
+  const [rows]=await pool.query(
+    "SELECT s.device_id,s.tenant_id,s.payload_json,s.recorded_at FROM device_app_usage_snapshots s " +
+    "INNER JOIN devices d ON d.id=s.device_id AND d.tenant_id=s.tenant_id " +
+    "WHERE s.device_id=? AND s.tenant_id=? AND d.agent_token_revoked=0 " +
+    "AND BINARY s.credential_fingerprint=BINARY SHA2(CONCAT('aaditech:app-usage:v1:',d.device_token_hash),256) " +
+    "AND s.recorded_at BETWEEN DATE_SUB(NOW(3),INTERVAL 15 MINUTE) AND NOW(3) LIMIT 2",
+    [String(deviceId),String(tenantId)]);
+  if (!Array.isArray(rows) || rows.length!==1 || String(rows[0].device_id)!==String(deviceId) ||
+      String(rows[0].tenant_id)!==String(tenantId)) return null;
+  const row=rows[0];
+  let payload;
+  try {payload=typeof row.payload_json==='string'?JSON.parse(row.payload_json):row.payload_json;} catch (_) {return null;}
+  const recorded=new Date(row.recorded_at);
+  if (!Array.isArray(payload) || payload.length>100 || payload.some(x=>!x||typeof x!=='object'||Array.isArray(x)) ||
+      !row.recorded_at || !Number.isFinite(recorded.getTime())) return null;
+  return {app_usage:payload,recorded_at:recorded.toISOString()};
 }
 
 // N30: sealed request receipts are tiny, security-relevant tombstones.

@@ -140,6 +140,25 @@ try {
   assert.equal(await countHistory(),historyBeforeLegacy+1,'legacy rejection/rollback must not create history');
   assert.equal(await single('SELECT COUNT(*) AS n FROM telemetry_batches WHERE tenant_id=? AND device_id=?',[tenantA,devA]),receiptsBeforeLegacy,'unkeyed requests never create synthetic receipts');
   console.log('[PASS] Legacy atomic telemetry enforces credential, rolls back failed writes and creates no synthetic receipt.');
+  // Persistent app-usage provenance is tied to the same transaction and
+  // credential. No legacy Redis value may become live evidence.
+  const usageSample={...sample,app_usage:[{name:'CI inert app',seconds:12}]};
+  await db.ingestLegacyTelemetryAtomic(usageSample,proof);
+  const firstUsage=await db.getCurrentAppUsageSnapshot(devA,tenantA);
+  assert.deepEqual(firstUsage.app_usage,usageSample.app_usage);
+  assert.equal(await db.getCurrentAppUsageSnapshot(devA,tenantB),null);
+  await pool.query('UPDATE devices SET agent_token_revoked=1 WHERE id=?',[devA]);
+  assert.equal(await db.getCurrentAppUsageSnapshot(devA,tenantA),null);
+  await pool.query('UPDATE devices SET agent_token_revoked=0,device_token_hash=? WHERE id=?',['c'.repeat(64),devA]);
+  assert.equal(await db.getCurrentAppUsageSnapshot(devA,tenantA),null);
+  await pool.query('UPDATE devices SET device_token_hash=? WHERE id=?',[tokenHash,devA]);
+  await pool.query('UPDATE device_app_usage_snapshots SET recorded_at=DATE_SUB(NOW(3),INTERVAL 16 MINUTE) WHERE device_id=?',[devA]);
+  assert.equal(await db.getCurrentAppUsageSnapshot(devA,tenantA),null);
+  await db.ingestLegacyTelemetryAtomic({...sample,app_usage:[]},proof);
+  assert.deepEqual((await db.getCurrentAppUsageSnapshot(devA,tenantA)).app_usage,[]);
+  await assert.rejects(()=>db.ingestLegacyTelemetryAtomic({...sample,app_usage:[{name:'x'.repeat(65537)}]},proof),/TELEMETRY_APP_USAGE_INVALID/);
+  assert.deepEqual((await db.getCurrentAppUsageSnapshot(devA,tenantA)).app_usage,[]);
+  console.log('[PASS] App usage persistent snapshot rejects foreign/revoked/rotated/expired evidence; explicit empty and size bound preserved.');
   const parallelId='p-'+crypto.randomBytes(8).toString('hex');
   const parallel={hostname:hostA,batch_id:parallelId,metrics:{cpu:{utilization_pct:91}}};
   const together=await Promise.all(Array.from({length:8},()=>post(parallel)));

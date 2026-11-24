@@ -1499,11 +1499,11 @@ app.post(['/api/v1/ingest/telemetry', '/api/ingest'], agentLimiter, validateBody
         metrics: hasMeasurement ? measured : null,
         processes: Array.isArray(processes) ? processes : [],
         events: Array.isArray(req.body.events) ? req.body.events : [],
-        alerts: plans
+        alerts: plans,
+        ...(process.env.NODE_ENV !== 'test' && app_usage !== undefined ? {app_usage} : {})
       }, process.env.NODE_ENV === 'test' ? undefined :
         { tokenHash: hashDeviceToken(extractEnrolledDeviceHeaderToken(req.headers)) });
-      if (!receipt.duplicate && Array.isArray(app_usage) && app_usage.length) {
-        // Redis is an optional cache, never the durable receipt authority.
+      if (process.env.NODE_ENV === 'test' && !receipt.duplicate && Array.isArray(app_usage) && app_usage.length) {
         await db.cacheSet('app_usage:' + dev.id, app_usage, 900);
       }
       if (!keyed) {
@@ -1523,6 +1523,9 @@ app.post(['/api/v1/ingest/telemetry', '/api/ingest'], agentLimiter, validateBody
       if (['TELEMETRY_BATCH_ID_CONFLICT', 'EVENT_IDEMPOTENCY_CONFLICT'].includes(err.message)) {
         return res.status(409).json({ error: err.message,
           detail: 'An authenticated device already submitted a different payload under the same message/batch ID.' });
+      }
+      if (err.message === 'TELEMETRY_APP_USAGE_INVALID') {
+        return res.status(400).json({error:err.message});
       }
       if (['TELEMETRY_CREDENTIAL_CHANGED', 'TELEMETRY_DEVICE_OWNER_MISMATCH'].includes(err.message)) {
         return res.status(401).json({ error: 'DEVICE_CREDENTIAL_CHANGED' });
@@ -2272,11 +2275,22 @@ app.get('/api/v1/devices/:id/app-usage', async (req, res) => {
   if (!belongsToCurrentTenant(req.user, dev)) {
     return res.status(404).json({ error: 'Device not found' });
   }
-  // Hostname-only cache keys are not tenant-unique across old enrollments.
-  const liveUsage = await db.cacheGet(`app_usage:${dev.id}`);
-  if (dev.telemetry_status === 'AGENT_REPORTED' &&
-      liveUsage && Array.isArray(liveUsage) && liveUsage.length > 0) {
-    return res.json({ device_id: dev.id, hostname: dev.hostname, source: "live_agent_telemetry", app_usage: liveUsage });
+  if (process.env.NODE_ENV !== 'test') {
+    res.set('Cache-Control','no-store');
+    try {
+      const snapshot=await db.getCurrentAppUsageSnapshot(dev.id, req.user.tenant_id);
+      if (snapshot) return res.json({device_id:dev.id,hostname:dev.hostname,
+        source:'live_agent_telemetry',...snapshot});
+    } catch (_) {
+      return res.status(503).json({error:'APP_USAGE_DATABASE_UNAVAILABLE'});
+    }
+  } else {
+    // Historical demo fixtures only; no deployed Redis fallback.
+    const liveUsage = await db.cacheGet(`app_usage:${dev.id}`);
+    if (dev.telemetry_status === 'AGENT_REPORTED' &&
+        liveUsage && Array.isArray(liveUsage) && liveUsage.length > 0) {
+      return res.json({device_id:dev.id,hostname:dev.hostname,source:'live_agent_telemetry',app_usage:liveUsage});
+    }
   }
 
   return res.json({

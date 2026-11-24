@@ -121,6 +121,7 @@ describe('operator local LAN readiness CLI',()=>{
 import {inspectLocalSetupContinuity} from '../../scripts/local-setup-continuity.mjs';
 import {inspectSetupJournal,appendSetupJournalEvent} from '../../scripts/setup-journal-posix.mjs';
 import {chmod,realpath} from 'node:fs/promises';
+import {runLocalSetupContinuityCli} from '../../scripts/local-setup-continuity-cli.mjs';
 describe.skipIf(process.platform==='win32')('local setup continuity with actual journal and release',()=>{
  const confirmation='INSPECT_LOCAL_SETUP_CONTINUITY_ONLY';
  async function continuityFixture(input,run){
@@ -165,4 +166,25 @@ describe.skipIf(process.platform==='win32')('local setup continuity with actual 
    await expect(inspectLocalSetupContinuity(args)).rejects.toThrow('CHECKPOINT_HEAD_MISMATCH');
   });
  }));
+ it('exposes the exact anchored report through bounded local JSON and a real child process',()=>fixture(async({input})=>{
+  await continuityFixture(input,async args=>{
+   const {checkpointBytes,signature,...anchor}=args.anchor;
+   const config={bundle:args.bundle,host:args.host,anchor:{...anchor,
+     checkpointBase64:checkpointBytes.toString('base64'),signatureBase64:signature.toString('base64')}};
+   const bytes=Buffer.from(JSON.stringify(config)),confirm=['--confirm-local-read-only'];
+   const r=await runLocalSetupContinuityCli(bytes,confirm);
+   expect(r).toMatchObject({decision:'OPERATOR_RECONCILIATION_REQUIRED',resume_authorized:false,production_accepted:false});
+   const script=fileURLToPath(new URL('../../scripts/local-setup-continuity-cli.mjs',import.meta.url));
+   const child=spawnSync(process.execPath,[script,...confirm],{input:bytes,encoding:'utf8',timeout:10000});
+   expect(child.status).toBe(2);expect(child.stderr).toBe('');
+   expect(JSON.parse(child.stdout)).toEqual(r);
+   expect(child.stdout).not.toContain(anchor.directory);
+   for(const bad of [{...config,secret:'private'},{...config,anchor:{...config.anchor,checkpointBase64:'!!!'}},
+    {...config,anchor:{...config.anchor,directory:'relative'}},
+    {...config,anchor:{...config.anchor,signatureBase64:config.anchor.signatureBase64+'\n'}}])
+    await expect(runLocalSetupContinuityCli(Buffer.from(JSON.stringify(bad)),confirm)).rejects.toThrow('LOCAL_SETUP_CONTINUITY_INPUT_INVALID');
+   await expect(runLocalSetupContinuityCli(bytes,[])).rejects.toThrow('LOCAL_SETUP_CONTINUITY_INPUT_INVALID');
+  });
+ }));
+
 });

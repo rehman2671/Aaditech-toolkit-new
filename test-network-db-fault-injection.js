@@ -177,9 +177,9 @@ try {
   const deviceToken = accepted.body.device_token;
   assert.match(deviceId, /^[0-9a-f-]{36}$/i);
   assert.match(deviceToken, /^itk_dev_[a-f0-9]{48}$/);
-  async function poll(port) {
+  async function poll(port, headers = { 'X-Device-Token': deviceToken }) {
     const r = await fetch('http://127.0.0.1:' + port + '/api/v1/commands/poll?device_id=' + encodeURIComponent(deviceId),
-      { headers: { 'X-Device-Token': deviceToken }, signal: AbortSignal.timeout(12000) });
+      { headers, signal: AbortSignal.timeout(12000) });
     return { status: r.status, body: await r.json() };
   }
   async function revoke(port, headers, confirm = deviceId) {
@@ -189,7 +189,19 @@ try {
         signal: AbortSignal.timeout(12000) });
     return { status: r.status, body: await r.json() };
   }
-  for (const port of [mainPort, peerPort]) assert.equal((await poll(port)).status, 200);
+  for (const port of [mainPort, peerPort]) {
+    assert.equal((await poll(port)).status, 200);
+    const otherToken = 'itk_dev_' + crypto.randomBytes(24).toString('hex');
+    for (const headers of [
+      { 'X-Agent-Token': deviceToken },
+      { 'X-Bootstrap-Token': deviceToken },
+      { 'X-Device-Token': deviceToken, Authorization: 'Bearer ' + otherToken }
+    ]) {
+      const denied = await poll(port, headers);
+      assert.equal(denied.status, 401, 'Deployed worker accepted legacy or conflicting credentials');
+    }
+  }
+  console.log('[PASS] Both workers reject legacy and conflicting agent credential headers.');
   const auth = { Authorization: 'Bearer ' + adminToken };
   assert.equal((await revoke(mainPort, auth, crypto.randomUUID())).status, 400);
   assert.equal((await revoke(peerPort, { Cookie: 'auth_token=' + adminToken })).status, 403);
@@ -211,7 +223,9 @@ try {
   assert.equal(Number(auditRows[0].total), 1);
   for (const port of [mainPort, peerPort]) {
     const denied = await poll(port);
-    assert.equal(denied.status, 403);
+    // Revocation is an authentication failure, not an RBAC denial.
+    // Existing gateway contract: 401 plus the exact typed error.
+    assert.equal(denied.status, 401);
     assert.equal(denied.body.error, 'DEVICE_TOKEN_REVOKED');
   }
   console.log('[PASS] Two production workers enforce one durable revocation/audit and deny subsequent agent authentication.');

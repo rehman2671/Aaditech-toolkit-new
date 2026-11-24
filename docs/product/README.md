@@ -98,3 +98,8 @@ Every implementation PR should cite requirement IDs (`PR-`, `DEP-`, `TR-`, `AT-`
 ## Phase O master integration candidate
 
 See [Phase O reconciliation](PHASE-O-MASTER-INTEGRATION.md) and [PR evidence ledger](PHASE-O-PR-RECONCILIATION.json). Selected #108 exact head `f88143083f4d9de8d980aaf215990e281d1218cd` passed CI and safety; #77 and #75 imported into combined candidate. Combined #109 exact-head CI and safety passed including unsigned MSI lifecycle; #110 stacked credential follow-up prior head passed three jobs, new header-only patch requires fresh CI. Independent historical residual review and owner DEC-001 remain required. No main merge or production approval.
+
+
+## Phase O revocation verification correction (2026-11-24)
+
+PR #109 exact head ebd4848d826e5bb8e764d95fce701d8a0a794835: Node/Vitest passed and deployment safety #45451309706 passed; CI #45451309686 API fault rehearsal failed at line 214 (401 vs expected 403 after prior revocation/audit/last-seen assertions). Corrected the test to require existing 401 DEVICE_TOKEN_REVOKED contract, retained exact error assertion, added real two-worker legacy/conflicting-header denial tests. Fresh combined CI required; no full revocation or production acceptance yet. Historical unsigned MSI verification remains exact-head evidence; no signer, owner ADR, protected merge or field acceptance.

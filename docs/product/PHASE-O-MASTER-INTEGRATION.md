@@ -108,3 +108,8 @@ PR #109 exact head 41942da70c5c11baf618ad441add9d7c1573b5b7: CI 45449608007 4/4 
 PR #110 c9128da7a5fbe5c04d60d1663712364735f950ec credential source blobs integrated into #109 review candidate; two-process HTTP/MySQL concurrent revocation rehearsal added; fresh combined CI pending; no independent approval, rotation, in-flight cancellation or production acceptance.
 
 Original-base comparison showed eight non-overlapping #110 paths plus two overlapping tracking files. Exact source blobs retained; merged evidence and next actions without removing existing requirements (50 unique tracker IDs and all dependencies validated). Existing isolated two-production-worker MySQL fault rehearsal now also exercises explicit bearer confirmation, cookie denial, concurrent idempotent revocation, one durable audit row, unchanged last-seen and subsequent token refusal on both workers. Fresh CI required. Does not prove cross-tenant HTTP denial, rotation, cancellation, physical office or production acceptance. Historical source PR remains review history; no main merge or owner ADR.
+
+
+## Phase O revocation verification correction (2026-11-24)
+
+PR #109 exact head ebd4848d826e5bb8e764d95fce701d8a0a794835: Node/Vitest passed and deployment safety #45451309706 passed; CI #45451309686 API fault rehearsal failed at line 214 (401 vs expected 403 after prior revocation/audit/last-seen assertions). Corrected the test to require existing 401 DEVICE_TOKEN_REVOKED contract, retained exact error assertion, added real two-worker legacy/conflicting-header denial tests. Fresh combined CI required; no full revocation or production acceptance yet. Historical unsigned MSI verification remains exact-head evidence; no signer, owner ADR, protected merge or field acceptance.

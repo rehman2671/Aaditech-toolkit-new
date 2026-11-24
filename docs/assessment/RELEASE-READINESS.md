@@ -69,3 +69,8 @@
 
 1. **Gate 1 (Committed CA Key):** Rotate CA certificate and remove `certs/ca.key` from git tree.
 2. **Gate 7 (Production MSI Installer):** Trigger GitHub Actions `agent-build` on `windows-latest` runner to compile genuine WiX MSI and sign with internal CA.
+
+
+## Phase O revocation verification correction (2026-11-24)
+
+PR #109 exact head ebd4848d826e5bb8e764d95fce701d8a0a794835: Node/Vitest passed and deployment safety #45451309706 passed; CI #45451309686 API fault rehearsal failed at line 214 (401 vs expected 403 after prior revocation/audit/last-seen assertions). Corrected the test to require existing 401 DEVICE_TOKEN_REVOKED contract, retained exact error assertion, added real two-worker legacy/conflicting-header denial tests. Fresh combined CI required; no full revocation or production acceptance yet. Historical unsigned MSI verification remains exact-head evidence; no signer, owner ADR, protected merge or field acceptance.

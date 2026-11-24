@@ -72,9 +72,10 @@
         "Source audit: Enterprise/docker-compose.yml mutable mysql:8.0/caddy:2-alpine and Dockerfile node:20-alpine; npm ci fallback to npm install",
         "AT-LAN-08 offline signed reproducible bundle and Windows Server runtime support test pending",
         "M1 is stack-neutral until DEC-001 owner signoff; current public DNS Node/MySQL path is implementation reality, not an approved final LAN stack",
-        "#105 signed LAN manifest reference: fresh full CI and safety not yet confirmed; no approved release payload, host compatibility or WAN-disconnected install"
+        "#105 signed LAN manifest reference: CI 45375159540 and safety 45375159676 SUCCESS; no approved release payload, host compatibility or WAN-disconnected install",
+        "#106 be288bc414663f48ef61e5b5e8a56855956146fe: read-only host reference (CPU/RAM/disk/TCP marker observations) and opt-in TLS probe; CI running; host OS/runtime and resource absence unverified"
       ],
-      "next": "After DEC-001: verify signed complete pinned offline runtime/dependencies, supported hosts, locked staging, private PKI and read-only host preflight; #105 is signature verification only",
+      "next": "After DEC-001: choose approved runtime/OS matrix, signed complete pinned offline payload, actual resource discovery and locked staging, Windows host adapter and installer orchestration; reference observations are not authorization",
       "blocked": true,
       "issue_url": "https://github.com/rehman2671/Aaditech-toolkit-new/issues/80"
     },
@@ -108,7 +109,7 @@
       "evidence": [
         "Current tenant/device IDs do not prove installation UUID lifecycle",
         "#103 474c4af84c88549f442d43730657ac8cb99a814c: CI 45354274252 and safety 45354274197 SUCCESS; reference UUID and POSIX no-overwrite store only",
-        "#104 3f9e1ef25867f91c93d35e63a8711eb45b8d1de4: Node/MySQL and deployment safety SUCCESS; full CI pending at observation; independently pinned signature, source installation and exact payload checks"
+        "#104 3f9e1ef25867f91c93d35e63a8711eb45b8d1de4: CI 45374958574 and safety 45374958743 SUCCESS; independently pinned signature, source installation and exact payload checks"
       ],
       "next": "After owner stack ADR, integrate actual runtime/database identity, trusted installer lock/Windows ACL store, signed backup generation/key custody and verified old-instance fence; implement clone rekey/namespace isolation; no destructive restore from preflight",
       "blocked": true
@@ -302,7 +303,7 @@
         "Enterprise/deploy/backup.sh",
         "Enterprise/deploy/restore.sh",
         "deployment safety 45062353339",
-        "#104 authenticated backup manifest reference: Node/MySQL and deployment safety SUCCESS; full CI pending at observation; no actual encryption or independent restore witnessed"
+        "#104 authenticated backup manifest reference: CI and deployment safety SUCCESS; no actual encryption or independent restore witnessed"
       ],
       "next": "Implement independently reviewed encrypted backup production/key custody, manifest binding and isolated actual restore; verify old-host fencing and witnessed offsite recovery",
       "blocked": true
@@ -311,15 +312,16 @@
       "key": "AT-SEC-01",
       "title": "Private LAN TLS/CA and agent trust",
       "priority": "P0",
-      "state": "NOT_STARTED",
+      "state": "IN_DEVELOPMENT",
       "owner": "infrastructure_security",
       "requires": [
         "M1"
       ],
       "evidence": [
-        "Existing public ACME path does not prove internal PKI"
+        "Existing public ACME path does not prove internal PKI",
+        "#106 reference pinned private-root TLS handshake and exact DNS/IP SAN; native loopback fixture, fresh CI pending; no actual local CA provisioning or endpoint trust distribution"
       ],
-      "next": "Implement internal CA/enterprise PKI selection with SAN/revocation and client distribution",
+      "next": "Verify #106 CI; implement approved private CA/enterprise PKI provisioning/renewal, authenticated root distribution, revocation, private ingress and Windows/browser/agent trust acceptance; retain public-mode checks",
       "blocked": true
     },
     {

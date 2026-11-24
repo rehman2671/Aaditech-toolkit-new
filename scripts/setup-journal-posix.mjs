@@ -4,7 +4,7 @@
 import {constants} from 'node:fs';
 import {open,lstat,realpath,readdir,link,unlink} from 'node:fs/promises';
 import {resolve,join} from 'node:path';
-import {createHash,randomUUID} from 'node:crypto';
+import {createHash,randomUUID,createPublicKey,verify} from 'node:crypto';
 import {validateInstallationIdentity} from './installation-identity.mjs';
 const STEPS=['PREFLIGHT','TRUST','DATABASE','API','ADMIN','AGENT'];
 const HEX=/^[a-f0-9]{64}$/;
@@ -87,5 +87,38 @@ export async function appendSetupJournalEvent({directory,installationId,releaseS
  const d=await open(dir,constants.O_RDONLY|constants.O_DIRECTORY|constants.O_NOFOLLOW);
  try{await d.sync()}finally{await d.close()}
  return Object.freeze({recorded:true,sequence:state.sequence+1,record_sha256:hash(record),
+   execution_authorized:false,production_accepted:false});
+}
+
+// The caller must obtain the CURRENT checkpoint digest and signer pin from
+// independent trusted custody, never from the journal or its backup.
+// Exact equality deliberately refuses both a truncated and an advanced head.
+// This is a read-only snapshot check, not an execution lock or authorization.
+export async function inspectAnchoredSetupJournal({directory,installationId,releaseSha256,
+ checkpointBytes,signature,signerPublicKeyPem,expectedSignerSpkiSha256,expectedCheckpointSha256}){
+ const b=binding(installationId,releaseSha256);
+ if(!hex(expectedSignerSpkiSha256)||!hex(expectedCheckpointSha256)||
+    !Buffer.isBuffer(checkpointBytes)||checkpointBytes.length<1||checkpointBytes.length>1024||
+    !Buffer.isBuffer(signature)||signature.length!==64||
+    typeof signerPublicKeyPem!=='string'||signerPublicKeyPem.length>4096)fail('CHECKPOINT_TRUST_REQUIRED');
+ // Copy mutable buffers before any await.
+ const bytes=Buffer.from(checkpointBytes),sig=Buffer.from(signature);
+ if(hash(bytes)!==expectedCheckpointSha256)fail('CHECKPOINT_DIGEST_MISMATCH');
+ const key=createPublicKey(signerPublicKeyPem);
+ if(key.asymmetricKeyType!=='ed25519'||hash(key.export({type:'spki',format:'der'}))!==expectedSignerSpkiSha256)
+   fail('CHECKPOINT_SIGNER_MISMATCH');
+ if(!verify(null,bytes,key,sig))fail('CHECKPOINT_SIGNATURE_INVALID');
+ let c;
+ try{c=JSON.parse(bytes.toString('utf8'))}catch{fail('CHECKPOINT_FORMAT_INVALID')}
+ if(!c||typeof c!=='object'||Array.isArray(c)||c.schema_version!==1||
+    c.installation_id!==b.installation_id||c.release_sha256!==b.release_sha256||
+    !Number.isSafeInteger(c.sequence)||c.sequence<1||c.sequence>MAX||!hex(c.record_sha256)||
+    c.record_sha256==='0'.repeat(64))fail('CHECKPOINT_BINDING_INVALID');
+ const canonical=Buffer.from(JSON.stringify({schema_version:1,installation_id:c.installation_id,
+   release_sha256:c.release_sha256,sequence:c.sequence,record_sha256:c.record_sha256})+'\n');
+ if(!bytes.equals(canonical))fail('CHECKPOINT_FORMAT_INVALID');
+ const state=await inspectSetupJournal({directory,installationId:b.installation_id,releaseSha256:b.release_sha256});
+ if(state.sequence!==c.sequence||state.previous_sha256!==c.record_sha256)fail('CHECKPOINT_HEAD_MISMATCH');
+ return Object.freeze({...state,checkpoint_verified:true,checkpoint_sha256:expectedCheckpointSha256,
    execution_authorized:false,production_accepted:false});
 }

@@ -561,3 +561,7 @@ Strict history verification may intentionally block a historical installation wh
 ### 2026-11-25 implementation evidence addendum
 
 Current review branch #113 hardens persisted recovery review state and internal troubleshooting intake identity/count validation, including uncertain database commit handling. This describes code only; original scope and ADR requirements are unchanged. No credential activation or diagnostic execution accepted.
+
+## 2026-11-25 — Parallel diagnostic, setup and migration evidence batch (#113)
+
+Added bounded canonical signed network-status and disk-capacity/health artifact contracts, explicitly distinguishing null and NOT_RUN from measured observations without collecting private paths, SSIDs or destinations. Setup and installation identity preflight require explicit own data properties, reject inherited/accessor evidence; migration planning rejects malformed entries, line-terminated names/versions and over-limit sequence counts. Six focused regression cases added. No actual endpoint collection, diagnostic execution, repair, installer activation, schema migration change or production approval. Fresh exact-head CI and independent review required; existing #109 and #111 integration boundaries retained.

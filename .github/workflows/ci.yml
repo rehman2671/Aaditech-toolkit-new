@@ -71,6 +71,8 @@ jobs:
         run: pwsh -NoProfile -File ./Enterprise/tests/Test-CommandVerification.ps1
       - name: Reboot commands require approval, never auto-execute
         run: pwsh -NoProfile -File ./Enterprise/tests/Test-RebootDefaultDeny.ps1
+      - name: MSI self-updater must refuse unsigned installation
+        run: pwsh -NoProfile -File ./Enterprise/tests/Test-SelfUpdateDefaultDeny.ps1
       - name: Test one-use enrollment bootstrap token is cleared after provisioning
         run: pwsh -NoProfile -File ./Enterprise/tests/Test-EnrollmentBootstrapCleanup.ps1
 

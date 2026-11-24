@@ -932,57 +932,11 @@ function Get-AgentUpdateInfo {
 
 function Update-AgentIfNeeded {
     param($Config)
-    $info = Get-AgentUpdateInfo -Config $Config
-    if ($null -eq $info) { return $false }
-    $current = Get-InstalledAgentVersion
-    if (-not $info.update_available) {
-        Write-AgentLog "Agent is current ($current = $($info.target_version))"
-        return $false
-    }
-    Write-AgentLog "Update available: $current -> $($info.target_version)"
-
-    # Download the MSI (agent bearer token + client cert, same mTLS channel).
-    $hn = [uri]::EscapeDataString((Get-AgentHostname))
-    $uri = "$(Get-CommandsApiRoot)/api/agent/msi?hostname=$hn"
-    $tmp = Join-Path $env:TEMP 'IT-Toolkit-Agent-update.msi'
-    try {
-        $cert = Get-RestCertificate -Config $Config
-        if ($cert) {
-            Invoke-WebRequest -Uri $uri -Headers @{ Authorization = "Bearer $(Get-AgentToken -Config $Config)" } -OutFile $tmp -UseBasicParsing -Certificate $cert
-        }
-        else {
-            Invoke-WebRequest -Uri $uri -Headers @{ Authorization = "Bearer $(Get-AgentToken -Config $Config)" } -OutFile $tmp -UseBasicParsing
-        }
-        $size = (Get-Item $tmp).Length
-        if ($size -lt 1KB) { throw "Download too small ($size bytes) — likely not an MSI" }
-        Write-AgentLog "Downloaded $([math]::Round($size/1KB)) KB MSI -> $tmp"
-    }
-    catch {
-        Write-AgentLog "MSI download failed: $($_.Exception.Message)"
-        return $false
-    }
-
-    # Silent in-place upgrade. The task GUID/install folder are stable, so the
-    # scheduled task keeps pointing at the same exe after the MSI is replaced.
-    # msiexec /i needs an elevated token; the routine task is NETWORK SERVICE,
-    # so an actual install is deferred to the on-demand elevated task (E4).
-    if (-not (Test-IsElevated)) {
-        $ok = Request-ElevatedJob -Action 'update'
-        Write-AgentLog "MSI install requires elevation — staged for elevated task: $ok"
-        Remove-Item $tmp -Force -ErrorAction SilentlyContinue
-        return $ok
-    }
-    try {
-        $p = Start-Process msiexec.exe -ArgumentList "/i `"$tmp`" /qn /norestart" -Wait -PassThru
-        Write-AgentLog "msiexec exit code: $($p.ExitCode)"
-        Remove-Item $tmp -ErrorAction SilentlyContinue
-        return ($p.ExitCode -eq 0)
-    }
-    catch {
-        Write-AgentLog "MSI install failed: $($_.Exception.Message)"
-        Remove-Item $tmp -ErrorAction SilentlyContinue
-        return $false
-    }
+    # P0: even a mutually authenticated server response is not independent
+    # publisher approval. Untrusted TEMP MSI + elevated msiexec is forbidden
+    # until a reviewed signed-release hash + certificate trust pipeline exists.
+    Write-AgentLog 'AUTO_UPDATE_RELEASE_APPROVAL_REQUIRED: automatic MSI download and privileged installation are disabled; use an independently verified, signed MSI release'
+    return $false
 }
 
 # ------------------------------------------------------------------ commands (P5)

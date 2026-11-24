@@ -206,9 +206,10 @@
         "Proposed PR #96 retires legacy unsafe command executor; #97 denies reboot without consent (unmerged, not physical acceptance)",
         "Unmerged #98 head 305f41795978142ab5884981629cebcbc9288b6a: CI 45348806630 and safety 45348806613 SUCCESS",
         "Combined #99 head 70cb60ea5b74eadf3fb2b4c972a268c7df247d38: CI 45350364704 3/3 and safety 45350364886 2/2 SUCCESS; actual SQLite 8-connection test",
-        "Separate server #100 head 30de37f0f3ea8aa280e9445811b0f2c2d780c6bc: Node/MySQL and safety passed; remaining CI pending at observation"
+        "Unmerged #100 30de37f0f3ea8aa280e9445811b0f2c2d780c6bc: CI 45350645810 and safety 45350646190 SUCCESS",
+        "Combined #101 2de65f53bda3bc938541c47d55436586ce732eff: Windows native lost-ACK and real SQLite tests, Node/MySQL and safety passed; full CI still pending at observation"
       ],
-      "next": "Reconcile #99/#100 with #93 DB/auth boundaries; add durable identity/origin-bound result ACK outbox, offline HTTP-loss fault injection, packaged SQLite CLI and physical signed endpoint verification; never re-execute uncertain claims",
+      "next": "Review and reconcile #101 with #93/#94; actual signed installed Windows fault injection and packaged SQLite, immutable configuration ACL and identity/clone acceptance, pending-result retention and bounded backpressure; uncertain commands never re-execute",
       "blocked": true
     },
     {
@@ -252,7 +253,7 @@
       "key": "AT-SEC-04",
       "title": "UUID command claims and exact durable server-result receipts",
       "priority": "P0",
-      "state": "CODE_COMPLETE",
+      "state": "CI_VERIFIED",
       "owner": "agent_backend_and_independent_security_reviewer",
       "requires": [
         "FE-09"
@@ -260,9 +261,27 @@
       "evidence": [
         "#98 UUID ledger CI and safety successful",
         "#99 combined integration SQLite 8 concurrent connections and reopen verified",
-        "#100 exact replay receipt: full CI pending"
+        "#100 exact replay receipt: CI and safety SUCCESS"
       ],
-      "next": "Persist identity-bound ACK outbox and reconcile all overlapping PRs; packaged SQLite and real Windows offline recovery not accepted",
+      "next": "Review combined #101 and #93 DB/security overlap; field acceptance of durable result retry and physical Windows deployment remain pending",
+      "blocked": true
+    },
+    {
+      "key": "AT-SEC-05",
+      "title": "Persistent identity-bound agent command-result recovery",
+      "priority": "P0",
+      "state": "CODE_COMPLETE",
+      "owner": "agent_backend_and_security_reviewer",
+      "requires": [
+        "AT-SEC-04",
+        "FE-09"
+      ],
+      "evidence": [
+        "Unmerged #101 2de65f53bda3bc938541c47d55436586ce732eff: Windows native lost-ACK and real SQLite tests, Node/MySQL and safety passed; full CI still pending at observation",
+        "SQLite v3 unique claim; atomic terminal body and pending marker; HMAC-bound origin and credential; no redirect; matching receipt required",
+        "Old v2 rows preserved and not automatically retried"
+      ],
+      "next": "Independent review; real Windows network-loss/restart and packaged SQLite acceptance; installation identity, queue bounds, privileged-action consent and protected signing",
       "blocked": true
     },
     {
@@ -355,7 +374,8 @@
       "evidence": [
         "Issue #62 OPEN; main unprotected; no releases",
         "Unmerged PR #95/#96/#97 exact-head CI green but independent reviews, release signing and protected main remain absent",
-        "#99 combined Windows agent rehearsal CI green; separate #100 result receipt proposal; no protected merge or signing"
+        "#99 combined Windows agent rehearsal CI green; separate #100 result receipt proposal; no protected merge or signing",
+        "Combined #101 result recovery review branch; no protected merge, signed release or production approval"
       ],
       "next": "Authorize reviewer, enforce non-bypass protected main and independently sign/publish vetted release",
       "blocked": true

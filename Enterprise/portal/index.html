@@ -298,7 +298,7 @@ const VIEW_META = {
   fleet: ['Fleet', 'Cross-fleet disk, battery, update and health posture', 'layers'],
   analytics: ['Predictive & Auto-Healing', 'AI-driven disk exhaustion trends, anomaly detection and self-healing playbooks', 'zap'],
   events: ['Events', 'Sanitized telemetry captured from agents', 'activity'],
-  commands: ['Commands', 'Issue reboot / wake / run-script and track delivery', 'terminal'],
+  commands: ['Commands', 'Issue approved wake / allowlisted scripts; reboot requires a separate consent workflow', 'terminal'],
   alerts: ['Alerts', 'Open, acknowledged and resolved alerts · delivery channels', 'bell'],
   software: ['Software', 'Installed-application inventory search and license compliance', 'app-window'],
   integrations: ['Tickets & Cloud Audit', 'Jira/ServiceNow ticketing integration and Azure AD / Intune compliance audit', 'briefcase'],
@@ -1121,6 +1121,10 @@ async function issueCmd() {
   const sel = document.getElementById('cmd_kind');
   if (!sel) return;
   const k = sel.value;
+  if (k === 'reboot') {
+    if (err) err.textContent = 'REBOOT_APPROVAL_REQUIRED: device-owner consent and maintenance approval are not configured.';
+    return;
+  }
   const payload = {};
   if (k === 'reboot') payload.delay_seconds = parseInt(document.getElementById('cmd_delay')?.value || '0', 10);
   else if (k === 'wake') {
@@ -1164,11 +1168,12 @@ ${c.result ? 'result: ' + esc(JSON.stringify(c.result, null, 2)) : ''}</pre>
 
   const form = canIssue ? `
     <div class="card"><h3>Issue command</h3>
+      <p class="muted">Automatic reboot is disabled until signed maintenance approval and device-owner consent are implemented. A queued command is not a verified repair.</p>
       <div class="row" style="align-items:flex-end;flex-wrap:wrap">
         <div style="flex:2;min-width:180px"><label>Agent</label>
           <select id="cmd_agent">${(agents || []).map(a => `<option value="${a.id}">${esc(a.hostname)}</option>`).join('') || '<option>—</option>'}</select></div>
         <div style="flex:1;min-width:140px"><label>Kind</label>
-          <select id="cmd_kind" onchange="cmdKind()"><option value="reboot">reboot</option><option value="wake">wake</option><option value="run-script">run-script</option></select></div>
+          <select id="cmd_kind" onchange="cmdKind()"><option value="wake">wake</option><option value="run-script">run-script</option><option value="reboot" disabled>reboot — approval required</option></select></div>
         <div style="flex:2;min-width:180px" id="cmd_fields"></div>
         <div style="min-width:80px"><button class="action" onclick="issueCmd()">Send</button></div>
       </div>

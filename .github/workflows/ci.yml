@@ -65,10 +65,23 @@ jobs:
       - name: Run Phase 1 regression suite
         run: pwsh -NoProfile -File ./Scripts/Tests/Phase1-Regression.Tests.ps1
 
+      - name: Retired legacy Windows SYSTEM installer must fail closed
+        run: pwsh -NoProfile -File ./Enterprise/tests/Test-LegacyAgentInstallerDisabled.ps1
+
       - name: Test generic MSI HTTPS setup and server reconfiguration
         run: pwsh -NoProfile -File ./Enterprise/tests/Test-ConfigureAgent.ps1
       - name: Test per-device signed command verification in installed worker
         run: pwsh -NoProfile -File ./Enterprise/tests/Test-CommandVerification.ps1
+      - name: Legacy standalone telemetry-only, remote execution disabled
+        run: pwsh -NoProfile -File ./Enterprise/tests/Test-LegacyAgentTelemetryOnly.ps1
+      - name: Test signed UUID command lifecycle and result contract
+        run: pwsh -NoProfile -File ./Enterprise/tests/Test-CommandUuidLifecycle.ps1
+      - name: Real SQLite UUID ledger concurrency and crash boundary
+        run: python ./Enterprise/tests/test_command_uuid_sqlite.py
+      - name: Reboot commands require approval, never auto-execute
+        run: pwsh -NoProfile -File ./Enterprise/tests/Test-RebootDefaultDeny.ps1
+      - name: MSI self-updater must refuse unsigned installation
+        run: pwsh -NoProfile -File ./Enterprise/tests/Test-SelfUpdateDefaultDeny.ps1
       - name: Test one-use enrollment bootstrap token is cleared after provisioning
         run: pwsh -NoProfile -File ./Enterprise/tests/Test-EnrollmentBootstrapCleanup.ps1
 

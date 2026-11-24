@@ -2557,20 +2557,31 @@ app.post(['/api/commands/:id/result', '/api/v1/commands/:id/result'], agentLimit
   } catch (_) {
     return res.status(503).json({ error: 'COMMAND_RESULT_DATABASE_UNAVAILABLE' });
   }
-  if (!committed) {
-    return res.status(409).json({ error: 'COMMAND_NOT_IN_PROGRESS_OR_ALREADY_RECORDED' });
+  if (committed) {
+    // Only the first committed write generates the completion audit.
+    logAudit({ tenant_id: resultDevice.tenant_id,
+      username: 'agent:' + resultDevice.hostname }, "COMMAND_COMPLETED", `Command:${cmd.id}`, {
+      device: cmd.hostname, status, exit_code: exitCode
+    }, req);
   }
 
-  // Device-reported completions are audited under the verified device tenant,
-  // not a platform-global synthetic default tenant.
-  logAudit({ tenant_id: resultDevice.tenant_id,
-    username: 'agent:' + resultDevice.hostname }, "COMMAND_COMPLETED", `Command:${cmd.id}`, { 
-    device: cmd.hostname, 
-    status, 
-    exit_code: exitCode 
-  }, req);
-
-  res.json({ ok: true, id: cmd.id, status, completed_at: new Date().toISOString() });
+  // If the first response was lost after commit, an exact authenticated
+  // retry gets the original persisted receipt, without updating timestamps
+  // or emitting a second completion audit. Changed results remain conflicts.
+  let receipt;
+  try {
+    receipt = await db.getExactCommandResultReceipt(
+      cmd.id, resultDevice.id, status, output, stderr, exitCode
+    );
+  } catch (_) {
+    return res.status(503).json({ error: 'COMMAND_RESULT_DATABASE_UNAVAILABLE' });
+  }
+  if (!receipt) {
+    return res.status(committed ? 503 : 409).json({
+      error: committed ? 'COMMAND_RESULT_RECEIPT_UNAVAILABLE' : 'COMMAND_NOT_IN_PROGRESS_OR_ALREADY_RECORDED'
+    });
+  }
+  res.json({ ok: true, ...receipt, duplicate: !committed });
 });
 
 

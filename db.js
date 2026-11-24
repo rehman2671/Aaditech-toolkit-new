@@ -2266,6 +2266,37 @@ export async function completeCommandInDb(cmdId, status, stdout, stderr, exitCod
   }
 }
 
+// Read-only exact receipt for a previously committed terminal command. A
+// collation-insensitive SQL string comparison would allow changed output;
+// compare the persisted UTF-8-decoded values byte-for-byte in JavaScript.
+// Never acknowledge from a non-test process's demonstration datastore.
+export async function getExactCommandResultReceipt(cmdId, deviceId, status, stdout, stderr, exitCode) {
+  if (!cmdId || !deviceId || !['completed', 'failed'].includes(status)) return null;
+  let rows;
+  if (isMysqlConnected()) {
+    [rows] = await pool.query(
+      'SELECT id, device_id, status, stdout, stderr, exit_code, completed_at FROM command_queue WHERE id = ? AND device_id = ? LIMIT 1',
+      [String(cmdId), String(deviceId)]
+    );
+  } else if (process.env.NODE_ENV === 'test') {
+    rows = memCommands.filter(c => String(c.id) === String(cmdId) &&
+      String(c.device_id) === String(deviceId));
+  } else {
+    throw new Error('COMMAND_RESULT_RECEIPT_DATABASE_UNAVAILABLE');
+  }
+  if (!Array.isArray(rows) || rows.length !== 1) return null;
+  const row = rows[0];
+  if (String(row.id) !== String(cmdId) || String(row.device_id) !== String(deviceId) ||
+      String(row.status).toLowerCase() !== status ||
+      typeof row.stdout !== 'string' || row.stdout !== stdout ||
+      typeof row.stderr !== 'string' || row.stderr !== stderr ||
+      row.exit_code == null || Number(row.exit_code) !== exitCode ||
+      !row.completed_at) return null;
+  const completed = new Date(row.completed_at);
+  if (!Number.isFinite(completed.getTime())) return null;
+  return { id: String(row.id), status, completed_at: completed.toISOString() };
+}
+
 // ---------------- ALERTS ----------------
 export async function getAlerts(filters = {}) {
   let sql = 'SELECT * FROM alerts';

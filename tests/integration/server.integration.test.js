@@ -414,6 +414,23 @@ describe('Server & API Integration Test Suite', () => {
       const realResult = await request(app).post(resultUrl)
         .set('X-Device-Token', agentToken).send(body);
       expect(realResult.status).toBe(200);
+      expect(realResult.body.duplicate).toBe(false);
+      expect(realResult.body.completed_at).toBeTruthy();
+
+      // A lost HTTP ACK must be recoverable by replaying the exact same result.
+      const duplicate = await request(app).post(resultUrl)
+        .set('X-Device-Token', agentToken).send(body);
+      expect(duplicate.status).toBe(200);
+      expect(duplicate.body).toEqual({ ...realResult.body, duplicate: true });
+      const changedCase = await request(app).post(resultUrl)
+        .set('X-Device-Token', agentToken).send({ ...body, output: body.output.toUpperCase() });
+      expect(changedCase.status).toBe(409);
+      const changedWhitespace = await request(app).post(resultUrl)
+        .set('X-Device-Token', agentToken).send({ ...body, output: body.output + ' ' });
+      expect(changedWhitespace.status).toBe(409);
+      const wrongOwnerReplay = await request(app).post(resultUrl)
+        .set('X-Device-Token', secondAgentToken).send(body);
+      expect([401,403]).toContain(wrongOwnerReplay.status);
 
       // Once the real device acknowledged a command, replay must not overwrite
       // the immutable terminal result, even with the original valid token.

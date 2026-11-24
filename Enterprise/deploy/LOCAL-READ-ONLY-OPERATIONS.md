@@ -92,3 +92,21 @@ node scripts/local-troubleshooting-guide.mjs --category TR-01 --hazard UNKNOWN
 ```
 
 Open the generated HTML locally in a browser. It contains 26 disclosure cards and an upfront hazard warning, no scripts, remote assets, forms or device collection. Routine card instructions apply only when no hazard is suspected; the JSON CLI defaults to refusal of invalid/missing hazard values and applies hazard-specific advice. This is advisory reference only, not an authenticated employee portal, intake or repair. Use the organization's approved IT support channel. The internal scoped planned-only lookup does not expose any HTTP endpoint or authorize execution.
+
+## Native passive Windows and Linux diagnostics (2026-11-25)
+
+From the reviewed repository on a trusted Windows host, use the local read-only PowerShell entry point. No elevated execution or policy bypass is required by this reference itself; follow your organization's execution policy. Supported IDs: BATTERY_HEALTH, PRINT_STATUS, BLUETOOTH_STATUS, POWER_PLAN_STATUS, FIREWALL_STATUS.
+
+```powershell
+.\Enterprise\deploy\LocalWindowsDiagnostics.ps1 -DiagnosticId BATTERY_HEALTH -ConfirmLocalReadOnly
+.\Enterprise\deploy\LocalWindowsDiagnostics.ps1 -DiagnosticId FIREWALL_STATUS -ConfirmLocalReadOnly
+```
+
+The result contains categorical artifact, SHA-256 and measured field count; unknown observations remain null. Service state is not printer queue or radio operation, active plan category is not sleep policy, firewall profile enablement is not effectiveness/compliance, and charge level is not battery wear. No remote collection, actual device trust, write, signing or attempt acceptance. OS providers may be unavailable; no external watchdog or physical device acceptance is established. On Linux:
+
+```sh
+node scripts/local-diagnostic-cli.mjs battery --confirm-local-read-only
+node scripts/local-diagnostic-custody-cli.mjs collect --directory /private/artifacts --confirm-local-retention -- battery --confirm-local-read-only
+```
+
+Requires trusted local kernel sysfs and existing 0700 directory for retention. Multiple batteries or ambiguous inventory are not aggregated. Capacity/wear remains null. Fresh CI and physical endpoint review required. No installer execution or automated remediation.

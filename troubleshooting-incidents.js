@@ -145,3 +145,29 @@ export async function summarizeTroubleshootingIntake(pool,input){
    outcome_measurement:'NOT_IMPLEMENTED',production_accepted:false});
  });
 }
+
+// Internal scoped plan inspection. No employee route, artifact acceptance,
+// execution or status transition. Re-derive catalog and current scope.
+export async function inspectDiagnosticPlan(pool,input){
+ const s=context(pool,input,['principal','installationId','deviceId','incidentId','planId']);
+ const {incidentId,planId}=input;
+ if(!uuid(incidentId)||!uuid(planId))fail('INCIDENT_INVALID');
+ return transaction(pool,async c=>{
+  await lockScope(c,s);
+  const [incidents]=await c.query('SELECT '+columns+' FROM troubleshooting_incidents WHERE incident_id=? AND installation_id=? AND tenant_id=? AND device_id=? AND actor_user_id=? FOR UPDATE',
+   [incidentId,s.installationId,s.tenant,s.deviceId,s.actor]);
+  if(incidents?.length!==1||incidents[0].incident_id!==incidentId)fail('INCIDENT_NOT_FOUND');
+  const incident=incidents[0];view(incident,s,false);
+  const diagnostic=troubleshootingCatalog.find(x=>x.id===incident.category_id)?.diagnostic_id;
+  if(incident.status!=='OPEN'||incident.hazard!=='NONE'||!diagnostic)fail('DIAGNOSTIC_PLAN_BLOCKED');
+  const [rows]=await c.query('SELECT * FROM troubleshooting_diagnostic_plans WHERE plan_id=? AND incident_id=? AND installation_id=? AND tenant_id=? AND device_id=? AND actor_user_id=? FOR UPDATE',
+   [planId,incidentId,s.installationId,s.tenant,s.deviceId,s.actor]);
+  if(!Array.isArray(rows)||rows.length!==1)fail('DIAGNOSTIC_PLAN_NOT_FOUND');
+  const row=rows[0];
+  if(!row||row.plan_id!==planId||row.incident_id!==incidentId||!uuid(row.request_id)||
+     row.installation_id!==s.installationId||row.tenant_id!==s.tenant||row.device_id!==s.deviceId||
+     dbInt(row.actor_user_id)!==s.actor||row.diagnostic_id!==diagnostic)fail('DIAGNOSTIC_PLAN_STATE_INVALID');
+  return Object.freeze({plan_id:planId,incident_id:incidentId,diagnostic_id:diagnostic,status:'PLANNED_ONLY',
+   diagnostic_authorized:false,execution_authorized:false,repair_authorized:false,production_accepted:false});
+ });
+}

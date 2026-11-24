@@ -55,6 +55,26 @@ function auditN70WorkflowBundle(files) {
       }
       if (!jobName || !job['runs-on'] && !job.uses) fail();
     }
+
+    if (filename.endsWith('/ci.yml')) {
+      const diagnostic = wf.jobs['phase-o-msi-diagnostic'];
+      if (!diagnostic || diagnostic.if !== "github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.base_ref == 'main' && startsWith(github.head_ref, 'integration/')" ||
+          diagnostic['runs-on'] !== 'windows-latest' ||
+          JSON.stringify(diagnostic.permissions) !== JSON.stringify({contents:'read'}) ||
+          diagnostic.environment !== undefined ||
+          JSON.stringify(diagnostic.needs) !== JSON.stringify(['powershell-validation','node-tests','api-tests']) ||
+          JSON.stringify(diagnostic.env) !== JSON.stringify({RELEASE_SIGNING_ENABLED:'false',PUBLISH_SIGNED:'false'}) ||
+          diagnostic['continue-on-error'] !== undefined) fail();
+      const steps=diagnostic.steps;
+      const checkout=steps[0];
+      if (checkout.uses !== 'actions/checkout@11d5960a326750d5838078e36cf38b85af677262' ||
+          checkout.with?.['persist-credentials'] !== false ||
+          steps.slice(1).some(s=>s.uses || s.env || s.if !== undefined || s['continue-on-error'] !== undefined) ||
+          /secrets\s*\.|Release-Sign\.ps1|upload-artifact|gh release/i.test(JSON.stringify(diagnostic))) fail();
+      const required=['build-agent.ps1','build-msi.ps1','Assert-N67UnprovisionedReleaseConfig','Test-Windows-MsiInstall.ps1','Test-Windows-MsiUpgrade.ps1'];
+      const commands=steps.map(s=>String(s.run||'')).join('\n');
+      if (required.some(s=>!commands.includes(s))) fail();
+    }
     if (filename.endsWith('deployment-safety.yml')) {
       const events=wf.on;
       if (!events || typeof events !== 'object' || Array.isArray(events)) fail();
@@ -88,7 +108,7 @@ function auditN70WorkflowBundle(files) {
       if (!raw.includes('branches: [main]')) fail();
     }
   }
-  if (actionCount !== 13) fail();
+  if (actionCount !== 14) fail();
   return true;
 }
 
@@ -101,7 +121,7 @@ function readBundle() {
 if (require.main === module) {
   try {
     auditN70WorkflowBundle(readBundle());
-    console.log('N70 PASS: universal main safety checks and 13 immutable official action refs verified.');
+    console.log('N70 PASS: universal main safety checks and 14 immutable official action refs verified.');
   } catch (_) {
     console.error('N70 GitHub security workflow governance blocked.');
     process.exitCode=1;

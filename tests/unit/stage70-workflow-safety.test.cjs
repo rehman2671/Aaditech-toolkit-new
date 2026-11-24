@@ -79,3 +79,20 @@ deny('duplicate YAML keys are not accepted',safety,s=>s.replace(
   '  workflow_dispatch:',"  pull_request:\n    branches: [main]\n  workflow_dispatch:"
 ));
 deny('malformed YAML does not bypass governance',safety,s=>s+'\njobs: [unclosed\n');
+
+deny('Phase O diagnostic job cannot receive repository write permissions',ci,s=>s.replace(
+  "  phase-o-msi-diagnostic:\n", "  phase-o-msi-diagnostic:\n    environment: production-installer\n"
+));
+deny('Phase O diagnostic job must remain same-repository integration PR only',ci,s=>s.replace(
+  " && startsWith(github.head_ref, 'integration/')", ""
+));
+deny('Phase O diagnostic job cannot omit explicit unsigned mode',ci,s=>s.replace(
+  "RELEASE_SIGNING_ENABLED: 'false'", "RELEASE_SIGNING_ENABLED: 'true'"
+));
+deny('Phase O diagnostic checkout cannot persist credentials',ci,s=>s.replace(
+  'persist-credentials: false','persist-credentials: true'
+));
+deny('Phase O diagnostic job must run actual major upgrade test',ci,s=>{
+  const i=s.lastIndexOf('Test-Windows-MsiUpgrade.ps1');
+  return s.slice(0,i)+'Fake-Windows-MsiUpgrade.ps1'+s.slice(i+'Test-Windows-MsiUpgrade.ps1'.length);
+});

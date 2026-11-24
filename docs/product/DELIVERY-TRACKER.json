@@ -99,16 +99,17 @@
       "key": "PR-004",
       "title": "Persistent installation identity, restore versus clone",
       "priority": "P0",
-      "state": "NOT_STARTED",
+      "state": "IN_DEVELOPMENT",
       "owner": "backend_security",
       "requires": [
         "M0"
       ],
       "evidence": [
-        "Current tenant/device IDs do not prove installation UUID lifecycle"
+        "Current tenant/device IDs do not prove installation UUID lifecycle",
+        "#103 474c4af84c88549f442d43730657ac8cb99a814c: fresh exact-head CI not fully verified at observation; stack-neutral UUID contract and POSIX reference store, atomic no-overwrite, real filesystem tests, restore/clone preflight only"
       ],
-      "next": "Specify and implement installation_id schema/immutable lifecycle + duplicate office rejection",
-      "blocked": false
+      "next": "After owner stack ADR, integrate verified installation identity with actual database/runtime and authenticated backup manifest, installer lock and Windows ACL store; prove old-instance fencing and clone rekey/tenant-device namespace isolation; no destructive restore from preflight",
+      "blocked": true
     },
     {
       "key": "M3",
@@ -207,9 +208,10 @@
         "Unmerged #98 head 305f41795978142ab5884981629cebcbc9288b6a: CI 45348806630 and safety 45348806613 SUCCESS",
         "Combined #99 head 70cb60ea5b74eadf3fb2b4c972a268c7df247d38: CI 45350364704 3/3 and safety 45350364886 2/2 SUCCESS; actual SQLite 8-connection test",
         "Unmerged #100 30de37f0f3ea8aa280e9445811b0f2c2d780c6bc: CI 45350645810 and safety 45350646190 SUCCESS",
-        "Combined #101 2de65f53bda3bc938541c47d55436586ce732eff: Windows native lost-ACK and real SQLite tests, Node/MySQL and safety passed; full CI still pending at observation"
+        "#101 2de65f53bda3bc938541c47d55436586ce732eff: CI 45352835660 and safety 45352835606 SUCCESS",
+        "Combined #102 7cbe4ce382a2e7fa97c5991ea23ce62742aa2d83: Node/MySQL and deployment safety SUCCESS; full CI pending at observation"
       ],
-      "next": "Review and reconcile #101 with #93/#94; actual signed installed Windows fault injection and packaged SQLite, immutable configuration ACL and identity/clone acceptance, pending-result retention and bounded backpressure; uncertain commands never re-execute",
+      "next": "Independently review #102; signed physical Windows, packaged SQLite, actual network loss/restart, secure concurrent configuration and pending-result retention/backpressure; never re-execute uncertain claims",
       "blocked": true
     },
     {
@@ -270,16 +272,17 @@
       "key": "AT-SEC-05",
       "title": "Persistent identity-bound agent command-result recovery",
       "priority": "P0",
-      "state": "CODE_COMPLETE",
+      "state": "CI_VERIFIED",
       "owner": "agent_backend_and_security_reviewer",
       "requires": [
         "AT-SEC-04",
         "FE-09"
       ],
       "evidence": [
-        "Unmerged #101 2de65f53bda3bc938541c47d55436586ce732eff: Windows native lost-ACK and real SQLite tests, Node/MySQL and safety passed; full CI still pending at observation",
+        "#101 2de65f53bda3bc938541c47d55436586ce732eff: CI 45352835660 and safety 45352835606 SUCCESS",
         "SQLite v3 unique claim; atomic terminal body and pending marker; HMAC-bound origin and credential; no redirect; matching receipt required",
-        "Old v2 rows preserved and not automatically retried"
+        "Old v2 rows preserved and not automatically retried",
+        "#102 combined tree: Node/MySQL and deployment safety SUCCESS; full CI pending at observation"
       ],
       "next": "Independent review; real Windows network-loss/restart and packaged SQLite acceptance; installation identity, queue bounds, privileged-action consent and protected signing",
       "blocked": true
@@ -375,7 +378,8 @@
         "Issue #62 OPEN; main unprotected; no releases",
         "Unmerged PR #95/#96/#97 exact-head CI green but independent reviews, release signing and protected main remain absent",
         "#99 combined Windows agent rehearsal CI green; separate #100 result receipt proposal; no protected merge or signing",
-        "Combined #101 result recovery review branch; no protected merge, signed release or production approval"
+        "Combined #101 result recovery review branch; no protected merge, signed release or production approval",
+        "#102 consolidated review branch; no protected merge or production approval"
       ],
       "next": "Authorize reviewer, enforce non-bypass protected main and independently sign/publish vetted release",
       "blocked": true

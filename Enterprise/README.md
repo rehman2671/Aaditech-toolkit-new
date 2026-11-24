@@ -1,5 +1,12 @@
 # IT-Toolkit Enterprise (Phase 3)
 
+> **Current release governance:** [Phase N73 acceptance](deploy/PHASE-N-STAGE73-ACCEPTANCE.md)
+> hardens complete inherited/repository ruleset retrieval and detects main or
+> ruleset membership drift. Code and regression fixtures ready; CI and review
+> pending. [Production release checklist](deploy/PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md)
+> remains authoritative for production blockers.
+
+
 > **Phase N status (November 2026):** The authoritative stack is Node.js +
 > MySQL 8. Use [`deploy/deploy-mysql.sh`](deploy/deploy-mysql.sh) on a
 > Docker-capable Linux VPS with a real DNS hostname and public HTTPS.

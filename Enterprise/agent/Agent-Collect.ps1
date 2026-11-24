@@ -59,7 +59,7 @@ function Get-ElevatedTaskRequestPath {
     return (Join-Path (Split-Path $ConfigPath -Parent) 'elevated-job.json')
 }
 
-# E4: hand an admin-required operation (msiexec self-upgrade, reboot) to the
+# E4: hand ONLY reviewed agent update requests to the
 # on-demand elevated task (ITToolkitAgentElevated). The main task is unprivileged,
 # so any action that needs SYSTEM is staged as a small JSON request file and the
 # elevated task is asked to run it once. Returns $true when the request was
@@ -69,6 +69,12 @@ function Request-ElevatedJob {
         [string]$Action,
         [hashtable]$Payload = @{}
     )
+    # Reboot requires a separate signed maintenance-window/owner-consent
+    # workflow that is not implemented. Never stage it for a SYSTEM task.
+    if ($Action -eq 'reboot') {
+        Write-AgentLog 'REBOOT_APPROVAL_REQUIRED: no privileged reboot request was staged'
+        return $false
+    }
     try {
         $req = [ordered]@{ action = $Action; requested = (Get-Date).ToString('o') } + $Payload
         ($req | ConvertTo-Json -Compress -Depth 6) | Set-Content (Get-ElevatedTaskRequestPath) -ErrorAction Stop
@@ -433,6 +439,23 @@ CREATE TABLE IF NOT EXISTS executed_commands (
   exit_code    INTEGER NOT NULL DEFAULT 0,
   executed_at  TEXT NOT NULL DEFAULT (datetime('now'))
 );
+CREATE TABLE IF NOT EXISTS executed_commands_v2 (
+  command_id TEXT PRIMARY KEY NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('claimed','completed','failed')),
+  output TEXT NOT NULL DEFAULT '',
+  exit_code INTEGER NOT NULL DEFAULT 0
+);
+CREATE TABLE IF NOT EXISTS command_results_v3 (
+  command_id TEXT PRIMARY KEY NOT NULL,
+  binding TEXT NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('claimed','completed','failed')),
+  body TEXT NOT NULL DEFAULT '',
+  delivery TEXT NOT NULL DEFAULT 'none' CHECK (delivery IN ('none','pending','acknowledged')),
+  last_attempt TEXT NOT NULL DEFAULT '',
+  CHECK ((status='claimed' AND delivery='none' AND body='') OR
+         (status IN ('completed','failed') AND delivery IN ('pending','acknowledged') AND body<>''))
+);
+CREATE INDEX IF NOT EXISTS idx_command_results_v3_pending ON command_results_v3(binding,delivery,last_attempt,command_id);
 "@
     Invoke-SQLite -Query $schema -DatabasePath $QueueDb | Out-Null
     # One random queue lifetime identifier; old queues preserve it on upgrade.
@@ -455,25 +478,93 @@ function Get-QueueInstanceId {
     return $script:QueueInstanceId
 }
 
-# C5: at-most-once command execution. Once a command's result is computed it is
-# recorded here; a re-delivered copy (poll window/5-min) is skipped — the agent
-# re-posts the saved result instead of re-running it.
-function Get-ExecutedCommand {
-    param($CommandId)
-    $json = Invoke-SQLite -Query "SELECT command_id, status, output, exit_code FROM executed_commands WHERE command_id = $CommandId;" -DatabasePath $QueueDb -AsJson 2>$null
-    if ([string]::IsNullOrWhiteSpace($json)) { return $null }
-    $rows = @($json | ConvertFrom-Json)
-    if ($rows.Count -eq 0) { return $null }
-    return $rows[0]
+# Preserve historical integer rows; server command IDs are canonical UUIDs.
+function ConvertTo-CommandUuid {
+    param([string]$CommandId)
+    if ($CommandId -cnotmatch '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$') {
+        throw 'Invalid server command UUID'
+    }
+    return $CommandId.ToLowerInvariant()
 }
 
+# Bind results to the exact HTTPS origin, enrolled recipient and current
+# credential. No raw token, endpoint, or tenant ID is persisted in the ledger.
+function Get-CommandResultOrigin {
+    param($Config)
+    $root = [string]$Config.endpoint -replace '(/api/v1/ingest/telemetry|/api/ingest|/ingest)\s*$', ''
+    $uri = $null
+    if (-not [uri]::TryCreate($root, [UriKind]::Absolute, [ref]$uri) -or
+        $uri.Scheme -cne 'https' -or $uri.UserInfo -or $uri.Query -or $uri.Fragment -or
+        $uri.AbsolutePath -ne '/' -or -not $uri.Host) { throw 'Command result requires a configured HTTPS origin' }
+    return $uri.GetLeftPart([UriPartial]::Authority)
+}
+
+function Get-CommandDeliveryContext {
+    param($Config)
+    $origin = Get-CommandResultOrigin $Config
+    $fresh = Read-AgentConfig
+    if ((Get-CommandResultOrigin $fresh) -cne $origin) { throw 'Command result origin changed; restart configured agent' }
+    $token = (Get-Content -LiteralPath (Get-AgentTokenPath) -Raw -ErrorAction Stop).Trim()
+    if ($token -cnotmatch '^itk_dev_[a-f0-9]{48}$') { throw 'Individual device credential required' }
+    $identity = Get-Content -LiteralPath (Join-Path (Split-Path $ConfigPath -Parent) 'agent.identity.json') -Raw -ErrorAction Stop | ConvertFrom-Json
+    foreach ($field in @('device_id','tenant_id','device_uid')) {
+        if ($identity.$field -isnot [string] -or [string]::IsNullOrWhiteSpace($identity.$field)) { throw 'Enrolled identity required' }
+    }
+    $material = [ordered]@{ origin=$origin; device_id=$identity.device_id; tenant_id=$identity.tenant_id; device_uid=$identity.device_uid; hostname=(Get-AgentHostname).ToLowerInvariant() } | ConvertTo-Json -Compress
+    $hmac = New-Object System.Security.Cryptography.HMACSHA256
+    try {
+        $hmac.Key = [Text.Encoding]::UTF8.GetBytes($token)
+        $digest = $hmac.ComputeHash([Text.Encoding]::UTF8.GetBytes("aaditech:command-result-binding:v1" + [char]10 + $material))
+        $binding = ([BitConverter]::ToString($digest)).Replace('-', '').ToLowerInvariant()
+    } finally { $hmac.Dispose() }
+    return [pscustomobject]@{ origin=$origin; token=$token; binding=$binding }
+}
+
+function Assert-CommandBinding {
+    param([string]$Binding)
+    if ($Binding -cnotmatch '^[a-f0-9]{64}$') { throw 'Invalid command delivery binding' }
+}
+
+function Try-ClaimVerifiedCommand {
+    param([string]$CommandId, [string]$Binding)
+    $id = ConvertTo-CommandUuid $CommandId
+    Assert-CommandBinding $Binding
+    # Old v2 rows lack recipient/origin provenance: retain and refuse to
+    # re-execute them, never invent their binding or automatically resend.
+    $changed = Invoke-SQLite -Query "INSERT OR IGNORE INTO command_results_v3 (command_id,binding,status) SELECT '$id','$Binding','claimed' WHERE NOT EXISTS (SELECT 1 FROM executed_commands_v2 WHERE command_id='$id'); SELECT changes();" -DatabasePath $QueueDb
+    $count = ($changed -join '').Trim()
+    if ($count -notin @('0','1')) { throw 'Uncertain local command claim; refusing execution' }
+    return ($count -eq '1')
+}
+
+function ConvertTo-CommandResult {
+    param($Result)
+    $status = [string]$Result.status
+    $exitCode = [int]$Result.exit_code
+    if ($status -notin @('completed','failed')) { $status = 'failed'; $exitCode = 1 }
+    if ($status -eq 'completed' -and $exitCode -ne 0) { $status = 'failed' }
+    $output = [string]$Result.output
+    if ($output) { $output = [string](ConvertTo-SanitizedText -Text $output) }
+    if ($output.Length -gt 32768) { $output = $output.Substring(0,32768) }
+    return @{ status = $status; output = $output; exit_code = $exitCode }
+}
+
+# Encode the bounded JSON body as SQLite hex, not interpolated output text.
+# A single atomic UPDATE stores the outcome and pending-delivery marker.
 function Record-ExecutedCommand {
-    param([int]$CommandId, $Result)
-    $esc = $Result.output.Replace("'", "''")
-    Invoke-SQLite -Query @"
-INSERT INTO executed_commands (command_id, status, output, exit_code) VALUES ($CommandId, '$($Result.status)', '$esc', $([int]$Result.exit_code))
-ON CONFLICT(command_id) DO UPDATE SET status = excluded.status, output = excluded.output, exit_code = excluded.exit_code;
-"@ -DatabasePath $QueueDb | Out-Null
+    param([string]$CommandId, [string]$Binding, $Result)
+    $id = ConvertTo-CommandUuid $CommandId
+    Assert-CommandBinding $Binding
+    $status = [string]$Result.status
+    if ($status -cnotin @('completed','failed')) { throw 'Non-terminal command outcome' }
+    # Bound the actual Windows sqlite3 command-line size, even for JSON escapes.
+    # Never send a different representation from the stored result body.
+    $output = [string]$Result.output
+    if ($output.Length -gt 1024) { $output = $output.Substring(0, 1000) + ' [output truncated]' }
+    $body = [ordered]@{ status=$status; output=$output; exit_code=[int]$Result.exit_code } | ConvertTo-Json -Compress
+    $bodyHex = ([BitConverter]::ToString([Text.Encoding]::UTF8.GetBytes($body))).Replace('-', '').ToLowerInvariant()
+    $changed = Invoke-SQLite -Query "UPDATE command_results_v3 SET status='$status',body=CAST(X'$bodyHex' AS TEXT),delivery='pending' WHERE command_id='$id' AND binding='$Binding' AND status='claimed' AND delivery='none'; SELECT changes();" -DatabasePath $QueueDb
+    if (($changed -join '').Trim() -ne '1') { throw 'Command result was not durably recorded' }
 }
 
 function ConvertFrom-CollectorOutput {
@@ -926,57 +1017,11 @@ function Get-AgentUpdateInfo {
 
 function Update-AgentIfNeeded {
     param($Config)
-    $info = Get-AgentUpdateInfo -Config $Config
-    if ($null -eq $info) { return $false }
-    $current = Get-InstalledAgentVersion
-    if (-not $info.update_available) {
-        Write-AgentLog "Agent is current ($current = $($info.target_version))"
-        return $false
-    }
-    Write-AgentLog "Update available: $current -> $($info.target_version)"
-
-    # Download the MSI (agent bearer token + client cert, same mTLS channel).
-    $hn = [uri]::EscapeDataString((Get-AgentHostname))
-    $uri = "$(Get-CommandsApiRoot)/api/agent/msi?hostname=$hn"
-    $tmp = Join-Path $env:TEMP 'IT-Toolkit-Agent-update.msi'
-    try {
-        $cert = Get-RestCertificate -Config $Config
-        if ($cert) {
-            Invoke-WebRequest -Uri $uri -Headers @{ Authorization = "Bearer $(Get-AgentToken -Config $Config)" } -OutFile $tmp -UseBasicParsing -Certificate $cert
-        }
-        else {
-            Invoke-WebRequest -Uri $uri -Headers @{ Authorization = "Bearer $(Get-AgentToken -Config $Config)" } -OutFile $tmp -UseBasicParsing
-        }
-        $size = (Get-Item $tmp).Length
-        if ($size -lt 1KB) { throw "Download too small ($size bytes) — likely not an MSI" }
-        Write-AgentLog "Downloaded $([math]::Round($size/1KB)) KB MSI -> $tmp"
-    }
-    catch {
-        Write-AgentLog "MSI download failed: $($_.Exception.Message)"
-        return $false
-    }
-
-    # Silent in-place upgrade. The task GUID/install folder are stable, so the
-    # scheduled task keeps pointing at the same exe after the MSI is replaced.
-    # msiexec /i needs an elevated token; the routine task is NETWORK SERVICE,
-    # so an actual install is deferred to the on-demand elevated task (E4).
-    if (-not (Test-IsElevated)) {
-        $ok = Request-ElevatedJob -Action 'update'
-        Write-AgentLog "MSI install requires elevation — staged for elevated task: $ok"
-        Remove-Item $tmp -Force -ErrorAction SilentlyContinue
-        return $ok
-    }
-    try {
-        $p = Start-Process msiexec.exe -ArgumentList "/i `"$tmp`" /qn /norestart" -Wait -PassThru
-        Write-AgentLog "msiexec exit code: $($p.ExitCode)"
-        Remove-Item $tmp -ErrorAction SilentlyContinue
-        return ($p.ExitCode -eq 0)
-    }
-    catch {
-        Write-AgentLog "MSI install failed: $($_.Exception.Message)"
-        Remove-Item $tmp -ErrorAction SilentlyContinue
-        return $false
-    }
+    # P0: even a mutually authenticated server response is not independent
+    # publisher approval. Untrusted TEMP MSI + elevated msiexec is forbidden
+    # until a reviewed signed-release hash + certificate trust pipeline exists.
+    Write-AgentLog 'AUTO_UPDATE_RELEASE_APPROVAL_REQUIRED: automatic MSI download and privileged installation are disabled; use an independently verified, signed MSI release'
+    return $false
 }
 
 # ------------------------------------------------------------------ commands (P5)
@@ -1078,20 +1123,10 @@ function Invoke-RemoteCommand {
     $payload = $Cmd.payload
     switch ($kind) {
         'reboot' {
-            $delay = [int]$payload.delay_seconds
-            # E4: reboot needs SeShutdownPrivilege; the routine task runs as
-            # NETWORK SERVICE, so defer to the on-demand elevated task.
-            if (-not (Test-IsElevated)) {
-                $ok = Request-ElevatedJob -Action 'reboot' -Payload @{ delay_seconds = $delay }
-                return @{ status = if ($ok) { 'completed' } else { 'failed' }; output = 'Reboot deferred to elevated task (least privilege)'; exit_code = if ($ok) { 0 } else { 1 } }
-            }
-            if ($delay -gt 0) {
-                & shutdown.exe /r /t $delay /f 2>&1 | Out-Null
-            }
-            else {
-                Restart-Computer -Force -ErrorAction Stop
-            }
-            return @{ status = 'completed'; output = "Reboot issued (delay $delay s)"; exit_code = 0 }
+            # A signed command proves transport integrity, NOT user consent,
+            # a maintenance window or authorized interruption approval.
+            # Until that workflow exists, never reboot or mark it completed.
+            return @{ status = 'failed'; output = 'REBOOT_APPROVAL_REQUIRED: no reboot executed; owner consent and maintenance approval required'; exit_code = 403 }
         }
         'wake' {
             try {
@@ -1134,37 +1169,84 @@ function Invoke-RemoteCommand {
 }
 
 function Send-CommandResult {
-    param($Config, $CmdId, $Result)
-    # C5: sanitize command output before it leaves the box (run-script output
-    # can contain PII/keys). The SanitizeEngine module is already imported.
-    $cleanOutput = $Result.output
-    if (-not [string]::IsNullOrEmpty($cleanOutput)) {
-        $cleanOutput = ConvertTo-SanitizedText -Text ([string]$cleanOutput)
-    }
-    $uri = "$(Get-CommandsApiRoot)/api/commands/$CmdId/result"
-    $body = @{
-        hostname  = (Get-AgentHostname)
-        status    = $Result.status
-        output    = $cleanOutput
-        exit_code = $Result.exit_code
-    } | ConvertTo-Json -Compress
+    param($Config, $Context, $Row)
+    # Re-read configuration/credential before every send. Reconfigured
+    # identity or rotated token quarantines earlier rows, even on same host.
     try {
+        $current = Get-CommandDeliveryContext $Config
+        if ($current.binding -cne $Context.binding -or $Row.binding -cne $current.binding) { return }
+        $id = ConvertTo-CommandUuid ([string]$Row.command_id)
+        $binding = $current.binding
+        Assert-CommandBinding $binding
+        $body = [string]$Row.body
+        if ($body.Length -gt 8192) { throw 'Invalid stored command result' }
+        $data = $body | ConvertFrom-Json
+        if ($data.status -cnotin @('completed','failed') -or $data.status -cne $Row.status -or
+            $data.output -isnot [string] -or $null -eq $data.exit_code -or
+            @($data.PSObject.Properties.Name).Count -ne 3) { throw 'Invalid stored command result' }
+        $attempt = Invoke-SQLite -Query "UPDATE command_results_v3 SET last_attempt=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE command_id='$id' AND binding='$binding' AND delivery='pending'; SELECT changes();" -DatabasePath $QueueDb
+        if (($attempt -join '').Trim() -ne '1') { return }
+        $headers = @{ Authorization="Bearer $($current.token)"; "X-Device-Token"=$current.token }
+        $request = @{ Uri="$($current.origin)/api/commands/$id/result"; Method='Post'; Headers=$headers; ContentType='application/json'; Body=[Text.Encoding]::UTF8.GetBytes($body); MaximumRedirection=0; TimeoutSec=15; ErrorAction='Stop' }
         $cert = Get-RestCertificate -Config $Config
-        $agentTok = Get-AgentToken -Config $Config
-        $headers = @{ 
-            "Authorization"  = "Bearer $agentTok"
-            "X-Device-Token" = $agentTok 
+        if ($cert) { $request.Certificate = $cert }
+        $reply = Invoke-RestMethod @request
+        $completed = [DateTimeOffset]::MinValue
+        if ($reply.ok -isnot [bool] -or -not $reply.ok -or
+            $reply.id -cne $id -or $reply.status -cne $data.status -or
+            $reply.duplicate -isnot [bool] -or
+            -not [DateTimeOffset]::TryParse([string]$reply.completed_at, [ref]$completed)) {
+            throw 'No matching authoritative command result receipt'
         }
-        if ($cert) {
-            Invoke-RestMethod -Uri $uri -Method Post -Headers $headers -ContentType 'application/json' -Body $body -Certificate $cert | Out-Null
-        }
-        else {
-            Invoke-RestMethod -Uri $uri -Method Post -Headers $headers -ContentType 'application/json' -Body $body | Out-Null
-        }
-        Write-AgentLog "Posted result for command $CmdId : $($Result.status)"
+        # The server's exact-replay contract allows a lost ACK to be retried.
+        # A malformed reply, HTTP error or DB failure cannot mark delivery.
+        $changed = Invoke-SQLite -Query "UPDATE command_results_v3 SET delivery='acknowledged' WHERE command_id='$id' AND binding='$binding' AND delivery='pending'; SELECT changes();" -DatabasePath $QueueDb
+        if (($changed -join '').Trim() -eq '1') { Write-AgentLog "Acknowledged durable command result $id" }
+    } catch {
+        Write-AgentLog 'Command result remains pending; transport or receipt verification failed'
     }
-    catch {
-        Write-AgentLog "Result post failed for command $CmdId : $($_.Exception.Message)"
+}
+
+function Send-PendingCommandResults {
+    param($Config)
+    try {
+        $context = Get-CommandDeliveryContext $Config
+        $binding = $context.binding
+        Assert-CommandBinding $binding
+        $json = Invoke-SQLite -Query "SELECT command_id,binding,status,body FROM command_results_v3 WHERE binding='$binding' AND delivery='pending' ORDER BY last_attempt,command_id LIMIT 10;" -DatabasePath $QueueDb -AsJson
+        if (-not [string]::IsNullOrWhiteSpace($json)) {
+            foreach ($row in @($json | ConvertFrom-Json)) {
+                Send-CommandResult -Config $Config -Context $context -Row $row
+            }
+        }
+    } catch {
+        Write-AgentLog 'Command result retry skipped: enrolled delivery context or ledger unavailable'
+    }
+}
+
+function Invoke-VerifiedCommandOnce {
+    param($Config, $Cmd)
+    # Compare context before/after signature verification, then claim once.
+    # No unverified outer ID is ever used in SQL or result routing.
+    try {
+        $context = Get-CommandDeliveryContext $Config
+        $trusted = Resolve-VerifiedAgentCommand -Config $Config -Cmd $Cmd
+        if (-not $trusted) { return }
+        if ((Get-CommandDeliveryContext $Config).binding -cne $context.binding) { return }
+        $id = ConvertTo-CommandUuid ([string]$trusted.id)
+        if (-not (Try-ClaimVerifiedCommand -CommandId $id -Binding $context.binding)) {
+            Write-AgentLog "Command $id has an existing or uncertain prior claim; refusing re-execution"
+            return
+        }
+        try {
+            $result = Invoke-RemoteCommand -Config $Config -Cmd $trusted
+        } catch {
+            $result = @{ status='failed'; output='Command execution failed; inspect local logs'; exit_code=1 }
+        }
+        $normalized = ConvertTo-CommandResult $result
+        Record-ExecutedCommand -CommandId $id -Binding $context.binding -Result $normalized
+    } catch {
+        Write-AgentLog 'Command lifecycle could not be safely completed; no automatic retry of execution'
     }
 }
 
@@ -1180,25 +1262,17 @@ Write-AgentLog "Agent cycle start (endpoint: $($Config.endpoint))"
 $null = Ensure-ClientCert -Config $Config
 
 # E4: on-demand elevated task (-ElevatedOnce). Runs exactly one privileged
-# cycle (elevated collectors run, self-upgrade installs, reboot is possible)
+# cycle (elevated collectors run, self-upgrade installs, reboot remains disabled without human approval)
 # then clears any staged elevated request. Never loops.
 if ($ElevatedOnce) {
     Write-AgentLog "Elevated once run (privileged cycle)"
 
-    # Perform any staged reboot. The routine (NETWORK SERVICE) task cannot
-    # reboot, so it stages a request that this privileged pass consumes.
+    # Never interpret an old elevated-job.json 'reboot' instruction.
+    # Historical files were writable without a signed change-approval record;
+    # the privileged pass must not consume them as authorization.
     $jobPath = Get-ElevatedTaskRequestPath
     if (Test-Path $jobPath) {
-        try {
-            $job = (Get-Content $jobPath -Raw | ConvertFrom-Json)
-            if ($job.action -eq 'reboot') {
-                $delay = [int]$job.delay_seconds
-                if ($delay -gt 0) { & shutdown.exe /r /t $delay /f 2>&1 | Out-Null }
-                else { Restart-Computer -Force -ErrorAction Stop }
-                Write-AgentLog "Elevated reboot executed (delay $delay s)"
-            }
-        }
-        catch { Write-AgentLog "Elevated reboot failed: $($_.Exception.Message)" }
+        Write-AgentLog 'Ignoring staged elevated-job.json action; unapproved reboot execution is disabled'
     }
 
     Prune-Queue
@@ -1217,23 +1291,11 @@ if ($ElevatedOnce) {
     if (-not $FlushOnly -and -not $CollectOnly) {
         $cmds = Get-PendingCommands -Config $Config
         foreach ($cmd in $cmds) {
-            if ($null -ne $cmd.id -and (Get-ExecutedCommand -CommandId $cmd.id)) {
-                Write-AgentLog "Command $($cmd.id) already executed — skipping (at-most-once)"
-                continue
-            }
-            $trustedCmd = Resolve-VerifiedAgentCommand -Config $Config -Cmd $cmd
-            if (-not $trustedCmd) {
-                Write-AgentLog "SECURITY: Rejected unsigned, tampered, wrong-tenant or expired command $($cmd.id)"
-                Send-CommandResult -Config $Config -CmdId $cmd.id -Result @{
-                    status = 'failed'; output = 'Invalid signed command or recipient'; exit_code = 403
-                }
-                continue
-            }
-            $result = Invoke-RemoteCommand -Config $Config -Cmd $trustedCmd
-            if ($null -ne $cmd.id) { Record-ExecutedCommand -CommandId $cmd.id -Result $result }
-            Send-CommandResult -Config $Config -CmdId $cmd.id -Result $result
+            Invoke-VerifiedCommandOnce -Config $Config -Cmd $cmd
         }
     }
+
+    if (-not $CollectOnly) { Send-PendingCommandResults -Config $Config }
 
     Clear-ElevatedRequest
     Write-AgentLog "Elevated once complete"
@@ -1290,27 +1352,12 @@ do {
     if (-not $FlushOnly -and -not $CollectOnly) {
         $cmds = Get-PendingCommands -Config $Config
         foreach ($cmd in $cmds) {
-            if ($null -ne $cmd.id -and (Get-ExecutedCommand -CommandId $cmd.id)) {
-                # C5: already ran on a previous cycle (poll re-delivered it while
-                # the result post was in flight). Skip re-execution entirely.
-                Write-AgentLog "Command $($cmd.id) already executed — skipping re-run (at-most-once)"
-                continue
-            }
-            Write-AgentLog "Executing command $($cmd.id) kind=$($cmd.kind)"
-            $trustedCmd = Resolve-VerifiedAgentCommand -Config $Config -Cmd $cmd
-            if (-not $trustedCmd) {
-                Write-AgentLog "SECURITY: Rejected unsigned, tampered, wrong-tenant or expired command $($cmd.id)"
-                Send-CommandResult -Config $Config -CmdId $cmd.id -Result @{
-                    status = 'failed'; output = 'Invalid signed command or recipient'; exit_code = 403
-                }
-                continue
-            }
-            $result = Invoke-RemoteCommand -Config $Config -Cmd $trustedCmd
-            if ($null -ne $cmd.id) { Record-ExecutedCommand -CommandId $cmd.id -Result $result }
-            Send-CommandResult -Config $Config -CmdId $cmd.id -Result $result
+            Invoke-VerifiedCommandOnce -Config $Config -Cmd $cmd
         }
-        if (@($cmds).Count -gt 0) { Write-AgentLog "Executed $($cmds.Count) command(s)" }
+        if (@($cmds).Count -gt 0) { Write-AgentLog "Received $($cmds.Count) command(s); outcomes require durable evidence" }
     }
+
+    if (-not $CollectOnly) { Send-PendingCommandResults -Config $Config }
 
     Write-AgentLog "Agent cycle complete"
 

@@ -144,6 +144,16 @@ describe('Validation Subsystem (validation.js) Unit Test Suite', () => {
       expect(val.commandDispatchSchema.safeParse({ hostname: 'SRV-1', command_type: 'restart' }).success).toBe(true);
       expect(val.commandDispatchSchema.safeParse({ device_id: 'dev-1', kind: 'powershell' }).success).toBe(true);
       expect(val.commandDispatchSchema.safeParse({}).success).toBe(false);
+      // Signed transport is NOT independent user consent. Block all spellings
+      // of reboot in either alias; prevent command admission at the API gate.
+      for (const values of [
+        { kind: 'reboot' }, { command_type: 'REBOOT' },
+        { kind: ' Reboot ' }, { kind: 'run-script', command_type: 'reboot' }
+      ]) {
+        const result = val.commandDispatchSchema.safeParse({ device_id: 'dev-1', ...values });
+        expect(result.success).toBe(false);
+        expect(result.error.issues.some(issue => issue.message.includes('REBOOT_APPROVAL_REQUIRED'))).toBe(true);
+      }
     });
 
     it('createUserSchema enforces required fields', () => {

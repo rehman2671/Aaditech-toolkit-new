@@ -106,9 +106,11 @@ function evaluate(snapshot, expectedSha, repoName) {
   }
   return Object.freeze({ allowed: blockers.length === 0, blockers });
 }
-async function github(path, token) {
+async function github(path, token, pageMetadata = {}) {
   const resp = await fetch('https://api.github.com' + path, {
     method: 'GET',
+    redirect: 'error',
+    cache: 'no-store',
     headers: {
       Accept: 'application/vnd.github+json',
       'User-Agent': 'aaditech-n71-readonly-governance-audit',
@@ -118,6 +120,10 @@ async function github(path, token) {
     signal: AbortSignal.timeout(15000)
   });
   if (!resp.ok) throw new Error('N71 cannot verify required GitHub governance metadata (HTTP ' + resp.status + ')');
+  // Never follow an arbitrary URL supplied in a pagination Link header.
+  // Its next relation only instructs the caller to request the next fixed page.
+  const link = resp.headers.get('link') || '';
+  pageMetadata.hasNext = /;\s*rel\s*=\s*"?next"?(?:\s*[,;]|\s*$)/i.test(link);
   return resp.json();
 }
 // GitHub paginates repository rulesets. A first-page-only inspection is not
@@ -132,8 +138,9 @@ async function readPolicyInventory(prefix, token, request) {
   const summaries = [];
   const seenIds = new Set();
   for (let page = 1; page <= MAX_RULESET_PAGES; page++) {
+    const pageMetadata = {};
     const batch = await request(prefix +
-      '/rulesets?includes_parents=true&per_page=' + RULESET_PAGE_SIZE + '&page=' + page, token);
+      '/rulesets?includes_parents=true&per_page=' + RULESET_PAGE_SIZE + '&page=' + page, token, pageMetadata);
     if (!Array.isArray(batch) || batch.length > RULESET_PAGE_SIZE) {
       throw new Error('N73 incomplete or invalid GitHub ruleset page');
     }
@@ -144,7 +151,10 @@ async function readPolicyInventory(prefix, token, request) {
       seenIds.add(item.id);
       summaries.push(item);
     }
-    if (batch.length < RULESET_PAGE_SIZE) break;
+    if (batch.length === 0 && pageMetadata.hasNext === true) {
+      throw new Error('N73 empty nonterminal GitHub ruleset page');
+    }
+    if (batch.length < RULESET_PAGE_SIZE && pageMetadata.hasNext !== true) break;
     if (page === MAX_RULESET_PAGES) {
       throw new Error('N73 GitHub ruleset page limit exceeded; governance cannot be proven');
     }
@@ -159,7 +169,16 @@ async function readPolicyInventory(prefix, token, request) {
       if (!details[i] || details[i].id !== part[i].id) {
         throw new Error('N73 ruleset details do not match enumerated policy identity');
       }
-      rulesets.push(details[i]);
+      const detail = details[i];
+      if (!['branch', 'tag', 'push'].includes(detail.target) ||
+          !['active', 'evaluate', 'disabled'].includes(detail.enforcement) ||
+          !Array.isArray(detail.rules) || detail.rules.some(rule =>
+            !rule || typeof rule.type !== 'string' || !rule.type.trim()) ||
+          (part[i].target !== undefined && part[i].target !== detail.target) ||
+          (part[i].enforcement !== undefined && part[i].enforcement !== detail.enforcement)) {
+        throw new Error('N73 incomplete or inconsistent ruleset detail metadata');
+      }
+      rulesets.push(detail);
     }
   }
   return { summaries, rulesets };

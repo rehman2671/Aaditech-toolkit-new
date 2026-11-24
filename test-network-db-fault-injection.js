@@ -8,6 +8,7 @@ import fs from 'node:fs';
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 import mysql from 'mysql2/promise';
+import jwt from 'jsonwebtoken';
 
 if (process.env.GITHUB_ACTIONS !== 'true' ||
     process.env.AADITECH_DB_FAULT_REHEARSAL !== 'isolated-ci' ||
@@ -163,6 +164,57 @@ try {
     'SELECT COUNT(*) AS total FROM used_bootstrap_tokens WHERE token_hash = ?', [hash]);
   assert.equal(Number(rows[0].total), 1);
   console.log('[PASS] Both nodes recover; bootstrap token redeemed on one is rejected as replay on the other.');
+
+  // Phase O: persistent HTTP authentication and real cross-process revocation.
+  const username = prefix + '-admin';
+  const [user] = await pool.execute(
+    'INSERT INTO users (tenant_id, username, email, password_hash, role, active, status) VALUES (?, ?, ?, ?, ?, 1, ?)',
+    [tenantId, username, username + '@invalid.example', 'CI-only-no-password-login', 'SUPER_ADMIN', 'ACTIVE']);
+  const adminToken = jwt.sign({ id: user.insertId, username, tenant_id: tenantId,
+    role: 'SUPER_ADMIN', jti: crypto.randomUUID() }, process.env.JWT_SECRET,
+    { algorithm: 'HS256', expiresIn: '5m' });
+  const deviceId = accepted.body.device_id || accepted.body.id;
+  const deviceToken = accepted.body.device_token;
+  assert.match(deviceId, /^[0-9a-f-]{36}$/i);
+  assert.match(deviceToken, /^itk_dev_[a-f0-9]{48}$/);
+  async function poll(port) {
+    const r = await fetch('http://127.0.0.1:' + port + '/api/v1/commands/poll?device_id=' + encodeURIComponent(deviceId),
+      { headers: { 'X-Device-Token': deviceToken }, signal: AbortSignal.timeout(12000) });
+    return { status: r.status, body: await r.json() };
+  }
+  async function revoke(port, headers, confirm = deviceId) {
+    const r = await fetch('http://127.0.0.1:' + port + '/api/v1/devices/' + deviceId + '/credentials/revoke',
+      { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers },
+        body: JSON.stringify({ confirm_device_id: confirm, reason_code: 'ADMINISTRATIVE_HOLD' }),
+        signal: AbortSignal.timeout(12000) });
+    return { status: r.status, body: await r.json() };
+  }
+  for (const port of [mainPort, peerPort]) assert.equal((await poll(port)).status, 200);
+  const auth = { Authorization: 'Bearer ' + adminToken };
+  assert.equal((await revoke(mainPort, auth, crypto.randomUUID())).status, 400);
+  assert.equal((await revoke(peerPort, { Cookie: 'auth_token=' + adminToken })).status, 403);
+  const [before] = await pool.execute('SELECT last_seen_at FROM devices WHERE id = ?', [deviceId]);
+  const revocations = await Promise.all([revoke(mainPort, auth), revoke(peerPort, auth)]);
+  for (const result of revocations) {
+    assert.equal(result.status, 200);
+    assert.equal(result.body.credential_revoked, true);
+    assert.equal(result.body.device_id, deviceId);
+  }
+  assert.equal(revocations.filter(r => r.body.already_revoked === false).length, 1);
+  assert.equal(revocations.filter(r => r.body.already_revoked === true).length, 1);
+  const [after] = await pool.execute('SELECT agent_token_revoked, last_seen_at FROM devices WHERE id = ?', [deviceId]);
+  assert.equal(Number(after[0].agent_token_revoked), 1);
+  assert.equal(String(after[0].last_seen_at), String(before[0].last_seen_at));
+  const [auditRows] = await pool.execute(
+    'SELECT COUNT(*) AS total FROM audit_logs WHERE tenant_id = ? AND action = ? AND target_resource = ?',
+    [tenantId, 'DEVICE_CREDENTIAL_REVOKED', 'Device:' + deviceId]);
+  assert.equal(Number(auditRows[0].total), 1);
+  for (const port of [mainPort, peerPort]) {
+    const denied = await poll(port);
+    assert.equal(denied.status, 403);
+    assert.equal(denied.body.error, 'DEVICE_TOKEN_REVOKED');
+  }
+  console.log('[PASS] Two production workers enforce one durable revocation/audit and deny subsequent agent authentication.');
 } finally {
   setPartition(true);
   for (const child of live) child.kill('SIGTERM');
@@ -174,6 +226,9 @@ try {
   if (listening) await new Promise(resolve => proxy.close(resolve));
   try {
     if (schemaReady) {
+      await pool.query('DELETE FROM audit_logs WHERE tenant_id = ?', [tenantId]);
+      await pool.query('DELETE FROM user_workspace_memberships WHERE tenant_id = ?', [tenantId]);
+      await pool.query('DELETE FROM users WHERE tenant_id = ?', [tenantId]);
       await pool.query('DELETE FROM used_bootstrap_tokens WHERE tenant_id = ?', [tenantId]);
       await pool.query('DELETE FROM devices WHERE tenant_id = ?', [tenantId]);
       await pool.query('DELETE FROM companies WHERE tenant_id = ?', [tenantId]);

@@ -86,3 +86,25 @@ At `9fbf9032`, Node/Vitest and N70 lint passed, safety #45446897874 passed; CI #
 [PR #109](https://github.com/rehman2671/Aaditech-toolkit-new/pull/109) exact tested head `7b4a0ebf2b65eb638d0e2da7a0b1aa6bbb72601a`: [CI](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45447219419) **4/4 executed jobs PASS** (PowerShell, Node/Vitest, real MySQL API, unsigned Windows MSI integration) and [deployment safety](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45447219513) **2/2 PASS**. Actual EXE/MSI build, extraction, install/uninstall and major upgrade with a disabled legacy task fixture and tenant/device/SQLite preservation. Protected signing skipped. No independent review, main merge, physical LAN acceptance or signed publication.
 
 Historical #2 agent-trust review: the JS verifier accepted coercible fields and could throw for MAC-valid JSON null. Follow-up patch adds typed signature/device-key/clock and envelope checks and MAC-valid malformed-input regressions. Helper boundary only, not proof of Windows runtime or full historical #2/#4/#61 reconciliation. Fresh exact-head CI required. DEC-001 through DEC-005 remain owner decisions; no stack change or production approval inferred.
+
+### O1 credential-authority follow-up (stacked review; not included in the currently running MSI rehearsal)
+
+Deployed getDeviceByTokenHash accepts only the current exact lowercase SHA-256 in device_token_hash, refuses ambiguous matches, and never reads legacy auth_token_hash as a credential. Test-only historical compatibility remains. Regression fixtures cover legacy-only, duplicate cross-tenant records, collation mismatch, rotation and deletion. Existing legacy-only installations need explicit reviewed credential migration/re-enrollment; no automatic credential overwrite. This does not implement authorized rotation or certify multi-replica concurrency; fresh CI and independent review required before integration.
+
+### O1 verified diagnostic milestone and credential transport follow-up
+
+#109 7b4a0ebf2b65eb638d0e2da7a0b1aa6bbb72601a: CI #45447219419 SUCCESS 4/4 executed (protected build skipped), safety #45447219513 SUCCESS; unsigned Windows runner MSI install/upgrade/uninstall and legacy task retirement, SQLite/tenant configuration preserved; no physical signed acceptance.
+
+#110 e5804047673b05915023b27accdb21f6a6aba008: CI #45447614754 SUCCESS 3/3 executed, both MSI jobs skipped, no separate deployment safety run; current unique device hash authority, not actual rotation workflow. New follow-up admits only canonical X-Device-Token or identical valid Bearer credentials in deployed agent authentication; body and bootstrap tokens are not accepted there (explicit enrollment unchanged), legacy compatibility only in test mode. New regression tests and fresh CI required. Existing installed agents using older header formats require reviewed migration. No authorization to rotate/revoke credentials, no main merge or production acceptance.
+
+### O1 credential lifecycle — revocation implementation
+
+Added explicit tenant SUPER_ADMIN bearer-only JSON POST `/api/v1/devices/:id/credentials/revoke`, exact immutable ID confirmation and fixed reason codes. Persistent MySQL row lock and tenant-scoped update plus audit insert in a single transaction, fail closed on unavailable DB or audit failure, read-only idempotent retry, no credential issuance or last-seen update. Mocked SQL-path regression cases added. Prior f0f18bb3 header-admission CI has not yet been observed. New head needs fresh combined CI and real HTTP/MySQL multi-replica revocation tests. Revocation applies to subsequent authentication; does not cancel already-running endpoint work or prove transactional fencing of in-flight requests. Recovery/rotation, legacy migration, admin consent UI and physical Windows acceptance remain open.
+
+## Phase O combined credential-authority checkpoint — 2026-11-24
+
+PR #109 exact head 41942da70c5c11baf618ad441add9d7c1573b5b7: CI 45449608007 4/4 executable jobs and deployment safety 45449608037 2/2 SUCCESS; typed JS signed-envelope verifier and unsigned Windows lifecycle verified; production signing skipped.
+
+PR #110 c9128da7a5fbe5c04d60d1663712364735f950ec credential source blobs integrated into #109 review candidate; two-process HTTP/MySQL concurrent revocation rehearsal added; fresh combined CI pending; no independent approval, rotation, in-flight cancellation or production acceptance.
+
+Original-base comparison showed eight non-overlapping #110 paths plus two overlapping tracking files. Exact source blobs retained; merged evidence and next actions without removing existing requirements (50 unique tracker IDs and all dependencies validated). Existing isolated two-production-worker MySQL fault rehearsal now also exercises explicit bearer confirmation, cookie denial, concurrent idempotent revocation, one durable audit row, unchanged last-seen and subsequent token refusal on both workers. Fresh CI required. Does not prove cross-tenant HTTP denial, rotation, cancellation, physical office or production acceptance. Historical source PR remains review history; no main merge or owner ADR.

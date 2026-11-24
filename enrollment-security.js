@@ -52,3 +52,36 @@ export function matchesEnrolledDeviceIdentifier(device, target) {
   return [device?.id, device?.device_uid, device?.hostname].some(value =>
     typeof value === 'string' && value.length > 0 && value.toLowerCase() === normalized);
 }
+
+
+// Only current enrolled device credentials in canonical headers outside
+// explicit test fixtures. Never consult URL, body or bootstrap headers.
+export function extractEnrolledDeviceHeaderToken(headers = {}) {
+  const canonical = headers['x-device-token'];
+  const authorization = headers.authorization;
+  const valid = value => typeof value === 'string' &&
+    value.length === 56 && /^itk_dev_[a-f0-9]{48}$/.test(value);
+  if (canonical !== undefined && !valid(canonical)) return null;
+  let bearer;
+  if (authorization !== undefined) {
+    if (typeof authorization !== 'string' || !authorization.startsWith('Bearer ')) return null;
+    bearer = authorization.slice(7);
+    if (!valid(bearer)) return null;
+  }
+  if (canonical !== undefined && bearer !== undefined && canonical !== bearer) return null;
+  return canonical ?? bearer ?? null;
+}
+
+
+// Explicit administrative confirmation, fixed non-secret audit reason codes,
+// and an immutable enrolled device ID, not a hostname alias.
+export function validateDeviceRevocationRequest(deviceId, body) {
+  const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const reasons = ['COMPROMISED', 'DEVICE_LOST', 'DECOMMISSIONED', 'ADMINISTRATIVE_HOLD'];
+  if (typeof deviceId !== 'string' || !uuid.test(deviceId) ||
+      !body || typeof body !== 'object' || Array.isArray(body) ||
+      Object.keys(body).length !== 2 ||
+      body.confirm_device_id !== deviceId ||
+      !reasons.includes(body.reason_code)) return null;
+  return { deviceId, reasonCode: body.reason_code };
+}

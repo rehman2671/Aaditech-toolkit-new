@@ -32,7 +32,7 @@ import * as db from './db.js';
 import { isValidSetupKey, isSeededDemoPasswordHash } from './setup-security.js';
 import { validateEnrollmentIdentity } from './enrollment-security.js';
 import { resolveAgentOrigin } from './agent-origin.js';
-import { resolveVerifiedUserPrincipal } from './auth-principal.js';
+import { resolveVerifiedUserPrincipal, requiresPersistedUserAuthorization } from './auth-principal.js';
 import { isPlatformSettingsAdmin } from './platform-settings-admin.js';
 import { belongsToCurrentTenant, publicDeviceRecord } from './device-visibility.js';
 import { normalizeAgentPosture, agentReportedCoverage } from './security-posture.js';
@@ -307,17 +307,21 @@ app.get(['/healthz', '/api/health', '/api/v1/health'], async (req, res) => {
   // Readiness must reflect the backing database, not just an open HTTP port.
   // Test fixtures intentionally exercise the in-memory fallback separately.
   const databaseReady = await db.probeDbReadiness();
-  const isProductionDatabaseDown = process.env.NODE_ENV === 'production' &&
-    process.env.VITEST !== 'true' && process.env.VITEST !== '1' && !databaseReady;
+  // Only the explicit isolated test profile permits a healthy synthetic
+  // database. Never let VITEST=true or an unset/staging NODE_ENV disguise a
+  // missing persistent MySQL backing store in an actual deployment.
+  const isProductionDatabaseDown = process.env.NODE_ENV !== 'test' && !databaseReady;
   res.status(isProductionDatabaseDown ? 503 : 200).json({
     status: isProductionDatabaseDown ? 'degraded' : 'ok',
     timestamp: new Date().toISOString(),
     uptime_seconds: Math.floor(process.uptime()),
     components: {
       database: databaseReady ? "HEALTHY" : "DEGRADED",
-      ingest_queue: "OPERATIONAL",
-      msi_builder: "READY",
-      audit_engine: "ACTIVE"
+      // No readiness probe exists for these subsystems; never manufacture
+      // operational or signed-artifact readiness from HTTP server liveness.
+      ingest_queue: "NOT_VERIFIED",
+      msi_builder: "EXTERNAL_SIGNING_REQUIRED",
+      audit_engine: "NOT_VERIFIED"
     },
     data_retention: retentionRun ? {
       last_run_at: retentionRun.timestamp,
@@ -419,7 +423,9 @@ function extractToken(req) {
 // Resolve the current production workspace from persistent account identity
 // and active membership, never only from the signed JWT's tenant/role claims.
 async function resolveCurrentUserPrincipal(decoded) {
-  const production = process.env.NODE_ENV === 'production';
+  // Every deployed runtime re-authorizes JWT role/tenant from persistent
+  // account/workspace membership; only explicit test fixtures may use demos.
+  const production = requiresPersistedUserAuthorization(process.env.NODE_ENV);
   const stored = production ? await db.getUserById(decoded.id) : null;
   let membership = null;
   if (production && stored &&
@@ -816,8 +822,9 @@ async function authenticateAgentOrUser(req, res, next) {
 // Never fall back to in-memory tenant/device state while a production
 // database is unavailable. Leave /healthz readable for diagnostics.
 app.use((req, res, next) => {
-  const realProduction = process.env.NODE_ENV === 'production' &&
-    process.env.VITEST !== 'true' && process.env.VITEST !== '1';
+  // Never bypass persistent DB authorization for unset/development/staging
+  // environments or when a deployed process inherits VITEST=true.
+  const realProduction = process.env.NODE_ENV !== 'test';
   if (realProduction && /^\/api(?:\/|$)/.test(req.path) && !isMysqlConnected()) {
     return res.status(503).set('Retry-After', '5').json({
       error: 'DATABASE_UNAVAILABLE',
@@ -943,8 +950,8 @@ async function handleLogin(req, res) {
   // Issue real HS256 signed JWT
   const token = issueUserToken(user);
 
-  res.cookie('auth_token', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', maxAge: 8 * 3600 * 1000 });
-  res.cookie('itk_session', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', maxAge: 8 * 3600 * 1000 });
+  res.cookie('auth_token', token, { httpOnly: true, secure: process.env.NODE_ENV !== 'test', sameSite: 'lax', maxAge: 8 * 3600 * 1000 });
+  res.cookie('itk_session', token, { httpOnly: true, secure: process.env.NODE_ENV !== 'test', sameSite: 'lax', maxAge: 8 * 3600 * 1000 });
 
   logAudit(user, "USER_LOGIN_SUCCESS", "AuthService", { result: "SUCCESS" }, req);
 
@@ -1577,7 +1584,11 @@ app.post('/api/v1/msi/generate', requireRole(['SUPER_ADMIN']), validateBody(msiG
   const pkgName = package_name || "Aaditech-Agent-Installer";
   const expiryHours = bootstrap_expiry_hours || req.body.expires_in_hours || 24;
 
-  const tenantId = req.user.tenant_id || "00000000-0000-0000-0000-000000000001";
+  // Creating an MSI request issues a sensitive single-use enrollment token.
+  // A platform-only/unscoped principal must never silently fall back to the
+  // default tenant. Package list and download already require tenant scope.
+  if (!req.user?.tenant_id) return res.status(403).json({ error: 'TENANT_REQUIRED' });
+  const tenantId = req.user.tenant_id;
   const bootstrapToken = generateBootstrapToken(tenantId, group_id || "default", expiryHours);
   const tokenHash = crypto.createHash('sha256').update(bootstrapToken).digest('hex');
   const pkgId = crypto.randomUUID();
@@ -1627,7 +1638,9 @@ app.post('/api/v1/msi/generate', requireRole(['SUPER_ADMIN']), validateBody(msiG
 
   await db.createMsiPackage(pkgRecord);
 
-  logAudit(req.user, "MSI_PACKAGE_GENERATED", `MSIPackage:${pkgName}`, {
+  // The portal creates a package request and may only copy a generic prebuilt
+  // artifact. No new tenant-custom MSI is built/signed by this endpoint.
+  logAudit(req.user, "MSI_PACKAGE_REQUEST_CREATED", `MSIPackage:${pkgName}`, {
     package_id: pkgId,
     version: pkgVer,
     status: packageStatus,
@@ -1748,9 +1761,9 @@ app.post('/api/v1/workspaces/select', validateBody(workspaceSelectSchema), async
   // The old JWT remains bound to its prior tenant; it never grants privileges
   // in the new workspace by adding a query or header.
   const token = issueUserToken({ ...owner, tenant_id: selected.tenant_id, role: selected.role });
-  res.cookie('auth_token', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production',
+  res.cookie('auth_token', token, { httpOnly: true, secure: process.env.NODE_ENV !== 'test',
     sameSite: 'lax', maxAge: 8 * 3600 * 1000 });
-  res.cookie('itk_session', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production',
+  res.cookie('itk_session', token, { httpOnly: true, secure: process.env.NODE_ENV !== 'test',
     sameSite: 'lax', maxAge: 8 * 3600 * 1000 });
   logAudit(req.user, 'WORKSPACE_SELECTED', `Tenant:${selected.tenant_id}`,
     { tenant_id: selected.tenant_id }, req);
@@ -2353,8 +2366,8 @@ app.post(['/api/v1/setup', '/api/setup'], async (req, res, next) => {
   // Only finalize the setup flag after the admin credentials are persisted.
   await db.updateBranding(updates);
   const token = issueUserToken(adminUser);
-  res.cookie('auth_token', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', maxAge: 8 * 3600 * 1000 });
-  res.cookie('itk_session', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', maxAge: 8 * 3600 * 1000 });
+  res.cookie('auth_token', token, { httpOnly: true, secure: process.env.NODE_ENV !== 'test', sameSite: 'lax', maxAge: 8 * 3600 * 1000 });
+  res.cookie('itk_session', token, { httpOnly: true, secure: process.env.NODE_ENV !== 'test', sameSite: 'lax', maxAge: 8 * 3600 * 1000 });
 
   res.json({
     company: updates.company_name || "Aaditech Enterprise",
@@ -2383,7 +2396,7 @@ app.get(['/api/v1/bootstrap', '/api/bootstrap'], async (req, res) => {
   res.json({
     user: safeUser,
     company_name: tenantBrand.company_name || companies[0]?.name || branding.company_name,
-    server_host: process.env.NODE_ENV === 'production'
+    server_host: process.env.NODE_ENV !== 'test'
       ? process.env.SERVER_HOST : (branding.server_host || 'localhost'),
     branding: { ...branding.branding,
       logo_text: tenantBrand.logo_text || branding.branding?.logo_text || 'IT-Toolkit',
@@ -2557,20 +2570,31 @@ app.post(['/api/commands/:id/result', '/api/v1/commands/:id/result'], agentLimit
   } catch (_) {
     return res.status(503).json({ error: 'COMMAND_RESULT_DATABASE_UNAVAILABLE' });
   }
-  if (!committed) {
-    return res.status(409).json({ error: 'COMMAND_NOT_IN_PROGRESS_OR_ALREADY_RECORDED' });
+  if (committed) {
+    // Only the first committed write generates the completion audit.
+    logAudit({ tenant_id: resultDevice.tenant_id,
+      username: 'agent:' + resultDevice.hostname }, "COMMAND_COMPLETED", `Command:${cmd.id}`, {
+      device: cmd.hostname, status, exit_code: exitCode
+    }, req);
   }
 
-  // Device-reported completions are audited under the verified device tenant,
-  // not a platform-global synthetic default tenant.
-  logAudit({ tenant_id: resultDevice.tenant_id,
-    username: 'agent:' + resultDevice.hostname }, "COMMAND_COMPLETED", `Command:${cmd.id}`, { 
-    device: cmd.hostname, 
-    status, 
-    exit_code: exitCode 
-  }, req);
-
-  res.json({ ok: true, id: cmd.id, status, completed_at: new Date().toISOString() });
+  // If the first response was lost after commit, an exact authenticated
+  // retry gets the original persisted receipt, without updating timestamps
+  // or emitting a second completion audit. Changed results remain conflicts.
+  let receipt;
+  try {
+    receipt = await db.getExactCommandResultReceipt(
+      cmd.id, resultDevice.id, status, output, stderr, exitCode
+    );
+  } catch (_) {
+    return res.status(503).json({ error: 'COMMAND_RESULT_DATABASE_UNAVAILABLE' });
+  }
+  if (!receipt) {
+    return res.status(committed ? 503 : 409).json({
+      error: committed ? 'COMMAND_RESULT_RECEIPT_UNAVAILABLE' : 'COMMAND_NOT_IN_PROGRESS_OR_ALREADY_RECORDED'
+    });
+  }
+  res.json({ ok: true, ...receipt, duplicate: !committed });
 });
 
 
@@ -2715,7 +2739,7 @@ app.post(['/api/v1/users', '/api/users'], requireRole(['SUPER_ADMIN']), validate
   }
 
   if (!req.user?.tenant_id) return res.status(403).json({ error: 'TENANT_REQUIRED' });
-  if (process.env.NODE_ENV === 'production' && !password) {
+  if (process.env.NODE_ENV !== 'test' && !password) {
     return res.status(400).json({ error: 'EXPLICIT_PASSWORD_REQUIRED' });
   }
   const companies = await db.getCompanies(req.user.tenant_id);
@@ -2825,6 +2849,21 @@ set "SCRIPT_DIR=%~dp0"
 set "TARGET_DIR=C:\\ProgramData\\ITToolkit-Agent"
 set "INSTALL_DIR=C:\\Program Files\\IT-Toolkit"
 set "LOG_FILE=%TEMP%\\ittk_agent_install.log"
+:: Both 64-hex fingerprints MUST come from an independently authenticated
+:: owner release approval, never the same folder/archive as the MSI.
+set "MSI_FILE=%SCRIPT_DIR%IT-Toolkit-Agent-${version}.msi"
+if not exist "%MSI_FILE%" (
+    echo [BLOCKED] Approved signed MSI missing. No configuration was changed.
+    exit /b 3
+)
+:: Read owner approval pins from PowerShell environment, not interpolated into
+:: CMD executable text. Windows PowerShell 5.1 supports this verifier.
+powershell.exe -NoProfile -NonInteractive -Command "$e=$env:AADITECH_APPROVED_MSI_SHA256; $s=$env:AADITECH_APPROVED_SIGNER_CERT_SHA256; $p=$env:MSI_FILE; if ($e -notmatch '^[0-9A-Fa-f]{64}$' -or $s -notmatch '^[0-9A-Fa-f]{64}$') { exit 10 }; $i=Get-Item -LiteralPath $p -ErrorAction Stop; if (-not $i -or $i.PSIsContainer -or ($i.Attributes -band [IO.FileAttributes]::ReparsePoint)) { exit 11 }; $m=Get-FileHash -LiteralPath $p -Algorithm SHA256; if ($m.Hash -ine $e) { exit 12 }; $a=Get-AuthenticodeSignature -LiteralPath $p; if ($a.Status -ne 'Valid' -or -not $a.SignerCertificate) { exit 13 }; $h=[System.Security.Cryptography.SHA256]::Create(); try { $cert=([BitConverter]::ToString($h.ComputeHash($a.SignerCertificate.RawData))).Replace('-', '') } finally { $h.Dispose() }; if ($cert -ine $s) { exit 14 }; exit 0"
+if errorlevel 1 (
+    echo [BLOCKED] MSI hash, Authenticode signature or approved signer validation failed.
+    echo No installation or configuration change has been performed.
+    exit /b 3
+)
 
 echo [*] Target ProgramData Directory: %TARGET_DIR%
 if not exist "%TARGET_DIR%" mkdir "%TARGET_DIR%"
@@ -2839,22 +2878,14 @@ if exist "%SCRIPT_DIR%agent.json" (
     echo [OK] Configuration deployed.
 )
 
-:: 4. Install MSI Package
-set "MSI_FILE="
-if exist "%SCRIPT_DIR%IT-Toolkit-Agent-${version}.msi" set "MSI_FILE=%SCRIPT_DIR%IT-Toolkit-Agent-${version}.msi"
-if not defined MSI_FILE if exist "%SCRIPT_DIR%IT-Toolkit-Agent.msi" set "MSI_FILE=%SCRIPT_DIR%IT-Toolkit-Agent.msi"
-
-if defined MSI_FILE (
-    echo [*] Executing IT-Toolkit Agent MSI Installer (!MSI_FILE!)...
-    msiexec /i "!MSI_FILE!" /qn /norestart /log "%LOG_FILE%"
-    if !errorLevel! equ 0 (
-        echo [OK] MSI package installed successfully.
-    ) else (
-        echo [ERROR] MSI installation failed with exit code !errorLevel!. See %LOG_FILE%
-        pause
-        exit /b !errorLevel!
-    )
+:: 4. Execute only the previously verified, owner-approved signed MSI.
+echo [*] Running approved IT-Toolkit Agent MSI...
+msiexec /i "!MSI_FILE!" /qn /norestart /log "%LOG_FILE%"
+if !errorLevel! neq 0 (
+    echo [ERROR] MSI installation failed with exit code !errorLevel!. See %LOG_FILE%
+    exit /b !errorLevel!
 )
+echo [OK] Approved signed MSI installation completed.
 
 :: 5. Set Registry Overrides
 echo [*] Stamping Registry configuration...
@@ -2893,7 +2924,7 @@ function getInstallPs1Content(host, protocol, version = getAgentVersion()) {
     IT-Toolkit Enterprise Agent Automated PowerShell Deployer
 .DESCRIPTION
     Installs the IT-Toolkit MSI, sets up C:\\ProgramData\\ITToolkit-Agent\\agent.json,
-    registers Enterprise Root CA, sets HKLM Registry keys, and triggers immediate scheduled task check-in.
+    verifies a signed, independently approved MSI before setting HKLM Registry values.
 #>
 [CmdletBinding()]
 param(
@@ -2920,6 +2951,32 @@ $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
 if (-not $ScriptDir) { $ScriptDir = Get-Location }
 $TargetDir = "C:\\ProgramData\\ITToolkit-Agent"
 $LogFile = Join-Path $env:TEMP "ittk_agent_install_ps.log"
+# Fail before any config, token, registry or MSI execution. Both public
+# SHA256 fingerprints must come from a separate, authenticated release record.
+$approvedSha256 = [string]$env:AADITECH_APPROVED_MSI_SHA256
+$approvedSignerSha256 = [string]$env:AADITECH_APPROVED_SIGNER_CERT_SHA256
+if ($approvedSha256 -notmatch '^[0-9A-Fa-f]{64}$' -or
+    $approvedSignerSha256 -notmatch '^[0-9A-Fa-f]{64}$') {
+    throw 'MSI_RELEASE_APPROVAL_REQUIRED: approved MSI and signer fingerprints required'
+}
+$msiPath = Join-Path $ScriptDir "IT-Toolkit-Agent-${version}.msi"
+$msiItem = Get-Item -LiteralPath $msiPath -ErrorAction Stop
+if ($msiItem.PSIsContainer -or ($msiItem.Attributes -band [IO.FileAttributes]::ReparsePoint)) {
+    throw 'MSI_RELEASE_INVALID_FILE: linked or non-file MSI refused'
+}
+$hash = Get-FileHash -LiteralPath $msiPath -Algorithm SHA256
+if ($hash.Hash -ine $approvedSha256) { throw 'MSI_RELEASE_HASH_NOT_APPROVED' }
+$signature = Get-AuthenticodeSignature -LiteralPath $msiPath
+if ($signature.Status -ne 'Valid' -or -not $signature.SignerCertificate) {
+    throw 'MSI_RELEASE_AUTHENTICODE_NOT_VALID'
+}
+$sha = [System.Security.Cryptography.SHA256]::Create()
+try {
+    $signerHash = ([BitConverter]::ToString($sha.ComputeHash($signature.SignerCertificate.RawData))).Replace('-', '')
+} finally {
+    $sha.Dispose()
+}
+if ($signerHash -ine $approvedSignerSha256) { throw 'MSI_RELEASE_SIGNER_NOT_APPROVED' }
 
 if (-not (Test-Path $TargetDir)) {
     New-Item -ItemType Directory -Path $TargetDir -Force | Out-Null
@@ -2941,21 +2998,14 @@ Write-Host "[+] Generated runtime agent.json at $agentJsonPath" -ForegroundColor
 # 2. Public HTTPS uses the Windows trust store. Do NOT import custom roots.
 # Trusted enterprise certificates, if needed, must be deployed via approved policy.
 
-# 3. Locate & Execute MSI
-$msiFiles = Get-ChildItem -Path $ScriptDir -Filter "*.msi" -ErrorAction SilentlyContinue
-if ($msiFiles.Count -gt 0) {
-    $msiPath = $msiFiles[0].FullName
-    Write-Host "[+] Executing MSI installer: $msiPath" -ForegroundColor Yellow
-    $p = Start-Process "msiexec.exe" -ArgumentList "/i \`"$msiPath\`" /qn /norestart /log \`"$LogFile\`"" -Wait -PassThru
-    if ($p.ExitCode -eq 0) {
-        Write-Host "[+] MSI installation completed successfully." -ForegroundColor Green
-    } else {
-        Write-Error "MSI installation failed with exit code $($p.ExitCode). Log file: $LogFile"
-        exit $p.ExitCode
-    }
-} else {
-    Write-Host "[!] Created configuration files for standalone run." -ForegroundColor Yellow
+# 3. Execute only the previously verified owner-approved signed MSI.
+Write-Host "[+] Executing approved MSI installer: $msiPath" -ForegroundColor Yellow
+$p = Start-Process "msiexec.exe" -ArgumentList "/i \`"$msiPath\`" /qn /norestart /log \`"$LogFile\`"" -Wait -PassThru
+if ($p.ExitCode -ne 0) {
+    Write-Error "MSI installation failed with exit code $($p.ExitCode). Log file: $LogFile"
+    exit $p.ExitCode
 }
+Write-Host "[+] Approved signed MSI installation completed." -ForegroundColor Green
 
 # 4. Registry Configuration
 $regPath = "HKLM:\\SOFTWARE\\ITToolkit\\Agent"
@@ -3114,7 +3164,10 @@ const handleAgentBundleZip = async (req, res) => {
 
   const agentScript = fs.existsSync(agentScriptPath) ? fs.readFileSync(agentScriptPath, 'utf8') : '';
   const agentCollectScript = fs.existsSync(agentCollectPath) ? fs.readFileSync(agentCollectPath, 'utf8') : '';
-  const installCmd = fs.existsSync(installCmdPath) ? fs.readFileSync(installCmdPath, 'utf8') : getInstallCmdContent(host, protocol, version);
+  // The legacy static install-agent.cmd schedules unsigned PowerShell as
+  // SYSTEM and bypasses signed MSI release admission. Never package it.
+  const installCmd = getInstallCmdContent(host, protocol, version);
+  const installPs1 = getInstallPs1Content(host, protocol, version);
   const testCmd = fs.existsSync(testCmdPath) ? fs.readFileSync(testCmdPath, 'utf8') : '';
   const uninstallCmd = fs.existsSync(uninstallCmdPath) ? fs.readFileSync(uninstallCmdPath, 'utf8') : '';
   const caCert = getCaCertificate();
@@ -3133,6 +3186,7 @@ const handleAgentBundleZip = async (req, res) => {
     }
   }
   zip.file("install-agent.cmd", installCmd);
+  zip.file("install-agent.ps1", installPs1);
   zip.file("run-agent-once.cmd", testCmd);
   zip.file("uninstall-agent.cmd", uninstallCmd);
   zip.file("README-HOSTINGER.txt",
@@ -3156,7 +3210,7 @@ app.get('/api/agent/bundle.zip', handleAgentBundleZip);
 app.get('/api/v1/agent/bundle.zip', handleAgentBundleZip);
 
 app.get(['/api/v1/ca.crt', '/api/ca.crt'], (req, res) => {
-  if (process.env.NODE_ENV === 'production') {
+  if (process.env.NODE_ENV !== 'test') {
     return res.status(410).json({ error: 'LEGACY_CA_DISTRIBUTION_DISABLED', detail: 'Production HTTPS uses publicly trusted server TLS. Custom root import is not supported.' });
   }
   const caCert = getCaCertificate();
@@ -3375,6 +3429,7 @@ app.get(['/api/v1/compliance/cloud-audit', '/api/compliance/cloud-audit'], async
       azure_ad_joined: null,
       intune_managed: null,
       bitlocker_encrypted: postures[i].bitlocker_encrypted,
+      antivirus_active: postures[i].antivirus_active,
       defender_realtime_on: postures[i].defender_realtime_on,
       firewall_active: postures[i].firewall_active,
       evidence_status: postures[i].evidence_status,
@@ -3398,7 +3453,7 @@ app.get('*', (req, res) => {
 let serverInstance = null;
 const runningUnderVitest = process.env.VITEST === 'true' || process.env.VITEST === '1';
 if (!runningUnderVitest) {
-  const isProduction = process.env.NODE_ENV === 'production';
+  const isProduction = process.env.NODE_ENV !== 'test';
   if (isProduction) {
     const missing = ['DB_HOST', 'DB_USER', 'DB_PASSWORD', 'DB_NAME']
       .filter(name => !process.env[name] || !process.env[name].trim());

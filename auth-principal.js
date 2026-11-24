@@ -1,8 +1,15 @@
+// An unset/development/staging NODE_ENV is still a deployed server, not a
+// trusted synthetic fixture. Only explicit Node test mode may skip database
+// account + workspace membership revalidation.
+export function requiresPersistedUserAuthorization(nodeEnv) {
+  return nodeEnv !== 'test';
+}
+
 // A JWT is a signed workspace selection request, not an authorization
 // record. Production privileges must be derived from the current database
 // user AND an approved, active membership for a secondary workspace.
 export function resolveVerifiedUserPrincipal(claims, stored, normalizeRole,
-  production = false, membership = null) {
+  production = true, membership = null) {
   if (!claims || typeof claims !== 'object' || typeof normalizeRole !== 'function') return null;
 
   const hasStoredIdentity = Boolean(stored &&

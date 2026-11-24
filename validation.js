@@ -183,6 +183,12 @@ export const commandDispatchSchema = z.object({
 }).refine(data => data.kind || data.command_type, {
   message: "Command kind or command_type is required",
   path: ["kind"]
+}).refine(data => ![data.kind, data.command_type].some(value =>
+  typeof value === 'string' && value.trim().toLowerCase() === 'reboot'), {
+  // A queued reboot is not independent device-owner consent or an approved
+  // maintenance window. Deny until a reviewed authorization flow exists.
+  message: "REBOOT_APPROVAL_REQUIRED: direct reboot dispatch is disabled",
+  path: ["kind"]
 });
 
 export const commandResultSchema = z.object({

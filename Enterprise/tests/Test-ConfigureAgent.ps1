@@ -18,6 +18,14 @@ $guiParseErrors = $null
 if ($guiParseErrors.Count -gt 0) {
     throw "GUI wizard has parser errors: $($guiParseErrors | ForEach-Object Message | Out-String)"
 }
+# A custom config file selected before UAC must remain selected in the
+# elevated process; otherwise the GUI can silently reconfigure a different
+# machine-global agent file. Reject quote/newline command-line ambiguity.
+$guiText = Get-Content -LiteralPath $guiWizard -Raw
+if (-not $guiText.Contains('-ConfigPath `"$ConfigPath`"') -or
+    -not $guiText.Contains('$ConfigPath -match')) {
+    throw 'GUI UAC elevation must forward and validate the selected config path'
+}
 [xml]$manifest = Get-Content -LiteralPath $wxs -Raw
 if (-not $manifest.SelectSingleNode('//*[local-name()="Component" and @Id="AgentSetupWizard"]')) {
     throw 'WiX installer does not contain Configure-Agent.ps1 component'
@@ -92,12 +100,47 @@ try {
     } catch { $blocked = $true }
     if (-not $blocked) { throw 'Wizard accepted insecure HTTP' }
 
+    # Simulate a legacy explicit world-readable file and directory. The
+    # first-run wizard must REMOVE these ACEs, not merely /grant:r its
+    # private SIDs while leaving unrelated explicit permissions in place.
+    if ($env:OS -eq 'Windows_NT') {
+        & icacls.exe $tmpDir /grant '*S-1-1-0:(OI)(CI)R' | Out-Null
+        if ($LASTEXITCODE -ne 0) { throw 'Cannot seed world-readable test directory' }
+        & icacls.exe $cfgPath /grant '*S-1-1-0:R' | Out-Null
+        if ($LASTEXITCODE -ne 0) { throw 'Cannot seed legacy world-readable config' }
+    }
+
     $out = & $wizard -ServerUrl 'https://new.example.test' -TokenFile $tokenFile -ConfigPath $cfgPath -NonInteractive
     if (($out -join ' ') -match [regex]::Escape($singleUse)) { throw 'Wizard disclosed enrollment token in console output' }
     $actual = Get-Content -LiteralPath $cfgPath -Raw | ConvertFrom-Json
     if ($actual.endpoint -ne 'https://new.example.test/api/v1/ingest/telemetry') { throw 'Agent endpoint was not updated' }
     if ($actual.enroll_url -ne 'https://new.example.test/api/v1/agent/enroll') { throw 'Enrollment URL was not updated' }
     if ($actual.token -ne $singleUse -or $actual.needs_setup) { throw 'Agent was not configured' }
+    if ($env:OS -eq 'Windows_NT') {
+        foreach ($protectedPath in @($tmpDir, $cfgPath)) {
+            $acl = Get-Acl -LiteralPath $protectedPath
+            if ($acl.GetOwner([Security.Principal.SecurityIdentifier]).Value -ne 'S-1-5-32-544') {
+                throw "Wizard retained untrusted credential file owner: $protectedPath"
+            }
+            if (-not $acl.AreAccessRulesProtected -or @($acl.Access).Count -ne 3) {
+                throw "Wizard did not install a private, explicit credential ACL: $protectedPath"
+            }
+            $observed = @($acl.Access | ForEach-Object {
+                $_.IdentityReference.Translate([Security.Principal.SecurityIdentifier]).Value
+            } | Sort-Object)
+            $expected = @('S-1-5-18', 'S-1-5-20', 'S-1-5-32-544' | Sort-Object)
+            if (@(Compare-Object $observed $expected).Count -ne 0) {
+                throw "Wizard retained unsafe explicit read grants: $protectedPath"
+            }
+        }
+        $source = Get-Content -LiteralPath $wizard -Raw
+        $privateTemp = $source.IndexOf('Set-PrivateAgentAcl -Path $temp -IsDirectory $false')
+        $secretWrite = $source.IndexOf('[System.IO.File]::WriteAllText($temp, $json')
+        if ($privateTemp -lt 0 -or $secretWrite -lt 0 -or $privateTemp -ge $secretWrite) {
+            throw 'Wizard must protect the temporary credential file before writing the token'
+        }
+    }
+
     if (@($actual.features).Count -ne 1) { throw 'Existing feature manifest was lost' }
     if (Test-Path (Join-Path $tmpDir 'agent.token')) { throw 'Old device identity token was not cleared' }
     if (Test-Path (Join-Path $tmpDir 'client.pfx')) { throw 'Old server client certificate was not cleared' }
@@ -135,6 +178,15 @@ try {
     if ($fresh.endpoint -ne 'https://fresh.example.test/api/v1/ingest/telemetry' -or
         $fresh.token -ne $singleUse -or $fresh.needs_setup) {
         throw 'Fresh empty-config setup failed strict-mode first-run regression'
+    }
+    if ($env:OS -eq 'Windows_NT') {
+        $freshAcl = Get-Acl -LiteralPath $blankConfigPath
+        if ($freshAcl.GetOwner([Security.Principal.SecurityIdentifier]).Value -ne 'S-1-5-32-544') {
+            throw 'Fresh setup left untrusted owner able to rewrite the credential DACL'
+        }
+        if (-not $freshAcl.AreAccessRulesProtected -or @($freshAcl.Access).Count -ne 3) {
+            throw 'Fresh setup wrote token before private credential ACL was established'
+        }
     }
 
     Write-Host 'Configure-Agent.ps1 regression tests passed.'

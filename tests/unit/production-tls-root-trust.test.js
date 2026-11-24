@@ -15,6 +15,14 @@ describe('Production TLS root CA trust boundary', () => {
     expect(getCaCertificate()).toBe('');
   });
 
+  it('never manufactures or exposes private CA certificates outside explicit test mode', () => {
+    for (const mode of [undefined, '', 'development', 'staging', 'Production']) {
+      if (mode === undefined) delete process.env.NODE_ENV;
+      else process.env.NODE_ENV = mode;
+      expect(getCaCertificate()).toBe('');
+    }
+  });
+
   it('does not contain automatic Windows ROOT store enrollment in downloadable installer scripts', () => {
     const source = fs.readFileSync('server.js', 'utf8');
     expect(source).not.toMatch(/certutil\s+-addstore/i);

@@ -2825,6 +2825,21 @@ set "SCRIPT_DIR=%~dp0"
 set "TARGET_DIR=C:\\ProgramData\\ITToolkit-Agent"
 set "INSTALL_DIR=C:\\Program Files\\IT-Toolkit"
 set "LOG_FILE=%TEMP%\\ittk_agent_install.log"
+:: Both 64-hex fingerprints MUST come from an independently authenticated
+:: owner release approval, never the same folder/archive as the MSI.
+set "MSI_FILE=%SCRIPT_DIR%IT-Toolkit-Agent-${version}.msi"
+if not exist "%MSI_FILE%" (
+    echo [BLOCKED] Approved signed MSI missing. No configuration was changed.
+    exit /b 3
+)
+:: Read owner approval pins from PowerShell environment, not interpolated into
+:: CMD executable text. Windows PowerShell 5.1 supports this verifier.
+powershell.exe -NoProfile -NonInteractive -Command "$e=$env:AADITECH_APPROVED_MSI_SHA256; $s=$env:AADITECH_APPROVED_SIGNER_CERT_SHA256; $p=$env:MSI_FILE; if ($e -notmatch '^[0-9A-Fa-f]{64}$' -or $s -notmatch '^[0-9A-Fa-f]{64}$') { exit 10 }; $i=Get-Item -LiteralPath $p -ErrorAction Stop; if (-not $i -or $i.PSIsContainer -or ($i.Attributes -band [IO.FileAttributes]::ReparsePoint)) { exit 11 }; $m=Get-FileHash -LiteralPath $p -Algorithm SHA256; if ($m.Hash -ine $e) { exit 12 }; $a=Get-AuthenticodeSignature -LiteralPath $p; if ($a.Status -ne 'Valid' -or -not $a.SignerCertificate) { exit 13 }; $h=[System.Security.Cryptography.SHA256]::Create(); try { $cert=([BitConverter]::ToString($h.ComputeHash($a.SignerCertificate.RawData))).Replace('-', '') } finally { $h.Dispose() }; if ($cert -ine $s) { exit 14 }; exit 0"
+if errorlevel 1 (
+    echo [BLOCKED] MSI hash, Authenticode signature or approved signer validation failed.
+    echo No installation or configuration change has been performed.
+    exit /b 3
+)
 
 echo [*] Target ProgramData Directory: %TARGET_DIR%
 if not exist "%TARGET_DIR%" mkdir "%TARGET_DIR%"
@@ -2839,22 +2854,14 @@ if exist "%SCRIPT_DIR%agent.json" (
     echo [OK] Configuration deployed.
 )
 
-:: 4. Install MSI Package
-set "MSI_FILE="
-if exist "%SCRIPT_DIR%IT-Toolkit-Agent-${version}.msi" set "MSI_FILE=%SCRIPT_DIR%IT-Toolkit-Agent-${version}.msi"
-if not defined MSI_FILE if exist "%SCRIPT_DIR%IT-Toolkit-Agent.msi" set "MSI_FILE=%SCRIPT_DIR%IT-Toolkit-Agent.msi"
-
-if defined MSI_FILE (
-    echo [*] Executing IT-Toolkit Agent MSI Installer (!MSI_FILE!)...
-    msiexec /i "!MSI_FILE!" /qn /norestart /log "%LOG_FILE%"
-    if !errorLevel! equ 0 (
-        echo [OK] MSI package installed successfully.
-    ) else (
-        echo [ERROR] MSI installation failed with exit code !errorLevel!. See %LOG_FILE%
-        pause
-        exit /b !errorLevel!
-    )
+:: 4. Execute only the previously verified, owner-approved signed MSI.
+echo [*] Running approved IT-Toolkit Agent MSI...
+msiexec /i "!MSI_FILE!" /qn /norestart /log "%LOG_FILE%"
+if !errorLevel! neq 0 (
+    echo [ERROR] MSI installation failed with exit code !errorLevel!. See %LOG_FILE%
+    exit /b !errorLevel!
 )
+echo [OK] Approved signed MSI installation completed.
 
 :: 5. Set Registry Overrides
 echo [*] Stamping Registry configuration...
@@ -2893,7 +2900,7 @@ function getInstallPs1Content(host, protocol, version = getAgentVersion()) {
     IT-Toolkit Enterprise Agent Automated PowerShell Deployer
 .DESCRIPTION
     Installs the IT-Toolkit MSI, sets up C:\\ProgramData\\ITToolkit-Agent\\agent.json,
-    registers Enterprise Root CA, sets HKLM Registry keys, and triggers immediate scheduled task check-in.
+    verifies a signed, independently approved MSI before setting HKLM Registry values.
 #>
 [CmdletBinding()]
 param(
@@ -2920,6 +2927,32 @@ $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
 if (-not $ScriptDir) { $ScriptDir = Get-Location }
 $TargetDir = "C:\\ProgramData\\ITToolkit-Agent"
 $LogFile = Join-Path $env:TEMP "ittk_agent_install_ps.log"
+# Fail before any config, token, registry or MSI execution. Both public
+# SHA256 fingerprints must come from a separate, authenticated release record.
+$approvedSha256 = [string]$env:AADITECH_APPROVED_MSI_SHA256
+$approvedSignerSha256 = [string]$env:AADITECH_APPROVED_SIGNER_CERT_SHA256
+if ($approvedSha256 -notmatch '^[0-9A-Fa-f]{64}$' -or
+    $approvedSignerSha256 -notmatch '^[0-9A-Fa-f]{64}$') {
+    throw 'MSI_RELEASE_APPROVAL_REQUIRED: approved MSI and signer fingerprints required'
+}
+$msiPath = Join-Path $ScriptDir "IT-Toolkit-Agent-${version}.msi"
+$msiItem = Get-Item -LiteralPath $msiPath -ErrorAction Stop
+if ($msiItem.PSIsContainer -or ($msiItem.Attributes -band [IO.FileAttributes]::ReparsePoint)) {
+    throw 'MSI_RELEASE_INVALID_FILE: linked or non-file MSI refused'
+}
+$hash = Get-FileHash -LiteralPath $msiPath -Algorithm SHA256
+if ($hash.Hash -ine $approvedSha256) { throw 'MSI_RELEASE_HASH_NOT_APPROVED' }
+$signature = Get-AuthenticodeSignature -LiteralPath $msiPath
+if ($signature.Status -ne 'Valid' -or -not $signature.SignerCertificate) {
+    throw 'MSI_RELEASE_AUTHENTICODE_NOT_VALID'
+}
+$sha = [System.Security.Cryptography.SHA256]::Create()
+try {
+    $signerHash = ([BitConverter]::ToString($sha.ComputeHash($signature.SignerCertificate.RawData))).Replace('-', '')
+} finally {
+    $sha.Dispose()
+}
+if ($signerHash -ine $approvedSignerSha256) { throw 'MSI_RELEASE_SIGNER_NOT_APPROVED' }
 
 if (-not (Test-Path $TargetDir)) {
     New-Item -ItemType Directory -Path $TargetDir -Force | Out-Null
@@ -2941,21 +2974,14 @@ Write-Host "[+] Generated runtime agent.json at $agentJsonPath" -ForegroundColor
 # 2. Public HTTPS uses the Windows trust store. Do NOT import custom roots.
 # Trusted enterprise certificates, if needed, must be deployed via approved policy.
 
-# 3. Locate & Execute MSI
-$msiFiles = Get-ChildItem -Path $ScriptDir -Filter "*.msi" -ErrorAction SilentlyContinue
-if ($msiFiles.Count -gt 0) {
-    $msiPath = $msiFiles[0].FullName
-    Write-Host "[+] Executing MSI installer: $msiPath" -ForegroundColor Yellow
-    $p = Start-Process "msiexec.exe" -ArgumentList "/i \`"$msiPath\`" /qn /norestart /log \`"$LogFile\`"" -Wait -PassThru
-    if ($p.ExitCode -eq 0) {
-        Write-Host "[+] MSI installation completed successfully." -ForegroundColor Green
-    } else {
-        Write-Error "MSI installation failed with exit code $($p.ExitCode). Log file: $LogFile"
-        exit $p.ExitCode
-    }
-} else {
-    Write-Host "[!] Created configuration files for standalone run." -ForegroundColor Yellow
+# 3. Execute only the previously verified owner-approved signed MSI.
+Write-Host "[+] Executing approved MSI installer: $msiPath" -ForegroundColor Yellow
+$p = Start-Process "msiexec.exe" -ArgumentList "/i \`"$msiPath\`" /qn /norestart /log \`"$LogFile\`"" -Wait -PassThru
+if ($p.ExitCode -ne 0) {
+    Write-Error "MSI installation failed with exit code $($p.ExitCode). Log file: $LogFile"
+    exit $p.ExitCode
 }
+Write-Host "[+] Approved signed MSI installation completed." -ForegroundColor Green
 
 # 4. Registry Configuration
 $regPath = "HKLM:\\SOFTWARE\\ITToolkit\\Agent"
@@ -3114,7 +3140,10 @@ const handleAgentBundleZip = async (req, res) => {
 
   const agentScript = fs.existsSync(agentScriptPath) ? fs.readFileSync(agentScriptPath, 'utf8') : '';
   const agentCollectScript = fs.existsSync(agentCollectPath) ? fs.readFileSync(agentCollectPath, 'utf8') : '';
-  const installCmd = fs.existsSync(installCmdPath) ? fs.readFileSync(installCmdPath, 'utf8') : getInstallCmdContent(host, protocol, version);
+  // The legacy static install-agent.cmd schedules unsigned PowerShell as
+  // SYSTEM and bypasses signed MSI release admission. Never package it.
+  const installCmd = getInstallCmdContent(host, protocol, version);
+  const installPs1 = getInstallPs1Content(host, protocol, version);
   const testCmd = fs.existsSync(testCmdPath) ? fs.readFileSync(testCmdPath, 'utf8') : '';
   const uninstallCmd = fs.existsSync(uninstallCmdPath) ? fs.readFileSync(uninstallCmdPath, 'utf8') : '';
   const caCert = getCaCertificate();
@@ -3133,6 +3162,7 @@ const handleAgentBundleZip = async (req, res) => {
     }
   }
   zip.file("install-agent.cmd", installCmd);
+  zip.file("install-agent.ps1", installPs1);
   zip.file("run-agent-once.cmd", testCmd);
   zip.file("uninstall-agent.cmd", uninstallCmd);
   zip.file("README-HOSTINGER.txt",

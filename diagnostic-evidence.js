@@ -37,3 +37,22 @@ export function verifyDiagnosticEvidence({payload,signature,publicKeyPem,expecte
  return Object.freeze({signature_and_binding_verified:true,artifact_content_verified:false,
   attempt_executed:false,diagnostic_authorized:false,repair_authorized:false,verified_resolved:false,production_accepted:false});
 }
+
+// First bounded content contract: resource percentages only. No process
+// names, paths, network destinations, user content, or actual collection.
+// Canonical bytes and matching digest do not prove measurement truth.
+export function verifyResourceDiagnosticArtifact({artifact,proof}={}){
+ const binding=verifyDiagnosticEvidence(proof);
+ if(proof.expected.diagnosticId!=='RESOURCE_PRESSURE'||!Buffer.isBuffer(artifact)||
+    artifact.length<1||artifact.length>512||sha(artifact)!==proof.expected.artifactSha256)fail();
+ let doc;try{doc=JSON.parse(artifact.toString('utf8'))}catch{fail()}
+ if(!doc||typeof doc!=='object'||Array.isArray(doc)||doc.schema!=='aaditech-resource-diagnostic-v1')fail();
+ const metrics=['cpu_percent','ram_percent','disk_percent'];
+ if(!metrics.every(k=>Object.hasOwn(doc,k)&&(doc[k]===null||
+    (typeof doc[k]==='number'&&Number.isFinite(doc[k])&&doc[k]>=0&&doc[k]<=100))))fail();
+ const canonical=Buffer.from(JSON.stringify({schema:doc.schema,cpu_percent:doc.cpu_percent,
+    ram_percent:doc.ram_percent,disk_percent:doc.disk_percent}));
+ if(!canonical.equals(artifact))fail();
+ return Object.freeze({...binding,artifact_content_verified:true,
+   measurement_truth_verified:false,measured_fields:metrics.filter(k=>doc[k]!==null).length});
+}

@@ -111,10 +111,11 @@ function Read-AgentConfig {
         try {
             $deviceToken = (Get-Content -LiteralPath $tokenPath -Raw -ErrorAction Stop).Trim()
             $identity = Get-Content -LiteralPath $identityPath -Raw -ErrorAction Stop | ConvertFrom-Json
-            $enrolled = $deviceToken.StartsWith('itk_dev_') -and
-                -not [string]::IsNullOrWhiteSpace([string]$identity.device_id) -and
-                -not [string]::IsNullOrWhiteSpace([string]$identity.tenant_id) -and
-                -not [string]::IsNullOrWhiteSpace([string]$identity.device_uid)
+            $enrolled = $deviceToken.Length -eq 56 -and $deviceToken -cmatch '^itk_dev_[a-f0-9]{48}$' -and
+                $identity -is [PSCustomObject] -and
+                $identity.device_id -is [string] -and -not [string]::IsNullOrWhiteSpace($identity.device_id) -and
+                $identity.tenant_id -is [string] -and -not [string]::IsNullOrWhiteSpace($identity.tenant_id) -and
+                $identity.device_uid -is [string] -and -not [string]::IsNullOrWhiteSpace($identity.device_uid)
         } catch {
             $enrolled = $false
         }
@@ -153,9 +154,16 @@ function Get-AgentToken {
     # config token (bootstrap / pre-B6 agents).
     param($Config)
     $path = Get-AgentTokenPath
-    if (Test-Path $path) {
-        $tok = (Get-Content $path -Raw -ErrorAction SilentlyContinue).Trim()
-        if ($tok) { return $tok }
+    if (Test-Path -LiteralPath $path) {
+        if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { throw 'Invalid enrolled credential path' }
+        $tok = (Get-Content -LiteralPath $path -Raw -ErrorAction Stop).Trim()
+        if ($tok.Length -ne 56 -or $tok -cnotmatch '^itk_dev_[a-f0-9]{48}$') {
+            throw 'Invalid enrolled credential; refusing bootstrap fallback'
+        }
+        return $tok
+    }
+    if (Test-Path -LiteralPath (Join-Path (Split-Path $path -Parent) 'agent.identity.json')) {
+        throw 'Incomplete enrolled credential; refusing bootstrap fallback'
     }
     return $Config.token
 }
@@ -280,11 +288,14 @@ function Ensure-ClientCert {
             -Headers @{
                 Authorization       = "Bearer $($Config.token)"
                 "X-Bootstrap-Token" = $Config.token
-            } -ContentType 'application/json' -Body $enrollBody
+            } -ContentType 'application/json' -Body $enrollBody -MaximumRedirection 0 -TimeoutSec 15 -ErrorAction Stop
 
         $issuedToken = if ($resp.device_token) { $resp.device_token } elseif ($resp.agent_token) { $resp.agent_token } else { $null }
         if ($issuedToken) {
-            if (-not $resp.device_id -or -not $resp.tenant_id -or -not $resp.device_uid) {
+            if ($issuedToken -isnot [string] -or $issuedToken.Length -ne 56 -or $issuedToken -cnotmatch '^itk_dev_[a-f0-9]{48}$' -or
+                $resp.device_id -isnot [string] -or [string]::IsNullOrWhiteSpace($resp.device_id) -or
+                $resp.tenant_id -isnot [string] -or [string]::IsNullOrWhiteSpace($resp.tenant_id) -or
+                $resp.device_uid -isnot [string] -or [string]::IsNullOrWhiteSpace($resp.device_uid)) {
                 throw 'Enrollment response did not bind device and tenant identity'
             }
             $identity = @{ device_id = [string]$resp.device_id; tenant_id = [string]$resp.tenant_id; device_uid = [string]$resp.device_uid } | ConvertTo-Json -Compress
@@ -1000,10 +1011,10 @@ function Get-AgentUpdateInfo {
     try {
         $cert = Get-RestCertificate -Config $Config
         if ($cert) {
-            return Invoke-RestMethod -Uri $uri -Method Get -Headers @{ Authorization = "Bearer $(Get-AgentToken -Config $Config)" } -Certificate $cert
+            return Invoke-RestMethod -Uri $uri -Method Get -Headers @{ Authorization = "Bearer $(Get-AgentToken -Config $Config)" } -Certificate $cert -MaximumRedirection 0 -TimeoutSec 15 -ErrorAction Stop
         }
         else {
-            return Invoke-RestMethod -Uri $uri -Method Get -Headers @{ Authorization = "Bearer $(Get-AgentToken -Config $Config)" }
+            return Invoke-RestMethod -Uri $uri -Method Get -Headers @{ Authorization = "Bearer $(Get-AgentToken -Config $Config)" } -MaximumRedirection 0 -TimeoutSec 15 -ErrorAction Stop
         }
     }
     catch {
@@ -1041,10 +1052,10 @@ function Get-PendingCommands {
             "X-Device-Token" = $agentTok 
         }
         if ($cert) {
-            $resp = Invoke-RestMethod -Uri $uri -Method Get -Headers $headers -Certificate $cert
+            $resp = Invoke-RestMethod -Uri $uri -Method Get -Headers $headers -Certificate $cert -MaximumRedirection 0 -TimeoutSec 15 -ErrorAction Stop
         }
         else {
-            $resp = Invoke-RestMethod -Uri $uri -Method Get -Headers $headers
+            $resp = Invoke-RestMethod -Uri $uri -Method Get -Headers $headers -MaximumRedirection 0 -TimeoutSec 15 -ErrorAction Stop
         }
         return @($resp)
     }

@@ -101,6 +101,8 @@ jobs:
         run: pwsh -NoProfile -File ./Enterprise/tests/Test-SelfUpdateDefaultDeny.ps1
       - name: Test one-use enrollment bootstrap token is cleared after provisioning
         run: pwsh -NoProfile -File ./Enterprise/tests/Test-EnrollmentBootstrapCleanup.ps1
+      - name: Enrollment credential validation in Windows PowerShell 5.1
+        run: powershell.exe -NoProfile -ExecutionPolicy Bypass -File ./Enterprise/tests/Test-EnrollmentBootstrapCleanup.ps1
 
       - name: Exercise canonical agent idle telemetry and durable ACK handling (N27)
         run: pwsh -NoProfile -File ./Enterprise/tests/Test-CanonicalAgent-AckCadence.ps1

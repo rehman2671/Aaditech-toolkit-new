@@ -245,6 +245,17 @@ try {
   assert.equal(order.length,6);
   for(let i=0;i<6;i+=2)assert.equal(order[i].replace('enter','exit'),order[i+1]);
   console.log('[PASS] Scoped intake summary and same-session migration lock serialization.');
+  // A corrupted historical checksum must fail before any migration work.
+  const [migrationRows]=await pool.query("SELECT checksum FROM schema_migrations WHERE version='019'");
+  assert.equal(migrationRows.length,1);
+  try {
+    await pool.query("UPDATE schema_migrations SET checksum=? WHERE version='019'",['0'.repeat(64)]);
+    await assert.rejects(()=>db.runDatabaseMigrations(),/MIGRATION_HISTORY_DRIFT/);
+  } finally {
+    await pool.query("UPDATE schema_migrations SET checksum=? WHERE version='019'",[migrationRows[0].checksum]);
+  }
+  assert.equal((await db.runDatabaseMigrations()).applied.length,0);
+  console.log('[PASS] Migration history drift refused and original checksum restored in disposable CI.');
   console.log('N29 PASS: atomic rollback, MySQL worker races, single history/alert/outbox, HTTP replay, 409 and revoked credential write fencing');
 } catch(err) {
   failure=err;

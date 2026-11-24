@@ -72,7 +72,7 @@ try {
     # individual device token and a matching tenant/device identity.
     $enrolledTokenPath = Join-Path $dir 'agent.token'
     $enrolledIdentityPath = Join-Path $dir 'agent.identity.json'
-    [IO.File]::WriteAllText($enrolledTokenPath, 'itk_dev_ci_only_token_123456789')
+    [IO.File]::WriteAllText($enrolledTokenPath, ('itk_dev_' + ('a' * 48)))
     [IO.File]::WriteAllText($enrolledIdentityPath, '{"device_id":"ci-device","tenant_id":"ci-tenant","device_uid":"ci-uid"}')
     $loaded = Read-AgentConfig
     if ($loaded.endpoint -ne $cfg.endpoint -or $loaded.token -ne '') {
@@ -91,6 +91,25 @@ try {
     if (-not $rejectedInvalidToken) {
         throw 'Agent accepted invalid non-device token after cleanup'
     }
+
+    foreach ($name in @('Get-AgentTokenPath','Get-AgentToken')) {
+        $func = @($ast.FindAll({ param($node) $node -is [Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq $name }, $true))
+        if ($func.Count -ne 1) { throw "Expected one $name function" }
+        Invoke-Expression $func[0].Extent.Text
+    }
+    $fallback = [PSCustomObject]@{token='ci-bootstrap'}
+    foreach ($bad in @('itk_dev_short', ('itk_dev_' + ('A' * 48)), '')) {
+        [IO.File]::WriteAllText($enrolledTokenPath, $bad)
+        $rejected = $false
+        try { $null = Get-AgentToken -Config $fallback } catch { $rejected = $true }
+        if (-not $rejected) { throw 'Invalid enrolled token allowed bootstrap fallback' }
+    }
+    Remove-Item -LiteralPath $enrolledTokenPath -Force
+    $rejected = $false
+    try { $null = Get-AgentToken -Config $fallback } catch { $rejected = $true }
+    if (-not $rejected) { throw 'Partial identity allowed bootstrap fallback' }
+    [IO.File]::WriteAllText($enrolledTokenPath, ('itk_dev_' + ('a' * 48)))
+    if ((Get-AgentToken -Config $fallback) -cne ('itk_dev_' + ('a' * 48))) { throw 'Canonical enrolled token not selected' }
 
     Remove-Item -LiteralPath $script:ConfigPath -Force
     $failedClosed = $false

@@ -10,6 +10,7 @@ import { getAgentVersion } from './agent-artifacts.js';
 import { classifyDeviceCredentialRecovery } from './enrollment-security.js';
 import { appUsageCredentialCacheKey } from './telemetry-security.js';
 import { withSchemaMigrationLock } from './schema-migration-lock.js';
+import { planMigrationHistory } from './schema-migration-integrity.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -174,12 +175,13 @@ export async function attemptConnection() {
     }
 
     pool = newPool;
+    isConnected = false;
+    // Keep the service unavailable until the locked migration history and
+    // all pending migrations are verified. A TCP connection alone is not ready.
+    await runDatabaseMigrationsOnPool(newPool);
     isConnected = true;
     isConnecting = false;
     console.log(`✅ Connected successfully to MySQL Database (${host}:${port}/${database}) [Pool size: ${poolSize}]!`);
-
-    // Automatically synchronize schema & ensure seed records
-    await runMigrationsAndSeed();
     return true;
   } catch (err) {
     isConnected = false;
@@ -247,8 +249,8 @@ export async function initDbPool(options = {}) {
   for (let attempt = 1; attempt <= attempts; attempt++) {
     try {
       console.log(`[DB Boot] Connection attempt ${attempt}/${attempts}...`);
-      await attemptConnection();
-      return true;
+      if (await attemptConnection()) return true;
+      throw new Error('DB_SCHEMA_INITIALIZATION_IN_PROGRESS');
     } catch (err) {
       console.log(`[DB Boot] MySQL connection attempt ${attempt}/${attempts} not ready: ${err.message}`);
       if (attempt < attempts) {
@@ -261,10 +263,6 @@ export async function initDbPool(options = {}) {
 
   console.log('[DB Boot] Initial DB connection attempts finished. Operating in resilient fallback mode; periodic background health-check active.');
   return false;
-}
-
-async function runMigrationsAndSeed() {
-  return runDatabaseMigrations();
 }
 
 // ---------------- ENTERPRISE SCHEMA MIGRATION RUNNER ----------------
@@ -294,7 +292,11 @@ export async function runDatabaseMigrations() {
     return { applied: [], skipped: ['001_init_schema.sql', '002_partitioning.sql', '003_rbac_and_audit.sql', '004_workspace_memberships.sql', '005_remediation_tenant_logs.sql', '006_notification_outbox.sql', '007_scrub_legacy_github_pat.sql', '008_scrub_legacy_ticket_keys.sql', '009_notification_destination_binding.sql', '010_events_tenant_device_identity.sql', '011_security_posture_provenance.sql', '012_measured_device_telemetry.sql', '013_events_idempotency.sql', '014_telemetry_batches.sql', '015_batch_receipt_retention_index.sql', '016_app_usage_snapshot.sql', '017_device_recovery_reviews.sql', '018_troubleshooting_incidents.sql', '019_troubleshooting_diagnostic_plans.sql'], status: 'FALLBACK_MODE' };
   }
 
-  return withSchemaMigrationLock(pool, async connection => {
+  return runDatabaseMigrationsOnPool(pool);
+}
+
+async function runDatabaseMigrationsOnPool(activePool) {
+  return withSchemaMigrationLock(activePool, async connection => {
     const result = { applied: [], skipped: [] };
     // 2. Ensure schema_migrations tracking table exists
     await connection.query(`
@@ -309,8 +311,7 @@ export async function runDatabaseMigrations() {
     `);
 
     // 3. Fetch already applied versions
-    const [appliedRows] = await connection.query("SELECT version FROM `schema_migrations`");
-    const appliedVersions = new Set((appliedRows || []).map(r => String(r.version)));
+    const [appliedRows] = await connection.query("SELECT version, name, checksum FROM `schema_migrations`");
 
     // 4. Discover and order migration files
     const migrationsDir = path.join(__dirname, 'database', 'migrations');
@@ -323,17 +324,13 @@ export async function runDatabaseMigrations() {
       .filter(f => f.endsWith('.sql') && !f.startsWith('.'))
       .sort();
 
-    for (const file of migrationFiles) {
-      const version = file.split('_')[0];
-      if (appliedVersions.has(version)) {
-        result.skipped.push(file);
-        continue;
-      }
-
+    const history = planMigrationHistory(migrationFiles.map(name => ({
+      name, sql: fs.readFileSync(path.join(migrationsDir, name), 'utf8')
+    })), appliedRows);
+    result.skipped.push(...history.applied.map(f => f.name));
+    for (const prior of history.applied) memAppliedMigrations.add(prior.version);
+    for (const { version, name: file, sql, checksum: hash } of history.pending) {
       console.log(`[Migrations] Applying migration: ${file}...`);
-      const filePath = path.join(migrationsDir, file);
-      const sql = fs.readFileSync(filePath, 'utf8');
-      const hash = crypto.createHash('sha256').update(sql).digest('hex');
 
       const t0 = Date.now();
       await connection.query(sql);
@@ -345,7 +342,6 @@ export async function runDatabaseMigrations() {
       );
 
       result.applied.push({ version, name: file, execution_time_ms: elapsed });
-      appliedVersions.add(version);
       memAppliedMigrations.add(version);
       console.log(`[Migrations] ✅ Applied ${file} in ${elapsed}ms (checksum: ${hash.slice(0, 8)})`);
     }
@@ -371,7 +367,7 @@ export async function runDatabaseMigrations() {
 
 // ---------------- TELEMETRY PARTITION MAINTENANCE ----------------
 export async function maintainTelemetryPartitions(retentionDays = 30, migrationConnection = null) {
-  if (!isMysqlConnected() || !pool) {
+  if (!migrationConnection && (!isMysqlConnected() || !pool)) {
     return { created: [], dropped: [] };
   }
   const results = { created: [], dropped: [] };

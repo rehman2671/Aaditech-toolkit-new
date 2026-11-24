@@ -1,6 +1,6 @@
 import {describe,it,expect} from 'vitest';
 import {randomUUID,generateKeyPairSync,createHash,sign} from 'node:crypto';
-import {verifyDiagnosticEvidence as verify} from '../../diagnostic-evidence.js';
+import {verifyDiagnosticEvidence as verify,verifyResourceDiagnosticArtifact} from '../../diagnostic-evidence.js';
 const sha=x=>createHash('sha256').update(x).digest('hex'),nowMs=1700000000000;
 const {publicKey,privateKey}=generateKeyPairSync('ed25519');
 const expected={installationId:randomUUID(),tenantId:randomUUID(),deviceId:randomUUID(),incidentId:randomUUID(),planId:randomUUID(),
@@ -27,5 +27,23 @@ describe('diagnostic artifact review-only evidence',()=>{
  it('rejects wrong signature and independent key/digest pins',()=>{
   const a=args();expect(()=>verify({...a,signature:Buffer.alloc(64)})).toThrow();
   for(const k of ['payloadSha256','signerSpkiSha256'])expect(()=>verify({...a,expected:{...a.expected,[k]:'f'.repeat(64)}})).toThrow();
+ });
+});
+
+describe('bounded resource artifact content contract',()=>{
+ function artifactProof(doc){
+  const artifact=Buffer.from(JSON.stringify(doc));
+  const proof=args({artifact_sha256:sha(artifact)});
+  proof.expected.artifactSha256=sha(artifact);
+  return {artifact,proof};
+ }
+ const doc={schema:'aaditech-resource-diagnostic-v1',cpu_percent:0,ram_percent:75,disk_percent:null};
+ it('verifies content bytes and counts measured fields without asserting truth',()=>{
+  expect(verifyResourceDiagnosticArtifact(artifactProof(doc))).toMatchObject({artifact_content_verified:true,measurement_truth_verified:false,measured_fields:2,attempt_executed:false});
+ });
+ it('rejects extra private fields, invalid percentages and tampering',()=>{
+  for(const patch of [{process:'private'},{cpu_percent:'0'},{ram_percent:101},{disk_percent:-1}])
+   expect(()=>verifyResourceDiagnosticArtifact(artifactProof({...doc,...patch}))).toThrow();
+  const a=artifactProof(doc);a.artifact[0]=0;expect(()=>verifyResourceDiagnosticArtifact(a)).toThrow();
  });
 });

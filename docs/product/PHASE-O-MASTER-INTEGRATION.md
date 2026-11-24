@@ -276,3 +276,7 @@ Strict history verification may intentionally block a historical installation wh
 ## 2026-11-25 residual governance transport batch
 
 On review baseline #109 `49136dfb6ff58217fa03cca27f20c550fd90b25b`, preserve the existing N73 double full inventory comparison and wildcard safety. Add short-page continuation using only fixed API endpoints, explicit redirect refusal and uncached reads, empty nonterminal-page denial and malformed/inconsistent detail validation. New offline regression fixtures extend the existing N73 lint dispatch. The standalone main-based #112 was closed as superseded; do not merge its weaker duplicate implementation. This follow-up is review-only, exact-head CI pending, and does not change governance settings, production approval or architecture decisions.
+
+## 2026-11-25 — Recovery and intake integrity follow-up (PR #113)
+
+The prior #113 head `1d025e8b27df209dc1ec778a102ea5f3e9b33b85` completed CI `45485759898` successfully. This batch adds independent review-only recovery persisted-state checks, canonical database integers and uncertain-commit session discard; internal troubleshooting validates persisted actor and intake identities, aggregate counts and overflow, and discards uncertain-commit sessions. Four recovery and three troubleshooting regression cases are added. Fresh exact-head CI, combined #109 reconciliation and independent review are pending. Existing #111 source remains separate; no merge or replacement credential issuance is claimed. No new migration or production acceptance.

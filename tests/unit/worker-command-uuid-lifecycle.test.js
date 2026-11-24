@@ -15,8 +15,18 @@ describe('installed worker durable UUID result lifecycle',()=>{
     const order=['Resolve-VerifiedAgentCommand','Try-ClaimVerifiedCommand','Invoke-RemoteCommand','Record-ExecutedCommand'].map(x=>section.indexOf(x));
     expect(order.every(x=>x>=0)).toBe(true);
     expect(order).toEqual([...order].sort((a,b)=>a-b));
-    expect(s.match(/Invoke-VerifiedCommandOnce -Config \$Config -Cmd \$cmd/g)).toHaveLength(2);
-    expect(s.match(/Send-PendingCommandResults -Config \$Config/g)).toHaveLength(2);
+    // The legacy privileged cycle was retired in O1. Exactly one normal
+    // command execution and outbox delivery path must remain.
+    expect(s.match(/Invoke-VerifiedCommandOnce -Config \$Config -Cmd \$cmd/g)).toHaveLength(1);
+    expect(s.match(/Send-PendingCommandResults -Config \$Config/g)).toHaveLength(1);
+    const guard = /if \(\$ElevatedOnce\)\s*\{\s*Write-Output 'LEGACY_ELEVATED_WORKER_DISABLED'\s*exit 3\s*\}/g;
+    const matches = [...s.matchAll(guard)];
+    expect(matches).toHaveLength(1);
+    const main = s.indexOf('# ------------------------------------------------------------------ main');
+    expect(main).toBeGreaterThan(matches[0].index);
+    expect(s.slice(main)).not.toMatch(/\$ElevatedOnce|Request-ElevatedJob/);
+    expect(s.indexOf('Invoke-VerifiedCommandOnce -Config $Config -Cmd $cmd', main))
+      .toBeLessThan(s.indexOf('Send-PendingCommandResults -Config $Config', main));
   });
   it('persists strict normalized body and requires a matching authoritative receipt',()=>{
     expect(commandResultSchema.safeParse({status:'completed',output:'ok',exit_code:0}).success).toBe(true);

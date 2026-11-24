@@ -23,3 +23,8 @@ Offline `node --test tests/unit/stage73-ruleset-pagination.test.cjs` verifies a 
 - [ ] Independently approved signing archives, real signed release, Hostinger HTTPS + MySQL, physical Windows enrollment and encrypted offsite restore are verified with operator receipts.
 
 N73 deliberately does not change GitHub settings, provision credentials, claim signed artifacts, or trigger a production deployment. See [admin handoff](MAIN-RULESET-ADMIN-HANDOFF.md) and [production checklist](PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md).
+
+
+### Phase O residual transport hardening (2026-11-25 IST)
+
+The active #109 integration baseline already contains the two complete policy reads. This follow-up retains them and adds fixed-origin continuation on a short page with a `Link` next relation (never follows the provided URL), redirect refusal, uncached requests, empty nonterminal-page refusal, complete ruleset detail shape checks and summary/detail target/enforcement consistency. Four additional offline regression tests cover these boundaries. Exact-head CI and independent review remain pending; no live policy or production approval is asserted.

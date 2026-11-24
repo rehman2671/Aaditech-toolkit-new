@@ -6,6 +6,8 @@ import {validateInstallationIdentity} from './scripts/installation-identity.mjs'
 import {planTroubleshooting,troubleshootingCatalog} from './troubleshooting-policy.js';
 const uuid=x=>typeof x==='string'&&x.length===36&&/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(x);
 const fail=code=>{throw Error(code)};
+const dbInt=x=>typeof x==='number'&&Number.isSafeInteger(x)?x:
+ typeof x==='string'&&/^(0|[1-9][0-9]*)$/.test(x)&&String(Number(x))===x&&Number.isSafeInteger(Number(x))?Number(x):NaN;
 function context(pool,input,fields){
  if(!pool?.getConnection||!input||typeof input!=='object'||Array.isArray(input)||
     Object.keys(input).some(k=>!fields.includes(k)))fail('INCIDENT_INVALID');
@@ -16,9 +18,12 @@ function context(pool,input,fields){
  return Object.freeze({installationId,deviceId,tenant:principal.tenant_id,actor:principal.id});
 }
 async function transaction(pool,fn){
- const c=await pool.getConnection();let done=false,discard=false;
- try{await c.beginTransaction();const result=await fn(c);await c.commit();done=true;return result;}
- finally{if(!done){try{await c.rollback()}catch{discard=true;c.destroy?.()}}if(!discard)c.release()}
+ const c=await pool.getConnection();let done=false,discard=false,commitStarted=false;
+ try{await c.beginTransaction();const result=await fn(c);commitStarted=true;await c.commit();done=true;return result;}
+ finally{
+  if(!done){if(commitStarted)discard=true;try{await c.rollback()}catch{discard=true}if(discard)c.destroy?.()}
+  if(!discard)c.release()
+ }
 }
 async function lockScope(c,s){
  const [devices]=await c.query('SELECT id,tenant_id FROM devices WHERE id=? AND tenant_id=? FOR UPDATE',[s.deviceId,s.tenant]);
@@ -26,14 +31,14 @@ async function lockScope(c,s){
  if(!d||d.id!==s.deviceId||d.tenant_id!==s.tenant)fail('INCIDENT_SCOPE_DENIED');
  const [users]=await c.query('SELECT id,tenant_id,role,active,status FROM users WHERE id=? AND tenant_id=? FOR UPDATE',[s.actor,s.tenant]);
  const u=users?.length===1?users[0]:null;
- if(!u||Number(u.id)!==s.actor||u.tenant_id!==s.tenant||u.role!=='SUPER_ADMIN'||
+ if(!u||dbInt(u.id)!==s.actor||u.tenant_id!==s.tenant||u.role!=='SUPER_ADMIN'||
     ![1,true,'1'].includes(u.active)||u.status!=='ACTIVE')fail('INCIDENT_SCOPE_DENIED');
 }
 const columns='incident_id,installation_id,tenant_id,device_id,actor_user_id,intake_request_id,category_id,hazard,status';
 function view(row,s,duplicate){
  if(!row||row.installation_id!==s.installationId||row.tenant_id!==s.tenant||
-    row.device_id!==s.deviceId||Number(row.actor_user_id)!==s.actor||!uuid(row.incident_id)||
-    !['OPEN','ESCALATED'].includes(row.status))fail('INCIDENT_SCOPE_DENIED');
+    row.device_id!==s.deviceId||dbInt(row.actor_user_id)!==s.actor||!uuid(row.incident_id)||
+    !uuid(row.intake_request_id)||!['OPEN','ESCALATED'].includes(row.status))fail('INCIDENT_SCOPE_DENIED');
  const plan=planTroubleshooting({category_id:row.category_id,intake_channel:'TECHNICIAN',hazard:row.hazard});
  if(plan.reason==='INVALID_INPUT'||row.status!==(plan.decision==='HUMAN_ONLY'?'ESCALATED':'OPEN'))fail('INCIDENT_STATE_INVALID');
  return Object.freeze({incident_id:row.incident_id,category_id:row.category_id,status:row.status,
@@ -65,7 +70,7 @@ export async function createTroubleshootingIncident(pool,input){
     [randomUUID(),s.tenant,s.actor,String(s.actor),'TROUBLESHOOTING_INCIDENT_RECORDED','Incident:'+id,JSON.stringify({category_id:categoryId,status}),null]);
   if(a?.affectedRows!==1)fail('INCIDENT_AUDIT_UNCONFIRMED');
   return view({incident_id:id,installation_id:s.installationId,tenant_id:s.tenant,device_id:s.deviceId,
-    actor_user_id:s.actor,category_id:categoryId,hazard,status},s,false);
+    actor_user_id:s.actor,intake_request_id:requestId,category_id:categoryId,hazard,status},s,false);
  });
 }
 export async function inspectTroubleshootingIncident(pool,input){
@@ -104,7 +109,7 @@ export async function recordDiagnosticPlan(pool,input){
    const row=rows[0];
    if(!uuid(row.plan_id)||row.incident_id!==incidentId||row.request_id!==requestId||
       row.installation_id!==s.installationId||row.tenant_id!==s.tenant||row.device_id!==s.deviceId||
-      Number(row.actor_user_id)!==s.actor||row.diagnostic_id!==diagnostic)fail('DIAGNOSTIC_PLAN_STATE_INVALID');
+      dbInt(row.actor_user_id)!==s.actor||row.diagnostic_id!==diagnostic)fail('DIAGNOSTIC_PLAN_STATE_INVALID');
    return result(row.plan_id,true);
   }
   const id=randomUUID();
@@ -130,12 +135,11 @@ export async function summarizeTroubleshootingIntake(pool,input){
    [s.installationId,s.tenant,s.deviceId,s.actor]);
   if(rows?.length!==1)fail('INCIDENT_SUMMARY_UNVERIFIED');
   const parseCount=x=>{
-   if(typeof x!=='number'&&(typeof x!=='string'||! /^(0|[1-9][0-9]*)$/.test(x)))fail('INCIDENT_SUMMARY_UNVERIFIED');
-   const n=Number(x);if(!Number.isSafeInteger(n)||n<0)fail('INCIDENT_SUMMARY_UNVERIFIED');return n;
+   const n=dbInt(x);if(!Number.isSafeInteger(n)||n<0)fail('INCIDENT_SUMMARY_UNVERIFIED');return n;
   };
   const reported=parseCount(rows[0].reported),open=parseCount(rows[0].open_count),
     escalated=parseCount(rows[0].escalated_count),planned=parseCount(rows[0].planned_incidents);
-  if(open+escalated!==reported||planned>open)fail('INCIDENT_SUMMARY_UNVERIFIED');
+  if(!Number.isSafeInteger(open+escalated)||open+escalated!==reported||planned>open)fail('INCIDENT_SUMMARY_UNVERIFIED');
   return Object.freeze({reported,open,escalated,incidents_with_plans:planned,
    diagnosed:null,executed_attempts:null,verified_resolved:null,resolution_rate:null,
    outcome_measurement:'NOT_IMPLEMENTED',production_accepted:false});

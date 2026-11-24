@@ -5,6 +5,8 @@
 > **CURRENT PRODUCT BASELINE (2026-11-23):** This is a *historical clean-room design*, not the implemented production architecture. Its FastAPI/PostgreSQL and historical mTLS assumptions are superseded for current delivery by [the intranet-first product architecture](../docs/product/INTRANET-ARCHITECTURE.md) and [requirements](../docs/product/PRODUCT-REQUIREMENTS.md). Actual code: Node.js/Express + MySQL 8; no verified offline one-click office installer yet. Preserve this document for design history, not as an operator deployment procedure.
 
 
+> **Phase O checkpoint (2026-11-24):** [PR #109](https://github.com/rehman2671/Aaditech-toolkit-new/pull/109) tested head `7b4a0ebf2b65eb638d0e2da7a0b1aa6bbb72601a` passed unsigned Windows lifecycle and isolated MySQL CI. The historical elevated SYSTEM task design below is retired in the review candidate; routine NETWORK SERVICE only, with unapproved privileged operations default-denied. See [current evidence](../docs/product/PHASE-O-MASTER-INTEGRATION.md). No original scope change, architecture approval or signed release; new patches require fresh CI.
+
 > **Purpose:** This document describes the complete IT-Toolkit platform **by
 > concept** - what each part does, why it exists, how it should behave, and the
 > clean design-level contracts between components. It is written to let a

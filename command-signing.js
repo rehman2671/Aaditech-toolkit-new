@@ -36,15 +36,20 @@ export function signDeviceCommand({ device, command, deviceToken, now = Date.now
 
 export function verifyDeviceCommand({ signed_content, signature, deviceToken, commandId, device, now = Date.now() }) {
   if (typeof signed_content !== 'string' || signed_content.length > 65536 ||
-      !/^[a-f0-9]{64}$/i.test(signature || '') || !deviceToken || !device) return false;
+      typeof signature !== 'string' || !/^[a-f0-9]{64}$/i.test(signature) ||
+      typeof deviceToken !== 'string' || !deviceToken.startsWith('itk_dev_') ||
+      !device || !Number.isFinite(now)) return false;
   const expected = crypto.createHmac('sha256', String(deviceToken))
     .update(DOMAIN + signed_content, 'utf8').digest();
   const given = Buffer.from(signature, 'hex');
   if (given.length !== expected.length || !crypto.timingSafeEqual(given, expected)) return false;
   let parsed;
   try { parsed = JSON.parse(signed_content); } catch { return false; }
-  if (parsed.version !== 1 || !parsed.command_id || !parsed.device_id ||
-      !parsed.tenant_id || !parsed.hostname || !parsed.kind ||
+  // A valid MAC is not proof of a valid protocol envelope.
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed) ||
+      parsed.version !== 1 ||
+      ['command_id', 'device_id', 'tenant_id', 'hostname', 'kind', 'issued_at', 'expires_at']
+        .some(key => typeof parsed[key] !== 'string' || !parsed[key].trim()) ||
       !Number.isFinite(Date.parse(parsed.issued_at)) ||
       !Number.isFinite(Date.parse(parsed.expires_at))) return false;
   const issued = Date.parse(parsed.issued_at), expires = Date.parse(parsed.expires_at);

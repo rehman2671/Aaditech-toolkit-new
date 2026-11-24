@@ -3,6 +3,8 @@
 > **LEGACY BASE TOOLKIT TASK LIST (2026-11-23):** Historic checkbox completion does not measure AadiTech Enterprise intranet deployment or production acceptance. Current evidence-based [product feature matrix](../docs/product/FEATURE-ACCEPTANCE-MATRIX.md) and [delivery tracker](../docs/product/DELIVERY-TRACKER.json) supersede completion claims for new work; preserve these checklists as earlier implementation history.
 
 
+> **Current Phase O checkpoint (2026-11-24):** [PR #109](https://github.com/rehman2671/Aaditech-toolkit-new/pull/109) tested head `7b4a0ebf2b65eb638d0e2da7a0b1aa6bbb72601a` passed [4/4 executable CI jobs](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45447219419) and [2/2 safety jobs](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45447219513), including actual unsigned MSI lifecycle and legacy task retirement. See [master integration](../docs/product/PHASE-O-MASTER-INTEGRATION.md) and [delivery tracker](../docs/product/DELIVERY-TRACKER.json). New verifier patch requires fresh CI. Owner ADR, independent review, main protection, signed release and physical office acceptance remain open; historical checklists are not production sign-off.
+
 **Project Start Date:** 2026-07-10  
 **Total Phases:** 3  
 **Total Tasks:** 18 major + 50+ subtasks  

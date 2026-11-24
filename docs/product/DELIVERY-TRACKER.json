@@ -150,7 +150,8 @@
       ],
       "evidence": [
         "Enterprise/agent/wix/Agent.wxs",
-        "main diagnostic MSI CI 45062353330"
+        "main diagnostic MSI CI 45062353330",
+        "PR #109 tested head 7b4a0ebf2b65eb638d0e2da7a0b1aa6bbb72601a: CI 45447219419 4/4 executed jobs and safety 45447219513 2/2 SUCCESS including actual unsigned Windows EXE/MSI installation, upgrade, uninstall, inert legacy-task retirement and tenant/device/SQLite preservation; protected signing skipped. Not merged or production accepted."
       ],
       "next": "Test with signed artifact, physical Windows and internal CA under WAN-disconnected office",
       "blocked": true
@@ -164,9 +165,10 @@
       "requires": [],
       "evidence": [
         "server.js workspaces/agent endpoints",
-        "tests/integration/workspace-selection.integration.test.js"
+        "tests/integration/workspace-selection.integration.test.js",
+        "PR #109 tested head 7b4a0ebf2b65eb638d0e2da7a0b1aa6bbb72601a: CI 45447219419 4/4 executed jobs and safety 45447219513 2/2 SUCCESS including actual unsigned Windows EXE/MSI installation, upgrade, uninstall, inert legacy-task retirement and tenant/device/SQLite preservation; protected signing skipped. Not merged or production accepted."
       ],
-      "next": "Demonstrate real multi-installation and multi-device namespace isolation",
+      "next": "Complete historical #4 isolation/credential ownership review, multi-replica authentication/rotation and real multi-installation namespace tests.",
       "blocked": false
     },
     {
@@ -219,9 +221,11 @@
         "Combined #99 head 70cb60ea5b74eadf3fb2b4c972a268c7df247d38: CI 45350364704 3/3 and safety 45350364886 2/2 SUCCESS; actual SQLite 8-connection test",
         "Unmerged #100 30de37f0f3ea8aa280e9445811b0f2c2d780c6bc: CI 45350645810 and safety 45350646190 SUCCESS",
         "#101 2de65f53bda3bc938541c47d55436586ce732eff: CI 45352835660 and safety 45352835606 SUCCESS",
-        "#102 7cbe4ce382a2e7fa97c5991ea23ce62742aa2d83: CI 45354022119 and safety 45354022056 SUCCESS"
+        "#102 7cbe4ce382a2e7fa97c5991ea23ce62742aa2d83: CI 45354022119 and safety 45354022056 SUCCESS",
+        "PR #109 tested head 7b4a0ebf2b65eb638d0e2da7a0b1aa6bbb72601a: CI 45447219419 4/4 executed jobs and safety 45447219513 2/2 SUCCESS including actual unsigned Windows EXE/MSI installation, upgrade, uninstall, inert legacy-task retirement and tenant/device/SQLite preservation; protected signing skipped. Not merged or production accepted.",
+        "Historical #2 follow-up: typed JS command verifier rejects MAC-valid malformed JSON, coercible identities and non-device keys; new patch CI pending."
       ],
-      "next": "Independently review #102; signed physical Windows, packaged SQLite, actual network loss/restart, secure concurrent configuration and pending-result retention/backpressure; never re-execute uncertain claims",
+      "next": "Verify fresh exact-head CI; finish #2/#4/#61 semantic review and independent #109 review; signed physical Windows/LAN command and receipt acceptance pending.",
       "blocked": true
     },
     {
@@ -237,7 +241,8 @@
         "Unmerged PR #96 head c6bd01b2bed47707418fded57a90b5a07c049ec8",
         "CI 45292527338 SUCCESS 3/3 including native Windows legacy agent source check",
         "Deployment safety 45292527296 SUCCESS 2/2",
-        "Legacy Aaditech-Agent.ps1 now TELEMETRY-ONLY; no unbound outer cmd.kind or unapproved privileged repair"
+        "Legacy Aaditech-Agent.ps1 now TELEMETRY-ONLY; no unbound outer cmd.kind or unapproved privileged repair",
+        "PR #109 tested head 7b4a0ebf2b65eb638d0e2da7a0b1aa6bbb72601a: CI 45447219419 4/4 executed jobs and safety 45447219513 2/2 SUCCESS including actual unsigned Windows EXE/MSI installation, upgrade, uninstall, inert legacy-task retirement and tenant/device/SQLite preservation; protected signing skipped. Not merged or production accepted."
       ],
       "next": "Independently review and reconcile agent bundle/Windows CI with PR #95/#97, then protected landing and signed MSI physical Windows validation; don't claim remote commands are safe from this source test",
       "blocked": true
@@ -256,7 +261,8 @@
         "Unmerged PR #97 head 3392ddd7c17e759e52853964774cffe71e772487",
         "CI 45294006952 SUCCESS 3/3 including Windows reboot/self-update refusals",
         "Deployment safety 45294004792 SUCCESS 2/2",
-        "Reboot blocked at API/portal/worker and SYSTEM task; automatic TEMP MSI download/elevated msiexec disabled"
+        "Reboot blocked at API/portal/worker and SYSTEM task; automatic TEMP MSI download/elevated msiexec disabled",
+        "PR #109 tested head 7b4a0ebf2b65eb638d0e2da7a0b1aa6bbb72601a: CI 45447219419 4/4 executed jobs and safety 45447219513 2/2 SUCCESS including actual unsigned Windows EXE/MSI installation, upgrade, uninstall, inert legacy-task retirement and tenant/device/SQLite preservation; protected signing skipped. Not merged or production accepted."
       ],
       "next": "Implement independent owner/device consent, maintenance window, audited signed privileged IPC, out-of-band signed MSI hash and signer, immutable staging, rollback and real Windows approval before enabling reboot or unattended update",
       "blocked": true
@@ -343,9 +349,10 @@
       "evidence": [
         "main diagnostic CI 45062353330",
         "Enterprise/agent/SETUP-WINDOWS.md",
-        "Unmerged PR #95 approval-hash + signer-gated downloaded MSI scripts; #97 disables unsigned unattended worker MSI auto-update"
+        "Unmerged PR #95 approval-hash + signer-gated downloaded MSI scripts; #97 disables unsigned unattended worker MSI auto-update",
+        "PR #109 tested head 7b4a0ebf2b65eb638d0e2da7a0b1aa6bbb72601a: CI 45447219419 4/4 executed jobs and safety 45447219513 2/2 SUCCESS including actual unsigned Windows EXE/MSI installation, upgrade, uninstall, inert legacy-task retirement and tenant/device/SQLite preservation; protected signing skipped. Not merged or production accepted."
       ],
-      "next": "After independent review and protected merge, sign real publisher-owned MSI and witness physical Windows install, configured enrollment, upgrade and rollback; auto-update is disabled until approved release integrity",
+      "next": "Independently review #109, protect main, verify fresh candidate and merged-main CI; then signed publisher MSI and physical Windows install/enrollment/upgrade/rollback.",
       "blocked": true
     },
     {
@@ -358,7 +365,8 @@
       "evidence": [
         "PR #76 open head fd0bacf108256431a2bb81992f37eade5e7d00b8",
         "CI 45075407395 success",
-        "safety 45075407383 success"
+        "safety 45075407383 success",
+        "PR #109 tested head 7b4a0ebf2b65eb638d0e2da7a0b1aa6bbb72601a: CI 45447219419 4/4 executed jobs and safety 45447219513 2/2 SUCCESS including actual unsigned Windows EXE/MSI installation, upgrade, uninstall, inert legacy-task retirement and tenant/device/SQLite preservation; protected signing skipped. Not merged or production accepted."
       ],
       "next": "Obtain independent code review and authorized merge, then fresh-main Windows MSI verification",
       "blocked": true
@@ -373,7 +381,8 @@
       "evidence": [
         "PR #75 open head 67abb1bff711a400b55b3f695311917a7d3069c9",
         "CI 45072083622 success",
-        "safety 45072083593 success"
+        "safety 45072083593 success",
+        "PR #109 tested head 7b4a0ebf2b65eb638d0e2da7a0b1aa6bbb72601a: CI 45447219419 4/4 executed jobs and safety 45447219513 2/2 SUCCESS including actual unsigned Windows EXE/MSI installation, upgrade, uninstall, inert legacy-task retirement and tenant/device/SQLite preservation; protected signing skipped. Not merged or production accepted."
       ],
       "next": "Obtain independent review and repo administrator protected-main ruleset",
       "blocked": true
@@ -395,9 +404,10 @@
         "Combined #101 result recovery review branch; no protected merge, signed release or production approval",
         "#102 consolidated review branch; no protected merge or production approval",
         "#105 synthetic publisher signature tests do not constitute independent production signing or release acceptance",
-        "Phase O reconciliation: 33 open source PRs observed; #75 governance pagination and #77 docs imported into #108-based review candidate; main unprotected and rulesets empty; combined CI and independent review required"
+        "Phase O reconciliation: 33 open source PRs observed; #75 governance pagination and #77 docs imported into #108-based review candidate; main unprotected and rulesets empty; combined CI and independent review required",
+        "PR #109 tested head 7b4a0ebf2b65eb638d0e2da7a0b1aa6bbb72601a: CI 45447219419 4/4 executed jobs and safety 45447219513 2/2 SUCCESS including actual unsigned Windows EXE/MSI installation, upgrade, uninstall, inert legacy-task retirement and tenant/device/SQLite preservation; protected signing skipped. Not merged or production accepted."
       ],
-      "next": "Review combined Phase O candidate and historical residual patches; configure and independently verify protected main, reviewer independence, non-bypass rules and signed release",
+      "next": "Finish historical #2/#4/#61 review, fresh candidate CI, independent review and authorized repo protection; actual signing/production blocked.",
       "blocked": true
     },
     {

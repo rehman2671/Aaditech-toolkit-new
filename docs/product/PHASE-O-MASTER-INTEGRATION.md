@@ -80,3 +80,9 @@ At `36e8f200`, CI #45444870106 failed N62 because the same exact approved compil
 ### O1 N62 source reconstruction
 
 At `9fbf9032`, Node/Vitest and N70 lint passed, safety #45446897874 passed; CI #45446897752 PowerShell parser rejected N62 due to a malformed text substitution which duplicated the tail of the test. Reconstructed from the previous clean source with literal replacement, retaining per-job and global exact pin assertions. Verified both named job boundaries and all four expected pin occurrences structurally; native PowerShell parser and full combined CI must run again. No policy or production workflow relaxation.
+
+## Phase O — integration evidence checkpoint (2026-11-24 IST)
+
+[PR #109](https://github.com/rehman2671/Aaditech-toolkit-new/pull/109) exact tested head `7b4a0ebf2b65eb638d0e2da7a0b1aa6bbb72601a`: [CI](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45447219419) **4/4 executed jobs PASS** (PowerShell, Node/Vitest, real MySQL API, unsigned Windows MSI integration) and [deployment safety](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45447219513) **2/2 PASS**. Actual EXE/MSI build, extraction, install/uninstall and major upgrade with a disabled legacy task fixture and tenant/device/SQLite preservation. Protected signing skipped. No independent review, main merge, physical LAN acceptance or signed publication.
+
+Historical #2 agent-trust review: the JS verifier accepted coercible fields and could throw for MAC-valid JSON null. Follow-up patch adds typed signature/device-key/clock and envelope checks and MAC-valid malformed-input regressions. Helper boundary only, not proof of Windows runtime or full historical #2/#4/#61 reconciliation. Fresh exact-head CI required. DEC-001 through DEC-005 remain owner decisions; no stack change or production approval inferred.

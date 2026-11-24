@@ -1,5 +1,7 @@
 # Phase N — Production release acceptance and sign-off
 
+> **Phase O checkpoint (2026-11-24):** [PR #109](https://github.com/rehman2671/Aaditech-toolkit-new/pull/109) tested head `7b4a0ebf2b65eb638d0e2da7a0b1aa6bbb72601a` passed [4/4 executable jobs](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45447219419) and [2/2 safety jobs](https://github.com/rehman2671/Aaditech-toolkit-new/actions/runs/45447219513) including actual unsigned Windows MSI installation, major upgrade, legacy task retirement and uninstall. Review branch only; protected signing skipped. New patches require fresh evidence; governance, signed publication, physical Windows/LAN and offsite restore remain **BLOCKED/PENDING**. See [master integration](../../docs/product/PHASE-O-MASTER-INTEGRATION.md).
+
 ## Stage N73 — complete live ruleset pagination (PR validation pending; production BLOCKED)
 
 - [x] Code rejects incomplete/paginated GitHub main-governance inspection, wildcard/exclusion policy blind spots and wildcard-only false-positive main authorization, missing/duplicate policy IDs, detail mismatch, failed later pages, mid-verification branch/policy drift and unbounded rule counts; offline regressions added to CI lint.

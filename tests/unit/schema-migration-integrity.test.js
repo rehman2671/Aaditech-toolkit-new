@@ -18,3 +18,10 @@ describe('migration history preflight',()=>{
   for(const bad of [[],[files[1]],[files[0],files[0]],[{...files[0],sql:''}]])expect(()=>plan(bad,[])).toThrow();
  });
 });
+
+it('rejects malformed entries and line-terminated migration names before planning DDL',()=>{
+ for(const bad of [[null],[{name:42,sql:'SELECT 1;'}],[{...files[0],name:files[0].name+'\n'}],[{...files[0],name:files[0].name+'\r'}]])
+  expect(()=>plan(bad,[])).toThrow('MIGRATION_SEQUENCE_INVALID');
+ expect(()=>plan(files,[{...row(files[0]),version:'001\n'}])).toThrow('MIGRATION_HISTORY_INVALID');
+ expect(()=>plan(Array.from({length:1000},()=>files[0]),[])).toThrow('MIGRATION_HISTORY_INVALID');
+});

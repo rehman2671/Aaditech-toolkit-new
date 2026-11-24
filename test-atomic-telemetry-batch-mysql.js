@@ -125,7 +125,19 @@ try {
   assert(together.every(x=>x.status===200),'8 simultaneous HTTP ACKs');
   assert.equal(together.filter(x=>!x.body.duplicate).length,1,'one HTTP winner');
   assert.equal(together.filter(x=>x.body.duplicate).length,7,'seven HTTP retries');
-  console.log('N29 PASS: atomic rollback, MySQL worker races, single history/alert/outbox, HTTP replay and 409');
+  // Explicit credential argument exercises the deployed write boundary even
+  // in this isolated test-mode fixture.
+  const bound = { tokenHash };
+  const prior = await db.ingestTelemetryBatchOnce(base, bound);
+  assert.equal(prior.duplicate,true);
+  const historyBeforeRevocation = await countHistory();
+  await pool.query('UPDATE devices SET agent_token_revoked=1 WHERE id=?',[devA]);
+  await assert.rejects(()=>db.ingestTelemetryBatchOnce(base,bound),/TELEMETRY_CREDENTIAL_CHANGED/);
+  await assert.rejects(()=>db.ingestTelemetryBatchOnce({...base,batch_id:key+'-revoked'},bound),/TELEMETRY_CREDENTIAL_CHANGED/);
+  assert.equal(await countReceipt(key+'-revoked'),0);
+  assert.equal(await countHistory(),historyBeforeRevocation);
+  await assert.rejects(()=>db.recordCredentialBoundHeartbeat(devA,{tenantId:tenantA,tokenHash}),/COMMAND_CREDENTIAL_CHANGED/);
+  console.log('N29 PASS: atomic rollback, MySQL worker races, single history/alert/outbox, HTTP replay, 409 and revoked credential write fencing');
 } catch(err) {
   failure=err;
   console.error('N29 FAIL:',err);

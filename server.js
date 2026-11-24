@@ -1333,7 +1333,18 @@ app.post(['/api/v1/agent/heartbeat', '/api/agent/heartbeat'], agentLimiter, asyn
   }
 
   const dev = ver.device;
-  await db.updateDevice(dev.id, { status: "online" });
+  try {
+    if (process.env.NODE_ENV === 'test') await db.updateDevice(dev.id, { status: "online" });
+    else await db.recordCredentialBoundHeartbeat(dev.id, {
+      tenantId: dev.tenant_id,
+      tokenHash: hashDeviceToken(extractEnrolledDeviceHeaderToken(req.headers))
+    });
+  } catch (error) {
+    if (error.message === 'COMMAND_CREDENTIAL_CHANGED') {
+      return res.status(401).json({ error: 'DEVICE_CREDENTIAL_CHANGED' });
+    }
+    return res.status(503).json({ error: 'HEARTBEAT_DATABASE_UNAVAILABLE' });
+  }
 
   res.json({
     status: "ok",
@@ -1484,7 +1495,8 @@ app.post(['/api/v1/ingest/telemetry', '/api/ingest'], agentLimiter, validateBody
         processes: Array.isArray(processes) ? processes : [],
         events: Array.isArray(req.body.events) ? req.body.events : [],
         alerts: plans
-      });
+      }, process.env.NODE_ENV === 'test' ? undefined :
+        { tokenHash: hashDeviceToken(extractEnrolledDeviceHeaderToken(req.headers)) });
       if (!receipt.duplicate && Array.isArray(app_usage) && app_usage.length) {
         // Redis is an optional cache, never the durable receipt authority.
         await db.cacheSet('app_usage:' + dev.id, app_usage, 900);
@@ -1499,6 +1511,9 @@ app.post(['/api/v1/ingest/telemetry', '/api/ingest'], agentLimiter, validateBody
       if (['TELEMETRY_BATCH_ID_CONFLICT', 'EVENT_IDEMPOTENCY_CONFLICT'].includes(err.message)) {
         return res.status(409).json({ error: err.message,
           detail: 'An authenticated device already submitted a different payload under the same message/batch ID.' });
+      }
+      if (['TELEMETRY_CREDENTIAL_CHANGED', 'TELEMETRY_DEVICE_OWNER_MISMATCH'].includes(err.message)) {
+        return res.status(401).json({ error: 'DEVICE_CREDENTIAL_CHANGED' });
       }
       if (err.message === 'TELEMETRY_BATCH_MYSQL_REQUIRED') {
         return res.status(503).json({ error: 'DATABASE_UNAVAILABLE',

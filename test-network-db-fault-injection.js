@@ -258,6 +258,22 @@ try {
   assert.ok(blocked.body.blockers.includes('COMMAND_RECONCILIATION_REQUIRED'));
   assert.equal((await revoke(mainPort, auth, crypto.randomUUID())).status, 400);
   assert.equal((await revoke(peerPort, { Cookie: 'auth_token=' + adminToken })).status, 403);
+  const batchId = 'recovery-' + crypto.randomUUID();
+  async function agentPost(port, path, body) {
+    const res = await fetch('http://127.0.0.1:' + port + path, {
+      method:'POST',headers:{'Content-Type':'application/json','X-Device-Token':deviceToken},
+      body:JSON.stringify(body),signal:AbortSignal.timeout(12000)
+    });
+    return {status:res.status,body:await res.json()};
+  }
+  const telemetry = {hostname:deviceHost,batch_id:batchId,events:[]};
+  assert.equal((await agentPost(mainPort,'/api/v1/agent/heartbeat',{hostname:deviceHost})).status,200);
+  const batch = await agentPost(mainPort,'/api/v1/ingest/telemetry',telemetry);
+  assert.equal(batch.status,200);
+  assert.equal(batch.body.duplicate,false);
+  const batchRetry = await agentPost(peerPort,'/api/v1/ingest/telemetry',telemetry);
+  assert.equal(batchRetry.status,200);
+  assert.equal(batchRetry.body.duplicate,true);
   const [before] = await pool.execute('SELECT last_seen_at FROM devices WHERE id = ?', [deviceId]);
   const revocations = await Promise.all([revoke(mainPort, auth), revoke(peerPort, auth)]);
   for (const result of revocations) {
@@ -288,6 +304,15 @@ try {
     assert.equal(recovery.body.outstanding_commands, 1);
     assert.ok(recovery.body.blockers.includes('COMMAND_RECONCILIATION_REQUIRED'));
     assert.equal((await result(port, outstandingId)).status, 401);
+    for (const [path,body] of [
+      ['/api/v1/agent/heartbeat',{hostname:deviceHost}],
+      ['/api/v1/ingest/telemetry',telemetry],
+      ['/api/v1/ingest/telemetry',{...telemetry,batch_id:batchId+'-revoked'}]
+    ]) {
+      const response = await agentPost(port,path,body);
+      assert.equal(response.status,401);
+      assert.equal(response.body.error,'DEVICE_TOKEN_REVOKED');
+    }
     const dispatch = await fetch('http://127.0.0.1:' + port + '/api/v1/commands/dispatch', {
       method:'POST', headers:{...auth,'Content-Type':'application/json'},
       body:JSON.stringify({device_id:deviceId,kind:'run-script',payload:{script:'Scripts/QuickCheck.ps1'}}),
@@ -296,6 +321,10 @@ try {
     assert.equal(dispatch.status, 409);
     assert.equal((await dispatch.json()).error, 'DEVICE_CREDENTIAL_NOT_ACTIVE');
   }
+  const [batchCount] = await pool.execute('SELECT COUNT(*) AS total FROM telemetry_batches WHERE tenant_id=? AND device_id=?',[tenantId,deviceId]);
+  assert.equal(Number(batchCount[0].total),1);
+  const [finalDevice] = await pool.execute('SELECT last_seen_at FROM devices WHERE id=?',[deviceId]);
+  assert.equal(String(finalDevice[0].last_seen_at),String(before[0].last_seen_at));
   const [unfinished] = await pool.execute('SELECT status, completed_at FROM command_queue WHERE id = ?', [outstandingId]);
   assert.equal(unfinished[0].status, 'IN_PROGRESS');
   assert.equal(unfinished[0].completed_at, null);
@@ -317,6 +346,7 @@ try {
       await pool.query('DELETE FROM user_workspace_memberships WHERE tenant_id = ?', [tenantId]);
       await pool.query('DELETE FROM users WHERE tenant_id = ?', [tenantId]);
       await pool.query('DELETE FROM used_bootstrap_tokens WHERE tenant_id = ?', [tenantId]);
+      await pool.query('DELETE FROM telemetry_batches WHERE tenant_id = ?', [tenantId]);
       await pool.query('DELETE cq FROM command_queue cq INNER JOIN devices d ON d.id = cq.device_id WHERE d.tenant_id = ?', [tenantId]);
       await pool.query('DELETE FROM devices WHERE tenant_id = ?', [tenantId]);
       await pool.query('DELETE FROM companies WHERE tenant_id = ?', [tenantId]);

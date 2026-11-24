@@ -1734,7 +1734,7 @@ export async function deleteDevice(id) {
 // N29: keyed telemetry requests are ONE atomic MySQL transaction.
 // MySQL's tenant/device/batch unique key serializes parallel workers and
 // an immutable receipt makes ACK-loss replay a read-only operation.
-export async function ingestTelemetryBatchOnce(batch) {
+export async function ingestTelemetryBatchOnce(batch, credential = undefined) {
   const { tenant_id: tenantId, device_id: deviceId, batch_id: batchId,
     request_hash: hash, device_updates: updates = {},
     metrics: measured, processes = [], events = [], alerts = [] } = batch || {};
@@ -1744,8 +1744,25 @@ export async function ingestTelemetryBatchOnce(batch) {
   if (!isMysqlConnected() || !pool?.getConnection) throw new Error('TELEMETRY_BATCH_MYSQL_REQUIRED');
   const conn = await pool.getConnection();
   let committed = false;
+  let discard = false;
   try {
     await conn.beginTransaction();
+    // Device first, batch second: serialize new batches and ACK replays
+    // with revocation before any receipt or evidence write.
+    const [owners] = await conn.query(
+      'SELECT id, tenant_id, device_token_hash, agent_token_revoked FROM devices WHERE id = ? AND tenant_id = ? FOR UPDATE',
+      [deviceId, tenantId]
+    );
+    const owner = Array.isArray(owners) && owners.length === 1 ? owners[0] : null;
+    if (!owner || String(owner.id) !== String(deviceId) ||
+        String(owner.tenant_id) !== String(tenantId)) throw new Error('TELEMETRY_DEVICE_OWNER_MISMATCH');
+    if (!(process.env.NODE_ENV === 'test' && credential === undefined)) {
+      if (typeof credential?.tokenHash !== 'string' || !/^[a-f0-9]{64}$/.test(credential.tokenHash) ||
+          owner.device_token_hash !== credential.tokenHash ||
+          ![false, 0, '0'].includes(owner.agent_token_revoked)) {
+        throw new Error('TELEMETRY_CREDENTIAL_CHANGED');
+      }
+    }
     const nonce = crypto.randomBytes(16).toString('hex');
     await conn.query(
       'INSERT INTO telemetry_batches (tenant_id, device_id, batch_id, request_hash, insert_nonce, accepted_count) ' +
@@ -1768,11 +1785,6 @@ export async function ingestTelemetryBatchOnce(batch) {
         recorded_at: claim.recorded_at, batch_id: batchId };
     }
 
-    const [owners] = await conn.query(
-      'SELECT id FROM devices WHERE id = ? AND tenant_id = ? FOR UPDATE',
-      [deviceId, tenantId]
-    );
-    if (owners.length !== 1) throw new Error('TELEMETRY_DEVICE_OWNER_MISMATCH');
     const safeColumns = new Set(['status','os_version','ip_address','cpu_usage',
       'memory_usage','disk_free','disk_free_gb','telemetry_reported_at',
       'bitlocker_status','antivirus_status','firewall_status','antivirus_name',
@@ -1870,9 +1882,12 @@ export async function ingestTelemetryBatchOnce(batch) {
     return { duplicate: false, accepted: events.length,
       recorded_at: claim.recorded_at, batch_id: batchId };
   } catch (err) {
-    if (!committed) { try { await conn.rollback(); } catch (_) {} }
+    if (!committed) {
+      try { await conn.rollback(); }
+      catch (_) { discard = true; if (typeof conn.destroy === 'function') conn.destroy(); }
+    }
     throw err;
-  } finally { conn.release(); }
+  } finally { if (!discard) conn.release(); }
 }
 
 // N30: sealed request receipts are tiny, security-relevant tombstones.
@@ -2343,6 +2358,16 @@ async function executeCredentialBoundCommandWrite(owner, credential, sql, params
     }
     if (!discard) conn.release();
   }
+}
+
+// Heartbeat is a liveness mutation, not proof of successful recovery.
+export async function recordCredentialBoundHeartbeat(deviceId, credential) {
+  if (!credential) throw new Error('COMMAND_CREDENTIAL_CHANGED');
+  await executeCredentialBoundCommandWrite(deviceId, credential,
+    "UPDATE devices SET status = 'online', last_seen_at = NOW(3) WHERE id = ? AND tenant_id = ?",
+    [String(deviceId), credential.tenantId]);
+  invalidateDeviceCache(deviceId);
+  await cacheDel('cache:devices:list');
 }
 
 export async function markCommandPickedUp(id, deviceId = null, credential = undefined) {

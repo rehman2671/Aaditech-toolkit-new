@@ -57,3 +57,7 @@ An approved administrator starts a signed/local launcher, accepts OS elevation a
 `AT-OPS-01..03`: signed release, offsite/air-gap recovery and administrator handoff.
 
 Existing `Enterprise/deploy/deploy-mysql.sh` is a **public DNS/VPS** entrypoint, and `Enterprise/deploy/deploy.ps1` and `deploy.sh` are intentionally incompatible/blocked. This document must **not** be read as an instruction to run them for offline production today.
+
+## 2026-11-25 — Parallel diagnostic, setup and migration evidence batch (#113)
+
+Added bounded canonical signed network-status and disk-capacity/health artifact contracts, explicitly distinguishing null and NOT_RUN from measured observations without collecting private paths, SSIDs or destinations. Setup and installation identity preflight require explicit own data properties, reject inherited/accessor evidence; migration planning rejects malformed entries, line-terminated names/versions and over-limit sequence counts. Six focused regression cases added. No actual endpoint collection, diagnostic execution, repair, installer activation, schema migration change or production approval. Fresh exact-head CI and independent review required; existing #109 and #111 integration boundaries retained.

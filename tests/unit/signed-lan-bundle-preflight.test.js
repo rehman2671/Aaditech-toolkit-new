@@ -3,6 +3,7 @@ import {generateKeyPairSync,createHash,sign} from 'node:crypto';
 import {mkdtemp,mkdir,writeFile,readFile,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
+import {inspectLocalLanReadiness} from '../../scripts/lan-combined-preflight.mjs';
 import {verifySignedLanBundle} from '../../scripts/verify-lan-bundle.mjs';
 const sha=b=>createHash('sha256').update(b).digest('hex');
 async function fixture(run) {
@@ -58,4 +59,34 @@ describe('signed LAN release manifest preflight',()=>{
     await writeFile(inside,await readFile(input.signature));
     await expect(verifySignedLanBundle({...input,signature:inside})).rejects.toThrow('Signature must be outside payload root');
   }));
+});
+
+describe('combined local LAN preflight',()=>{
+ const confirmation='INSPECT_LOCAL_LAN_ONLY';
+ const hostFor=input=>({targetDirectory:input.root,markerPaths:{
+  database:join(input.root,'absent-db'),credentials:join(input.root,'image.tar'),
+  service:join(input.root,'absent-svc')},ports:[443],minCpu:1,minMemoryBytes:1,minFreeBytes:1});
+ it('combines real signed fixture verification and read-only host observations without authorizing install',()=>fixture(async({input})=>{
+  const host=hostFor(input);
+  const result=await inspectLocalLanReadiness({confirmation,bundle:input,host});
+  expect(result).toMatchObject({decision:'BLOCKED',publisher_signature_verified:true,payload_integrity_verified:true,
+   markers:{database:'NOT_OBSERVED',credentials:'PRESENT',service:'NOT_OBSERVED'},installation_authorized:false,
+   runtime_compatibility_verified:false,private_tls_verified:false,resource_absence_verified:false,
+   port_reservation_verified:false,production_accepted:false});
+  expect(result.blocking).toContain('marker_credentials');
+  expect(JSON.stringify(result)).not.toContain(input.root);
+  expect(JSON.stringify(result)).not.toContain(input.trustedPublicKeyPem);
+ }));
+ it('rejects an invalid bundle before performing host checks',()=>fixture(async({input})=>{
+  await expect(inspectLocalLanReadiness({confirmation,bundle:{...input,trustedSignerSpkiSha256:'0'.repeat(64)},host:{}})).rejects.toThrow('Publisher signer pin mismatch');
+  await expect(inspectLocalLanReadiness({bundle:input,host:hostFor(input)})).rejects.toThrow('EXPLICIT_LOCAL_PREFLIGHT_REQUIRED');
+ }));
+ it('does not let subsequent caller changes alter the observed host policy',()=>fixture(async({input})=>{
+  const host=hostFor(input);
+  const pending=inspectLocalLanReadiness({confirmation,bundle:input,host});
+  host.markerPaths.credentials=join(input.root,'absent-creds');host.ports.push(443);
+  const result=await pending;
+  expect(result.markers.credentials).toBe('PRESENT');
+  expect(result.ports).toHaveLength(1);
+ }));
 });

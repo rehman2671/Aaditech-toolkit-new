@@ -6,7 +6,8 @@ import mysql from 'mysql2/promise';
 import request from 'supertest';
 import * as db from './db.js';
 import {createRecoveryReviewRequest,reserveRecoveryReview,inspectRecoveryReview} from './device-recovery-review.js';
-import {createTroubleshootingIncident,inspectTroubleshootingIncident,recordDiagnosticPlan} from './troubleshooting-incidents.js';
+import {createTroubleshootingIncident,inspectTroubleshootingIncident,recordDiagnosticPlan,summarizeTroubleshootingIntake} from './troubleshooting-incidents.js';
+import {withSchemaMigrationLock} from './schema-migration-lock.js;
 
 if (process.env.GITHUB_ACTIONS !== 'true' ||
     process.env.AADITECH_ATOMIC_BATCH_REHEARSAL !== 'isolated-ci' ||
@@ -227,7 +228,23 @@ try {
   assert.equal(plans[0].execution_authorized,false);
   assert.equal(await single("SELECT COUNT(*) AS n FROM troubleshooting_diagnostic_plans WHERE tenant_id=?",[reviewTenant]),1);
   assert.equal(await single("SELECT COUNT(*) AS n FROM audit_logs WHERE tenant_id=? AND action='TROUBLESHOOTING_DIAGNOSTIC_PLANNED'",[reviewTenant]),1);
-  console.log('[PASS] Incident concurrent intake and diagnostic planning replay; no action authorized.');
+  const summaryArgs={principal:admins[0],installationId,deviceId:reviewDevice};
+  const summary=await summarizeTroubleshootingIntake(pool,summaryArgs);
+  assert.deepEqual([summary.reported,summary.open,summary.escalated,summary.incidents_with_plans],[2,1,1,1]);
+  assert.equal(summary.verified_resolved,null);
+  assert.equal((await summarizeTroubleshootingIntake(pool,{...summaryArgs,principal:admins[1]})).reported,0);
+  // Real separate connections must serialize on the schema advisory lock.
+  const order=[];
+  await Promise.all(Array.from({length:3},(_,i)=>withSchemaMigrationLock(pool,async c=>{
+    order.push('enter'+i);
+    const [r]=await c.query("SELECT IS_USED_LOCK('itk_schema_migrations_lock')=CONNECTION_ID() AS owned");
+    assert.equal(Number(r[0].owned),1);
+    await c.query('SELECT SLEEP(0.03)');
+    order.push('exit'+i);
+  })));
+  assert.equal(order.length,6);
+  for(let i=0;i<6;i+=2)assert.equal(order[i].replace('enter','exit'),order[i+1]);
+  console.log('[PASS] Scoped intake summary and same-session migration lock serialization.');
   console.log('N29 PASS: atomic rollback, MySQL worker races, single history/alert/outbox, HTTP replay, 409 and revoked credential write fencing');
 } catch(err) {
   failure=err;

@@ -161,6 +161,12 @@ describe.skipIf(process.platform==='win32')('short-lived signed setup display bi
    expect(results.filter(x=>x.status==='fulfilled')).toHaveLength(1);
    expect(results.find(x=>x.status==='fulfilled').value).toMatchObject({challenge_consumed:true,session_authenticated:false,execution_authorized:false});
    await expect(consume()).rejects.toThrow('HANDOFF_CHALLENGE_ALREADY_CONSUMED');
+   const expiredLedger=await mkdtemp(join(await realpath(tmpdir()),'itk-expired-handoff-'));
+   try{
+    let n=0;
+    await expect(consumeSetupDisplayChallenge({ledgerDirectory:expiredLedger,handoff:args,clock:()=>++n<3?nowMs:nowMs+1000})).rejects.toThrow('HANDOFF_EXPIRED_AFTER_CONSUMPTION');
+    await expect(consumeSetupDisplayChallenge({ledgerDirectory:expiredLedger,handoff:args,clock:()=>nowMs})).rejects.toThrow('HANDOFF_CHALLENGE_ALREADY_CONSUMED');
+   }finally{await rm(expiredLedger,{recursive:true,force:true})}
   }finally{await rm(ledgerDirectory,{recursive:true,force:true})}
   await f.append('PREFLIGHT','COMPLETED');
   await expect(inspectSetupHandoff(args)).rejects.toThrow('CHECKPOINT_HEAD_MISMATCH');

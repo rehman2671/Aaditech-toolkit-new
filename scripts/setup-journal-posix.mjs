@@ -186,7 +186,8 @@ export async function consumeSetupDisplayChallenge({ledgerDirectory,handoff,cloc
  const snapshot={...handoff,handoffBytes:Buffer.from(handoff.handoffBytes),signature:Buffer.from(handoff.signature),
    anchor:{...handoff.anchor,checkpointBytes:Buffer.from(handoff.anchor.checkpointBytes),signature:Buffer.from(handoff.anchor.signature)}};
  const dir=await privateDir(ledgerDirectory);
- if(dir===resolve(snapshot.anchor.directory))fail('SEPARATE_HANDOFF_LEDGER_REQUIRED');
+ const journalDir=resolve(snapshot.anchor.directory);
+ if(dir===journalDir||dir.startsWith(journalDir+'/')||journalDir.startsWith(dir+'/'))fail('SEPARATE_HANDOFF_LEDGER_REQUIRED');
  const started=clock();
  const verified=await inspectSetupHandoff({...snapshot,nowMs:started});
  const record=JSON.parse(snapshot.handoffBytes.toString('utf8'));
@@ -206,5 +207,9 @@ export async function consumeSetupDisplayChallenge({ledgerDirectory,handoff,cloc
  }finally{await fd.close()}
  const d=await open(dir,constants.O_RDONLY|constants.O_DIRECTORY|constants.O_NOFOLLOW);
  try{await d.sync()}finally{await d.close()}
+ // A receipt stays consumed even if fsync crosses expiry. Never return a
+ // successful display receipt after expiry or a backward clock jump.
+ const finished=clock();
+ if(!Number.isSafeInteger(finished)||finished<now||finished>=record.expires_at_ms)fail('HANDOFF_EXPIRED_AFTER_CONSUMPTION');
  return Object.freeze({...verified,challenge_consumed:true,session_authenticated:false,execution_authorized:false,production_accepted:false});
 }

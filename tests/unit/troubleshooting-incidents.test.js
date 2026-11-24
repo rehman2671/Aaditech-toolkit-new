@@ -1,5 +1,5 @@
 import {describe,it,expect,vi} from 'vitest';
-import {createTroubleshootingIncident as create,inspectTroubleshootingIncident as inspect,recordDiagnosticPlan as plan} from '../../troubleshooting-incidents.js';
+import {createTroubleshootingIncident as create,inspectTroubleshootingIncident as inspect,recordDiagnosticPlan as plan,summarizeTroubleshootingIntake as summary} from '../../troubleshooting-incidents.js';
 const installationId='6f8c5ad9-e52e-4ea4-a1c7-f1dc23688a9e',tenant='00000000-0000-4000-8000-000000000001',deviceId='00000000-0000-4000-8000-000000000002',requestId='00000000-0000-4000-8000-000000000003',incidentId='00000000-0000-4000-8000-000000000004';
 const principal={id:1,tenant_id:tenant,role:'SUPER_ADMIN'};
 const input={principal,installationId,deviceId,requestId,categoryId:'TR-01',hazard:'NONE'};
@@ -9,7 +9,7 @@ function fixture({rows=[],plans=[],owner={},user={},audit=1,write=1}={}){
  query:vi.fn(async sql=>{
   if(sql.includes('FROM devices'))return [[{id:deviceId,tenant_id:tenant,...owner}]];
   if(sql.includes('FROM users'))return [[{id:1,tenant_id:tenant,role:'SUPER_ADMIN',active:1,status:'ACTIVE',...user}]];
-  if(sql.includes('FROM troubleshooting_diagnostic_plans'))return [plans];
+  if(sql.startsWith('SELECT * FROM troubleshooting_diagnostic_plans'))return [plans];
   if(sql.startsWith('SELECT'))return [rows];
   if(sql.includes('INSERT INTO troubleshooting_diagnostic_plans'))return [{affectedRows:write}];
   if(sql.includes('INSERT INTO troubleshooting_incidents'))return [{affectedRows:write}];
@@ -70,5 +70,23 @@ describe('diagnostic plan persistence',()=>{
    const f=fixture(opts);await expect(plan(f.pool,args)).rejects.toThrow();expect(f.c.rollback).toHaveBeenCalledOnce();
   }
   const f=fixture({rows:[row]});await expect(plan(f.pool,{...args,command:'arbitrary'})).rejects.toThrow();expect(f.pool.getConnection).not.toHaveBeenCalled();
+ });
+});
+
+describe('scoped intake summary',()=>{
+ const args={principal,installationId,deviceId};
+ it('reports distinct planned incidents but does not invent execution metrics',async()=>{
+  const f=fixture({rows:[{reported:'3',open_count:'2',escalated_count:'1',planned_incidents:'1'}]});
+  expect(await summary(f.pool,args)).toEqual({reported:3,open:2,escalated:1,incidents_with_plans:1,
+   diagnosed:null,executed_attempts:null,verified_resolved:null,resolution_rate:null,outcome_measurement:'NOT_IMPLEMENTED',production_accepted:false});
+  expect(f.c.query.mock.calls.every(([q])=>q.startsWith('SELECT'))).toBe(true);
+  expect(f.c.query.mock.calls.at(-1)[1]).toEqual([installationId,tenant,deviceId,1]);
+ });
+ it('rejects missing, inconsistent or coercible counts',async()=>{
+  for(const rows of [[],[{reported:null,open_count:0,escalated_count:0,planned_incidents:0}],
+   [{reported:2,open_count:1,escalated_count:1,planned_incidents:2}],
+   [{reported:3,open_count:1,escalated_count:1,planned_incidents:1}]]){
+   const f=fixture({rows});await expect(summary(f.pool,args)).rejects.toThrow('INCIDENT_SUMMARY_UNVERIFIED');
+  }
  });
 });

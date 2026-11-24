@@ -9,6 +9,7 @@ import { fileURLToPath } from 'url';
 import { getAgentVersion } from './agent-artifacts.js';
 import { classifyDeviceCredentialRecovery } from './enrollment-security.js';
 import { appUsageCredentialCacheKey } from './telemetry-security.js';
+import { withSchemaMigrationLock } from './schema-migration-lock.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -293,24 +294,10 @@ export async function runDatabaseMigrations() {
     return { applied: [], skipped: ['001_init_schema.sql', '002_partitioning.sql', '003_rbac_and_audit.sql', '004_workspace_memberships.sql', '005_remediation_tenant_logs.sql', '006_notification_outbox.sql', '007_scrub_legacy_github_pat.sql', '008_scrub_legacy_ticket_keys.sql', '009_notification_destination_binding.sql', '010_events_tenant_device_identity.sql', '011_security_posture_provenance.sql', '012_measured_device_telemetry.sql', '013_events_idempotency.sql', '014_telemetry_batches.sql', '015_batch_receipt_retention_index.sql', '016_app_usage_snapshot.sql', '017_device_recovery_reviews.sql', '018_troubleshooting_incidents.sql', '019_troubleshooting_diagnostic_plans.sql'], status: 'FALLBACK_MODE' };
   }
 
-  let lockAcquired = false;
-  const result = { applied: [], skipped: [] };
-
-  try {
-    // 1. Acquire distributed advisory lock to prevent concurrent execution across instances
-    try {
-      const [lockRows] = await pool.query("SELECT GET_LOCK('itk_schema_migrations_lock', 15) AS locked");
-      lockAcquired = lockRows && lockRows[0] && lockRows[0].locked === 1;
-      if (!lockAcquired) {
-        console.warn('⚠️ [Migrations] Advisory lock timeout (15s); another instance is currently migrating.');
-        return { applied: [], skipped: [], error: 'LOCK_TIMEOUT' };
-      }
-    } catch (lockErr) {
-      console.warn('⚠️ [Migrations] Advisory lock check note:', lockErr.message);
-    }
-
+  return withSchemaMigrationLock(pool, async connection => {
+    const result = { applied: [], skipped: [] };
     // 2. Ensure schema_migrations tracking table exists
-    await pool.query(`
+    await connection.query(`
       CREATE TABLE IF NOT EXISTS \`schema_migrations\` (
         \`version\` VARCHAR(64) NOT NULL,
         \`name\` VARCHAR(255) NOT NULL,
@@ -322,14 +309,14 @@ export async function runDatabaseMigrations() {
     `);
 
     // 3. Fetch already applied versions
-    const [appliedRows] = await pool.query("SELECT version FROM `schema_migrations`");
+    const [appliedRows] = await connection.query("SELECT version FROM `schema_migrations`");
     const appliedVersions = new Set((appliedRows || []).map(r => String(r.version)));
 
     // 4. Discover and order migration files
     const migrationsDir = path.join(__dirname, 'database', 'migrations');
     if (!fs.existsSync(migrationsDir)) {
       console.warn('⚠️ [Migrations] Directory not found:', migrationsDir);
-      return result;
+      throw new Error('MIGRATION_DIRECTORY_MISSING');
     }
 
     const migrationFiles = fs.readdirSync(migrationsDir)
@@ -349,10 +336,10 @@ export async function runDatabaseMigrations() {
       const hash = crypto.createHash('sha256').update(sql).digest('hex');
 
       const t0 = Date.now();
-      await pool.query(sql);
+      await connection.query(sql);
       const elapsed = Date.now() - t0;
 
-      await pool.query(
+      await connection.query(
         "INSERT INTO `schema_migrations` (`version`, `name`, `execution_time_ms`, `checksum`, `applied_at`) VALUES (?, ?, ?, ?, NOW(3))",
         [version, file, elapsed, hash]
       );
@@ -365,42 +352,34 @@ export async function runDatabaseMigrations() {
 
     // 5. Ensure device_uid column and indexes are present
     try {
-      await pool.query("ALTER TABLE devices ADD COLUMN device_uid VARCHAR(128) NULL AFTER hostname");
+      await connection.query("ALTER TABLE devices ADD COLUMN device_uid VARCHAR(128) NULL AFTER hostname");
     } catch (_) {}
     try {
-      await pool.query("CREATE INDEX idx_devices_uid ON devices (device_uid)");
+      await connection.query("CREATE INDEX idx_devices_uid ON devices (device_uid)");
     } catch (_) {}
     try {
-      await pool.query("CREATE INDEX idx_cmd_dev_status_disp ON command_queue (device_id, status, dispatched_at)");
+      await connection.query("CREATE INDEX idx_cmd_dev_status_disp ON command_queue (device_id, status, dispatched_at)");
     } catch (_) {}
 
     // 6. Pre-create upcoming monthly partitions and prune expired partitions
-    await maintainTelemetryPartitions();
+    await maintainTelemetryPartitions(30, connection);
 
     console.log(`[Migrations] Migration status: ${result.applied.length} applied, ${result.skipped.length} up to date.`);
     return result;
-  } catch (err) {
-    console.error('❌ [Migrations] Migration execution failed:', err.message);
-    throw err;
-  } finally {
-    if (lockAcquired && pool) {
-      try {
-        await pool.query("SELECT RELEASE_LOCK('itk_schema_migrations_lock')");
-      } catch (_) {}
-    }
-  }
+  });
 }
 
 // ---------------- TELEMETRY PARTITION MAINTENANCE ----------------
-export async function maintainTelemetryPartitions(retentionDays = 30) {
+export async function maintainTelemetryPartitions(retentionDays = 30, migrationConnection = null) {
   if (!isMysqlConnected() || !pool) {
     return { created: [], dropped: [] };
   }
   const results = { created: [], dropped: [] };
+  const connection = migrationConnection || pool;
 
   try {
     // 1. Fetch current partitions
-    const [partitions] = await pool.query(`
+    const [partitions] = await connection.query(`
       SELECT PARTITION_NAME, PARTITION_DESCRIPTION 
       FROM INFORMATION_SCHEMA.PARTITIONS 
       WHERE TABLE_SCHEMA = DATABASE() 
@@ -428,14 +407,14 @@ export async function maintainTelemetryPartitions(retentionDays = 30) {
 
         try {
           if (hasFuture) {
-            await pool.query(`
+            await connection.query(`
               ALTER TABLE telemetry_history REORGANIZE PARTITION p_future INTO (
                 PARTITION ${partName} VALUES LESS THAN (TO_DAYS('${upperBoundStr}')),
                 PARTITION p_future VALUES LESS THAN MAXVALUE
               )
             `);
           } else {
-            await pool.query(`
+            await connection.query(`
               ALTER TABLE telemetry_history ADD PARTITION (
                 PARTITION ${partName} VALUES LESS THAN (TO_DAYS('${upperBoundStr}'))
               )
@@ -461,7 +440,7 @@ export async function maintainTelemetryPartitions(retentionDays = 30) {
       const partVal = parseInt(p.PARTITION_DESCRIPTION, 10);
       if (!isNaN(partVal) && partVal < cutoffToDays) {
         try {
-          await pool.query(`ALTER TABLE telemetry_history DROP PARTITION ${p.PARTITION_NAME}`);
+          await connection.query(`ALTER TABLE telemetry_history DROP PARTITION ${p.PARTITION_NAME}`);
           results.dropped.push(p.PARTITION_NAME);
           console.log(`[Partition Maintenance] 🗑️ Dropped expired partition ${p.PARTITION_NAME}`);
         } catch (dropErr) {

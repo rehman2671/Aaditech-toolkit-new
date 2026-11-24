@@ -118,3 +118,26 @@ export async function recordDiagnosticPlan(pool,input){
   return result(id,false);
  });
 }
+
+// Scope-limited reporting for the same currently active technician and device.
+// An absent execution/outcome integration is explicitly unmeasured, not zero.
+export async function summarizeTroubleshootingIntake(pool,input){
+ const s=context(pool,input,['principal','installationId','deviceId']);
+ return transaction(pool,async c=>{
+  await lockScope(c,s);
+  const [rows]=await c.query(
+   "SELECT COUNT(*) AS reported, COALESCE(SUM(i.status='OPEN'),0) AS open_count, COALESCE(SUM(i.status='ESCALATED'),0) AS escalated_count, COALESCE(SUM(EXISTS(SELECT 1 FROM troubleshooting_diagnostic_plans p WHERE p.incident_id=i.incident_id AND p.installation_id=i.installation_id AND p.tenant_id=i.tenant_id AND p.device_id=i.device_id AND p.actor_user_id=i.actor_user_id)),0) AS planned_incidents FROM troubleshooting_incidents i WHERE i.installation_id=? AND i.tenant_id=? AND i.device_id=? AND i.actor_user_id=?",
+   [s.installationId,s.tenant,s.deviceId,s.actor]);
+  if(rows?.length!==1)fail('INCIDENT_SUMMARY_UNVERIFIED');
+  const parseCount=x=>{
+   if(typeof x!=='number'&&(typeof x!=='string'||! /^(0|[1-9][0-9]*)$/.test(x)))fail('INCIDENT_SUMMARY_UNVERIFIED');
+   const n=Number(x);if(!Number.isSafeInteger(n)||n<0)fail('INCIDENT_SUMMARY_UNVERIFIED');return n;
+  };
+  const reported=parseCount(rows[0].reported),open=parseCount(rows[0].open_count),
+    escalated=parseCount(rows[0].escalated_count),planned=parseCount(rows[0].planned_incidents);
+  if(open+escalated!==reported||planned>open)fail('INCIDENT_SUMMARY_UNVERIFIED');
+  return Object.freeze({reported,open,escalated,incidents_with_plans:planned,
+   diagnosed:null,executed_attempts:null,verified_resolved:null,resolution_rate:null,
+   outcome_measurement:'NOT_IMPLEMENTED',production_accepted:false});
+ });
+}

@@ -2,6 +2,7 @@
 // provided by trusted independent custody, never by the evidence itself.
 // Verifies signature and binding, NOT collection authorization or truth.
 import {createHash,createPublicKey,verify} from 'node:crypto';
+import {additionalDiagnosticReviewContracts} from './diagnostic-review-contracts.js';
 import {troubleshootingCatalog} from './troubleshooting-policy.js';
 const sha=x=>createHash('sha256').update(x).digest('hex');
 const digest=x=>typeof x==='string'&&x.length===64&&/^[a-f0-9]{64}$/.test(x)&&x!=='0'.repeat(64);
@@ -63,6 +64,7 @@ export function verifyResourceDiagnosticArtifact({artifact,proof}={}){
 const categorical=(...allowed)=>x=>x===null||allowed.includes(x);
 const percent=x=>x===null||(typeof x==='number'&&Number.isFinite(x)&&x>=0&&x<=100);
 const artifactContracts=Object.freeze({
+ ...additionalDiagnosticReviewContracts,
  APPROVED_NETWORK_STATUS:Object.freeze({schema:'aaditech-network-diagnostic-v1',fields:Object.freeze({
   link_state:categorical('UP','DOWN'),default_route_state:categorical('PRESENT','ABSENT'),
   approved_probe_state:categorical('REACHABLE','UNREACHABLE','NOT_RUN')

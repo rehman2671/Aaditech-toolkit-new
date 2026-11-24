@@ -9,8 +9,13 @@ const sha=x=>createHash('sha256').update(x).digest('hex');
 const fail=code=>{throw Error(code);};
 const isUuid=x=>typeof x==='string'&&x.length===36&&uuid.test(x);
 const isDigest=x=>typeof x==='string'&&x.length===64&&hex.test(x)&&x!=='0'.repeat(64);
-const safeDbInt=x=>typeof x==='number'&&Number.isSafeInteger(x)?x:
-  typeof x==='string'&&/^(0|[1-9][0-9]*)$/.test(x)&&String(Number(x))===x&&Number.isSafeInteger(Number(x))?Number(x):NaN;
+const safeDbInt=x=>typeof x==='number'&&Number.isSafeInteger(x)&&x>=0?x:
+  typeof x==='string'&&x.length<=16&&/^(0|[1-9][0-9]*)$/.test(x)&&String(Number(x))===x&&Number.isSafeInteger(Number(x))?Number(x):NaN;
+function trustedClock(rows){
+  const now=Array.isArray(rows)&&rows.length===1?safeDbInt(rows[0]?.now_ms):NaN;
+  if(!Number.isSafeInteger(now)||now<=0||now>Number.MAX_SAFE_INTEGER-900000)fail('RECOVERY_REVIEW_CLOCK_UNAVAILABLE');
+  return now;
+}
 function validPending(row,now){
   const created=safeDbInt(row.created_at_ms),expires=safeDbInt(row.expires_at_ms);
   return Number.isSafeInteger(created)&&created>0&&created<=now&&
@@ -62,11 +67,10 @@ async function lockContext(c,principal,deviceId,{deferActor=false}={}){
     "SELECT (SELECT COUNT(*) FROM devices WHERE device_token_hash=?) AS matches_count, "+
     "(SELECT COUNT(*) FROM command_queue WHERE device_id=? AND (status IS NULL OR UPPER(status) NOT IN ('COMPLETED','FAILED','CANCELLED','EXPIRED'))) AS outstanding_count",
     [owner.device_token_hash,deviceId]);
-  const n=counts?.[0];
+  const n=Array.isArray(counts)&&counts.length===1?counts[0]:null;
   if(!n||n.matches_count==null||n.outstanding_count==null||safeDbInt(n.matches_count)!==1||safeDbInt(n.outstanding_count)!==0)fail('RECOVERY_REVIEW_DEVICE_NOT_READY');
   const [clock]=await c.query('SELECT CAST(UNIX_TIMESTAMP(NOW(3))*1000 AS UNSIGNED) AS now_ms');
-  const now=safeDbInt(clock?.[0]?.now_ms);
-  if(!Number.isSafeInteger(now)||now<=0)fail('RECOVERY_REVIEW_CLOCK_UNAVAILABLE');
+  const now=trustedClock(clock);
   return {now,fingerprint:sha('aaditech:recovery-review:v1:'+owner.device_token_hash)};
 }
 async function audit(c,principal,deviceId,action,details){
@@ -126,13 +130,14 @@ export async function reserveRecoveryReview(pool,{principal,deviceId,requestId,e
         tenantId:principal.tenant_id,deviceId,requestId,challengeSha256:row.challenge_sha256,credentialFingerprint:fingerprint},
       nowMs:now});
     const signed=JSON.parse(evidence.payload.toString('utf8'));
+    if(signed.issued_at_ms<safeDbInt(row.created_at_ms))fail('RECOVERY_REVIEW_EVIDENCE_PREDATES_REQUEST');
     if(signed.ownership_evidence_sha256!==trustedPins.ownershipEvidenceSha256||
        signed.command_reconciliation_sha256!==trustedPins.commandReconciliationSha256||
        signed.local_handoff_evidence_sha256!==trustedPins.localHandoffEvidenceSha256)fail('RECOVERY_REVIEW_ARTIFACT_MISMATCH');
     // Re-read DB time after acquiring both administrator locks and verifying
     // signature, so waiting on a lock cannot extend the review window.
     const [clock]=await c.query('SELECT CAST(UNIX_TIMESTAMP(NOW(3))*1000 AS UNSIGNED) AS now_ms');
-    const commitNow=safeDbInt(clock?.[0]?.now_ms);
+    const commitNow=trustedClock(clock);
     if(!Number.isSafeInteger(commitNow)||commitNow<now||checked.expires_at_ms<=commitNow||
        checked.expires_at_ms>safeDbInt(row.expires_at_ms))fail('RECOVERY_REVIEW_NOT_RESERVABLE');
     const [updated]=await c.query("UPDATE device_recovery_reviews SET state='REVIEW_RESERVED',reviewer_id=?,evidence_sha256=?,reviewer_spki_sha256=?,reviewed_at_ms=?,review_expires_at_ms=? WHERE request_id=? AND tenant_id=? AND device_id=? AND state='PENDING' AND expires_at_ms>?",
@@ -175,7 +180,7 @@ export async function inspectRecoveryReview(pool,{principal,deviceId,requestId}=
     for(const id of [...new Set([principal.id,requesterId,...(reserved?[reviewerId]:[])])].sort((a,b)=>a-b))
       await lockActiveAdmin(c,{...principal,id});
     const [clock]=await c.query('SELECT CAST(UNIX_TIMESTAMP(NOW(3))*1000 AS UNSIGNED) AS now_ms');
-    const checkedNow=safeDbInt(clock?.[0]?.now_ms);
+    const checkedNow=trustedClock(clock);
     if(!Number.isSafeInteger(checkedNow)||checkedNow<now)fail('RECOVERY_REVIEW_CLOCK_UNAVAILABLE');
     const status=row.credential_fingerprint!==fingerprint?'STALE_CREDENTIAL':
       checkedNow>=expires||(reserved&&checkedNow>=reviewExpiry)?'EXPIRED':row.state;

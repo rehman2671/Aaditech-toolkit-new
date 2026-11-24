@@ -6,14 +6,14 @@ const now=1700000000000,tokenHash='b'.repeat(64),sha=x=>createHash('sha256').upd
 const fingerprint=sha('aaditech:recovery-review:v1:'+tokenHash);
 const requester={id:1,tenant_id:tenant,role:'SUPER_ADMIN'},reviewer={...requester,id:2};
 const persisted={request_id:request,tenant_id:tenant,device_id:device,requester_id:1,state:'PENDING',challenge_sha256:'a'.repeat(64),credential_fingerprint:fingerprint,created_at_ms:now-1000,expires_at_ms:now+10000};
-function fixture({ownerPatch={},userPatch={},requesterPatch={},secondClock=now,counts={matches_count:1,outstanding_count:0},rowPatch={},active=[],auditRows=1,writeRows=1,commitFails=false}={}){
+function fixture({ownerPatch={},userPatch={},requesterPatch={},secondClock=now,firstClockRows=null,secondClockRows=null,countRows=null,counts={matches_count:1,outstanding_count:0},rowPatch={},active=[],auditRows=1,writeRows=1,commitFails=false}={}){
   let clockReads=0;
   const conn={beginTransaction:vi.fn(async()=>{}),commit:vi.fn(async()=>{if(commitFails)throw Error('COMMIT_OUTCOME_UNKNOWN')}),rollback:vi.fn(async()=>{}),release:vi.fn(),destroy:vi.fn(),
     query:vi.fn(async(sql,args)=>{
       if(sql.startsWith('SELECT id,tenant_id,device_token_hash'))return [[{id:device,tenant_id:tenant,device_token_hash:tokenHash,agent_token_revoked:1,...ownerPatch}]];
       if(sql.startsWith('SELECT id,tenant_id,role'))return [[{id:args[0],tenant_id:tenant,role:'SUPER_ADMIN',active:1,status:'ACTIVE',...userPatch,...(args[0]===requester.id?requesterPatch:{})}]];
-      if(sql.startsWith('SELECT (SELECT COUNT'))return [[counts]];
-      if(sql.startsWith('SELECT CAST'))return [[{now_ms:clockReads++?secondClock:now}]];
+      if(sql.startsWith('SELECT (SELECT COUNT'))return [countRows??[counts]];
+      if(sql.startsWith('SELECT CAST'))return [clockReads++?(secondClockRows??[{now_ms:secondClock}]):(firstClockRows??[{now_ms:now}])];
       if(sql.startsWith('SELECT request_id'))return [active];
       if(sql.startsWith('SELECT * FROM device_recovery_reviews'))return [[{...persisted,...rowPatch}]];
       if(sql.startsWith('INSERT INTO audit_logs'))return [{affectedRows:auditRows}];
@@ -22,9 +22,9 @@ function fixture({ownerPatch={},userPatch={},requesterPatch={},secondClock=now,c
     })};
   return {conn,pool:{getConnection:async()=>conn}};
 }
-function proof(){
+function proof(issued=now-100){
   const {publicKey,privateKey}=generateKeyPairSync('ed25519');
-  const payload=Buffer.from(JSON.stringify({schema:'aaditech-device-recovery-evidence-v1',purpose:'REVIEW_ONLY_CREDENTIAL_RECOVERY',tenant_id:tenant,device_id:device,request_id:request,challenge_sha256:persisted.challenge_sha256,credential_fingerprint:fingerprint,ownership_evidence_sha256:'c'.repeat(64),command_reconciliation_sha256:'d'.repeat(64),local_handoff_evidence_sha256:'e'.repeat(64),issued_at_ms:now-100,expires_at_ms:now+1000}));
+  const payload=Buffer.from(JSON.stringify({schema:'aaditech-device-recovery-evidence-v1',purpose:'REVIEW_ONLY_CREDENTIAL_RECOVERY',tenant_id:tenant,device_id:device,request_id:request,challenge_sha256:persisted.challenge_sha256,credential_fingerprint:fingerprint,ownership_evidence_sha256:'c'.repeat(64),command_reconciliation_sha256:'d'.repeat(64),local_handoff_evidence_sha256:'e'.repeat(64),issued_at_ms:issued,expires_at_ms:now+1000}));
   return {evidence:{payload,signature:sign(null,payload,privateKey)},trustedPins:{payloadSha256:sha(payload),reviewerSpkiSha256:sha(publicKey.export({type:'spki',format:'der'})),reviewerPublicKeyPem:publicKey.export({type:'spki',format:'pem'}),ownershipEvidenceSha256:'c'.repeat(64),commandReconciliationSha256:'d'.repeat(64),localHandoffEvidenceSha256:'e'.repeat(64)}};
 }
 describe('review-only recovery reservations',()=>{
@@ -180,5 +180,41 @@ describe('persisted recovery state and uncertain transaction boundaries',()=>{
     expect(f.conn.rollback).toHaveBeenCalledOnce();
     expect(f.conn.destroy).toHaveBeenCalledOnce();
     expect(f.conn.release).not.toHaveBeenCalled();
+  });
+});
+
+describe('Recovery review clock and evidence causality',()=>{
+  for(const [i,rows] of [[],[{now_ms:now},{now_ms:now}],[{}],[{now_ms:null}],[{now_ms:true}],[{now_ms:-1}],[{now_ms:0}],[{now_ms:now+'.0'}],[{now_ms:'0'.repeat(17)}],[{now_ms:Number.MAX_SAFE_INTEGER}],[{now_ms:Infinity}]].entries()){
+    it('rejects untrusted initial DB clock '+i,async()=>{
+      const f=fixture({firstClockRows:rows});
+      await expect(createRecoveryReviewRequest(f.pool,{principal:requester,deviceId:device})).rejects.toThrow('RECOVERY_REVIEW_CLOCK_UNAVAILABLE');
+      expect(f.conn.commit).not.toHaveBeenCalled();
+      expect(f.conn.query.mock.calls.some(([q])=>q.startsWith('INSERT'))).toBe(false);
+    });
+    it('rejects untrusted recheck DB clock '+i,async()=>{
+      const f=fixture({secondClockRows:rows});
+      await expect(reserveRecoveryReview(f.pool,{principal:reviewer,deviceId:device,requestId:request,...proof()})).rejects.toThrow('RECOVERY_REVIEW_CLOCK_UNAVAILABLE');
+      expect(f.conn.commit).not.toHaveBeenCalled();
+      expect(f.conn.query.mock.calls.some(([q])=>q.startsWith('UPDATE'))).toBe(false);
+      const g=fixture({secondClockRows:rows});
+      await expect(inspectRecoveryReview(g.pool,{principal:reviewer,deviceId:device,requestId:request})).rejects.toThrow('RECOVERY_REVIEW_CLOCK_UNAVAILABLE');
+    });
+  }
+  for(const [i,rows] of [[],[{matches_count:1,outstanding_count:0},{matches_count:1,outstanding_count:0}],[{}],[{matches_count:1,outstanding_count:-1}],[{matches_count:'01',outstanding_count:0}],[{matches_count:1,outstanding_count:'0'.repeat(17)}]].entries())
+    it('rejects ambiguous count rows '+i,async()=>{
+      const f=fixture({countRows:rows});
+      await expect(createRecoveryReviewRequest(f.pool,{principal:requester,deviceId:device})).rejects.toThrow('RECOVERY_REVIEW_DEVICE_NOT_READY');
+      expect(f.conn.commit).not.toHaveBeenCalled();
+    });
+  for(const issued of [now-1001,now-2000,now-20000])
+    it('rejects valid signature predating persisted challenge '+issued,async()=>{
+      const f=fixture();
+      await expect(reserveRecoveryReview(f.pool,{principal:reviewer,deviceId:device,requestId:request,...proof(issued)})).rejects.toThrow('RECOVERY_REVIEW_EVIDENCE_PREDATES_REQUEST');
+      expect(f.conn.query.mock.calls.some(([q])=>q.startsWith('UPDATE'))).toBe(false);
+      expect(f.conn.commit).not.toHaveBeenCalled();
+    });
+  it('accepts a review signed at request creation without consuming a grant',async()=>{
+    const f=fixture();
+    expect(await reserveRecoveryReview(f.pool,{principal:reviewer,deviceId:device,requestId:request,...proof(now-1000)})).toMatchObject({review_reserved:true,grant_consumed:false,replacement_allowed:false});
   });
 });

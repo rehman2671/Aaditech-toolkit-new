@@ -203,9 +203,12 @@
       "evidence": [
         "command-signing.js",
         "test-network-db-fault-injection.js",
-        "Proposed PR #96 retires legacy unsafe command executor; #97 denies reboot without consent (unmerged, not physical acceptance)"
+        "Proposed PR #96 retires legacy unsafe command executor; #97 denies reboot without consent (unmerged, not physical acceptance)",
+        "Unmerged #98 head 305f41795978142ab5884981629cebcbc9288b6a: CI 45348806630 and safety 45348806613 SUCCESS",
+        "Combined #99 head 70cb60ea5b74eadf3fb2b4c972a268c7df247d38: CI 45350364704 3/3 and safety 45350364886 2/2 SUCCESS; actual SQLite 8-connection test",
+        "Separate server #100 head 30de37f0f3ea8aa280e9445811b0f2c2d780c6bc: Node/MySQL and safety passed; remaining CI pending at observation"
       ],
-      "next": "Independently review PR #96/#97; demonstrate signed command execution/ACK on physically enrolled Windows endpoints with verified recipient/expiry, consent and negative abuse tests; ACK is not resolution",
+      "next": "Reconcile #99/#100 with #93 DB/auth boundaries; add durable identity/origin-bound result ACK outbox, offline HTTP-loss fault injection, packaged SQLite CLI and physical signed endpoint verification; never re-execute uncertain claims",
       "blocked": true
     },
     {
@@ -243,6 +246,23 @@
         "Reboot blocked at API/portal/worker and SYSTEM task; automatic TEMP MSI download/elevated msiexec disabled"
       ],
       "next": "Implement independent owner/device consent, maintenance window, audited signed privileged IPC, out-of-band signed MSI hash and signer, immutable staging, rollback and real Windows approval before enabling reboot or unattended update",
+      "blocked": true
+    },
+    {
+      "key": "AT-SEC-04",
+      "title": "UUID command claims and exact durable server-result receipts",
+      "priority": "P0",
+      "state": "CODE_COMPLETE",
+      "owner": "agent_backend_and_independent_security_reviewer",
+      "requires": [
+        "FE-09"
+      ],
+      "evidence": [
+        "#98 UUID ledger CI and safety successful",
+        "#99 combined integration SQLite 8 concurrent connections and reopen verified",
+        "#100 exact replay receipt: full CI pending"
+      ],
+      "next": "Persist identity-bound ACK outbox and reconcile all overlapping PRs; packaged SQLite and real Windows offline recovery not accepted",
       "blocked": true
     },
     {
@@ -334,7 +354,8 @@
       ],
       "evidence": [
         "Issue #62 OPEN; main unprotected; no releases",
-        "Unmerged PR #95/#96/#97 exact-head CI green but independent reviews, release signing and protected main remain absent"
+        "Unmerged PR #95/#96/#97 exact-head CI green but independent reviews, release signing and protected main remain absent",
+        "#99 combined Windows agent rehearsal CI green; separate #100 result receipt proposal; no protected merge or signing"
       ],
       "next": "Authorize reviewer, enforce non-bypass protected main and independently sign/publish vetted release",
       "blocked": true

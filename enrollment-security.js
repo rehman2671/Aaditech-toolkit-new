@@ -35,3 +35,20 @@ export function validateEnrollmentIdentity({ tenantId, existingHost, existingUid
   }
   return { ok: true };
 }
+
+
+// A bootstrap credential grants first enrollment, never replacement of an
+// existing enrolled identity. Caller must hold the existing identity lock.
+export function validateFreshEnrollment(matches) {
+  if (!Array.isArray(matches)) return { ok: false, status: 503, code: 'DEVICE_IDENTITY_UNVERIFIED' };
+  if (matches.length !== 0) return { ok: false, status: 409, code: 'DEVICE_ALREADY_REGISTERED' };
+  return { ok: true };
+}
+
+// Match only an actual stored ID, UID or full hostname; no derived aliases.
+export function matchesEnrolledDeviceIdentifier(device, target) {
+  if (typeof target !== 'string' || !target.trim()) return false;
+  const normalized = target.trim().toLowerCase();
+  return [device?.id, device?.device_uid, device?.hostname].some(value =>
+    typeof value === 'string' && value.length > 0 && value.toLowerCase() === normalized);
+}

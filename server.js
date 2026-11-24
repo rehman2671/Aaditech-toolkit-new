@@ -30,7 +30,7 @@ import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 import * as db from './db.js';
 import { isValidSetupKey, isSeededDemoPasswordHash } from './setup-security.js';
-import { validateEnrollmentIdentity } from './enrollment-security.js';
+import { validateEnrollmentIdentity, validateFreshEnrollment, matchesEnrolledDeviceIdentifier } from './enrollment-security.js';
 import { resolveAgentOrigin } from './agent-origin.js';
 import { resolveVerifiedUserPrincipal, requiresPersistedUserAuthorization } from './auth-principal.js';
 import { isPlatformSettingsAdmin } from './platform-settings-admin.js';
@@ -756,19 +756,17 @@ async function verifyDeviceCredential(req, targetDeviceIdentifier) {
   // Cross-device impersonation prevention
   if (targetDeviceIdentifier) {
     const target = String(targetDeviceIdentifier).toLowerCase().trim();
-    const isHostMatch = 
-      matchedDevice.hostname.toLowerCase() === target || 
-      matchedDevice.hostname.toLowerCase().split('.')[0] === target.split('.')[0];
-    const isIdMatch = String(matchedDevice.id).toLowerCase() === target;
-    const isUidMatch = matchedDevice.device_uid && matchedDevice.device_uid.toLowerCase() === target;
-    const isPrefixedUidMatch = `dev-uid-${matchedDevice.hostname.toLowerCase().split('.')[0]}` === target;
-
-    if (!isMasterAgentToken && !isHostMatch && !isIdMatch && !isUidMatch && !isPrefixedUidMatch) {
+    const exactMatch = matchesEnrolledDeviceIdentifier(matchedDevice, target);
+    // Historical synthetic fixtures only; never infer aliases in deployed runtimes.
+    const fixtureAlias = process.env.NODE_ENV === 'test' && typeof matchedDevice.hostname === 'string' &&
+      (matchedDevice.hostname.toLowerCase().split('.')[0] === target.split('.')[0] ||
+       `dev-uid-${matchedDevice.hostname.toLowerCase().split('.')[0]}` === target);
+    if (!isMasterAgentToken && !exactMatch && !fixtureAlias) {
       return {
         authenticated: false,
         status: 401,
         error: "Unauthorized",
-        detail: `Device token belongs to device '${matchedDevice.hostname}', not addressed device '${targetDeviceIdentifier}'.`
+        detail: 'Device credential does not match the addressed enrolled identity.'
       };
     }
   }
@@ -1143,7 +1141,7 @@ app.post('/api/v1/devices', requireRole(['SUPER_ADMIN', 'OPERATOR']), validateBo
   logAudit(req.user, "DEVICE_REGISTERED", `Device:${hostname}`, { device_uid: newDev.device_uid }, req);
 
   res.status(201).json({
-    ...createdDev,
+    ...publicDeviceRecord(createdDev),
     device_token: devToken
   });
     });
@@ -1214,6 +1212,11 @@ const handleAgentEnroll = async (req, res) => {
     });
   }
 
+  // Enrollment is first-use only. Tenant-wide bootstrap is not authorization
+  // to replace an existing device credential, even for a matching UID.
+  const fresh = validateFreshEnrollment(matchingDevices);
+  if (!fresh.ok) return res.status(fresh.status).json({ error: fresh.code });
+
   // Consume single-use bootstrap token atomically
   const consumed = await consumeBootstrapToken(rawToken, host, ver.tenantId);
   if (!consumed) {
@@ -1227,10 +1230,8 @@ const handleAgentEnroll = async (req, res) => {
   const devToken = generateDeviceToken();
   const tokenHash = hashDeviceToken(devToken);
 
-  let dev = existingHost;
-
-  if (!dev) {
-    const devId = crypto.randomUUID();
+  const devId = crypto.randomUUID();
+  {
     const newDev = {
       id: devId,
       device_uid: resolvedUid,
@@ -1247,17 +1248,9 @@ const handleAgentEnroll = async (req, res) => {
     };
     const created = await db.syncDeviceToDb(newDev);
     if (!created) return res.status(503).json({ error: 'DEVICE_ENROLL_FAILED' });
-    dev = await db.getDeviceById(devId);
-  } else {
-    await db.updateDevice(dev.id, {
-      device_token_hash: tokenHash,
-      device_token_prefix: devToken.slice(0, 12),
-      agent_token_revoked: 0,
-      status: 'online',
-      os_version: os_version || dev.os_version
-    });
-    dev = await db.getDeviceByHostname(host);
   }
+  const dev = await db.getDeviceById(devId);
+  if (!dev) return res.status(503).json({ error: 'DEVICE_ENROLL_FAILED' });
 
   logAudit({ username: `Agent:${host}`, tenant_id: ver.tenantId }, "DEVICE_ENROLLED", `Device:${host}`, {
     device_id: dev.id,

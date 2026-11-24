@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { validateEnrollmentIdentity } from '../../enrollment-security.js';
+import { validateEnrollmentIdentity, validateFreshEnrollment, matchesEnrolledDeviceIdentifier } from '../../enrollment-security.js';
 
 const tenantA = '00000000-0000-0000-0000-000000000001';
 const tenantB = '00000000-0000-0000-0000-000000000002';
@@ -69,5 +69,19 @@ describe('tenant-safe first-run device enrollment', () => {
         tenantId: tenantA, existingHost: null, existingUid: null, company
       })).toMatchObject({ ok: false, status: 409, code: 'TENANT_COMPANY_MISSING' });
     }
+  });
+});
+
+
+describe('first-use enrollment and exact device identity', () => {
+  it('rejects an existing identity even with the same tenant and UID', () => {
+    expect(validateFreshEnrollment([])).toEqual({ok:true});
+    expect(validateFreshEnrollment([hostA])).toMatchObject({ok:false,status:409,code:'DEVICE_ALREADY_REGISTERED'});
+    expect(validateFreshEnrollment(null)).toMatchObject({ok:false,status:503});
+  });
+  it('matches only persisted ID, UID or full hostname (case-insensitive)', () => {
+    const d={id:'id-123',device_uid:'uid-123',hostname:'PC01.office.example'};
+    for (const x of ['id-123','UID-123','pc01.office.example']) expect(matchesEnrolledDeviceIdentifier(d,x)).toBe(true);
+    for (const x of ['pc01','pc01.other.example','dev-uid-pc01','',null]) expect(matchesEnrolledDeviceIdentifier(d,x)).toBe(false);
   });
 });

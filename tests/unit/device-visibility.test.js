@@ -13,6 +13,7 @@ describe('Phase N12 tenant-owned device visibility', () => {
     const device = { id: 'd-1', tenant_id: 't-1', hostname: 'WIN10',
       device_token: 'bearer', device_token_hash: 'sha256',
       device_token_prefix: 'prefix', agent_token_hash: 'private',
+      auth_token_hash: 'legacy-hash', auth_token_prefix: 'legacy-prefix', auth_token: 'legacy-bearer',
       hmac_secret: 'hmac', password_hash: 'hash',
       client_private_key: 'private-pem', os_version: 'Windows' };
     const result = publicDeviceRecord(device);

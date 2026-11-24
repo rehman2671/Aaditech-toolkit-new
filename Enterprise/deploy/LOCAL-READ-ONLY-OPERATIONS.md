@@ -58,3 +58,22 @@ Fresh exact-head CI and independent reconciliation, owner ADRs, approved runtime
 ## Local setup continuity and artifact retention (2026-11-25)
 
 The programmatic `inspectLocalSetupContinuity` reference combines the exact independently pinned setup journal with a freshly verified signed release and host observations. A pending step requires operator reconciliation; fresh-host blockers are separate and cannot authorize resume. `retainLocalDiagnosticArtifact` and `readRetainedLocalDiagnosticArtifact` provide explicit local POSIX-only content-addressed custody, requiring a trusted absolute 0700 directory, canonical bounded artifact bytes and the expected digest. Files are 0600, published exclusively and synced; duplicate writes are rejected. Readback verifies bytes and refuses tampering and unsafe permissions. No CLI persistence option, remote upload, signature issuance, diagnostic attempt acceptance, automatic deletion, or production authorization. These references do not provide hostile same-UID or whole-directory rollback protection. Six new regression cases across both modules; fresh CI required.
+
+## Explicit local diagnostic custody and setup continuity commands (2026-11-25)
+
+For an existing trusted private POSIX directory (0700), explicitly consent to both read-only collection and local retention:
+
+```sh
+node scripts/local-diagnostic-custody-cli.mjs collect --directory /private/artifacts --confirm-local-retention -- disk --target /var --confirm-local-read-only
+node scripts/local-diagnostic-custody-cli.mjs read --directory /private/artifacts --sha256 APPROVED_64_HEX_DIGEST --confirm-local-read-only
+```
+
+Collection returns a digest and retention receipt, not the artifact itself. Readback validates the independently supplied digest and canonical bytes; no signature or measurement truth is established. Duplicate retention is refused. No automatic cleanup, remote upload or attempt acceptance.
+
+For local setup continuity, extend the existing preflight JSON configuration with an `anchor` object having exactly `directory`, `installationId`, `releaseSha256`, `checkpointBase64`, `signatureBase64`, `signerPublicKeyPem`, `expectedSignerSpkiSha256`, and `expectedCheckpointSha256`. Use canonical base64 for the signed checkpoint bytes and detached Ed25519 signature, independent current pins and an absolute journal directory. Do not take these pins from an untrusted checkpoint or browser request.
+
+```sh
+node scripts/local-setup-continuity-cli.mjs --confirm-local-read-only < local-continuity.json
+```
+
+Exit 2 means interruption or fresh-host blockers; exit 1 refusal; exit 0 no observed blockers, never permission to resume. No mutation, install, browser route or automatic replay. Fresh CI and independent review required.

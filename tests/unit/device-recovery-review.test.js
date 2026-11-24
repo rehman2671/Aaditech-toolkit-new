@@ -5,10 +5,10 @@ const tenant='00000000-0000-4000-8000-000000000011',device='00000000-0000-4000-8
 const now=1700000000000,tokenHash='b'.repeat(64),sha=x=>createHash('sha256').update(x).digest('hex');
 const fingerprint=sha('aaditech:recovery-review:v1:'+tokenHash);
 const requester={id:1,tenant_id:tenant,role:'SUPER_ADMIN'},reviewer={...requester,id:2};
-const persisted={request_id:request,tenant_id:tenant,device_id:device,requester_id:1,state:'PENDING',challenge_sha256:'a'.repeat(64),credential_fingerprint:fingerprint,expires_at_ms:now+10000};
-function fixture({ownerPatch={},userPatch={},requesterPatch={},secondClock=now,counts={matches_count:1,outstanding_count:0},rowPatch={},active=[],auditRows=1,writeRows=1}={}){
+const persisted={request_id:request,tenant_id:tenant,device_id:device,requester_id:1,state:'PENDING',challenge_sha256:'a'.repeat(64),credential_fingerprint:fingerprint,created_at_ms:now-1000,expires_at_ms:now+10000};
+function fixture({ownerPatch={},userPatch={},requesterPatch={},secondClock=now,counts={matches_count:1,outstanding_count:0},rowPatch={},active=[],auditRows=1,writeRows=1,commitFails=false}={}){
   let clockReads=0;
-  const conn={beginTransaction:vi.fn(async()=>{}),commit:vi.fn(async()=>{}),rollback:vi.fn(async()=>{}),release:vi.fn(),
+  const conn={beginTransaction:vi.fn(async()=>{}),commit:vi.fn(async()=>{if(commitFails)throw Error('COMMIT_OUTCOME_UNKNOWN')}),rollback:vi.fn(async()=>{}),release:vi.fn(),destroy:vi.fn(),
     query:vi.fn(async(sql,args)=>{
       if(sql.startsWith('SELECT id,tenant_id,device_token_hash'))return [[{id:device,tenant_id:tenant,device_token_hash:tokenHash,agent_token_revoked:1,...ownerPatch}]];
       if(sql.startsWith('SELECT id,tenant_id,role'))return [[{id:args[0],tenant_id:tenant,role:'SUPER_ADMIN',active:1,status:'ACTIVE',...userPatch,...(args[0]===requester.id?requesterPatch:{})}]];
@@ -139,4 +139,46 @@ it('blocks only active current-generation review windows without deleting tombst
   expect(sql).toContain('review_expires_at_ms>?');
   expect(args).toEqual([tenant,device,fingerprint,now,now]);
   expect(f.conn.query.mock.calls.some(([q])=>q.startsWith('DELETE'))).toBe(false);
+});
+
+describe('persisted recovery state and uncertain transaction boundaries',()=>{
+  it('rejects inconsistent pending rows before any reserve mutation or status projection',async()=>{
+    for(const rowPatch of [
+      {created_at_ms:now+1},{created_at_ms:null},{created_at_ms:' 1700000000000'},
+      {expires_at_ms:now+900001},{reviewer_id:2},{evidence_sha256:'e'.repeat(64)},
+      {reviewed_at_ms:now},{review_expires_at_ms:now+1},{reviewer_spki_sha256:'a'.repeat(64)}
+    ]){
+      const f=fixture({rowPatch});
+      await expect(reserveRecoveryReview(f.pool,{principal:reviewer,deviceId:device,requestId:request,...proof()})).rejects.toThrow('RECOVERY_REVIEW_NOT_RESERVABLE');
+      expect(f.conn.query.mock.calls.some(([sql])=>sql.startsWith('UPDATE device_recovery_reviews'))).toBe(false);
+      const g=fixture({rowPatch});
+      await expect(inspectRecoveryReview(g.pool,{principal:reviewer,deviceId:device,requestId:request})).rejects.toThrow('RECOVERY_REVIEW_STATE_INVALID');
+    }
+  });
+  it('rejects noncanonical DB counts or timestamps and zero credential digests',async()=>{
+    for(const opts of [{counts:{matches_count:true,outstanding_count:0}},
+      {counts:{matches_count:1,outstanding_count:' '}},{ownerPatch:{device_token_hash:'0'.repeat(64)}},
+      {secondClock:now+' '}]) {
+      const f=fixture(opts);
+      await expect(reserveRecoveryReview(f.pool,{principal:reviewer,deviceId:device,requestId:request,...proof()})).rejects.toThrow();
+      expect(f.conn.commit).not.toHaveBeenCalled();
+    }
+  });
+  it('rejects future or overlong persisted reservations',async()=>{
+    for(const rowPatch of [
+      {reviewed_at_ms:now+1,review_expires_at_ms:now+500},
+      {reviewed_at_ms:now-100,review_expires_at_ms:now+300001,expires_at_ms:now+600000}
+    ]){
+      const f=fixture({rowPatch:{state:'REVIEW_RESERVED',reviewer_id:2,
+        evidence_sha256:'e'.repeat(64),reviewer_spki_sha256:'f'.repeat(64),...rowPatch}});
+      await expect(inspectRecoveryReview(f.pool,{principal:reviewer,deviceId:device,requestId:request})).rejects.toThrow('RECOVERY_REVIEW_STATE_INVALID');
+    }
+  });
+  it('discards the DB session on uncertain commit even when rollback succeeds',async()=>{
+    const f=fixture({commitFails:true});
+    await expect(createRecoveryReviewRequest(f.pool,{principal:requester,deviceId:device})).rejects.toThrow('COMMIT_OUTCOME_UNKNOWN');
+    expect(f.conn.rollback).toHaveBeenCalledOnce();
+    expect(f.conn.destroy).toHaveBeenCalledOnce();
+    expect(f.conn.release).not.toHaveBeenCalled();
+  });
 });

@@ -1104,3 +1104,10 @@ Proposed stacked O1 follow-up on #109 583a7e63: deployed command claim and termi
 #109 583a7e637d2e3e32cf7612eb7887321ab25b1f48 CI #45451912773: Node, PowerShell and real MySQL API passed; log confirms both workers reject legacy/conflicting headers, concurrent one durable revocation/audit and subsequent auth rejection. Safety #45451912586 passed; newest MSI job still running at observation.
 
 Proposed #111 dispatch extension: queue insertion now uses the same tenant/device/current-hash row lock transaction as command claim/result and revocation. Both manual dispatch and remediation supply server-side credential proof; 409 for stale admission, 503 for DB failure. Mocked tests cover revoked/rotated/foreign/missing proof, one committed insert, rollback and non-exposure of hash. Real cross-worker command race tests, pending command quarantine on recovery, telemetry fencing, rotation and physical endpoint acceptance remain open. Fresh CI required.
+
+
+## Phase O revocation command quarantine (2026-11-24)
+
+#109 exact head 1b45dad47368b05a90a3b44a5e9fe2c3f40f5905 CI #45452577035 Node, PowerShell, real MySQL API passed; safety #45452576922 passed; MSI running at observation. Read-only recovery preflight and tenant authorization integration present in master, not included in this older stacked source base.
+
+Proposed #111 command quarantine: first revocation atomically cancels only PENDING commands with null pickup/execution/completion timestamps under the same device-row lock as dispatch/claim/result; preserves in-progress/uncertain and terminal records, audits count, fails closed on quarantine failure, read-only retry returns no fabricated count. Mocked tests and isolated real two-worker SQL/HTTP fixture added, fresh CI pending. Previously revoked devices may still have old pending rows; recovery must remain blocked until explicit reconciliation. No replacement token issuance, cancellation of already-running work, telemetry fence or physical acceptance. Reconcile #111 with newer #109 preflight before combined CI.

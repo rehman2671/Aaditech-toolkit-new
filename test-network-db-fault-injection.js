@@ -205,6 +205,16 @@ try {
   const auth = { Authorization: 'Bearer ' + adminToken };
   assert.equal((await revoke(mainPort, auth, crypto.randomUUID())).status, 400);
   assert.equal((await revoke(peerPort, { Cookie: 'auth_token=' + adminToken })).status, 403);
+  // CI-only inert rows: only never-claimed pending work may be cancelled.
+  const queueFixtures = [
+    {id:crypto.randomUUID(),status:'PENDING',picked:null,expected:'CANCELLED'},
+    {id:crypto.randomUUID(),status:'PENDING',picked:new Date(),expected:'PENDING'},
+    {id:crypto.randomUUID(),status:'IN_PROGRESS',picked:new Date(),expected:'IN_PROGRESS'},
+    {id:crypto.randomUUID(),status:'COMPLETED',picked:new Date(),expected:'COMPLETED'}
+  ];
+  for(const item of queueFixtures) await pool.execute(
+    'INSERT INTO command_queue (id,device_id,command_type,status,picked_up_at) VALUES (?,?,?,?,?)',
+    [item.id,deviceId,'DIAGNOSTIC',item.status,item.picked]);
   const [before] = await pool.execute('SELECT last_seen_at FROM devices WHERE id = ?', [deviceId]);
   const revocations = await Promise.all([revoke(mainPort, auth), revoke(peerPort, auth)]);
   for (const result of revocations) {
@@ -214,6 +224,16 @@ try {
   }
   assert.equal(revocations.filter(r => r.body.already_revoked === false).length, 1);
   assert.equal(revocations.filter(r => r.body.already_revoked === true).length, 1);
+  assert.equal(revocations.find(r=>!r.body.already_revoked).body.cancelled_pending_commands,1);
+  assert.equal(revocations.find(r=>r.body.already_revoked).body.cancelled_pending_commands,null);
+  for(const item of queueFixtures) {
+    const [states]=await pool.execute('SELECT status,picked_up_at,executed_at,completed_at FROM command_queue WHERE id = ?', [item.id]);
+    assert.equal(states[0].status,item.expected);
+    assert.equal(Boolean(states[0].picked_up_at),Boolean(item.picked));
+    assert.equal(states[0].executed_at,null);
+    assert.equal(states[0].completed_at,null);
+  }
+  console.log('[PASS] Revocation atomically cancels only never-claimed pending commands; uncertain and historical rows unchanged.');
   const [after] = await pool.execute('SELECT agent_token_revoked, last_seen_at FROM devices WHERE id = ?', [deviceId]);
   assert.equal(Number(after[0].agent_token_revoked), 1);
   assert.equal(String(after[0].last_seen_at), String(before[0].last_seen_at));
@@ -244,6 +264,7 @@ try {
       await pool.query('DELETE FROM user_workspace_memberships WHERE tenant_id = ?', [tenantId]);
       await pool.query('DELETE FROM users WHERE tenant_id = ?', [tenantId]);
       await pool.query('DELETE FROM used_bootstrap_tokens WHERE tenant_id = ?', [tenantId]);
+      await pool.query('DELETE c FROM command_queue c INNER JOIN devices d ON d.id = c.device_id WHERE d.tenant_id = ?', [tenantId]);
       await pool.query('DELETE FROM devices WHERE tenant_id = ?', [tenantId]);
       await pool.query('DELETE FROM companies WHERE tenant_id = ?', [tenantId]);
       await pool.query('DELETE FROM tenants WHERE id = ?', [tenantId]);

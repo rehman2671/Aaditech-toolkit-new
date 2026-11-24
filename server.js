@@ -1099,7 +1099,9 @@ app.post('/api/v1/devices/:id/credentials/revoke', requireRole(['SUPER_ADMIN']),
       principal: req.user, ...request, ipAddress: req.ip
     });
     if (result.status === 'not_found') return res.status(404).json({ error: 'DEVICE_NOT_FOUND' });
-    return res.json({ device_id: request.deviceId, credential_revoked: true, already_revoked: result.status === 'already_revoked' });
+    return res.json({ device_id: request.deviceId, credential_revoked: true,
+      already_revoked: result.status === 'already_revoked',
+      cancelled_pending_commands: result.cancelled_pending_commands ?? null });
   } catch (_) {
     return res.status(503).json({ error: 'DEVICE_REVOCATION_UNCONFIRMED' });
   }

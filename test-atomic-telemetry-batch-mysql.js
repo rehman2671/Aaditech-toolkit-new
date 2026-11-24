@@ -6,7 +6,7 @@ import mysql from 'mysql2/promise';
 import request from 'supertest';
 import * as db from './db.js';
 import {createRecoveryReviewRequest,reserveRecoveryReview,inspectRecoveryReview} from './device-recovery-review.js';
-import {createTroubleshootingIncident,inspectTroubleshootingIncident,recordDiagnosticPlan,summarizeTroubleshootingIntake} from './troubleshooting-incidents.js';
+import {createTroubleshootingIncident,inspectTroubleshootingIncident,recordDiagnosticPlan,summarizeTroubleshootingIntake,summarizeTroubleshootingCategories,inspectDiagnosticPlan} from './troubleshooting-incidents.js';
 import {withSchemaMigrationLock} from './schema-migration-lock.js';
 
 if (process.env.GITHUB_ACTIONS !== 'true' ||
@@ -233,6 +233,18 @@ try {
   assert.deepEqual([summary.reported,summary.open,summary.escalated,summary.incidents_with_plans],[2,1,1,1]);
   assert.equal(summary.verified_resolved,null);
   assert.equal((await summarizeTroubleshootingIntake(pool,{...summaryArgs,principal:admins[1]})).reported,0);
+  const categorySummary=await summarizeTroubleshootingCategories(pool,summaryArgs);
+  assert.equal(categorySummary.categories.length,26);
+  assert.deepEqual(categorySummary.totals,{reported:2,open:1,escalated:1,incidents_with_plans:1});
+  assert.deepEqual(categorySummary.categories.find(x=>x.category_id==='TR-24'),{category_id:'TR-24',reported:1,open:0,escalated:1,incidents_with_plans:0});
+  assert.equal(categorySummary.categories.find(x=>x.category_id==='TR-01').incidents_with_plans,1);
+  assert.equal(categorySummary.resolution_rate,null);
+  assert.equal((await summarizeTroubleshootingCategories(pool,{...summaryArgs,principal:admins[1]})).totals.reported,0);
+  const inspection={...incidentArgs,incidentId:openIncident.incident_id,planId:plans[0].plan_id};
+  assert.equal((await inspectDiagnosticPlan(pool,inspection)).status,'PLANNED_ONLY');
+  await assert.rejects(()=>inspectDiagnosticPlan(pool,{...inspection,principal:admins[1]}),/INCIDENT_NOT_FOUND/);
+  await assert.rejects(()=>inspectDiagnosticPlan(pool,{...inspection,planId:crypto.randomUUID()}),/DIAGNOSTIC_PLAN_NOT_FOUND/);
+  console.log('[PASS] Scoped per-category report and persisted planned-only inspection, no invented outcomes.');
   // Real separate connections must serialize on the schema advisory lock.
   const order=[];
   await Promise.all(Array.from({length:3},(_,i)=>withSchemaMigrationLock(pool,async c=>{

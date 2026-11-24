@@ -2,7 +2,8 @@
 import {createHash} from 'node:crypto';
 const fail=code=>{throw Error(code)};
 export function planMigrationHistory(files,rows){
- if(!Array.isArray(files)||!files.length||!Array.isArray(rows))fail('MIGRATION_HISTORY_INVALID');
+ if(!Array.isArray(files)||!files.length||files.length>999||!Array.isArray(rows))fail('MIGRATION_HISTORY_INVALID');
+ if(files.some(file=>!file||typeof file.name!=='string'||/[\r\n]/.test(file.name)||typeof file.sql!=='string'))fail('MIGRATION_SEQUENCE_INVALID');
  const sorted=[...files].sort((a,b)=>a.name.localeCompare(b.name,'en'));
  const plan=sorted.map((file,i)=>{
   const prefix=String(i+1).padStart(3,'0');
@@ -13,7 +14,7 @@ export function planMigrationHistory(files,rows){
  });
  const history=new Map();
  for(const row of rows){
-  if(!row||typeof row.version!=='string'||history.has(row.version))fail('MIGRATION_HISTORY_INVALID');
+  if(!row||typeof row.version!=='string'||row.version.length!==3||history.has(row.version))fail('MIGRATION_HISTORY_INVALID');
   const expected=plan.find(f=>f.version===row.version);
   if(!expected||row.name!==expected.name||row.checksum!==expected.checksum)fail('MIGRATION_HISTORY_DRIFT');
   history.set(row.version,row);

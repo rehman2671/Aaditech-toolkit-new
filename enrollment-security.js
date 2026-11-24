@@ -85,3 +85,35 @@ export function validateDeviceRevocationRequest(deviceId, body) {
       !reasons.includes(body.reason_code)) return null;
   return { deviceId, reasonCode: body.reason_code };
 }
+
+
+// Read-only recovery assessment: a snapshot is never authority to issue or
+// activate a replacement credential. Return only categorical evidence.
+export function classifyDeviceCredentialRecovery(row) {
+  const count = value => (typeof value === 'number' || (typeof value === 'string' && /^\d+$/.test(value)))
+    && Number.isSafeInteger(Number(value)) && Number(value) >= 0 ? Number(value) : null;
+  const outstanding = count(row?.outstanding_commands);
+  const matches = count(row?.current_hash_matches);
+  const revoked = [true, 1, '1'].includes(row?.agent_token_revoked) ? true :
+    ([false, 0, '0'].includes(row?.agent_token_revoked) ? false : null);
+  const current = row?.device_token_hash;
+  const legacy = row?.auth_token_hash;
+  const present = v => v !== null && v !== undefined && v !== '';
+  let credentialState = 'MISSING';
+  if (present(current)) {
+    if (typeof current !== 'string' || !/^[a-f0-9]{64}$/.test(current)) credentialState = 'INVALID_CURRENT';
+    else if (matches === null || matches === 0) credentialState = 'UNVERIFIED';
+    else if (matches !== 1) credentialState = 'AMBIGUOUS_CURRENT';
+    else credentialState = 'CURRENT_UNIQUE';
+  } else if (present(legacy)) credentialState = 'LEGACY_ONLY';
+  const blockers = [];
+  if (revoked === null || outstanding === null || credentialState === 'UNVERIFIED') blockers.push('STATE_UNVERIFIED');
+  if (revoked === false) blockers.push('REVOKE_FIRST');
+  if (outstanding !== null && outstanding > 0) blockers.push('COMMAND_RECONCILIATION_REQUIRED');
+  if (credentialState !== 'CURRENT_UNIQUE') blockers.push('CREDENTIAL_MIGRATION_REVIEW_REQUIRED');
+  // A server-side snapshot cannot certify endpoint ownership, local ACLs,
+  // interruption safety, or already-running work on the device.
+  blockers.push('AUTHORIZED_RECOVERY_HANDOFF_REQUIRED');
+  return { credential_state: credentialState, credential_revoked: revoked,
+    outstanding_commands: outstanding, blockers, replacement_allowed: false };
+}

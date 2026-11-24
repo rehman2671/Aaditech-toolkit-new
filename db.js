@@ -7,6 +7,7 @@ import { extractMeasurements, deviceMetricView } from './device-metrics.js';
 import bcrypt from 'bcrypt';
 import { fileURLToPath } from 'url';
 import { getAgentVersion } from './agent-artifacts.js';
+import { classifyDeviceCredentialRecovery } from './enrollment-security.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -1705,6 +1706,28 @@ export async function revokeDeviceCredential({ principal, deviceId, reasonCode, 
   }
 }
 
+// A single persistent tenant-scoped snapshot; no cache/demo fallback and
+// no write, audit mutation, raw token or hash in the returned object.
+export async function getDeviceCredentialRecoveryPreflight({ principal, deviceId }) {
+  if (!principal?.id || !principal?.tenant_id || principal.role !== 'SUPER_ADMIN' ||
+      typeof deviceId !== 'string' ||
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(deviceId)) {
+    throw new Error('DEVICE_RECOVERY_PREFLIGHT_INVALID');
+  }
+  if (!isMysqlConnected() || !pool?.query) throw new Error('DEVICE_RECOVERY_MYSQL_REQUIRED');
+  const [rows] = await pool.query(
+    "SELECT d.id, d.tenant_id, d.device_token_hash, d.auth_token_hash, d.agent_token_revoked, " +
+    "(SELECT COUNT(*) FROM devices x WHERE x.device_token_hash = d.device_token_hash) AS current_hash_matches, " +
+    "(SELECT COUNT(*) FROM command_queue c WHERE c.device_id = d.id AND " +
+    "(c.status IS NULL OR UPPER(c.status) NOT IN ('COMPLETED','FAILED','CANCELLED','EXPIRED'))) AS outstanding_commands " +
+    "FROM devices d WHERE d.id = ? AND d.tenant_id = ? LIMIT 2",
+    [deviceId, principal.tenant_id]);
+  if (!Array.isArray(rows) || rows.length !== 1 ||
+      String(rows[0].tenant_id) !== String(principal.tenant_id) ||
+      String(rows[0].id).toLowerCase() !== deviceId.toLowerCase()) return null;
+  return { device_id: rows[0].id, ...classifyDeviceCredentialRecovery(rows[0]) };
+}
+
 export async function deleteDevice(id) {
   const memIdx = memDevices.findIndex(d => String(d.id) === String(id));
   if (memIdx >= 0) {
@@ -1721,18 +1744,36 @@ export async function deleteDevice(id) {
 // N29: keyed telemetry requests are ONE atomic MySQL transaction.
 // MySQL's tenant/device/batch unique key serializes parallel workers and
 // an immutable receipt makes ACK-loss replay a read-only operation.
-export async function ingestTelemetryBatchOnce(batch) {
+export async function ingestTelemetryBatchOnce(batch, credential = undefined) {
   const { tenant_id: tenantId, device_id: deviceId, batch_id: batchId,
     request_hash: hash, device_updates: updates = {},
     metrics: measured, processes = [], events = [], alerts = [] } = batch || {};
   if (!tenantId || !deviceId ||
       !/^[A-Za-z0-9][A-Za-z0-9:._-]{0,63}$/.test(String(batchId || '')) ||
       !/^[0-9a-f]{64}$/.test(String(hash || ''))) throw new Error('TELEMETRY_BATCH_INVALID');
+  const requireCredential = process.env.NODE_ENV !== 'test' || credential !== undefined;
+  if (requireCredential && (credential?.tenantId !== tenantId ||
+      typeof credential?.tokenHash !== 'string' || !/^[a-f0-9]{64}$/.test(credential.tokenHash))) {
+    throw new Error('TELEMETRY_CREDENTIAL_CHANGED');
+  }
   if (!isMysqlConnected() || !pool?.getConnection) throw new Error('TELEMETRY_BATCH_MYSQL_REQUIRED');
   const conn = await pool.getConnection();
   let committed = false;
   try {
     await conn.beginTransaction();
+    // Lock the device before receipt insertion or replay, serializing with revocation.
+    const [owners] = await conn.query(
+      'SELECT id, tenant_id, device_token_hash, agent_token_revoked FROM devices WHERE id = ? AND tenant_id = ? FOR UPDATE',
+      [deviceId, tenantId]
+    );
+    const owner = Array.isArray(owners) && owners.length === 1 ? owners[0] : null;
+    if (!owner || String(owner.id) !== String(deviceId) || String(owner.tenant_id) !== String(tenantId)) {
+      throw new Error('TELEMETRY_DEVICE_OWNER_MISMATCH');
+    }
+    if (requireCredential && (owner.device_token_hash !== credential.tokenHash ||
+        ![false, 0, '0'].includes(owner.agent_token_revoked))) {
+      throw new Error('TELEMETRY_CREDENTIAL_CHANGED');
+    }
     const nonce = crypto.randomBytes(16).toString('hex');
     await conn.query(
       'INSERT INTO telemetry_batches (tenant_id, device_id, batch_id, request_hash, insert_nonce, accepted_count) ' +
@@ -1755,11 +1796,6 @@ export async function ingestTelemetryBatchOnce(batch) {
         recorded_at: claim.recorded_at, batch_id: batchId };
     }
 
-    const [owners] = await conn.query(
-      'SELECT id FROM devices WHERE id = ? AND tenant_id = ? FOR UPDATE',
-      [deviceId, tenantId]
-    );
-    if (owners.length !== 1) throw new Error('TELEMETRY_DEVICE_OWNER_MISMATCH');
     const safeColumns = new Set(['status','os_version','ip_address','cpu_usage',
       'memory_usage','disk_free','disk_free_gb','telemetry_reported_at',
       'bitlocker_status','antivirus_status','firewall_status','antivirus_name',
@@ -2135,7 +2171,7 @@ export async function getDeviceProcesses(deviceId) {
 // ---------------- COMMANDS ----------------
 // The database is the authority for remote command dispatch. Never mark an
 // uncommitted command accepted or retain a shadow queue in production.
-export async function queueCommandInDb(cmd, credential = null) {
+export async function queueCommandInDb(cmd, credential = undefined) {
   try {
     const cmdId = cmd.id ? String(cmd.id) : crypto.randomUUID();
     cmd.id = cmdId;
@@ -2160,30 +2196,19 @@ export async function queueCommandInDb(cmd, credential = null) {
         id, device_id, hostname, command_type, payload, hmac_signature, signed_content, status, dispatched_by, dispatched_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(3))
     `;
-    const params = [
+    const result = await executeCredentialBoundCommandWrite(memCmd.device_id, credential, sql, [
       cmdId, memCmd.device_id, memCmd.hostname,
       memCmd.command_type, JSON.stringify(payload),
       memCmd.hmac_signature, memCmd.signed_content,
       memCmd.status.toUpperCase(), memCmd.dispatched_by
-    ];
-    if (process.env.NODE_ENV !== 'test') {
-      // Queue admission, claim and result all serialize with revocation on
-      // the same device row. Proof comes from the server's tenant-scoped
-      // device lookup, not a request payload. Never expose the hash.
-      return await withCurrentCommandCredential(memCmd.device_id, credential, async query => {
-        const inserted = await query(sql, params);
-        if (inserted?.affectedRows !== 1) throw new Error('COMMAND_QUEUE_INSERT_NOT_COMMITTED');
-        return true;
-      });
-    }
-    const result = await executeQuery(sql, params);
+    ]);
     if (result?.affectedRows !== 1) throw new Error('COMMAND_QUEUE_INSERT_NOT_COMMITTED');
     if (process.env.NODE_ENV === 'test') memCommands.push(memCmd);
     return true;
   } catch (err) {
     // No client-supplied command payload, script name, or SQL credentials in logs.
     console.error('queueCommandInDb failed:', err.code || 'COMMAND_QUEUE_INSERT_FAILED');
-    if (process.env.NODE_ENV !== 'test') throw err;
+    if (process.env.NODE_ENV !== 'test' || credential !== undefined) throw err;
     return false;
   }
 }
@@ -2305,35 +2330,37 @@ export async function getPendingCommandsForDevice(deviceId, limit = 50) {
 // pending command, but only ONE can claim it for an enrolled device.
 // No automatic expiry/replay: destructive operations need human review when
 // the result is lost; the endpoint agent's local dedup is defense in depth.
-async function withCurrentCommandCredential(deviceId, credential, mutate) {
-  if (!credential?.tenantId || typeof credential.tokenHash !== 'string' ||
-      !/^[a-f0-9]{64}$/.test(credential.tokenHash)) return false;
+// Serialize command mutations with administrative revocation using the
+// same persistent device row lock. Authentication before entering the
+// database is not sufficient: the credential may have changed meanwhile.
+// Only explicit historical test fixtures may omit the credential argument.
+async function executeCredentialBoundCommandWrite(owner, credential, sql, params) {
+  if (process.env.NODE_ENV === 'test' && credential === undefined) return executeQuery(sql, params);
+  if (!owner || typeof credential?.tenantId !== 'string' || !credential.tenantId ||
+      typeof credential?.tokenHash !== 'string' || !/^[a-f0-9]{64}$/.test(credential.tokenHash)) {
+    throw new Error('COMMAND_CREDENTIAL_CHANGED');
+  }
   if (!isMysqlConnected() || !pool?.getConnection) throw new Error('COMMAND_CREDENTIAL_DATABASE_UNAVAILABLE');
   const conn = await pool.getConnection();
-  let settled = false, discard = false;
+  let committed = false;
+  let discard = false;
   try {
     await conn.beginTransaction();
-    // Same device row lock as administrative revocation. No cached principal
-    // can admit a new claim or completion once revocation has committed.
     const [rows] = await conn.query(
       'SELECT id, tenant_id, device_token_hash, agent_token_revoked FROM devices WHERE id = ? AND tenant_id = ? FOR UPDATE',
-      [String(deviceId), credential.tenantId]
-    );
-    const owner = rows[0];
-    if (rows.length !== 1 || String(owner.id) !== String(deviceId) ||
-        String(owner.tenant_id) !== credential.tenantId ||
-        owner.device_token_hash !== credential.tokenHash ||
-        ![false, 0, '0'].includes(owner.agent_token_revoked)) {
-      await conn.rollback();
-      settled = true;
-      return false;
+      [String(owner), credential.tenantId]);
+    const row = Array.isArray(rows) && rows.length === 1 ? rows[0] : null;
+    if (!row || String(row.id) !== String(owner) || row.tenant_id !== credential.tenantId ||
+        row.device_token_hash !== credential.tokenHash ||
+        ![false, 0, '0'].includes(row.agent_token_revoked)) {
+      throw new Error('COMMAND_CREDENTIAL_CHANGED');
     }
-    const result = await mutate(async (sql, params) => (await conn.query(sql, params))[0]);
+    const [updated] = await conn.query(sql, params);
     await conn.commit();
-    settled = true;
-    return result;
+    committed = true;
+    return updated;
   } finally {
-    if (!settled) {
+    if (!committed) {
       try { await conn.rollback(); }
       catch (_) { discard = true; if (typeof conn.destroy === 'function') conn.destroy(); }
     }
@@ -2341,19 +2368,16 @@ async function withCurrentCommandCredential(deviceId, credential, mutate) {
   }
 }
 
-export async function markCommandPickedUp(id, deviceId = null, credential = null) {
+export async function markCommandPickedUp(id, deviceId = null, credential = undefined) {
   const c = process.env.NODE_ENV !== 'test' ? null :
     memCommands.find(x => String(x.id) === String(id));
   const owner = deviceId || c?.device_id;
   if (!owner) return false;
-  const sql = "UPDATE command_queue SET status = 'IN_PROGRESS', picked_up_at = NOW(3) " +
-    "WHERE id = ? AND device_id = ? AND status = 'PENDING'";
-  const params = [String(id), String(owner)];
-  if (process.env.NODE_ENV !== 'test') {
-    return withCurrentCommandCredential(owner, credential, async query =>
-      (await query(sql, params))?.affectedRows === 1);
-  }
-  const updated = await executeQuery(sql, params);
+  const updated = await executeCredentialBoundCommandWrite(owner, credential,
+    "UPDATE command_queue SET status = 'IN_PROGRESS', picked_up_at = NOW(3) " +
+    "WHERE id = ? AND device_id = ? AND status = 'PENDING'",
+    [String(id), String(owner)]
+  );
   if (updated?.affectedRows !== 1) return false;
   if (c) {
     c.status = 'in_progress';
@@ -2364,7 +2388,7 @@ export async function markCommandPickedUp(id, deviceId = null, credential = null
 
 // Only the enrolled owning agent can commit a result, once, after a successful
 // claim. Duplicate, pre-poll, or stale reports MUST NOT overwrite final history.
-export async function completeCommandInDb(cmdId, status, stdout, stderr, exitCode, deviceId = null, credential = null) {
+export async function completeCommandInDb(cmdId, status, stdout, stderr, exitCode, deviceId = null, credential = undefined) {
   if (!['completed', 'failed'].includes(status)) return false;
   const c = process.env.NODE_ENV !== 'test' ? null :
     memCommands.find(x => String(x.id) === String(cmdId));
@@ -2376,12 +2400,9 @@ export async function completeCommandInDb(cmdId, status, stdout, stderr, exitCod
       SET status = ?, stdout = ?, stderr = ?, exit_code = ?, executed_at = NOW(3), completed_at = NOW(3)
       WHERE id = ? AND device_id = ? AND status = 'IN_PROGRESS'
     `;
-    const params = [status.toUpperCase(), stdout, stderr, exitCode, String(cmdId), String(owner)];
-    if (process.env.NODE_ENV !== 'test') {
-      return await withCurrentCommandCredential(owner, credential, async query =>
-        (await query(sql, params))?.affectedRows === 1);
-    }
-    const updated = await executeQuery(sql, params);
+    const updated = await executeCredentialBoundCommandWrite(owner, credential, sql, [
+      status.toUpperCase(), stdout, stderr, exitCode, String(cmdId), String(owner)
+    ]);
     if (updated?.affectedRows !== 1) return false;
     if (c) {
       c.status = status;
@@ -2394,7 +2415,7 @@ export async function completeCommandInDb(cmdId, status, stdout, stderr, exitCod
     return true;
   } catch (err) {
     console.error('completeCommandInDb failed:', err.code || 'COMMAND_RESULT_WRITE_FAILED');
-    if (process.env.NODE_ENV !== 'test') throw err;
+    if (process.env.NODE_ENV !== 'test' || credential !== undefined) throw err;
     return false;
   }
 }

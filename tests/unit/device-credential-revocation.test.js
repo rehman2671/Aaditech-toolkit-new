@@ -1,6 +1,6 @@
 import { describe,it,expect,vi,afterEach } from 'vitest';
 import * as db from '../../db.js';
-import { validateDeviceRevocationRequest } from '../../enrollment-security.js';
+import { validateDeviceRevocationRequest, classifyDeviceCredentialRecovery } from '../../enrollment-security.js';
 
 const id='00000000-0000-0000-0000-000000000123';
 const principal={id:'admin-id',tenant_id:'tenant-a',role:'SUPER_ADMIN',username:'admin'};
@@ -85,4 +85,56 @@ it('commits zero cancelled commands without fabricating a count on idempotent re
   const retry=fixture({rows:[{id,tenant_id:'tenant-a',agent_token_revoked:1}]});
   expect(await db.revokeDeviceCredential(input)).toEqual({status:'already_revoked'});
   expect(retry.query).toHaveBeenCalledTimes(1);
+});
+
+
+describe('read-only credential recovery preflight', () => {
+  const hash = 'a'.repeat(64);
+  const row = { id, tenant_id: 'tenant-a', device_token_hash: hash,
+    auth_token_hash: 'legacy-secret-hash', agent_token_revoked: 1,
+    current_hash_matches: 1, outstanding_commands: 0 };
+  it('reports only safe evidence and never authorizes replacement', () => {
+    expect(classifyDeviceCredentialRecovery(row)).toEqual({
+      credential_state:'CURRENT_UNIQUE', credential_revoked:true, outstanding_commands:0,
+      blockers:['AUTHORIZED_RECOVERY_HANDOFF_REQUIRED'], replacement_allowed:false
+    });
+    const active = classifyDeviceCredentialRecovery({...row,agent_token_revoked:0,outstanding_commands:'2'});
+    expect(active.blockers).toContain('REVOKE_FIRST');
+    expect(active.blockers).toContain('COMMAND_RECONCILIATION_REQUIRED');
+    expect(active.replacement_allowed).toBe(false);
+    expect(JSON.stringify(active)).not.toContain(hash);
+    for(const [patch,state] of [
+      [{device_token_hash:null},'LEGACY_ONLY'],
+      [{device_token_hash:null,auth_token_hash:null},'MISSING'],
+      [{device_token_hash:'invalid'},'INVALID_CURRENT'],
+      [{current_hash_matches:2},'AMBIGUOUS_CURRENT'],
+      [{current_hash_matches:null},'UNVERIFIED']
+    ]) {
+      const result=classifyDeviceCredentialRecovery({...row,...patch});
+      expect(result.credential_state).toBe(state);
+      expect(result.blockers).toContain('CREDENTIAL_MIGRATION_REVIEW_REQUIRED');
+      expect(result.replacement_allowed).toBe(false);
+    }
+    expect(classifyDeviceCredentialRecovery({...row,outstanding_commands:null,agent_token_revoked:null}).blockers).toContain('STATE_UNVERIFIED');
+  });
+  it('uses one tenant-scoped persistent read and refuses foreign or ambiguous rows',async()=>{
+    const query=vi.fn(async()=>[[row]]);
+    db.setConnectionStateForTesting(true,{query});
+    const result=await db.getDeviceCredentialRecoveryPreflight({principal,deviceId:id});
+    expect(result.device_id).toBe(id);
+    expect(result.replacement_allowed).toBe(false);
+    expect(JSON.stringify(result)).not.toContain(hash);
+    expect(JSON.stringify(result)).not.toContain('legacy-secret-hash');
+    expect(query).toHaveBeenCalledTimes(1);
+    expect(query.mock.calls[0][0]).toContain('d.tenant_id = ?');
+    expect(query.mock.calls[0][0]).toContain('command_queue');
+    expect(query.mock.calls[0][1]).toEqual([id,'tenant-a']);
+    for(const rows of [[],[{...row,tenant_id:'tenant-b'}],[row,row]]) {
+      query.mockResolvedValueOnce([rows]);
+      expect(await db.getDeviceCredentialRecoveryPreflight({principal,deviceId:id})).toBeNull();
+    }
+    await expect(db.getDeviceCredentialRecoveryPreflight({principal:{...principal,role:'OPERATOR'},deviceId:id})).rejects.toThrow('DEVICE_RECOVERY_PREFLIGHT_INVALID');
+    db.setConnectionStateForTesting(false,null);
+    await expect(db.getDeviceCredentialRecoveryPreflight({principal,deviceId:id})).rejects.toThrow('DEVICE_RECOVERY_MYSQL_REQUIRED');
+  });
 });

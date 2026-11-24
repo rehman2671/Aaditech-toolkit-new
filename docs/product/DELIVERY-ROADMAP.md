@@ -83,21 +83,31 @@ Historical #2 agent-trust review: the JS verifier accepted coercible fields and 
 
 PR #109 exact head ebd4848d826e5bb8e764d95fce701d8a0a794835: Node/Vitest passed and deployment safety #45451309706 passed; CI #45451309686 API fault rehearsal failed at line 214 (401 vs expected 403 after prior revocation/audit/last-seen assertions). Corrected the test to require existing 401 DEVICE_TOKEN_REVOKED contract, retained exact error assertion, added real two-worker legacy/conflicting-header denial tests. Fresh combined CI required; no full revocation or production acceptance yet. Historical unsigned MSI verification remains exact-head evidence; no signer, owner ADR, protected merge or field acceptance.
 
+## Phase O recovery and migration safety checkpoint (2026-11-24)
 
-## Phase O command credential fence (2026-11-24)
+Exact head 583a7e637d2e3e32cf7612eb7887321ab25b1f48: PowerShell, Node/Vitest and production API/MySQL job SUCCESS (CI 45451912773); deployment safety 45451912586 2/2 SUCCESS; unsigned MSI job still in progress at observation. Production signing skipped.
 
-Proposed stacked O1 follow-up on #109 583a7e63: deployed command claim and terminal result mutation now lock the current tenant/device credential row in the same MySQL transaction as the command CAS; reject revoked, changed or missing token proof. API dispatch/remediation refuse known revoked/uncredentialed devices at admission. Mocked transaction tests updated. Dispatch insertion is not yet transactionally fenced; no cancellation of already-delivered commands, no rotation/recovery or real two-worker race certification. Fresh combined CI required.
+Recovery preflight implementation: explicit tenant SUPER_ADMIN bearer-only read-only GET by immutable ID, no-store response, persistent database only, categorizes unique/ambiguous/legacy-only/missing/invalid credentials and outstanding commands (including IN_PROGRESS or unknown status), returns blockers and always replacement_allowed=false. No secret/hash returned, no migration, token issuance, mutation or queue cancellation. Added helper/DB regressions and two-production-worker foreign-tenant 404 for revocation/preflight, cookie refusal and pre/post-revocation snapshots. New CI pending; physical recovery, atomic credential replacement, authenticated local handoff, in-flight command policy, legacy migration and independent review still required.
+
+Endpoint: `GET /api/v1/devices/:id/credentials/recovery-preflight`. This is an assessment, not an approval or authorization to rotate credentials; absence of outstanding server commands does not prove no endpoint-side work remains. Revoked devices must not use bootstrap enrollment to overwrite an existing identity. No owner ADR, main merge, signing or production acceptance.
+
+## Phase O command mutation and recovery safety checkpoint (2026-11-24)
+
+Exact head 1b45dad47368b05a90a3b44a5e9fe2c3f40f5905: CI 45452577035 PowerShell, Node/Vitest and real API/MySQL (two-worker cross-tenant revocation/preflight) SUCCESS; deployment safety 45452576922 2/2 SUCCESS. Unsigned Windows MSI still running at observation; protected signing skipped. Previous 583a7e63 MSI cancelled on supersession.
+
+Command mutation fence: deployed claim and terminal result writes now require current tenant/device token hash under the same MySQL device row lock used by revocation, with rollback and fail-closed credential change rejection. New mocked transaction regressions and two-worker HTTP/MySQL claim, result receipt replay, outstanding-command recovery blocker and revoked-result denial rehearsal added. Fresh CI required. Does not cancel or recall a command claimed before revocation, fence every telemetry write or implement credential replacement, rotation or local recovery handoff. Explicit synthetic test compatibility remains.
+
+Lock order is device row first, command row second. A command already claimed can be delivered or run after revocation, and a lost response can leave IN_PROGRESS work; preserve and reconcile it rather than automatically retry or mark it complete. Recovery preflight remains advisory with replacement_allowed=false. Independent review, owner ADRs, protected main, physical endpoint acceptance and signed release remain required.
+
+## Phase O command admission and recovery checkpoint (2026-11-24 IST)
+
+Exact head d5755e1035881675e8e2e7923bc7e33bb7d622f3: CI 45453396797 Node/Vitest FAILED (470/473 tests passed; three N23 production-mode fixtures omitted the newly mandatory credential/transaction interface). API job skipped; PowerShell running at observation. Deployment safety 45453396774 2/2 SUCCESS. Previous head 1b45dad4 unsigned MSI was cancelled, not accepted.
+
+N23 fixture reconciliation preserves production fail-closed behavior and exercises device-row lock plus existing CAS, owner and database-failure assertions. Missing credentials now explicitly tested for claim, completion and queue insertion. Command enqueue additionally uses the same device lock and current credential hash as claim/result/revocation, including direct dispatch and policy-approved remediation; stale or revoked targets return HTTP 409 DEVICE_CREDENTIAL_NOT_ACTIVE without inserting a queue row. Mocked regression expanded to enqueue, and isolated two-worker rehearsal asserts revoked dispatch cannot add queue rows. Fresh combined CI required; no cancellation of preexisting or executing commands, automatic recovery or credential issuance.
+
+Recovery authorization and replacement remain blocked pending transaction/telemetry review, independent endpoint ownership proof, durable single-use authorization, atomic Windows credential storage and reconciliation of outstanding work. No owner ADR, main merge, protected signing or production acceptance. The older Windows diagnostic evidence applies only to its exact tested revision.
 
 
-## Phase O transactional command dispatch (2026-11-24)
+## Phase O quarantine reconciliation and keyed telemetry fence (2026-11-24)
 
-#109 583a7e637d2e3e32cf7612eb7887321ab25b1f48 CI #45451912773: Node, PowerShell and real MySQL API passed; log confirms both workers reject legacy/conflicting headers, concurrent one durable revocation/audit and subsequent auth rejection. Safety #45451912586 passed; newest MSI job still running at observation.
-
-Proposed #111 dispatch extension: queue insertion now uses the same tenant/device/current-hash row lock transaction as command claim/result and revocation. Both manual dispatch and remediation supply server-side credential proof; 409 for stale admission, 503 for DB failure. Mocked tests cover revoked/rotated/foreign/missing proof, one committed insert, rollback and non-exposure of hash. Real cross-worker command race tests, pending command quarantine on recovery, telemetry fencing, rotation and physical endpoint acceptance remain open. Fresh CI required.
-
-
-## Phase O revocation command quarantine (2026-11-24)
-
-#109 exact head 1b45dad47368b05a90a3b44a5e9fe2c3f40f5905 CI #45452577035 Node, PowerShell, real MySQL API passed; safety #45452576922 passed; MSI running at observation. Read-only recovery preflight and tenant authorization integration present in master, not included in this older stacked source base.
-
-Proposed #111 command quarantine: first revocation atomically cancels only PENDING commands with null pickup/execution/completion timestamps under the same device-row lock as dispatch/claim/result; preserves in-progress/uncertain and terminal records, audits count, fails closed on quarantine failure, read-only retry returns no fabricated count. Mocked tests and isolated real two-worker SQL/HTTP fixture added, fresh CI pending. Previously revoked devices may still have old pending rows; recovery must remain blocked until explicit reconciliation. No replacement token issuance, cancellation of already-running work, telemetry fence or physical acceptance. Reconcile #111 with newer #109 preflight before combined CI.
+Reconciled stacked #111 f3c692ce with latest #109 16c56b54, retaining master command-admission and repaired N23 fixtures rather than duplicating alternative command fence. Carried atomic never-claimed pending quarantine and audit count, merged unit coverage and two-worker quarantine fixture into master recovery/claim/result tests. Added keyed telemetry exact current credential proof and device row lock before receipt insertion/replay; isolated MySQL revoked/stale proof regressions. Master d5755e10 CI #45453396797 had three outdated N23 failures (470/473 passed), safety passed; 16c56b54 fresh CI #45454066429 in progress at observation. New reconciled source head requires fresh combined CI. Non-keyed telemetry, heartbeat, cache provenance, previously revoked reconciliation, rotation/handoff and physical acceptance remain pending. No production approval.

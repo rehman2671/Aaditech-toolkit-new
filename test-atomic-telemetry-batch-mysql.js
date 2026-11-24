@@ -59,8 +59,9 @@ try {
     metrics:{cpu:90,ram:22,disk:0,latency:null},
     events:[{kind:'n29_health',payload:{disk:0},client_msg_id:eventKey}],
     alerts:[plan]};
+  const proof={tenantId:tenantA,tokenHash};
   console.log('N29: 16 concurrent atomic transactions');
-  const results=await Promise.all(Array.from({length:16},()=>db.ingestTelemetryBatchOnce(base)));
+  const results=await Promise.all(Array.from({length:16},()=>db.ingestTelemetryBatchOnce(base,proof)));
   assert.equal(results.filter(x=>!x.duplicate).length,1,'single transactional winner');
   assert.equal(results.filter(x=>x.duplicate).length,15,'15 original durable ACKs');
   assert.equal(await countReceipt(key),1,'one immutable receipt');
@@ -73,6 +74,16 @@ try {
   await assert.rejects(()=>db.ingestTelemetryBatchOnce({...base,request_hash:sha('different')}),
     /TELEMETRY_BATCH_ID_CONFLICT/,'changed content with same ID fails 409-class conflict');
   assert.equal(await countHistory(),1,'conflict leaves history intact');
+  await pool.query('UPDATE devices SET agent_token_revoked=1 WHERE id=?',[devA]);
+  await assert.rejects(()=>db.ingestTelemetryBatchOnce(base,proof),/TELEMETRY_CREDENTIAL_CHANGED/);
+  const revokedKey=key+'-revoked';
+  await assert.rejects(()=>db.ingestTelemetryBatchOnce({...base,batch_id:revokedKey},proof),/TELEMETRY_CREDENTIAL_CHANGED/);
+  assert.equal(await countReceipt(revokedKey),0,'revoked credential cannot create receipt');
+  await pool.query('UPDATE devices SET agent_token_revoked=0,device_token_hash=? WHERE id=?',['b'.repeat(64),devA]);
+  await assert.rejects(()=>db.ingestTelemetryBatchOnce(base,proof),/TELEMETRY_CREDENTIAL_CHANGED/);
+  await pool.query('UPDATE devices SET device_token_hash=? WHERE id=?',[tokenHash,devA]);
+  assert.equal(await countHistory(),1,'revoked and stale proofs cannot mutate history');
+  console.log('[PASS] Keyed telemetry rejects revoked/stale proof before receipt or replay.');
 
   const brokenKey=key+'-rollback';
   const broken={...base,batch_id:brokenKey,

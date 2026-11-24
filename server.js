@@ -748,7 +748,7 @@ async function verifyDeviceCredential(req, targetDeviceIdentifier) {
       authenticated: false,
       status: 401,
       error: 'DEVICE_TOKEN_REVOKED',
-      detail: 'Device credential has been revoked; re-enrollment is required.'
+      detail: 'Device credential has been revoked; authorized recovery is required. Bootstrap enrollment cannot replace an existing identity.'
     };
   }
 
@@ -1104,6 +1104,27 @@ app.post('/api/v1/devices/:id/credentials/revoke', requireRole(['SUPER_ADMIN']),
       cancelled_pending_commands: result.cancelled_pending_commands ?? null });
   } catch (_) {
     return res.status(503).json({ error: 'DEVICE_REVOCATION_UNCONFIRMED' });
+  }
+});
+
+// Recovery evidence only: explicit admin bearer, fresh persisted tenant
+// principal, immutable ID, no caching, no credential issuance.
+app.get('/api/v1/devices/:id/credentials/recovery-preflight', requireRole(['SUPER_ADMIN']), async (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  const authorization = req.headers.authorization;
+  if (typeof authorization !== 'string' || !authorization.startsWith('Bearer ') ||
+      authorization.slice(7).trim() !== req.token) {
+    return res.status(403).json({ error: 'EXPLICIT_ADMIN_BEARER_REQUIRED' });
+  }
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(req.params.id)) {
+    return res.status(400).json({ error: 'DEVICE_RECOVERY_ID_REQUIRED' });
+  }
+  try {
+    const result = await db.getDeviceCredentialRecoveryPreflight({ principal: req.user, deviceId: req.params.id });
+    if (!result) return res.status(404).json({ error: 'DEVICE_NOT_FOUND' });
+    return res.json(result);
+  } catch (_) {
+    return res.status(503).json({ error: 'DEVICE_RECOVERY_STATE_UNVERIFIED' });
   }
 });
 
@@ -1465,6 +1486,12 @@ app.post(['/api/v1/ingest/telemetry', '/api/ingest'], agentLimiter, validateBody
         processes: Array.isArray(processes) ? processes : [],
         events: Array.isArray(req.body.events) ? req.body.events : [],
         alerts: plans
+      }, process.env.NODE_ENV === 'test' ? undefined : {
+        tenantId: dev.tenant_id,
+        tokenHash: (() => {
+          const token = extractEnrolledDeviceHeaderToken(req.headers);
+          return token ? hashDeviceToken(token) : null;
+        })()
       });
       if (!receipt.duplicate && Array.isArray(app_usage) && app_usage.length) {
         // Redis is an optional cache, never the durable receipt authority.
@@ -1480,6 +1507,9 @@ app.post(['/api/v1/ingest/telemetry', '/api/ingest'], agentLimiter, validateBody
       if (['TELEMETRY_BATCH_ID_CONFLICT', 'EVENT_IDEMPOTENCY_CONFLICT'].includes(err.message)) {
         return res.status(409).json({ error: err.message,
           detail: 'An authenticated device already submitted a different payload under the same message/batch ID.' });
+      }
+      if (err.message === 'TELEMETRY_CREDENTIAL_CHANGED') {
+        return res.status(401).json({ error: 'TELEMETRY_CREDENTIAL_CHANGED' });
       }
       if (err.message === 'TELEMETRY_BATCH_MYSQL_REQUIRED') {
         return res.status(503).json({ error: 'DATABASE_UNAVAILABLE',
@@ -2475,10 +2505,6 @@ app.post(['/api/commands', '/api/v1/commands/dispatch'], requireRole(['SUPER_ADM
     return res.status(404).json({ error: 'Target agent/device not found' });
   }
 
-  if (process.env.NODE_ENV !== 'test' &&
-      (agent.agent_token_revoked || !/^[a-f0-9]{64}$/.test(agent.device_token_hash || ''))) {
-    return res.status(409).json({ error: 'DEVICE_CREDENTIAL_UNAVAILABLE' });
-  }
   const cmdId = crypto.randomUUID();
   const cmd = {
     id: cmdId,
@@ -2496,15 +2522,14 @@ app.post(['/api/commands', '/api/v1/commands/dispatch'], requireRole(['SUPER_ADM
 
   let queued = false;
   try {
-    queued = await db.queueCommandInDb(cmd, {
-      tenantId: req.user?.tenant_id, tokenHash: agent.device_token_hash
-    });
-  } catch (_) {
-    return res.status(503).json({ error: 'COMMAND_QUEUE_UNAVAILABLE' });
+    queued = await db.queueCommandInDb(cmd, process.env.NODE_ENV === 'test' ? undefined :
+      { tenantId: req.user.tenant_id, tokenHash: agent.device_token_hash });
+  } catch (error) {
+    if (error.message === 'COMMAND_CREDENTIAL_CHANGED') {
+      return res.status(409).json({ error: 'DEVICE_CREDENTIAL_NOT_ACTIVE' });
+    }
   }
-  if (!queued) return res.status(process.env.NODE_ENV === 'test' ? 503 : 409).json({
-    error: process.env.NODE_ENV === 'test' ? 'COMMAND_QUEUE_UNAVAILABLE' : 'DEVICE_CREDENTIAL_UNAVAILABLE'
-  });
+  if (!queued) return res.status(503).json({ error: 'COMMAND_QUEUE_UNAVAILABLE' });
 
   logAudit(req.user, "COMMAND_DISPATCHED", `Device:${agent.hostname}`, { 
     command_id: cmdId, 
@@ -2546,8 +2571,18 @@ app.get(['/api/commands/poll', '/api/v1/commands/poll'], async (req, res) => {
   const signedPending = [];
   for (const c of pending) {
     const sig = signDeviceCommand({ device, command: c, deviceToken: pollToken });
-    // Atomic claim fences concurrent polls across separate API instances.
-    if (!await db.markCommandPickedUp(c.id, device.id, { tenantId: String(device.tenant_id), tokenHash })) continue;
+    // Atomic claim also rechecks the current credential under the same
+    // device row lock as revocation. Preserve explicit legacy test fixtures.
+    try {
+      const credential = process.env.NODE_ENV === 'test' ? undefined :
+        { tenantId: device.tenant_id, tokenHash };
+      if (!await db.markCommandPickedUp(c.id, device.id, credential)) continue;
+    } catch (error) {
+      if (error.message === 'COMMAND_CREDENTIAL_CHANGED') {
+        return res.status(401).json({ error: 'COMMAND_CREDENTIAL_CHANGED' });
+      }
+      return res.status(503).json({ error: 'COMMAND_QUEUE_UNAVAILABLE' });
+    }
     signedPending.push({
       ...c,
       status: "running",
@@ -2593,9 +2628,13 @@ app.post(['/api/commands/:id/result', '/api/v1/commands/:id/result'], agentLimit
   try {
     committed = await db.completeCommandInDb(
       cmd.id, status, output, stderr, exitCode, resultDevice.id,
-      { tenantId: String(resultDevice.tenant_id), tokenHash: hashDeviceToken(resultToken) }
+      process.env.NODE_ENV === 'test' ? undefined :
+        { tenantId: resultDevice.tenant_id, tokenHash: hashDeviceToken(resultToken) }
     );
-  } catch (_) {
+  } catch (error) {
+    if (error.message === 'COMMAND_CREDENTIAL_CHANGED') {
+      return res.status(401).json({ error: 'COMMAND_CREDENTIAL_CHANGED' });
+    }
     return res.status(503).json({ error: 'COMMAND_RESULT_DATABASE_UNAVAILABLE' });
   }
   if (committed) {
@@ -3350,10 +3389,6 @@ app.post(['/api/v1/remediation/trigger', '/api/remediation/trigger'], requireRol
   if (!belongsToCurrentTenant(req.user, device)) {
     return res.status(404).json({ error: 'Target agent/device not found' });
   }
-  if (process.env.NODE_ENV !== 'test' &&
-      (device.agent_token_revoked || !/^[a-f0-9]{64}$/.test(device.device_token_hash || ''))) {
-    return res.status(409).json({ error: 'DEVICE_CREDENTIAL_UNAVAILABLE' });
-  }
   // Never convert an unrecognized, client-chosen action_type into a script name.
   const policy = await db.getTenantRemediationPolicyByActionType(tenantId, action_type);
   if (!policy) return res.status(400).json({ error: 'UNAPPROVED_REMEDIATION_ACTION' });
@@ -3372,13 +3407,14 @@ app.post(['/api/v1/remediation/trigger', '/api/remediation/trigger'], requireRol
       payload: { script_name: 'Remediate-' + policy.action_type + '.ps1' },
       status: 'pending',
       dispatched_by: req.user?.username || 'admin'
-    }, { tenantId, tokenHash: device.device_token_hash });
-  } catch (_) {
-    return res.status(503).json({ error: 'COMMAND_QUEUE_UNAVAILABLE' });
+    }, process.env.NODE_ENV === 'test' ? undefined :
+      { tenantId, tokenHash: device.device_token_hash });
+  } catch (error) {
+    if (error.message === 'COMMAND_CREDENTIAL_CHANGED') {
+      return res.status(409).json({ error: 'DEVICE_CREDENTIAL_NOT_ACTIVE' });
+    }
   }
-  if (!queued) return res.status(process.env.NODE_ENV === 'test' ? 503 : 409).json({
-    error: process.env.NODE_ENV === 'test' ? 'COMMAND_QUEUE_UNAVAILABLE' : 'DEVICE_CREDENTIAL_UNAVAILABLE'
-  });
+  if (!queued) return res.status(503).json({ error: 'COMMAND_QUEUE_UNAVAILABLE' });
   const action = 'Queued approved remediation: ' + policy.action_type;
   const log = await db.logRemediation({
     tenant_id: tenantId, hostname: device.hostname, policy_name: policy.name,

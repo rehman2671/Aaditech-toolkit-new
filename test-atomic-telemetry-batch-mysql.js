@@ -7,7 +7,7 @@ import request from 'supertest';
 import * as db from './db.js';
 import {createRecoveryReviewRequest,reserveRecoveryReview,inspectRecoveryReview} from './device-recovery-review.js';
 import {createTroubleshootingIncident,inspectTroubleshootingIncident,recordDiagnosticPlan,summarizeTroubleshootingIntake} from './troubleshooting-incidents.js';
-import {withSchemaMigrationLock} from './schema-migration-lock.js;
+import {withSchemaMigrationLock} from './schema-migration-lock.js';
 
 if (process.env.GITHUB_ACTIONS !== 'true' ||
     process.env.AADITECH_ATOMIC_BATCH_REHEARSAL !== 'isolated-ci' ||

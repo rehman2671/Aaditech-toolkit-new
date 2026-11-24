@@ -59,7 +59,7 @@ function Get-ElevatedTaskRequestPath {
     return (Join-Path (Split-Path $ConfigPath -Parent) 'elevated-job.json')
 }
 
-# E4: hand an admin-required operation (msiexec self-upgrade, reboot) to the
+# E4: hand ONLY reviewed agent update requests to the
 # on-demand elevated task (ITToolkitAgentElevated). The main task is unprivileged,
 # so any action that needs SYSTEM is staged as a small JSON request file and the
 # elevated task is asked to run it once. Returns $true when the request was
@@ -69,6 +69,12 @@ function Request-ElevatedJob {
         [string]$Action,
         [hashtable]$Payload = @{}
     )
+    # Reboot requires a separate signed maintenance-window/owner-consent
+    # workflow that is not implemented. Never stage it for a SYSTEM task.
+    if ($Action -eq 'reboot') {
+        Write-AgentLog 'REBOOT_APPROVAL_REQUIRED: no privileged reboot request was staged'
+        return $false
+    }
     try {
         $req = [ordered]@{ action = $Action; requested = (Get-Date).ToString('o') } + $Payload
         ($req | ConvertTo-Json -Compress -Depth 6) | Set-Content (Get-ElevatedTaskRequestPath) -ErrorAction Stop
@@ -433,6 +439,12 @@ CREATE TABLE IF NOT EXISTS executed_commands (
   exit_code    INTEGER NOT NULL DEFAULT 0,
   executed_at  TEXT NOT NULL DEFAULT (datetime('now'))
 );
+CREATE TABLE IF NOT EXISTS executed_commands_v2 (
+  command_id TEXT PRIMARY KEY NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('claimed','completed','failed')),
+  output TEXT NOT NULL DEFAULT '',
+  exit_code INTEGER NOT NULL DEFAULT 0
+);
 "@
     Invoke-SQLite -Query $schema -DatabasePath $QueueDb | Out-Null
     # One random queue lifetime identifier; old queues preserve it on upgrade.
@@ -455,25 +467,55 @@ function Get-QueueInstanceId {
     return $script:QueueInstanceId
 }
 
-# C5: at-most-once command execution. Once a command's result is computed it is
-# recorded here; a re-delivered copy (poll window/5-min) is skipped — the agent
-# re-posts the saved result instead of re-running it.
+# Preserve historical integer rows; server command IDs are canonical UUIDs.
+function ConvertTo-CommandUuid {
+    param([string]$CommandId)
+    if ($CommandId -cnotmatch '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$') {
+        throw 'Invalid server command UUID'
+    }
+    return $CommandId.ToLowerInvariant()
+}
+
 function Get-ExecutedCommand {
-    param($CommandId)
-    $json = Invoke-SQLite -Query "SELECT command_id, status, output, exit_code FROM executed_commands WHERE command_id = $CommandId;" -DatabasePath $QueueDb -AsJson 2>$null
+    param([string]$CommandId)
+    $id = ConvertTo-CommandUuid $CommandId
+    $json = Invoke-SQLite -Query "SELECT command_id, status, output, exit_code FROM executed_commands_v2 WHERE command_id = '$id';" -DatabasePath $QueueDb -AsJson
     if ([string]::IsNullOrWhiteSpace($json)) { return $null }
     $rows = @($json | ConvertFrom-Json)
     if ($rows.Count -eq 0) { return $null }
+    if ($rows.Count -ne 1) { throw 'Invalid command ledger result' }
     return $rows[0]
 }
 
+function Try-ClaimVerifiedCommand {
+    param([string]$CommandId)
+    $id = ConvertTo-CommandUuid $CommandId
+    $changed = Invoke-SQLite -Query "INSERT OR IGNORE INTO executed_commands_v2 (command_id,status) VALUES ('$id','claimed'); SELECT changes();" -DatabasePath $QueueDb
+    $count = ($changed -join '').Trim()
+    if ($count -notin @('0','1')) { throw 'Uncertain local command claim; refusing execution' }
+    return ($count -eq '1')
+}
+
+function ConvertTo-CommandResult {
+    param($Result)
+    $status = [string]$Result.status
+    $exitCode = [int]$Result.exit_code
+    if ($status -notin @('completed','failed')) { $status = 'failed'; $exitCode = 1 }
+    if ($status -eq 'completed' -and $exitCode -ne 0) { $status = 'failed' }
+    $output = [string]$Result.output
+    if ($output) { $output = [string](ConvertTo-SanitizedText -Text $output) }
+    if ($output.Length -gt 32768) { $output = $output.Substring(0,32768) }
+    return @{ status = $status; output = $output; exit_code = $exitCode }
+}
+
 function Record-ExecutedCommand {
-    param([int]$CommandId, $Result)
-    $esc = $Result.output.Replace("'", "''")
-    Invoke-SQLite -Query @"
-INSERT INTO executed_commands (command_id, status, output, exit_code) VALUES ($CommandId, '$($Result.status)', '$esc', $([int]$Result.exit_code))
-ON CONFLICT(command_id) DO UPDATE SET status = excluded.status, output = excluded.output, exit_code = excluded.exit_code;
-"@ -DatabasePath $QueueDb | Out-Null
+    param([string]$CommandId, $Result)
+    $id = ConvertTo-CommandUuid $CommandId
+    $esc = ([string]$Result.output).Replace("'", "''")
+    $status = [string]$Result.status
+    if ($status -notin @('completed','failed')) { throw 'Non-terminal command outcome' }
+    $changed = Invoke-SQLite -Query "UPDATE executed_commands_v2 SET status='$status',output='$esc',exit_code=$([int]$Result.exit_code) WHERE command_id='$id' AND status='claimed'; SELECT changes();" -DatabasePath $QueueDb
+    if (($changed -join '').Trim() -ne '1') { throw 'Command result was not durably recorded' }
 }
 
 function ConvertFrom-CollectorOutput {
@@ -926,57 +968,11 @@ function Get-AgentUpdateInfo {
 
 function Update-AgentIfNeeded {
     param($Config)
-    $info = Get-AgentUpdateInfo -Config $Config
-    if ($null -eq $info) { return $false }
-    $current = Get-InstalledAgentVersion
-    if (-not $info.update_available) {
-        Write-AgentLog "Agent is current ($current = $($info.target_version))"
-        return $false
-    }
-    Write-AgentLog "Update available: $current -> $($info.target_version)"
-
-    # Download the MSI (agent bearer token + client cert, same mTLS channel).
-    $hn = [uri]::EscapeDataString((Get-AgentHostname))
-    $uri = "$(Get-CommandsApiRoot)/api/agent/msi?hostname=$hn"
-    $tmp = Join-Path $env:TEMP 'IT-Toolkit-Agent-update.msi'
-    try {
-        $cert = Get-RestCertificate -Config $Config
-        if ($cert) {
-            Invoke-WebRequest -Uri $uri -Headers @{ Authorization = "Bearer $(Get-AgentToken -Config $Config)" } -OutFile $tmp -UseBasicParsing -Certificate $cert
-        }
-        else {
-            Invoke-WebRequest -Uri $uri -Headers @{ Authorization = "Bearer $(Get-AgentToken -Config $Config)" } -OutFile $tmp -UseBasicParsing
-        }
-        $size = (Get-Item $tmp).Length
-        if ($size -lt 1KB) { throw "Download too small ($size bytes) — likely not an MSI" }
-        Write-AgentLog "Downloaded $([math]::Round($size/1KB)) KB MSI -> $tmp"
-    }
-    catch {
-        Write-AgentLog "MSI download failed: $($_.Exception.Message)"
-        return $false
-    }
-
-    # Silent in-place upgrade. The task GUID/install folder are stable, so the
-    # scheduled task keeps pointing at the same exe after the MSI is replaced.
-    # msiexec /i needs an elevated token; the routine task is NETWORK SERVICE,
-    # so an actual install is deferred to the on-demand elevated task (E4).
-    if (-not (Test-IsElevated)) {
-        $ok = Request-ElevatedJob -Action 'update'
-        Write-AgentLog "MSI install requires elevation — staged for elevated task: $ok"
-        Remove-Item $tmp -Force -ErrorAction SilentlyContinue
-        return $ok
-    }
-    try {
-        $p = Start-Process msiexec.exe -ArgumentList "/i `"$tmp`" /qn /norestart" -Wait -PassThru
-        Write-AgentLog "msiexec exit code: $($p.ExitCode)"
-        Remove-Item $tmp -ErrorAction SilentlyContinue
-        return ($p.ExitCode -eq 0)
-    }
-    catch {
-        Write-AgentLog "MSI install failed: $($_.Exception.Message)"
-        Remove-Item $tmp -ErrorAction SilentlyContinue
-        return $false
-    }
+    # P0: even a mutually authenticated server response is not independent
+    # publisher approval. Untrusted TEMP MSI + elevated msiexec is forbidden
+    # until a reviewed signed-release hash + certificate trust pipeline exists.
+    Write-AgentLog 'AUTO_UPDATE_RELEASE_APPROVAL_REQUIRED: automatic MSI download and privileged installation are disabled; use an independently verified, signed MSI release'
+    return $false
 }
 
 # ------------------------------------------------------------------ commands (P5)
@@ -1078,20 +1074,10 @@ function Invoke-RemoteCommand {
     $payload = $Cmd.payload
     switch ($kind) {
         'reboot' {
-            $delay = [int]$payload.delay_seconds
-            # E4: reboot needs SeShutdownPrivilege; the routine task runs as
-            # NETWORK SERVICE, so defer to the on-demand elevated task.
-            if (-not (Test-IsElevated)) {
-                $ok = Request-ElevatedJob -Action 'reboot' -Payload @{ delay_seconds = $delay }
-                return @{ status = if ($ok) { 'completed' } else { 'failed' }; output = 'Reboot deferred to elevated task (least privilege)'; exit_code = if ($ok) { 0 } else { 1 } }
-            }
-            if ($delay -gt 0) {
-                & shutdown.exe /r /t $delay /f 2>&1 | Out-Null
-            }
-            else {
-                Restart-Computer -Force -ErrorAction Stop
-            }
-            return @{ status = 'completed'; output = "Reboot issued (delay $delay s)"; exit_code = 0 }
+            # A signed command proves transport integrity, NOT user consent,
+            # a maintenance window or authorized interruption approval.
+            # Until that workflow exists, never reboot or mark it completed.
+            return @{ status = 'failed'; output = 'REBOOT_APPROVAL_REQUIRED: no reboot executed; owner consent and maintenance approval required'; exit_code = 403 }
         }
         'wake' {
             try {
@@ -1135,19 +1121,9 @@ function Invoke-RemoteCommand {
 
 function Send-CommandResult {
     param($Config, $CmdId, $Result)
-    # C5: sanitize command output before it leaves the box (run-script output
-    # can contain PII/keys). The SanitizeEngine module is already imported.
-    $cleanOutput = $Result.output
-    if (-not [string]::IsNullOrEmpty($cleanOutput)) {
-        $cleanOutput = ConvertTo-SanitizedText -Text ([string]$cleanOutput)
-    }
-    $uri = "$(Get-CommandsApiRoot)/api/commands/$CmdId/result"
-    $body = @{
-        hostname  = (Get-AgentHostname)
-        status    = $Result.status
-        output    = $cleanOutput
-        exit_code = $Result.exit_code
-    } | ConvertTo-Json -Compress
+    $id = ConvertTo-CommandUuid $CmdId
+    $uri = "$(Get-CommandsApiRoot)/api/commands/$id/result"
+    $body = (ConvertTo-CommandResult $Result) | ConvertTo-Json -Compress
     try {
         $cert = Get-RestCertificate -Config $Config
         $agentTok = Get-AgentToken -Config $Config
@@ -1168,6 +1144,38 @@ function Send-CommandResult {
     }
 }
 
+# Signature validation must precede SQLite, execution and result routing.
+function Invoke-VerifiedCommandOnce {
+    param($Config, $Cmd)
+    $trusted = Resolve-VerifiedAgentCommand -Config $Config -Cmd $Cmd
+    if (-not $trusted) {
+        Write-AgentLog 'SECURITY: rejected unverified command; no ledger access or result POST'
+        return
+    }
+    try {
+        $id = ConvertTo-CommandUuid ([string]$trusted.id)
+        if (-not (Try-ClaimVerifiedCommand -CommandId $id)) {
+            $saved = Get-ExecutedCommand -CommandId $id
+            if ($saved -and $saved.status -in @('completed','failed')) {
+                Send-CommandResult -Config $Config -CmdId $id -Result $saved
+            } else {
+                Write-AgentLog "Command $id has an uncertain prior claim; refusing re-execution"
+            }
+            return
+        }
+        try {
+            $result = Invoke-RemoteCommand -Config $Config -Cmd $trusted
+        } catch {
+            $result = @{ status='failed'; output='Command execution failed; inspect local logs'; exit_code=1 }
+        }
+        $normalized = ConvertTo-CommandResult $result
+        Record-ExecutedCommand -CommandId $id -Result $normalized
+        Send-CommandResult -Config $Config -CmdId $id -Result $normalized
+    } catch {
+        Write-AgentLog 'Command lifecycle could not be safely completed; no automatic retry of execution'
+    }
+}
+
 # ------------------------------------------------------------------ main
 
 Import-ToolkitModules
@@ -1180,25 +1188,17 @@ Write-AgentLog "Agent cycle start (endpoint: $($Config.endpoint))"
 $null = Ensure-ClientCert -Config $Config
 
 # E4: on-demand elevated task (-ElevatedOnce). Runs exactly one privileged
-# cycle (elevated collectors run, self-upgrade installs, reboot is possible)
+# cycle (elevated collectors run, self-upgrade installs, reboot remains disabled without human approval)
 # then clears any staged elevated request. Never loops.
 if ($ElevatedOnce) {
     Write-AgentLog "Elevated once run (privileged cycle)"
 
-    # Perform any staged reboot. The routine (NETWORK SERVICE) task cannot
-    # reboot, so it stages a request that this privileged pass consumes.
+    # Never interpret an old elevated-job.json 'reboot' instruction.
+    # Historical files were writable without a signed change-approval record;
+    # the privileged pass must not consume them as authorization.
     $jobPath = Get-ElevatedTaskRequestPath
     if (Test-Path $jobPath) {
-        try {
-            $job = (Get-Content $jobPath -Raw | ConvertFrom-Json)
-            if ($job.action -eq 'reboot') {
-                $delay = [int]$job.delay_seconds
-                if ($delay -gt 0) { & shutdown.exe /r /t $delay /f 2>&1 | Out-Null }
-                else { Restart-Computer -Force -ErrorAction Stop }
-                Write-AgentLog "Elevated reboot executed (delay $delay s)"
-            }
-        }
-        catch { Write-AgentLog "Elevated reboot failed: $($_.Exception.Message)" }
+        Write-AgentLog 'Ignoring staged elevated-job.json action; unapproved reboot execution is disabled'
     }
 
     Prune-Queue
@@ -1217,21 +1217,7 @@ if ($ElevatedOnce) {
     if (-not $FlushOnly -and -not $CollectOnly) {
         $cmds = Get-PendingCommands -Config $Config
         foreach ($cmd in $cmds) {
-            if ($null -ne $cmd.id -and (Get-ExecutedCommand -CommandId $cmd.id)) {
-                Write-AgentLog "Command $($cmd.id) already executed — skipping (at-most-once)"
-                continue
-            }
-            $trustedCmd = Resolve-VerifiedAgentCommand -Config $Config -Cmd $cmd
-            if (-not $trustedCmd) {
-                Write-AgentLog "SECURITY: Rejected unsigned, tampered, wrong-tenant or expired command $($cmd.id)"
-                Send-CommandResult -Config $Config -CmdId $cmd.id -Result @{
-                    status = 'failed'; output = 'Invalid signed command or recipient'; exit_code = 403
-                }
-                continue
-            }
-            $result = Invoke-RemoteCommand -Config $Config -Cmd $trustedCmd
-            if ($null -ne $cmd.id) { Record-ExecutedCommand -CommandId $cmd.id -Result $result }
-            Send-CommandResult -Config $Config -CmdId $cmd.id -Result $result
+            Invoke-VerifiedCommandOnce -Config $Config -Cmd $cmd
         }
     }
 
@@ -1290,26 +1276,9 @@ do {
     if (-not $FlushOnly -and -not $CollectOnly) {
         $cmds = Get-PendingCommands -Config $Config
         foreach ($cmd in $cmds) {
-            if ($null -ne $cmd.id -and (Get-ExecutedCommand -CommandId $cmd.id)) {
-                # C5: already ran on a previous cycle (poll re-delivered it while
-                # the result post was in flight). Skip re-execution entirely.
-                Write-AgentLog "Command $($cmd.id) already executed — skipping re-run (at-most-once)"
-                continue
-            }
-            Write-AgentLog "Executing command $($cmd.id) kind=$($cmd.kind)"
-            $trustedCmd = Resolve-VerifiedAgentCommand -Config $Config -Cmd $cmd
-            if (-not $trustedCmd) {
-                Write-AgentLog "SECURITY: Rejected unsigned, tampered, wrong-tenant or expired command $($cmd.id)"
-                Send-CommandResult -Config $Config -CmdId $cmd.id -Result @{
-                    status = 'failed'; output = 'Invalid signed command or recipient'; exit_code = 403
-                }
-                continue
-            }
-            $result = Invoke-RemoteCommand -Config $Config -Cmd $trustedCmd
-            if ($null -ne $cmd.id) { Record-ExecutedCommand -CommandId $cmd.id -Result $result }
-            Send-CommandResult -Config $Config -CmdId $cmd.id -Result $result
+            Invoke-VerifiedCommandOnce -Config $Config -Cmd $cmd
         }
-        if (@($cmds).Count -gt 0) { Write-AgentLog "Executed $($cmds.Count) command(s)" }
+        if (@($cmds).Count -gt 0) { Write-AgentLog "Received $($cmds.Count) command(s); outcomes require durable evidence" }
     }
 
     Write-AgentLog "Agent cycle complete"

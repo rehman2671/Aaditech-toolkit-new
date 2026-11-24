@@ -1,0 +1,11 @@
+# P0 — retire unsafe standalone duplicate command executor
+
+**Source PR only; no signed release, privileged action authorization or physical Windows acceptance.**
+
+The publicly bundled `Enterprise/agent/Aaditech-Agent.ps1` previously had a SECOND command engine separate from the Windows MSI worker. Its HMAC verifier omitted the server's mandatory domain-separation text (`aaditech:agent-command:v1` plus newline); it never bound signature to target device, tenant, command ID, expiry or local trusted identity. Even after apparent signature validation it executed an **unsigned outer `$cmd.kind`**, using a substring-matching `switch -Regex`, including recursive deletion of temporary files and forced spooler restart. It could claim health without measurement and had no reliable approved remediation policy.
+
+Rather than duplicating and drifting a second privileged command verifier, **remote command polling and executing have been removed entirely** from the legacy standalone script. It now warns that it is **TELEMETRY-ONLY** and retains telemetry posting compatibility. The separately installed `Enterprise/agent/Agent-Collect.ps1` remains the only source command executor: it verifies domain-separated HMAC of `signed_content`, binds ID/device/tenant/hostname/expiry using the enrolled per-device secret and has a local script allowlist. Neither the existence of that worker nor server signing alone proves authorization of any repair or measured resolution.
+
+Native Windows `Enterprise/tests/Test-LegacyAgentTelemetryOnly.ps1` validates syntax and absence of remote command execution constructs without starting the agent. `tests/unit/legacy-agent-command-retirement.test.js` enforces this distinction in Node CI. Users of the legacy standalone telemetry collector will **not receive commands**; production deployments must use an independently signed/approved MSI and verified configured worker.
+
+**Residual blockers:** independent signer custody and protected main [#62](https://github.com/rehman2671/Aaditech-toolkit-new/issues/62), stack owner decision [#79](https://github.com/rehman2671/Aaditech-toolkit-new/issues/79), offline LAN PKI/installer [#80](https://github.com/rehman2671/Aaditech-toolkit-new/issues/80), signed-command/reboot/run-script approval and physical E2E. No SYSTEM execution or production installation is authorized.

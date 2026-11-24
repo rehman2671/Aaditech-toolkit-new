@@ -80,3 +80,7 @@ At `36e8f200`, CI #45444870106 failed N62 because the same exact approved compil
 ### O1 N62 source reconstruction
 
 At `9fbf9032`, Node/Vitest and N70 lint passed, safety #45446897874 passed; CI #45446897752 PowerShell parser rejected N62 due to a malformed text substitution which duplicated the tail of the test. Reconstructed from the previous clean source with literal replacement, retaining per-job and global exact pin assertions. Verified both named job boundaries and all four expected pin occurrences structurally; native PowerShell parser and full combined CI must run again. No policy or production workflow relaxation.
+
+### O1 credential-authority follow-up (stacked review; not included in the currently running MSI rehearsal)
+
+Deployed getDeviceByTokenHash accepts only the current exact lowercase SHA-256 in device_token_hash, refuses ambiguous matches, and never reads legacy auth_token_hash as a credential. Test-only historical compatibility remains. Regression fixtures cover legacy-only, duplicate cross-tenant records, collation mismatch, rotation and deletion. Existing legacy-only installations need explicit reviewed credential migration/re-enrollment; no automatic credential overwrite. This does not implement authorized rotation or certify multi-replica concurrency; fresh CI and independent review required before integration.

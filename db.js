@@ -1494,6 +1494,18 @@ export async function getDeviceByTokenHash(hash) {
     if (cached && Date.now() < cached.expiresAt) return cached.record;
   }
 
+  // Only the current enrolled credential is authoritative outside tests.
+  // A stale legacy hash must never become valid again after token rotation.
+  // LIMIT 2 detects ambiguous rows without exposing an arbitrary owner.
+  if (production) {
+    if (typeof hash !== 'string' || !/^[a-f0-9]{64}$/.test(hash)) return null;
+    const rows = await executeQuery(
+      'SELECT * FROM devices WHERE device_token_hash = ? LIMIT 2',
+      [hash]
+    );
+    if (rows.length !== 1 || rows[0].device_token_hash !== hash) return null;
+    return formatDeviceRecord(rows[0]);
+  }
   const rows = await executeQuery(
     'SELECT * FROM devices WHERE device_token_hash = ? OR auth_token_hash = ? LIMIT 1',
     [hash, hash]

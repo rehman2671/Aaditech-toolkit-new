@@ -38,3 +38,44 @@ describe('Production device identity freshness and no demo fallback', () => {
     }
   });
 });
+
+
+describe('Deployed device-token authority', () => {
+  it('accepts only the current unique exact hash and immediately observes rotation/deletion', async () => {
+    const prior = process.env.NODE_ENV;
+    const current = 'a'.repeat(64), legacy = 'b'.repeat(64), rotated = 'c'.repeat(64);
+    const record = {id:'device-token-authority', hostname:'TOKEN-AUTHORITY',
+      device_uid:'UID-TOKEN-AUTHORITY', tenant_id:'tenant-a',
+      device_token_hash:current, auth_token_hash:legacy, agent_token_revoked:0};
+    let rows = [record];
+    let calls = 0;
+    const pool = {query: async (sql, params) => {
+      calls++;
+      expect(sql).toBe('SELECT * FROM devices WHERE device_token_hash = ? LIMIT 2');
+      expect(params).toHaveLength(1);
+      return [rows.filter(r => r.device_token_hash?.toLowerCase() === params[0]), []];
+    }};
+    try {
+      process.env.NODE_ENV = 'production';
+      db.setConnectionStateForTesting(true, pool);
+      expect((await db.getDeviceByTokenHash(current))?.id).toBe(record.id);
+      expect(await db.getDeviceByTokenHash(legacy)).toBeNull();
+      rows = [record, {...record, id:'duplicate-other-tenant', tenant_id:'tenant-b'}];
+      expect(await db.getDeviceByTokenHash(current)).toBeNull();
+      rows = [{...record, device_token_hash:current.toUpperCase()}];
+      expect(await db.getDeviceByTokenHash(current)).toBeNull();
+      rows = [{...record, device_token_hash:rotated}];
+      expect(await db.getDeviceByTokenHash(current)).toBeNull();
+      expect((await db.getDeviceByTokenHash(rotated))?.id).toBe(record.id);
+      rows = [];
+      expect(await db.getDeviceByTokenHash(rotated)).toBeNull();
+      const before = calls;
+      expect(await db.getDeviceByTokenHash('not-a-sha256')).toBeNull();
+      expect(calls).toBe(before);
+    } finally {
+      db.setConnectionStateForTesting(false, null);
+      if (prior === undefined) delete process.env.NODE_ENV;
+      else process.env.NODE_ENV = prior;
+    }
+  });
+});

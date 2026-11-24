@@ -42,6 +42,41 @@ done
   exit 1
 }
 
+# Exercise the actual Phase O security tables, not only a generic marker.
+# These are synthetic values in the disposable CI database; no live tokens.
+sql() {
+  compose exec -T db sh -ec '
+    export MYSQL_PWD="$MYSQL_PASSWORD"
+    exec mysql --user="$MYSQL_USER" --database="$MYSQL_DATABASE" --batch --skip-column-names
+  '
+}
+for migration in 016_app_usage_snapshot.sql 017_device_recovery_reviews.sql; do
+  sql < "$HERE/../database/migrations/$migration"
+done
+sql <<'SQL'
+START TRANSACTION;
+INSERT INTO tenants (id,name,slug) VALUES ('00000000-0000-4000-8000-000000009016','CI restore fixture','ci-restore-fixture');
+INSERT INTO devices (id,tenant_id,hostname,device_token_hash,agent_token_revoked)
+VALUES ('00000000-0000-4000-8000-000000009017','00000000-0000-4000-8000-000000009016','CI-RESTORE',REPEAT('a',64),1);
+INSERT INTO telemetry_batches (tenant_id,device_id,batch_id,request_hash,insert_nonce,accepted_count,recorded_at)
+VALUES ('00000000-0000-4000-8000-000000009016','00000000-0000-4000-8000-000000009017','restore-batch',REPEAT('b',64),REPEAT('c',32),2,'2026-01-01 00:00:00.123');
+INSERT INTO device_app_usage_snapshots (device_id,tenant_id,credential_fingerprint,payload_json,recorded_at)
+VALUES ('00000000-0000-4000-8000-000000009017','00000000-0000-4000-8000-000000009016',REPEAT('d',64),JSON_ARRAY(JSON_OBJECT('name','CI fixture','seconds',12)),'2026-01-01 00:00:00.123');
+INSERT INTO device_recovery_reviews (request_id,tenant_id,device_id,requester_id,reviewer_id,challenge_sha256,credential_fingerprint,evidence_sha256,reviewer_spki_sha256,state,created_at_ms,expires_at_ms,reviewed_at_ms,review_expires_at_ms)
+VALUES ('00000000-0000-4000-8000-000000009018','00000000-0000-4000-8000-000000009016','00000000-0000-4000-8000-000000009017',11,12,REPEAT('e',64),REPEAT('f',64),REPEAT('1',64),REPEAT('2',64),'REVIEW_RESERVED',1700000000000,1700000900000,1700000001000,1700000300000);
+COMMIT;
+SQL
+security_snapshot() {
+  sql <<'SQL'
+SELECT id,tenant_id,device_token_hash,agent_token_revoked FROM devices WHERE id='00000000-0000-4000-8000-000000009017';
+SELECT tenant_id,device_id,batch_id,request_hash,insert_nonce,accepted_count,recorded_at FROM telemetry_batches WHERE batch_id='restore-batch' AND tenant_id='00000000-0000-4000-8000-000000009016';
+SELECT device_id,tenant_id,credential_fingerprint,payload_json,recorded_at FROM device_app_usage_snapshots WHERE device_id='00000000-0000-4000-8000-000000009017';
+SELECT request_id,tenant_id,device_id,requester_id,reviewer_id,challenge_sha256,credential_fingerprint,evidence_sha256,reviewer_spki_sha256,state,created_at_ms,expires_at_ms,reviewed_at_ms,review_expires_at_ms FROM device_recovery_reviews WHERE request_id='00000000-0000-4000-8000-000000009018';
+SQL
+}
+before_security="$(security_snapshot)"
+[ "$(printf '%s\n' "$before_security" | wc -l)" -eq 4 ] || { echo 'Incomplete security fixture' >&2; exit 1; }
+
 bash "$HERE/deploy/backup.sh"
 shopt -s nullglob
 backups=("$HERE"/deploy/backups/ittoolkit-*.sql)
@@ -54,6 +89,16 @@ compose exec -T db sh -ec '
   mysql --user="$MYSQL_USER" --database="$MYSQL_DATABASE" \
     --execute="UPDATE rehearsal_marker SET content = '\''after'\'' WHERE id = 1;"
 '
+
+sql <<'SQL'
+START TRANSACTION;
+UPDATE devices SET agent_token_revoked=0,device_token_hash=REPEAT('9',64) WHERE id='00000000-0000-4000-8000-000000009017';
+DELETE FROM telemetry_batches WHERE tenant_id='00000000-0000-4000-8000-000000009016' AND batch_id='restore-batch';
+DELETE FROM device_app_usage_snapshots WHERE device_id='00000000-0000-4000-8000-000000009017';
+DELETE FROM device_recovery_reviews WHERE request_id='00000000-0000-4000-8000-000000009018';
+COMMIT;
+SQL
+[ "$(security_snapshot)" != "$before_security" ] || { echo 'Security fixture mutation failed' >&2; exit 1; }
 
 # This is a disposable database and the --db-only flag deliberately leaves
 # the API and Caddy OFF after data recovery.
@@ -68,6 +113,21 @@ value="$(compose exec -T db sh -ec '
   echo "[rehearsal][ERROR] Restore returned unexpected marker: $value" >&2
   exit 1
 }
+
+[ "$(security_snapshot)" = "$before_security" ] || {
+  echo '[rehearsal][ERROR] Restored credential, receipt, snapshot or recovery-review state differs.' >&2; exit 1;
+}
+# Review challenge uniqueness must survive restore; never silently replace
+# a prior reservation. A duplicate must fail, not produce a second row.
+if sql >/dev/null 2>&1 <<'SQL'
+INSERT INTO device_recovery_reviews (request_id,tenant_id,device_id,requester_id,challenge_sha256,credential_fingerprint,created_at_ms,expires_at_ms)
+VALUES ('00000000-0000-4000-8000-000000009019','00000000-0000-4000-8000-000000009016','00000000-0000-4000-8000-000000009017',11,REPEAT('e',64),REPEAT('f',64),1700000000000,1700000900000);
+SQL
+then
+  echo '[rehearsal][ERROR] Duplicate recovery challenge survived restore.' >&2; exit 1
+fi
+[ "$(security_snapshot)" = "$before_security" ] || { echo 'Security state changed after duplicate attempt' >&2; exit 1; }
+echo '[rehearsal] Credential revocation, telemetry receipt, usage snapshot and recovery reservation preserved.'
 
 shopt -s nullglob
 backups=("$HERE"/deploy/backups/ittoolkit-*.sql)

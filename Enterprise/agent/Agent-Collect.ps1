@@ -52,7 +52,7 @@ function Write-AgentLog {
 
 # E4: whether THIS process is running with an elevated (admin) token. The
 # routine scheduled task runs as NETWORK SERVICE (least privilege), so elevated
-# collectors (bitlocker, licenses, printer-fix, user inventory…) only run under
+# collectors (bitlocker, licenses, printer-fix, user inventory...) only run under
 # the on-demand elevated task; they are opt-in here and skipped otherwise.
 function Test-IsElevated {
     try {
@@ -248,7 +248,7 @@ function Ensure-ClientCert {
         # re-issues a fresh cert (issue_client_cert renews expiring ones), so we
         # drop the old cert and re-enroll below.
         if ((Test-ClientCertExpiry -PfXPath $pfx) -or (-not (Test-Path $tokenPath))) {
-            Write-AgentLog "Client cert expired/near-expiry or token missing — renewing cert (C6)"
+            Write-AgentLog "Client cert expired/near-expiry or token missing - renewing cert (C6)"
             Remove-Item $pfx -Force -ErrorAction SilentlyContinue
             Remove-Item $tokenPath -Force -ErrorAction SilentlyContinue
         }
@@ -313,7 +313,7 @@ function Ensure-ClientCert {
         return $pfx
     }
     catch {
-        Write-AgentLog "Enrollment failed: $($_.Exception.Message) — falling back to configured token"
+        Write-AgentLog "Enrollment failed: $($_.Exception.Message) - falling back to configured token"
         return $null
     }
 }
@@ -338,12 +338,12 @@ function Test-ClientCertExpiry {
     try {
         $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2($PfXPath)
         $daysLeft = ($cert.NotAfter - (Get-Date)).TotalDays
-        Write-AgentLog ("Client cert " + $cert.NotAfter.ToString('yyyy-MM-dd') + " — " + [math]::Floor($daysLeft) + " days left")
+        Write-AgentLog ("Client cert " + $cert.NotAfter.ToString('yyyy-MM-dd') + " - " + [math]::Floor($daysLeft) + " days left")
         return ($daysLeft -le $RenewDays)
     }
     catch {
         # unreadable/corrupt -> treat as needing renewal
-        Write-AgentLog "Client cert unreadable ($($_.Exception.Message)) — will re-enroll"
+        Write-AgentLog "Client cert unreadable ($($_.Exception.Message)) - will re-enroll"
         return $true
     }
 }
@@ -691,10 +691,10 @@ function Send-AgentHeartbeat {
         "X-Device-Token" = $agentTok 
     }
     if ($cert) {
-        Invoke-RestMethod -Uri $uri -Method Post -Headers $headers -ContentType 'application/json' -Body $body -Certificate $cert
+        Invoke-RestMethod -Uri $uri -Method Post -Headers $headers -ContentType 'application/json' -Body $body -Certificate $cert -MaximumRedirection 0 -TimeoutSec 15 -ErrorAction Stop
     }
     else {
-        Invoke-RestMethod -Uri $uri -Method Post -Headers $headers -ContentType 'application/json' -Body $body
+        Invoke-RestMethod -Uri $uri -Method Post -Headers $headers -ContentType 'application/json' -Body $body -MaximumRedirection 0 -TimeoutSec 15 -ErrorAction Stop
     }
 }
 
@@ -852,19 +852,24 @@ function Send-AgentBatch {
             "X-Device-Token" = $agentTok
         }
         if ($cert) {
-            $resp = Invoke-RestMethod -Uri $Config.endpoint -Method Post -Headers $headers -ContentType 'application/json' -Body $body -Certificate $cert
+            $resp = Invoke-RestMethod -Uri $Config.endpoint -Method Post -Headers $headers -ContentType 'application/json' -Body $body -Certificate $cert -MaximumRedirection 0 -TimeoutSec 15 -ErrorAction Stop
         } else {
-            $resp = Invoke-RestMethod -Uri $Config.endpoint -Method Post -Headers $headers -ContentType 'application/json' -Body $body
+            $resp = Invoke-RestMethod -Uri $Config.endpoint -Method Post -Headers $headers -ContentType 'application/json' -Body $body -MaximumRedirection 0 -TimeoutSec 15 -ErrorAction Stop
         }
 
         # HTTP 2xx alone never acknowledges a local row or saved batch.
         $accepted = 0
+        $recorded = [DateTimeOffset]::MinValue
         $acceptedProperty = if ($null -ne $resp) { $resp.PSObject.Properties['accepted'] } else { $null }
-        if ($null -eq $resp -or [string]$resp.status -cne 'OK' -or
-            [string]$resp.batch_id -cne $batchId -or
-            $null -eq $acceptedProperty -or
+        if ($null -eq $resp -or $resp.status -isnot [string] -or $resp.status -cne 'OK' -or
+            $resp.batch_id -isnot [string] -or [string]$resp.batch_id -cne $batchId -or
+            $resp.duplicate -isnot [bool] -or $null -eq $acceptedProperty -or
+            ($acceptedProperty.Value -isnot [int] -and $acceptedProperty.Value -isnot [long]) -or
             -not [int]::TryParse([string]$acceptedProperty.Value, [ref]$accepted) -or
-            $accepted -ne $ids.Count) {
+            $accepted -ne $ids.Count -or
+            ($resp.recorded_at -isnot [string] -and $resp.recorded_at -isnot [datetime]) -or
+            -not [DateTimeOffset]::TryParse([string]$resp.recorded_at, [ref]$recorded) -or
+            $recorded -eq [DateTimeOffset]::MinValue) {
             throw "Server did not acknowledge batch $batchId and all $($ids.Count) events; retaining snapshot"
         }
 
@@ -932,7 +937,7 @@ function Get-NextBackoffSleepSeconds {
     $cap  = 900         # 15 min
     if ($FailedConsecutive -lt 1) { return 0 }
     $exp = [Math]::Min($base * [Math]::Pow(2, $FailedConsecutive - 1), $cap)
-    # jitter ±30% so many agents with the same failure don't stay synchronized.
+    # jitter +/-30% so many agents with the same failure don't stay synchronized.
     $jit = 0.7 + (Get-Random -Minimum 0 -Maximum 100) / 100.0 * 0.6
     return [Math]::Min([Math]::Round($exp * $jit), $cap)
 }
@@ -1296,7 +1301,7 @@ do {
     # E2: keep the outbox bounded (retention + size cap) once per cycle.
     Prune-Queue
 
-    # E1: heartbeat every cycle — an idle agent (empty queue, no commands)
+    # E1: heartbeat every cycle - an idle agent (empty queue, no commands)
     # still updates last_seen, so the fleet view + agent-offline rule stay correct.
     try { $null = Send-AgentHeartbeat -Config $Config }
     catch { Write-AgentLog "Heartbeat failed (will retry next cycle): $($_.Exception.Message)" }
@@ -1330,7 +1335,7 @@ do {
     Write-AgentLog "Agent cycle complete"
 
     if ($LoopMinutes -gt 0) {
-        # E2: jitter the inter-cycle sleep (±15%) so agents that boot together or
+        # E2: jitter the inter-cycle sleep (+/-15%) so agents that boot together or
         # share an interval don't stay synchronized (thundering-herd prevention).
         $base = $LoopMinutes * 60
         $jitterPct = (Get-Random -Minimum -15 -Maximum 15) / 100.0

@@ -104,6 +104,8 @@ jobs:
 
       - name: Exercise canonical agent idle telemetry and durable ACK handling (N27)
         run: pwsh -NoProfile -File ./Enterprise/tests/Test-CanonicalAgent-AckCadence.ps1
+      - name: Durable telemetry ACK cadence in Windows PowerShell 5.1
+        run: powershell.exe -NoProfile -ExecutionPolicy Bypass -File ./Enterprise/tests/Test-CanonicalAgent-AckCadence.ps1
 
       - name: Verify unsigned MSI publication fails closed and invalid certificates are rejected
         run: pwsh -NoProfile -File ./Enterprise/tests/Test-ReleaseSigningGates.ps1

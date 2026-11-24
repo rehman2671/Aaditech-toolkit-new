@@ -60,3 +60,10 @@ describe('review-only independent device recovery evidence',()=>{
     }
   });
 });
+
+it('rejects exact-length violations even when evidence and trusted expected context agree',()=>{
+  for(const [field,expectedField,value] of [['tenant_id','tenantId',tenant+'\n'],['device_id','deviceId',device+'\n'],['request_id','requestId',request+'\n'],['challenge_sha256','challengeSha256','a'.repeat(64)+'\n'],['credential_fingerprint','credentialFingerprint','b'.repeat(64)+'\n']]){
+    const {args}=fixture({[field]:value});args.expected[expectedField]=value;denied(args);
+  }
+  for(const field of ['ownership_evidence_sha256','command_reconciliation_sha256','local_handoff_evidence_sha256'])denied(fixture({[field]:'a'.repeat(64)+'\n'}).args);
+});

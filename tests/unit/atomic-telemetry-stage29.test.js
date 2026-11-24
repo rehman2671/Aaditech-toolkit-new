@@ -34,6 +34,10 @@ describe('N29 atomic authenticated telemetry contract',()=>{
     expect(code).toContain('SELECT batch_id, body_json, event_ids FROM telemetry_outbox');
     expect(code).toContain("INSERT INTO telemetry_outbox (batch_id, body_json, event_ids)");
     expect(code).toContain('[string]$resp.batch_id -cne $batchId');
+    expect(code).toContain('$resp.duplicate -isnot [bool]');
+    expect(code).toContain('$resp.recorded_at -isnot [string]');
+    expect(code).toContain('-MaximumRedirection 0 -TimeoutSec 15 -ErrorAction Stop');
+    expect(/[^\x00-\x7f]/.test(code)).toBe(false);
     expect(code).toContain('UPDATE telemetry_outbox SET status=');
   });
 });

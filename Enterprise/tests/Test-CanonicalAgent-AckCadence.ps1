@@ -78,18 +78,29 @@ function Write-AgentLog { param([string]$Message) }
 function Get-NextBackoffSleepSeconds { param([int]$FailedConsecutive); return 0 }
 function Invoke-QueueSleep { param($SleepSeconds) }
 function Invoke-RestMethod {
-    param($Uri, $Method, $Headers, $ContentType, $Body, $Certificate)
+    [CmdletBinding()]
+    param($Uri, $Method, $Headers, $ContentType, $Body, $Certificate, $MaximumRedirection, $TimeoutSec)
+    if ($MaximumRedirection -ne 0 -or $TimeoutSec -ne 15) { throw 'Unsafe telemetry transport options' }
     $script:Sent += [string]$Body
     if ($script:Mode -eq 'offline') { throw 'Simulated network partition' }
     $sent = $Body | ConvertFrom-Json
+    $reply = @{ status = 'OK'; accepted = @($sent.events).Count; batch_id = $sent.batch_id
+        duplicate = $false; recorded_at = '2026-11-17T00:00:00.000Z' }
     switch ($script:Mode) {
-        'partial' { return [pscustomobject]@{ status = 'OK'; accepted = -1; batch_id = $sent.batch_id } }
-        'wrongBatch' { return [pscustomobject]@{ status = 'OK'; accepted = @($sent.events).Count; batch_id = 'different' } }
-        'missingBatch' { return [pscustomobject]@{ status = 'OK'; accepted = @($sent.events).Count } }
-        'missingCount' { return [pscustomobject]@{ status = 'OK'; batch_id = $sent.batch_id } }
-        'badStatus' { return [pscustomobject]@{ status = 'RETRY'; accepted = @($sent.events).Count; batch_id = $sent.batch_id } }
-        default { return [pscustomobject]@{ status = 'OK'; accepted = @($sent.events).Count; batch_id = $sent.batch_id } }
+        'partial' { $reply.accepted = -1 }
+        'wrongBatch' { $reply.batch_id = 'different' }
+        'missingBatch' { $reply.Remove('batch_id') }
+        'missingCount' { $reply.Remove('accepted') }
+        'badStatus' { $reply.status = 'RETRY' }
+        'stringCount' { $reply.accepted = [string]$reply.accepted }
+        'arrayId' { $reply.batch_id = @($reply.batch_id) }
+        'missingDuplicate' { $reply.Remove('duplicate') }
+        'stringDuplicate' { $reply.duplicate = 'false' }
+        'missingRecorded' { $reply.Remove('recorded_at') }
+        'badRecorded' { $reply.recorded_at = 'not-a-date' }
+        'duplicate' { $reply.duplicate = $true }
     }
+    return [pscustomobject]$reply
 }
 function Send-AgentHeartbeat { param($Config); $script:Hearts++; return $true }
 function Start-Sleep { param([int]$Seconds); $script:Sleeps += $Seconds }
@@ -135,7 +146,8 @@ $result = Send-AgentBatch -Config $cfg
 Assert-True ($result -eq 0) 'missing batch ID is failure'
 $pendingBody = $script:PendingSnapshot.body_json
 $priorSamples = $script:Snapshots
-foreach ($mode in @('partial', 'wrongBatch', 'missingCount', 'badStatus', 'offline')) {
+foreach ($mode in @('partial', 'wrongBatch', 'missingCount', 'badStatus', 'stringCount', 'arrayId',
+    'missingDuplicate', 'stringDuplicate', 'missingRecorded', 'badRecorded', 'offline')) {
     $script:Mode = $mode
     $result = Send-AgentBatch -Config $cfg
     Assert-True ($result -eq 0) "bad ACK $mode is failure"
@@ -143,9 +155,10 @@ foreach ($mode in @('partial', 'wrongBatch', 'missingCount', 'badStatus', 'offli
     Assert-True ($script:Sent[-1] -ceq $pendingBody) 'every retry resends exact bytes'
     Assert-True ($script:Snapshots -eq $priorSamples) 'no remeasurement on retry'
 }
-$script:Mode = 'valid'
+$script:Mode = 'duplicate'
 $null = Send-AgentBatch -Config $cfg
-Assert-True ($null -eq $script:PendingSnapshot) 'eventual complete ACK retires batch'
+Assert-True ($null -eq $script:PendingSnapshot) 'eventual complete duplicate ACK retires batch'
+$script:Mode = 'valid'
 
 # Every 5 min of a long inventory interval, create a newly sampled snapshot.
 $script:QueryRows = ''

@@ -10,7 +10,7 @@ const keys=['schema','purpose','tenant_id','device_id','request_id','challenge_s
   'credential_fingerprint','ownership_evidence_sha256','command_reconciliation_sha256',
   'local_handoff_evidence_sha256','issued_at_ms','expires_at_ms'];
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
-const validDigest=x=>typeof x==='string'&&digest.test(x)&&x!=='0'.repeat(64);
+const validDigest=x=>typeof x==='string'&&x.length===64&&digest.test(x)&&x!=='0'.repeat(64);
 const fail=()=>{throw new Error('RECOVERY_EVIDENCE_UNVERIFIED');};
 
 export function verifyDeviceRecoveryEvidence({
@@ -42,7 +42,7 @@ export function verifyDeviceRecoveryEvidence({
   if(!Buffer.from(JSON.stringify(canonical),'utf8').equals(bytes))return fail();
   if(doc.schema!=='aaditech-device-recovery-evidence-v1'||
      doc.purpose!=='REVIEW_ONLY_CREDENTIAL_RECOVERY'||
-     ![doc.tenant_id,doc.device_id,doc.request_id].every(x=>typeof x==='string'&&uuid.test(x))||
+     ![doc.tenant_id,doc.device_id,doc.request_id].every(x=>typeof x==='string'&&x.length===36&&uuid.test(x))||
      ![doc.challenge_sha256,doc.credential_fingerprint,doc.ownership_evidence_sha256,
        doc.command_reconciliation_sha256,doc.local_handoff_evidence_sha256].every(validDigest))return fail();
   for(const [field,expectedField] of [

@@ -25,7 +25,8 @@ export function planGuidedServerSetup({intent, observed, localIdentity=null, evi
   if(!LEVELS.includes(previousStage) || (failedStage!==null&&!LEVELS.slice(1).includes(failedStage)))
     return stop('INVALID_STAGE');
   if(!evidence||typeof evidence!=='object'||Array.isArray(evidence)||
-    Object.keys(evidence).some(k=>!REQUIRED.includes(k))||
+    ![Object.prototype,null].includes(Object.getPrototypeOf(evidence))||
+    Reflect.ownKeys(evidence).some(k=>!REQUIRED.includes(k)||!Object.getOwnPropertyDescriptor(evidence,k)?.enumerable||!Object.hasOwn(Object.getOwnPropertyDescriptor(evidence,k),'value'))||
     Object.values(evidence).some(v=>!['VERIFIED','NOT_VERIFIED','FAILED'].includes(v)))
     return stop('INVALID_EVIDENCE');
   const identity=planInstallationIdentity({intent,observed,localIdentity});
@@ -36,11 +37,11 @@ export function planGuidedServerSetup({intent, observed, localIdentity=null, evi
   if(failedStage!==null)return stop('FAILED_STAGE_REQUIRES_OPERATOR_RECOVERY',failedStage);
   let stage='NOT_INSTALLED';
   for(const [target,keys] of GATES){
-    const missing=keys.filter(k=>evidence[k]!=='VERIFIED');
+    const missing=keys.filter(k=>!Object.hasOwn(evidence,k)||evidence[k]!=='VERIFIED');
     if(missing.length){
       const invalidated=LEVELS.indexOf(previousStage)>LEVELS.indexOf(stage);
       return stop(invalidated?'PRIOR_STAGE_EVIDENCE_INVALIDATED':
-        missing.some(k=>evidence[k]==='FAILED')?'PREREQUISITE_FAILED':'EVIDENCE_REQUIRED',stage,missing);
+        missing.some(k=>Object.hasOwn(evidence,k)&&evidence[k]==='FAILED')?'PREREQUISITE_FAILED':'EVIDENCE_REQUIRED',stage,missing);
     }
     stage=target;
   }

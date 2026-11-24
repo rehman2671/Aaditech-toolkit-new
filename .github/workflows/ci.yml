@@ -68,6 +68,11 @@ jobs:
       - name: Test Windows prerequisite dry-run never changes execution policy
         run: pwsh -NoProfile -File ./Enterprise/tests/Test-PrereqsVerifyOnly.ps1
 
+      - name: Read-only LAN Windows host preflight (PowerShell 7)
+        run: pwsh -NoProfile -File ./Enterprise/tests/Test-LanWindowsHostPreflight.ps1
+      - name: Read-only LAN Windows host preflight (Windows PowerShell 5.1)
+        run: powershell.exe -NoProfile -ExecutionPolicy Bypass -File ./Enterprise/tests/Test-LanWindowsHostPreflight.ps1
+
       - name: Retired legacy Windows SYSTEM installer must fail closed
         run: pwsh -NoProfile -File ./Enterprise/tests/Test-LegacyAgentInstallerDisabled.ps1
 

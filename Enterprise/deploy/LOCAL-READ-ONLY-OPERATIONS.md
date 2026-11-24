@@ -98,3 +98,14 @@ Open the generated HTML locally in a browser. It contains 26 disclosure cards an
 2026-11-25 — integrate verified #113 exact head 0bf585e0 (CI 45496444877: 1,234/1,234 Vitest, including 161 register tests, statements 71.23%; PowerShell and API/MySQL passed; both MSI jobs skipped). Extend local-only battery diagnostic: selected BAT-number Linux sysfs source, bounded reads, presence/type verification, categorical charge status, same-unit full/design capacity ratio, unknown on invalid or unavailable observations; CLI, signed review compatibility and explicitly selected private artifact custody. No arbitrary command, path, device scan, serial or remote execution. Added 77 battery regression cases and one signed-review compatibility case, updated existing CLI/register fixtures. One existing Linux battery task advances from pending to partial reference only; register remains 158 unique IDs (42 source implemented pending combined CI, 8 partial reference, 108 pending, zero accepted). Physical battery evidence, other OS collectors, consent, actual attempt, independent acceptance and production signing remain pending. No migration or release authorization. Fresh combined exact-head CI and safety required.
 
 Local read-only example: `node scripts/local-diagnostic-cli.mjs battery --battery BAT0 --confirm-local-read-only`. Only an explicit BAT-number selector is supported. Unknown observations are null; no physical battery or health certification is implied. For optional retention, use the existing private POSIX directory custody CLI with `--confirm-local-retention -- battery --battery BAT0 --confirm-local-read-only` and the required `--directory` option. Do not use unreviewed remote execution or infer repair authorization.
+
+## Native Windows passive diagnostics (2026-11-25)
+
+Run from the reviewed repository on a trusted Windows host, following the organization's PowerShell execution policy. Explicit confirmation is mandatory. Supported IDs: BATTERY_HEALTH, PRINT_STATUS, BLUETOOTH_STATUS, POWER_PLAN_STATUS, FIREWALL_STATUS.
+
+```powershell
+.\Enterprise\deploy\LocalWindowsDiagnostics.ps1 -DiagnosticId BATTERY_HEALTH -ConfirmLocalReadOnly
+.\Enterprise\deploy\LocalWindowsDiagnostics.ps1 -DiagnosticId FIREWALL_STATUS -ConfirmLocalReadOnly
+```
+
+Output is a bounded categorical artifact, SHA-256 and measured field count, not a signed or authorized attempt. Unavailable observations remain null. Service status does not prove printer queue/radio operation; battery charge is not wear; active plan is not sleep policy; firewall enablement is not effectiveness or compliance. No remote commands, changes, signing or production acceptance. Provider calls are not protected by an external watchdog; fresh CI and physical endpoint evidence remain required. The independently added Linux battery implementation in the current integration branch is retained unchanged.

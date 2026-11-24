@@ -1,5 +1,5 @@
 import {describe,it,expect,vi} from 'vitest';
-import {createTroubleshootingIncident as create,inspectTroubleshootingIncident as inspect,recordDiagnosticPlan as plan,summarizeTroubleshootingIntake as summary} from '../../troubleshooting-incidents.js';
+import {createTroubleshootingIncident as create,inspectTroubleshootingIncident as inspect,recordDiagnosticPlan as plan,inspectDiagnosticPlan,summarizeTroubleshootingIntake as summary} from '../../troubleshooting-incidents.js';
 const installationId='6f8c5ad9-e52e-4ea4-a1c7-f1dc23688a9e',tenant='00000000-0000-4000-8000-000000000001',deviceId='00000000-0000-4000-8000-000000000002',requestId='00000000-0000-4000-8000-000000000003',incidentId='00000000-0000-4000-8000-000000000004';
 const principal={id:1,tenant_id:tenant,role:'SUPER_ADMIN'};
 const input={principal,installationId,deviceId,requestId,categoryId:'TR-01',hazard:'NONE'};
@@ -117,5 +117,40 @@ describe('incident state and transaction integrity',()=>{
   expect(f.c.rollback).toHaveBeenCalledOnce();
   expect(f.c.destroy).toHaveBeenCalledOnce();
   expect(f.c.release).not.toHaveBeenCalled();
+ });
+});
+
+describe('scoped diagnostic plan inspection',()=>{
+ const planId='00000000-0000-4000-8000-000000000005';
+ const args={principal,installationId,deviceId,incidentId,planId};
+ const stored={...row,plan_id:planId,request_id:requestId,diagnostic_id:'RESOURCE_PRESSURE'};
+ it('returns a redacted planned-only record using scoped locks and no writes',async()=>{
+  const f=fixture({rows:[row],plans:[stored]});
+  expect(await inspectDiagnosticPlan(f.pool,args)).toEqual({plan_id:planId,incident_id:incidentId,
+   diagnostic_id:'RESOURCE_PRESSURE',status:'PLANNED_ONLY',diagnostic_authorized:false,execution_authorized:false,
+   repair_authorized:false,production_accepted:false});
+  expect(f.c.query.mock.calls.every(([q])=>q.startsWith('SELECT'))).toBe(true);
+  expect(f.c.query.mock.calls.at(-1)[1]).toEqual([planId,incidentId,installationId,tenant,deviceId,1]);
+ });
+ for(const [key,value] of Object.entries({plan_id:requestId,incident_id:requestId,installation_id:tenant,
+  tenant_id:deviceId,device_id:tenant,actor_user_id:'01',request_id:null,diagnostic_id:'UNKNOWN'})){
+  it('refuses persisted plan mismatch: '+key,async()=>{
+   const f=fixture({rows:[row],plans:[{...stored,[key]:value}]});
+   await expect(inspectDiagnosticPlan(f.pool,args)).rejects.toThrow('DIAGNOSTIC_PLAN_STATE_INVALID');
+   expect(f.c.rollback).toHaveBeenCalledOnce();expect(f.c.commit).not.toHaveBeenCalled();
+  });
+ }
+ it('rejects unavailable, ambiguous, or no-longer-eligible incident or plan',async()=>{
+  for(const opts of [{rows:[],plans:[stored]},{rows:[row],plans:[]},{rows:[row],plans:[stored,stored]},
+   {rows:[{...row,hazard:'UNKNOWN'}],plans:[stored]},{rows:[{...row,category_id:'TR-24',status:'ESCALATED'}],plans:[stored]},
+   {rows:[row],plans:[stored],user:{active:0}}]){
+   const f=fixture(opts);await expect(inspectDiagnosticPlan(f.pool,args)).rejects.toThrow();
+   expect(f.c.rollback).toHaveBeenCalledOnce();
+  }
+ });
+ it('refuses malformed plan IDs and caller-selected execution before acquiring connection',async()=>{
+  const f=fixture();for(const bad of [{...args,planId:'invalid'},{...args,command:'private'}])
+   await expect(inspectDiagnosticPlan(f.pool,bad)).rejects.toThrow('INCIDENT_INVALID');
+  expect(f.pool.getConnection).not.toHaveBeenCalled();
  });
 });

@@ -671,9 +671,10 @@
         "Parallel batch: schema migration advisory lock now held on one dedicated MySQL session for lock acquisition, all schema SQL, partition maintenance and confirmed release; acquisition errors/timeouts fail closed and uncertain sessions destroyed. Missing migration directory fails instead of success. Unit tests and real three-connection lock serialization fixture. Signed diagnostic artifact review-only verifier uses bounded canonical JSON, independent payload and Ed25519 key pins, installation/tenant/device/incident/plan/catalog diagnostic/current credential fingerprint/challenge/artifact digest and five-minute clock binding; explicitly not artifact content proof, execution or approval. Scope-limited internal intake aggregate counts reported/open/escalated/distinct planned incidents, leaves unavailable diagnostic, attempt, resolution and rate metrics null; mocked and real MySQL coverage. POSIX setup display ledger rejects nested journal/ledger paths and rechecks time after fsync, burns expired receipt without returning success. Fresh CI required.",
         "Exact prior head 840cc9cddef9092bc44f5aab289e723fff180f7b: CI 45481323903 all four executable jobs passed (Node/Vitest, PowerShell, API/MySQL and unsigned Windows MSI lifecycle); protected signed installer skipped. Deployment safety 45481324009 both jobs passed.",
         "Parallel batch: validate all ordered migration source names/versions/checksums and complete recorded prefix before executing pending DDL, fail on missing/unknown/drifted records, never rewrite old checksums automatically; maintain same session lock, defer startup ready until schema validation and migration completes. Unit history tests plus disposable MySQL intentional checksum corruption/refusal/restoration. Windows worker validates canonical per-device token and typed identity/response, refuses bootstrap fallback on malformed existing token or missing paired token, blocks redirects and bounds timeout for enrollment, poll and update check; native cleanup/credential tests run in PS5.1 and 7. Bounded RESOURCE_PRESSURE signed artifact format admits only canonical JSON CPU/RAM/disk percentages or explicit null; rejects extra/private fields and mismatched digest; verifies format/bytes but not measurement truth or execution. Fresh CI required; no new SQL migration.",
-        "2026-11-25 #113 scoped internal diagnostic plan lookup verifies current active administrator, tenant/device/installation and eligible incident, re-derives catalog identifier and returns redacted PLANNED_ONLY; no attempt or resolution."
+        "2026-11-25 #113 scoped internal diagnostic plan lookup verifies current active administrator, tenant/device/installation and eligible incident, re-derives catalog identifier and returns redacted PLANNED_ONLY; no attempt or resolution.",
+        "2026-11-25 bulk batch: Added 13 bounded categorical review contracts and capability catalog; signature and content verification only, no truth/attempt or repair claim."
       ],
-      "next": "Fresh CI and independent review; approved actual diagnostic attempt/consent lifecycle, measurement truth, remediation and independent outcomes remain.",
+      "next": "Verify exact-head CI; actual authorized collection, consent, attempts and independent postchecks remain.",
       "blocked": true
     },
     {
@@ -703,24 +704,26 @@
         "2026-11-25 PR #113 prior exact c9ea1431f3b434d0c8da51fe4e91eda6ee9eab83 CI 45489179421 succeeded (Node/Vitest, PowerShell, real API/MySQL; both MSI jobs skipped). New batch: Passive Linux interface link and selected-interface IPv4 default route observations; no active probes. Actual selected-filesystem available-capacity collector, SMART and mount writability remain null. Local read-only CLI for resource/network/disk with explicit confirmation and signed review compatibility tests.",
         "2026-11-25 PR #113: POSIX local diagnostic artifact retention uses canonical bounded passive collector content, independently supplied expected digest, private 0700 directory, 0600 file, exclusive no-overwrite publication, file and directory fsync, verified digest readback, duplicate/tamper/permission refusal. No signature, remote upload, authorization, attempt acceptance or automated retention policy.",
         "2026-11-25 PR #113: Explicit local diagnostic custody CLI connects passive collection, content-addressed POSIX artifact retention and digest-verified readback; write confirmation separate from read-only collection confirmation. No remote upload, signing, attempts or automatic deletion.",
-        "2026-11-25 PR #113: 26 issue-specific immutable employee advisory guidance cards (3 routine/manual steps and success criterion), hazard-first guidance across six hazard inputs, static no-script/no-network offline HTML and categorical CLI, and scoped planned-only diagnostic plan inspection with current active tenant/device/actor/incident binding and no writes. 171 new named regression cases: 156 issue/hazard combinations, 4 catalog/presentation/input checks and 11 scoped plan checks. These are new tests, not 171 delivered features; fresh CI required. No employee authentication/intake route, consent approval, actual attempt, repair or verified outcome."
+        "2026-11-25 PR #113: 26 issue-specific immutable employee advisory guidance cards (3 routine/manual steps and success criterion), hazard-first guidance across six hazard inputs, static no-script/no-network offline HTML and categorical CLI, and scoped planned-only diagnostic plan inspection with current active tenant/device/actor/incident binding and no writes. 171 new named regression cases: 156 issue/hazard combinations, 4 catalog/presentation/input checks and 11 scoped plan checks. These are new tests, not 171 delivered features; fresh CI required. No employee authentication/intake route, consent approval, actual attempt, repair or verified outcome.",
+        "2026-11-25 bulk batch: 16 distinct diagnostic types now have bounded signed review contracts (13 added); all 26 issues mapped to Linux/Windows/macOS capability profiles, explicit unimplemented/partial reference collection and no production verification."
       ],
-      "next": "Verify exact-head CI and review offline guidance; connect approved authenticated self-service, consent, durable attempts and collectors after DEC-005. Preserve actual resolution and field acceptance gates.",
+      "next": "Fresh combined CI; approve DEC-005 and implement actual remaining collectors and authenticated attempt lifecycle.",
       "blocked": true
     },
     {
       "key": "M5",
       "title": "Verified resolution analytics and audit",
       "priority": "P1",
-      "state": "NOT_STARTED",
+      "state": "IN_DEVELOPMENT",
       "owner": "product_analytics",
       "requires": [
         "M4"
       ],
       "evidence": [
-        "Existing command logs do not establish repaired outcome"
+        "Existing command logs do not establish repaired outcome",
+        "2026-11-25 bulk batch: Scoped internal category intake analytics reports all 26 categories, actual reported/open/escalated/planned counts, hazard/status integrity and safe aggregates; real disposable MySQL fixture extended; outcome metrics still null."
       ],
-      "next": "Define/implement incident attempts, postchecks, reopened cases and accurate denominators",
+      "next": "Verify latest CI; actual attempt/outcome persistence, time windows, reporting roles and resolution denominators remain.",
       "blocked": true
     },
     {
@@ -863,9 +866,10 @@
       ],
       "evidence": [
         "doc1_full.txt / doc2_full.txt source mirrors",
-        "docs/product/ORIGINAL-REQUIREMENTS-TRACEABILITY.md"
+        "docs/product/ORIGINAL-REQUIREMENTS-TRACEABILITY.md",
+        "2026-11-25 bulk batch: Explicit three-OS capability inventory separates available reference collectors from not implemented and unverified platform coverage."
       ],
-      "next": "Atomize requirement, decide owner acceptance, then code/tests and witnessed E2E evidence",
+      "next": "Owner DEC-002 and actual Windows/macOS/Linux acceptance remain; no parity claim.",
       "blocked": true
     },
     {

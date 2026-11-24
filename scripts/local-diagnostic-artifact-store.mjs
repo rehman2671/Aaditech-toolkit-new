@@ -59,3 +59,25 @@ export async function retainLocalDiagnosticArtifact({confirmation,directory,arti
  return Object.freeze({artifact_retained:true,artifact_sha256:digest,signature_verified:false,
   measurement_truth_verified:false,attempt_accepted:false,production_accepted:false});
 }
+
+export async function readRetainedLocalDiagnosticArtifact({confirmation,directory,expectedArtifactSha256}={}){
+ if(confirmation!=='READ_LOCAL_DIAGNOSTIC_ONLY'||typeof expectedArtifactSha256!=='string'||
+    expectedArtifactSha256.length!==64||!/^[a-f0-9]{64}$/.test(expectedArtifactSha256))fail('EXPLICIT_LOCAL_READ_REQUIRED');
+ const {dir,st}=await privateDirectory(directory),path=join(dir,expectedArtifactSha256+'.json');
+ const fd=await open(path,constants.O_RDONLY|constants.O_NOFOLLOW|constants.O_NONBLOCK);
+ try{
+  const before=await fd.stat();
+  if(!before.isFile()||before.nlink!==1||before.uid!==process.geteuid()||
+     (before.mode&0o777)!==0o600||before.size<1||before.size>512)fail('LOCAL_ARTIFACT_FILE_INVALID');
+  const buffer=Buffer.alloc(before.size+1);let n=0;
+  while(n<buffer.length){const {bytesRead}=await fd.read(buffer,n,buffer.length-n,n);if(!bytesRead)break;n+=bytesRead}
+  const after=await fd.stat(),current=await lstat(path);
+  if(n!==before.size||[after,current].some(x=>!x.isFile()||x.nlink!==1||
+    ['dev','ino','size','mtimeMs','ctimeMs','mode','uid'].some(k=>x[k]!==before[k])))fail('LOCAL_ARTIFACT_CHANGED');
+  const artifact=validate(buffer.subarray(0,n));
+  if(sha(artifact)!==expectedArtifactSha256)fail('LOCAL_ARTIFACT_DIGEST_MISMATCH');
+  await assertDirectory(dir,st);
+  return Object.freeze({artifact,artifact_sha256:expectedArtifactSha256,integrity_verified:true,
+   signature_verified:false,measurement_truth_verified:false,attempt_accepted:false,production_accepted:false});
+ }finally{await fd.close()}
+}

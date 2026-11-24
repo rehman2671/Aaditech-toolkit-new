@@ -97,10 +97,9 @@
         "#107 ordered setup plan, fresh/reconfigure distinction, invalidated evidence and failed-stage refusal; no durable execution, browser handoff or persisted stage authorization",
         "#107 8e0696ad0505d46d090d94318c2c42fd06b329c5: exact-head CI and safety SUCCESS, native Windows PowerShell 5.1/7 host checks",
         "#108 24761d2f5be59108ce175e8cd533c2d7c7926261: append-only STARTED/COMPLETED setup journal, identity/release binding and atomic no-replacement publication; exact-head CI #45381725526 SUCCESS (3/3 executed jobs, MSI build skipped), deployment safety #45381725923 SUCCESS (2/2); no runtime execution or external rollback anchor",
-        "#108 f88143083f4d9de8d980aaf215990e281d1218cd: signed pinned exact-head checkpoint verifier and rollback regression code; fresh exact-head CI pending; prior 24761d2f CI evidence does not certify new head",
-        "#108 f88143083f4d9de8d980aaf215990e281d1218cd: CI 45390061413 and safety 45390061331 SUCCESS; signed pinned exact-head journal checkpoint reference; no independent current-checkpoint custody"
+        "#108 f88143083f4d9de8d980aaf215990e281d1218cd: CI #45390061413 and safety #45390061331 SUCCESS; pinned signed checkpoint verification reference only"
       ],
-      "next": "After DEC-001, implement independently controlled current-checkpoint distribution/advancement, runtime locking, Windows ACL journal adapter, verified interrupted-stage reconciliation and authenticated installer-to-browser handoff; verify #108 latest-head CI",
+      "next": "After DEC-001, implement independently controlled current-checkpoint distribution/advancement, runtime locking, Windows ACL journal adapter, verified interrupted-stage reconciliation and authenticated installer-to-browser handoff",
       "blocked": true,
       "issue_url": "https://github.com/rehman2671/Aaditech-toolkit-new/issues/80"
     },
@@ -164,10 +163,12 @@
       "requires": [],
       "evidence": [
         "server.js workspaces/agent endpoints",
-        "tests/integration/workspace-selection.integration.test.js"
+        "tests/integration/workspace-selection.integration.test.js",
+        "#110 e5804047673b05915023b27accdb21f6a6aba008: CI #45447614754 SUCCESS 3/3 executed, both MSI jobs skipped, no separate deployment safety run; current unique device hash authority, not actual rotation workflow",
+        "Proposed current #110 follow-up: header-only current enrolled token admission with malformed/conflicting-header tests; fresh exact-head CI pending"
       ],
-      "next": "Demonstrate real multi-installation and multi-device namespace isolation",
-      "blocked": false
+      "next": "Implement separately authorized credential rotation/revocation, legacy migration, device proof and independent multi-replica and physical endpoint acceptance; review fresh #110 CI.",
+      "blocked": true
     },
     {
       "key": "FE-01",
@@ -219,9 +220,10 @@
         "Combined #99 head 70cb60ea5b74eadf3fb2b4c972a268c7df247d38: CI 45350364704 3/3 and safety 45350364886 2/2 SUCCESS; actual SQLite 8-connection test",
         "Unmerged #100 30de37f0f3ea8aa280e9445811b0f2c2d780c6bc: CI 45350645810 and safety 45350646190 SUCCESS",
         "#101 2de65f53bda3bc938541c47d55436586ce732eff: CI 45352835660 and safety 45352835606 SUCCESS",
-        "#102 7cbe4ce382a2e7fa97c5991ea23ce62742aa2d83: CI 45354022119 and safety 45354022056 SUCCESS"
+        "#102 7cbe4ce382a2e7fa97c5991ea23ce62742aa2d83: CI 45354022119 and safety 45354022056 SUCCESS",
+        "#109 7b4a0ebf2b65eb638d0e2da7a0b1aa6bbb72601a: CI #45447219419 SUCCESS 4/4 executed (protected build skipped), safety #45447219513 SUCCESS; unsigned Windows runner MSI install/upgrade/uninstall and legacy task retirement, SQLite/tenant configuration preserved; no physical signed acceptance"
       ],
-      "next": "Independently review #102; signed physical Windows, packaged SQLite, actual network loss/restart, secure concurrent configuration and pending-result retention/backpressure; never re-execute uncertain claims",
+      "next": "Review #109 plus #110; signed physical Windows with real network outage/restart, authenticated server receipt and pending-result retention/backpressure; no re-execution of uncertain claims.",
       "blocked": true
     },
     {
@@ -256,7 +258,8 @@
         "Unmerged PR #97 head 3392ddd7c17e759e52853964774cffe71e772487",
         "CI 45294006952 SUCCESS 3/3 including Windows reboot/self-update refusals",
         "Deployment safety 45294004792 SUCCESS 2/2",
-        "Reboot blocked at API/portal/worker and SYSTEM task; automatic TEMP MSI download/elevated msiexec disabled"
+        "Reboot blocked at API/portal/worker and SYSTEM task; automatic TEMP MSI download/elevated msiexec disabled",
+        "#109 7b4a0ebf2b65eb638d0e2da7a0b1aa6bbb72601a: CI #45447219419 SUCCESS 4/4 executed (protected build skipped), safety #45447219513 SUCCESS; unsigned Windows runner MSI install/upgrade/uninstall and legacy task retirement, SQLite/tenant configuration preserved; no physical signed acceptance"
       ],
       "next": "Implement independent owner/device consent, maintenance window, audited signed privileged IPC, out-of-band signed MSI hash and signer, immutable staging, rollback and real Windows approval before enabling reboot or unattended update",
       "blocked": true
@@ -312,7 +315,7 @@
         "deployment safety 45062353339",
         "#104 authenticated backup manifest reference: CI and deployment safety SUCCESS; no actual encryption or independent restore witnessed",
         "#108 24761d2f5be59108ce175e8cd533c2d7c7926261: actual bounded AES-256-GCM file encryption and authenticated staged recovery reference, 64 MiB POSIX only; exact-head CI #45381725526 SUCCESS (3/3 executed jobs, MSI build skipped), deployment safety #45381725923 SUCCESS (2/2); no actual DB restore or witnessed recovery",
-        "#108 f88143083f4d9de8d980aaf215990e281d1218cd: signed pinned exact-head checkpoint verifier and rollback regression code; fresh exact-head CI pending; prior 24761d2f CI evidence does not certify new head"
+        "#108 f88143083f4d9de8d980aaf215990e281d1218cd: CI #45390061413 and safety #45390061331 SUCCESS; pinned signed checkpoint verification reference only"
       ],
       "next": "Implement streaming large database-consistent encrypted exports, independently controlled key/signer custody and nonce-use/rotation policy, Windows ACL storage, authenticated manifest binding and actual isolated restore; verify old-host fencing and witnessed offsite recovery",
       "blocked": true
@@ -343,9 +346,10 @@
       "evidence": [
         "main diagnostic CI 45062353330",
         "Enterprise/agent/SETUP-WINDOWS.md",
-        "Unmerged PR #95 approval-hash + signer-gated downloaded MSI scripts; #97 disables unsigned unattended worker MSI auto-update"
+        "Unmerged PR #95 approval-hash + signer-gated downloaded MSI scripts; #97 disables unsigned unattended worker MSI auto-update",
+        "#109 7b4a0ebf2b65eb638d0e2da7a0b1aa6bbb72601a: CI #45447219419 SUCCESS 4/4 executed (protected build skipped), safety #45447219513 SUCCESS; unsigned Windows runner MSI install/upgrade/uninstall and legacy task retirement, SQLite/tenant configuration preserved; no physical signed acceptance"
       ],
-      "next": "After independent review and protected merge, sign real publisher-owned MSI and witness physical Windows install, configured enrollment, upgrade and rollback; auto-update is disabled until approved release integrity",
+      "next": "Independent review/protected merge; signed publisher MSI and physical Windows 10/11 setup, repair, rollback, offline enrollment, and real endpoint command evidence. Unsigned runner lifecycle passed.",
       "blocked": true
     },
     {
@@ -395,9 +399,10 @@
         "Combined #101 result recovery review branch; no protected merge, signed release or production approval",
         "#102 consolidated review branch; no protected merge or production approval",
         "#105 synthetic publisher signature tests do not constitute independent production signing or release acceptance",
-        "Phase O reconciliation: 33 open source PRs observed; #75 governance pagination and #77 docs imported into #108-based review candidate; main unprotected and rulesets empty; combined CI and independent review required"
+        "Phase O reconciliation: 33 open source PRs observed; #75 governance pagination and #77 docs imported into #108-based review candidate; main unprotected and rulesets empty; combined CI and independent review required",
+        "#109 7b4a0ebf2b65eb638d0e2da7a0b1aa6bbb72601a: CI #45447219419 SUCCESS 4/4 executed (protected build skipped), safety #45447219513 SUCCESS; unsigned Windows runner MSI install/upgrade/uninstall and legacy task retirement, SQLite/tenant configuration preserved; no physical signed acceptance"
       ],
-      "next": "Review combined Phase O candidate and historical residual patches; configure and independently verify protected main, reviewer independence, non-bypass rules and signed release",
+      "next": "Independent review of #109/#110 combined tree; configure and verify non-bypass protected main (#62), resolve owner ADRs, sign and independently certify production.",
       "blocked": true
     },
     {
@@ -672,16 +677,18 @@
       "key": "PR-019",
       "title": "Agent lifecycle service/tamper/rotation/updates",
       "priority": "P1",
-      "state": "NOT_STARTED",
+      "state": "IN_DEVELOPMENT",
       "owner": "product_owner",
       "requires": [
         "DEC-003"
       ],
       "evidence": [
         "doc1_full.txt / doc2_full.txt source mirrors",
-        "docs/product/ORIGINAL-REQUIREMENTS-TRACEABILITY.md"
+        "docs/product/ORIGINAL-REQUIREMENTS-TRACEABILITY.md",
+        "#110 e5804047673b05915023b27accdb21f6a6aba008: CI #45447614754 SUCCESS 3/3 executed, both MSI jobs skipped, no separate deployment safety run; current unique device hash authority, not actual rotation workflow",
+        "Proposed current #110 follow-up: header-only current enrolled token admission with malformed/conflicting-header tests; fresh exact-head CI pending"
       ],
-      "next": "Atomize requirement, decide owner acceptance, then code/tests and witnessed E2E evidence",
+      "next": "Implement separately authorized credential rotation/revocation, legacy migration, device proof and independent multi-replica and physical endpoint acceptance; review fresh #110 CI.",
       "blocked": true
     },
     {

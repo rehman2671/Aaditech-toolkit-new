@@ -84,3 +84,9 @@ At `9fbf9032`, Node/Vitest and N70 lint passed, safety #45446897874 passed; CI #
 ### O1 credential-authority follow-up (stacked review; not included in the currently running MSI rehearsal)
 
 Deployed getDeviceByTokenHash accepts only the current exact lowercase SHA-256 in device_token_hash, refuses ambiguous matches, and never reads legacy auth_token_hash as a credential. Test-only historical compatibility remains. Regression fixtures cover legacy-only, duplicate cross-tenant records, collation mismatch, rotation and deletion. Existing legacy-only installations need explicit reviewed credential migration/re-enrollment; no automatic credential overwrite. This does not implement authorized rotation or certify multi-replica concurrency; fresh CI and independent review required before integration.
+
+### O1 verified diagnostic milestone and credential transport follow-up
+
+#109 7b4a0ebf2b65eb638d0e2da7a0b1aa6bbb72601a: CI #45447219419 SUCCESS 4/4 executed (protected build skipped), safety #45447219513 SUCCESS; unsigned Windows runner MSI install/upgrade/uninstall and legacy task retirement, SQLite/tenant configuration preserved; no physical signed acceptance.
+
+#110 e5804047673b05915023b27accdb21f6a6aba008: CI #45447614754 SUCCESS 3/3 executed, both MSI jobs skipped, no separate deployment safety run; current unique device hash authority, not actual rotation workflow. New follow-up admits only canonical X-Device-Token or identical valid Bearer credentials in deployed agent authentication; body and bootstrap tokens are not accepted there (explicit enrollment unchanged), legacy compatibility only in test mode. New regression tests and fresh CI required. Existing installed agents using older header formats require reviewed migration. No authorization to rotate/revoke credentials, no main merge or production acceptance.

@@ -52,3 +52,22 @@ export function matchesEnrolledDeviceIdentifier(device, target) {
   return [device?.id, device?.device_uid, device?.hostname].some(value =>
     typeof value === 'string' && value.length > 0 && value.toLowerCase() === normalized);
 }
+
+
+// Only current enrolled device credentials in canonical headers outside
+// explicit test fixtures. Never consult URL, body or bootstrap headers.
+export function extractEnrolledDeviceHeaderToken(headers = {}) {
+  const canonical = headers['x-device-token'];
+  const authorization = headers.authorization;
+  const valid = value => typeof value === 'string' &&
+    value.length === 56 && /^itk_dev_[a-f0-9]{48}$/.test(value);
+  if (canonical !== undefined && !valid(canonical)) return null;
+  let bearer;
+  if (authorization !== undefined) {
+    if (typeof authorization !== 'string' || !authorization.startsWith('Bearer ')) return null;
+    bearer = authorization.slice(7);
+    if (!valid(bearer)) return null;
+  }
+  if (canonical !== undefined && bearer !== undefined && canonical !== bearer) return null;
+  return canonical ?? bearer ?? null;
+}

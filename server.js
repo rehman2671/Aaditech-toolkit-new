@@ -30,7 +30,7 @@ import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 import * as db from './db.js';
 import { isValidSetupKey, isSeededDemoPasswordHash } from './setup-security.js';
-import { validateEnrollmentIdentity, validateFreshEnrollment, matchesEnrolledDeviceIdentifier } from './enrollment-security.js';
+import { validateEnrollmentIdentity, validateFreshEnrollment, matchesEnrolledDeviceIdentifier, extractEnrolledDeviceHeaderToken } from './enrollment-security.js';
 import { resolveAgentOrigin } from './agent-origin.js';
 import { resolveVerifiedUserPrincipal, requiresPersistedUserAuthorization } from './auth-principal.js';
 import { isPlatformSettingsAdmin } from './platform-settings-admin.js';
@@ -541,17 +541,16 @@ function checkDeviceRateLimit(key, maxRequests = 180, windowMs = 60000) {
 
 async function verifyDeviceCredential(req, targetDeviceIdentifier) {
   const authHeader = req.headers['authorization'];
-  const bearerToken = authHeader && authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : null;
-  const rawToken = 
+  const bearerToken = typeof authHeader === 'string' && authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : null;
+  const rawToken = process.env.NODE_ENV === 'test' ? (
     req.headers['x-device-token'] ||
     req.headers['x-agent-token'] ||
     req.headers['x-bootstrap-token'] ||
     bearerToken ||
-    // Credentials in URL query strings leak via access logs, proxies and history.
-    // Only accept agent secrets in headers or POST bodies.
     req.body?.device_token ||
     req.body?.agent_token ||
-    req.body?.token;
+    req.body?.token
+  ) : extractEnrolledDeviceHeaderToken(req.headers);
 
   const signature = req.headers['x-agent-signature'] || req.headers['x-payload-signature'] || req.headers['x-hmac-signature'];
   const deviceUid = req.headers['x-device-uid'] || req.headers['x-agent-id'] || req.body?.device_uid;

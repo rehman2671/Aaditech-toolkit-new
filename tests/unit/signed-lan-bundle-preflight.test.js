@@ -90,3 +90,30 @@ describe('combined local LAN preflight',()=>{
   expect(result.ports).toHaveLength(1);
  }));
 });
+
+import {runLocalLanPreflightCli} from '../../scripts/local-lan-preflight-cli.mjs';
+import {spawnSync} from 'node:child_process';
+import {fileURLToPath} from 'node:url';
+describe('operator local LAN readiness CLI',()=>{
+ const confirm=['--confirm-local-read-only'];
+ const config=input=>({bundle:input,host:{targetDirectory:input.root,markerPaths:{
+  database:join(input.root,'absent-db'),credentials:join(input.root,'image.tar'),service:join(input.root,'absent-svc')},
+  ports:[443],minCpu:1,minMemoryBytes:1,minFreeBytes:1}});
+ it('returns actual signed-bundle and host blocker report via JSON stdin',()=>fixture(async({input})=>{
+  const bytes=Buffer.from(JSON.stringify(config(input)));
+  const r=await runLocalLanPreflightCli(bytes,confirm);
+  expect(r).toMatchObject({decision:'BLOCKED',installation_authorized:false,production_accepted:false});
+  const script=fileURLToPath(new URL('../../scripts/local-lan-preflight-cli.mjs',import.meta.url));
+  const child=spawnSync(process.execPath,[script,...confirm],{input:bytes,encoding:'utf8',timeout:10000});
+  expect(child.status).toBe(2);expect(child.stderr).toBe('');
+  expect(JSON.parse(child.stdout).blocking).toContain('marker_credentials');
+  expect(child.stdout).not.toContain(input.root);
+ }));
+ it('rejects missing confirmation, extra configuration, relative paths and oversized inputs',()=>fixture(async({input})=>{
+  const cfg=config(input),bytes=Buffer.from(JSON.stringify(cfg));
+  await expect(runLocalLanPreflightCli(bytes,[])).rejects.toThrow('LOCAL_PREFLIGHT_INPUT_INVALID');
+  for(const bad of [{...cfg,password:'private'},{...cfg,bundle:{...cfg.bundle,manifest:'relative'}}])
+   await expect(runLocalLanPreflightCli(Buffer.from(JSON.stringify(bad)),confirm)).rejects.toThrow('LOCAL_PREFLIGHT_INPUT_INVALID');
+  await expect(runLocalLanPreflightCli(Buffer.alloc(32769),confirm)).rejects.toThrow('LOCAL_PREFLIGHT_INPUT_INVALID');
+ }));
+});

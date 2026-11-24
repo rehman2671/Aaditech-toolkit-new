@@ -1,0 +1,905 @@
+{
+  "schema_version": "1.0",
+  "document_type": "manual_product_delivery_tracker",
+  "baseline_date": "2026-11-23",
+  "timezone": "Asia/Kolkata",
+  "baseline_branch": "main",
+  "baseline_commit": "911f509620029c513305c88b26ca0da4e1b7da37",
+  "product_goal": "Intranet-first, independently self-hosted; one-click setup; no mandatory public domain or central cloud",
+  "production_accepted": false,
+  "source_of_truth": "Original DOCX requirements + Go directive are binding scope; docs/product/README.md is a proposed implementation and gap crosswalk pending owner ADR",
+  "old_index_note": "project-progress.json 100% is historic audit issue closure only; auto-generated; not the product completion percentage",
+  "status_values": [
+    "NOT_STARTED",
+    "IN_DEVELOPMENT",
+    "CODE_COMPLETE",
+    "CI_VERIFIED",
+    "E2E_VERIFIED",
+    "PRODUCTION_ACCEPTED",
+    "BLOCKED"
+  ],
+  "status_note": "A status reflects the most advanced evidenced stage; blocked=true independently flags an unmet dependency. For PR-only CI, do not infer merged main.",
+  "completion_percentage": null,
+  "entries": [
+    {
+      "key": "M0",
+      "title": "Product documents and evidence baseline",
+      "priority": "P0",
+      "state": "IN_DEVELOPMENT",
+      "owner": "product_owner",
+      "requires": [],
+      "evidence": [
+        "docs/product/*.md (proposed; not merged)"
+      ],
+      "next": "Source Word-body text verified; independent reviewer to atomize original RTM and product owner to sign DEC-001, DEC-002, DEC-003",
+      "blocked": false
+    },
+    {
+      "key": "M0A",
+      "title": "Original-source reconciliation and independent architecture/scope decision signoff",
+      "priority": "P0",
+      "state": "BLOCKED",
+      "owner": "product_owner_and_architecture_security_reviewers",
+      "requires": [
+        "M0",
+        "DEC-001",
+        "DEC-002",
+        "DEC-003"
+      ],
+      "evidence": [
+        "Original DOCX Word-body text matches doc1_full.txt / doc2_full.txt after normalization; semantic owner decisions not approved",
+        "docs/product/OWNER-DECISION-REVIEW-PACKET.md",
+        "docs/product/ORIGINAL-REQUIREMENTS-TRACEABILITY.md",
+        "Issue #79 DEC-001 remains open"
+      ],
+      "next": "Obtain independent reviewed source RTM/ADR and explicit owner decisions DEC-001/002/003, retain original source scope and distinguish approved phase plan from production acceptance",
+      "blocked": true
+    },
+    {
+      "key": "M1",
+      "title": "Intranet one-click server deployment (backend stack pending DEC-001)",
+      "priority": "P0",
+      "state": "NOT_STARTED",
+      "owner": "deployment_engineering",
+      "requires": [
+        "M0",
+        "DEC-001"
+      ],
+      "evidence": [
+        "Enterprise/deploy/deploy-mysql.sh currently requires public DNS",
+        "legacy deploy scripts intentionally refuse incompatible stack",
+        "Design backlog docs/product/LAN-INSTALLATION-IMPLEMENTATION-BACKLOG.md (not implemented)",
+        "Source audit: Enterprise/docker-compose.yml mutable mysql:8.0/caddy:2-alpine and Dockerfile node:20-alpine; npm ci fallback to npm install",
+        "AT-LAN-08 offline signed reproducible bundle and Windows Server runtime support test pending",
+        "M1 is stack-neutral until DEC-001 owner signoff; current public DNS Node/MySQL path is implementation reality, not an approved final LAN stack",
+        "#105 signed LAN manifest reference: CI 45375159540 and safety 45375159676 SUCCESS; no approved release payload, host compatibility or WAN-disconnected install",
+        "#106 be288bc414663f48ef61e5b5e8a56855956146fe: read-only host reference (CPU/RAM/disk/TCP marker observations) and opt-in TLS probe; CI 45376416641 and safety 45376416754 SUCCESS; host OS/runtime and resource absence unverified",
+        "#107 8e0696ad0505d46d090d94318c2c42fd06b329c5: local Windows host reference and guided planning; CI 45379723828 and safety 45379723785 SUCCESS; no Windows Server runtime acceptance",
+        "Phase O candidate: #108 code + #77 docs + #75 governance. Architecture proposal DEC-001A only, owner approval pending; actual LAN install remains unimplemented"
+      ],
+      "next": "After DEC-001: approved runtime/OS matrix, signed complete pinned offline payload, actual resource discovery, locked staging, mutation adapter and witnessed offline install; Linux/Windows observations are not authorization",
+      "blocked": true,
+      "issue_url": "https://github.com/rehman2671/Aaditech-toolkit-new/issues/80"
+    },
+    {
+      "key": "M2",
+      "title": "Browser setup integrated with machine installer",
+      "priority": "P0",
+      "state": "IN_DEVELOPMENT",
+      "owner": "fullstack_deployment",
+      "requires": [
+        "M1"
+      ],
+      "evidence": [
+        "server.js /api/setup",
+        "Enterprise/portal/index.html renderSetup",
+        "Design backlog docs/product/LAN-INSTALLATION-IMPLEMENTATION-BACKLOG.md (not implemented)",
+        "#107 ordered setup plan, fresh/reconfigure distinction, invalidated evidence and failed-stage refusal; no durable execution, browser handoff or persisted stage authorization",
+        "#107 8e0696ad0505d46d090d94318c2c42fd06b329c5: exact-head CI and safety SUCCESS, native Windows PowerShell 5.1/7 host checks",
+        "#108 24761d2f5be59108ce175e8cd533c2d7c7926261: append-only STARTED/COMPLETED setup journal, identity/release binding and atomic no-replacement publication; exact-head CI #45381725526 SUCCESS (3/3 executed jobs, MSI build skipped), deployment safety #45381725923 SUCCESS (2/2); no runtime execution or external rollback anchor",
+        "#108 f88143083f4d9de8d980aaf215990e281d1218cd: signed pinned exact-head checkpoint verifier and rollback regression code; fresh exact-head CI pending; prior 24761d2f CI evidence does not certify new head",
+        "#108 f88143083f4d9de8d980aaf215990e281d1218cd: CI 45390061413 and safety 45390061331 SUCCESS; signed pinned exact-head journal checkpoint reference; no independent current-checkpoint custody"
+      ],
+      "next": "After DEC-001, implement independently controlled current-checkpoint distribution/advancement, runtime locking, Windows ACL journal adapter, verified interrupted-stage reconciliation and authenticated installer-to-browser handoff; verify #108 latest-head CI",
+      "blocked": true,
+      "issue_url": "https://github.com/rehman2671/Aaditech-toolkit-new/issues/80"
+    },
+    {
+      "key": "PR-004",
+      "title": "Persistent installation identity, restore versus clone",
+      "priority": "P0",
+      "state": "IN_DEVELOPMENT",
+      "owner": "backend_security",
+      "requires": [
+        "M0"
+      ],
+      "evidence": [
+        "Current tenant/device IDs do not prove installation UUID lifecycle",
+        "#103 474c4af84c88549f442d43730657ac8cb99a814c: CI 45354274252 and safety 45354274197 SUCCESS; reference UUID and POSIX no-overwrite store only",
+        "#104 3f9e1ef25867f91c93d35e63a8711eb45b8d1de4: CI 45374958574 and safety 45374958743 SUCCESS; independently pinned signature, source installation and exact payload checks"
+      ],
+      "next": "After owner stack ADR, integrate actual runtime/database identity, trusted installer lock/Windows ACL store, signed backup generation/key custody and verified old-instance fence; implement clone rekey/namespace isolation; no destructive restore from preflight",
+      "blocked": true
+    },
+    {
+      "key": "M3",
+      "title": "Air-gapped multi-device office E2E acceptance",
+      "priority": "P0",
+      "state": "NOT_STARTED",
+      "owner": "enterprise_it_operator",
+      "requires": [
+        "M1",
+        "M2",
+        "PR-004"
+      ],
+      "evidence": [
+        "No witnessed office LAN acceptance or physical Windows deployment in repository evidence"
+      ],
+      "next": "Verify fresh host, HTTPS trust, 2 devices, telemetry, signed command, restart, upgrade and recovery with WAN absent",
+      "blocked": true
+    },
+    {
+      "key": "PR-005",
+      "title": "Generic signed MSI and local enrollment",
+      "priority": "P0",
+      "state": "CI_VERIFIED",
+      "owner": "windows_agent",
+      "requires": [
+        "M1",
+        "M2"
+      ],
+      "evidence": [
+        "Enterprise/agent/wix/Agent.wxs",
+        "main diagnostic MSI CI 45062353330"
+      ],
+      "next": "Test with signed artifact, physical Windows and internal CA under WAN-disconnected office",
+      "blocked": true
+    },
+    {
+      "key": "PR-006",
+      "title": "Tenant isolation, workspace selection and invitation",
+      "priority": "P0",
+      "state": "CI_VERIFIED",
+      "owner": "backend_security",
+      "requires": [],
+      "evidence": [
+        "server.js workspaces/agent endpoints",
+        "tests/integration/workspace-selection.integration.test.js"
+      ],
+      "next": "Demonstrate real multi-installation and multi-device namespace isolation",
+      "blocked": false
+    },
+    {
+      "key": "FE-01",
+      "title": "Node.js Express, MySQL migrations and backend",
+      "priority": "P0",
+      "state": "CI_VERIFIED",
+      "owner": "backend",
+      "requires": [],
+      "evidence": [
+        "server.js",
+        "db.js",
+        "Enterprise/docker-compose.yml",
+        "main CI 45062353330"
+      ],
+      "next": "Verify on fresh disconnected office server",
+      "blocked": false
+    },
+    {
+      "key": "FE-08",
+      "title": "Device telemetry, security posture and provenance",
+      "priority": "P0",
+      "state": "CI_VERIFIED",
+      "owner": "windows_agent",
+      "requires": [
+        "M1"
+      ],
+      "evidence": [
+        "device-metrics.js",
+        "security-posture.js",
+        "Enterprise/agent/Agent-Collect.ps1"
+      ],
+      "next": "Validate representative enrolled devices and bad/missing telemetry on LAN",
+      "blocked": true
+    },
+    {
+      "key": "FE-09",
+      "title": "Signed commands, durable queue and result ACK",
+      "priority": "P0",
+      "state": "CI_VERIFIED",
+      "owner": "agent_backend",
+      "requires": [
+        "M1"
+      ],
+      "evidence": [
+        "command-signing.js",
+        "test-network-db-fault-injection.js",
+        "Proposed PR #96 retires legacy unsafe command executor; #97 denies reboot without consent (unmerged, not physical acceptance)",
+        "Unmerged #98 head 305f41795978142ab5884981629cebcbc9288b6a: CI 45348806630 and safety 45348806613 SUCCESS",
+        "Combined #99 head 70cb60ea5b74eadf3fb2b4c972a268c7df247d38: CI 45350364704 3/3 and safety 45350364886 2/2 SUCCESS; actual SQLite 8-connection test",
+        "Unmerged #100 30de37f0f3ea8aa280e9445811b0f2c2d780c6bc: CI 45350645810 and safety 45350646190 SUCCESS",
+        "#101 2de65f53bda3bc938541c47d55436586ce732eff: CI 45352835660 and safety 45352835606 SUCCESS",
+        "#102 7cbe4ce382a2e7fa97c5991ea23ce62742aa2d83: CI 45354022119 and safety 45354022056 SUCCESS"
+      ],
+      "next": "Independently review #102; signed physical Windows, packaged SQLite, actual network loss/restart, secure concurrent configuration and pending-result retention/backpressure; never re-execute uncertain claims",
+      "blocked": true
+    },
+    {
+      "key": "AT-SEC-02",
+      "title": "Retire public legacy standalone agent remote command executor",
+      "priority": "P0",
+      "state": "CI_VERIFIED",
+      "owner": "independent_agent_security_reviewer",
+      "requires": [
+        "FE-09"
+      ],
+      "evidence": [
+        "Unmerged PR #96 head c6bd01b2bed47707418fded57a90b5a07c049ec8",
+        "CI 45292527338 SUCCESS 3/3 including native Windows legacy agent source check",
+        "Deployment safety 45292527296 SUCCESS 2/2",
+        "Legacy Aaditech-Agent.ps1 now TELEMETRY-ONLY; no unbound outer cmd.kind or unapproved privileged repair"
+      ],
+      "next": "Independently review and reconcile agent bundle/Windows CI with PR #95/#97, then protected landing and signed MSI physical Windows validation; don't claim remote commands are safe from this source test",
+      "blocked": true
+    },
+    {
+      "key": "AT-SEC-03",
+      "title": "Default-deny unapproved reboot and unsigned elevated MSI self-update",
+      "priority": "P0",
+      "state": "CI_VERIFIED",
+      "owner": "independent_security_and_release_reviewer",
+      "requires": [
+        "AT-OPS-01",
+        "DEC-005"
+      ],
+      "evidence": [
+        "Unmerged PR #97 head 3392ddd7c17e759e52853964774cffe71e772487",
+        "CI 45294006952 SUCCESS 3/3 including Windows reboot/self-update refusals",
+        "Deployment safety 45294004792 SUCCESS 2/2",
+        "Reboot blocked at API/portal/worker and SYSTEM task; automatic TEMP MSI download/elevated msiexec disabled"
+      ],
+      "next": "Implement independent owner/device consent, maintenance window, audited signed privileged IPC, out-of-band signed MSI hash and signer, immutable staging, rollback and real Windows approval before enabling reboot or unattended update",
+      "blocked": true
+    },
+    {
+      "key": "AT-SEC-04",
+      "title": "UUID command claims and exact durable server-result receipts",
+      "priority": "P0",
+      "state": "CI_VERIFIED",
+      "owner": "agent_backend_and_independent_security_reviewer",
+      "requires": [
+        "FE-09"
+      ],
+      "evidence": [
+        "#98 UUID ledger CI and safety successful",
+        "#99 combined integration SQLite 8 concurrent connections and reopen verified",
+        "#100 exact replay receipt: CI and safety SUCCESS"
+      ],
+      "next": "Review combined #101 and #93 DB/security overlap; field acceptance of durable result retry and physical Windows deployment remain pending",
+      "blocked": true
+    },
+    {
+      "key": "AT-SEC-05",
+      "title": "Persistent identity-bound agent command-result recovery",
+      "priority": "P0",
+      "state": "CI_VERIFIED",
+      "owner": "agent_backend_and_security_reviewer",
+      "requires": [
+        "AT-SEC-04",
+        "FE-09"
+      ],
+      "evidence": [
+        "#101 2de65f53bda3bc938541c47d55436586ce732eff: CI 45352835660 and safety 45352835606 SUCCESS",
+        "SQLite v3 unique claim; atomic terminal body and pending marker; HMAC-bound origin and credential; no redirect; matching receipt required",
+        "Old v2 rows preserved and not automatically retried",
+        "#102 combined tree CI/safety SUCCESS"
+      ],
+      "next": "Independent review; real Windows network-loss/restart and packaged SQLite acceptance; installation identity, queue bounds, privileged-action consent and protected signing",
+      "blocked": true
+    },
+    {
+      "key": "PR-007",
+      "title": "Encrypted offsite/air-gap restore",
+      "priority": "P0",
+      "state": "CI_VERIFIED",
+      "owner": "database_operator",
+      "requires": [
+        "M1"
+      ],
+      "evidence": [
+        "Enterprise/deploy/backup.sh",
+        "Enterprise/deploy/restore.sh",
+        "deployment safety 45062353339",
+        "#104 authenticated backup manifest reference: CI and deployment safety SUCCESS; no actual encryption or independent restore witnessed",
+        "#108 24761d2f5be59108ce175e8cd533c2d7c7926261: actual bounded AES-256-GCM file encryption and authenticated staged recovery reference, 64 MiB POSIX only; exact-head CI #45381725526 SUCCESS (3/3 executed jobs, MSI build skipped), deployment safety #45381725923 SUCCESS (2/2); no actual DB restore or witnessed recovery",
+        "#108 f88143083f4d9de8d980aaf215990e281d1218cd: signed pinned exact-head checkpoint verifier and rollback regression code; fresh exact-head CI pending; prior 24761d2f CI evidence does not certify new head"
+      ],
+      "next": "Implement streaming large database-consistent encrypted exports, independently controlled key/signer custody and nonce-use/rotation policy, Windows ACL storage, authenticated manifest binding and actual isolated restore; verify old-host fencing and witnessed offsite recovery",
+      "blocked": true
+    },
+    {
+      "key": "AT-SEC-01",
+      "title": "Private LAN TLS/CA and agent trust",
+      "priority": "P0",
+      "state": "IN_DEVELOPMENT",
+      "owner": "infrastructure_security",
+      "requires": [
+        "M1"
+      ],
+      "evidence": [
+        "Existing public ACME path does not prove internal PKI",
+        "#106 reference pinned private-root TLS handshake and exact DNS/IP SAN; native loopback fixture, CI 45376416641 and safety 45376416754 SUCCESS; no actual local CA provisioning or endpoint trust distribution"
+      ],
+      "next": "Implement approved private CA/enterprise PKI provisioning/renewal, authenticated root distribution, revocation, private ingress and Windows/browser/agent trust acceptance; retain public-mode checks",
+      "blocked": true
+    },
+    {
+      "key": "FE-17",
+      "title": "Diagnostic agent MSI, upgrade, setup wizard",
+      "priority": "P0",
+      "state": "CI_VERIFIED",
+      "owner": "release_engineering",
+      "requires": [],
+      "evidence": [
+        "main diagnostic CI 45062353330",
+        "Enterprise/agent/SETUP-WINDOWS.md",
+        "Unmerged PR #95 approval-hash + signer-gated downloaded MSI scripts; #97 disables unsigned unattended worker MSI auto-update"
+      ],
+      "next": "After independent review and protected merge, sign real publisher-owned MSI and witness physical Windows install, configured enrollment, upgrade and rollback; auto-update is disabled until approved release integrity",
+      "blocked": true
+    },
+    {
+      "key": "FE-18",
+      "title": "N74 safe-before-write credential ACL patch",
+      "priority": "P0",
+      "state": "CI_VERIFIED",
+      "owner": "independent_reviewer",
+      "requires": [],
+      "evidence": [
+        "PR #76 open head fd0bacf108256431a2bb81992f37eade5e7d00b8",
+        "CI 45075407395 success",
+        "safety 45075407383 success"
+      ],
+      "next": "Obtain independent code review and authorized merge, then fresh-main Windows MSI verification",
+      "blocked": true
+    },
+    {
+      "key": "FE-19",
+      "title": "N73 GitHub ruleset integrity patch",
+      "priority": "P0",
+      "state": "CI_VERIFIED",
+      "owner": "independent_reviewer",
+      "requires": [],
+      "evidence": [
+        "PR #75 open head 67abb1bff711a400b55b3f695311917a7d3069c9",
+        "CI 45072083622 success",
+        "safety 45072083593 success"
+      ],
+      "next": "Obtain independent review and repo administrator protected-main ruleset",
+      "blocked": true
+    },
+    {
+      "key": "AT-OPS-01",
+      "title": "Independent signed release/publisher/branch protection",
+      "priority": "P0",
+      "state": "BLOCKED",
+      "owner": "security_owner_and_repo_admin",
+      "requires": [
+        "FE-18",
+        "FE-19"
+      ],
+      "evidence": [
+        "Issue #62 OPEN; main unprotected; no releases",
+        "Unmerged PR #95/#96/#97 exact-head CI green but independent reviews, release signing and protected main remain absent",
+        "#99 combined Windows agent rehearsal CI green; separate #100 result receipt proposal; no protected merge or signing",
+        "Combined #101 result recovery review branch; no protected merge, signed release or production approval",
+        "#102 consolidated review branch; no protected merge or production approval",
+        "#105 synthetic publisher signature tests do not constitute independent production signing or release acceptance",
+        "Phase O reconciliation: 33 open source PRs observed; #75 governance pagination and #77 docs imported into #108-based review candidate; main unprotected and rulesets empty; combined CI and independent review required"
+      ],
+      "next": "Review combined Phase O candidate and historical residual patches; configure and independently verify protected main, reviewer independence, non-bypass rules and signed release",
+      "blocked": true
+    },
+    {
+      "key": "FE-14",
+      "title": "Patch approval to actual safe deployment",
+      "priority": "P1",
+      "state": "IN_DEVELOPMENT",
+      "owner": "endpoint_operations",
+      "requires": [
+        "M3"
+      ],
+      "evidence": [
+        "server.js /api/v1/patches/:id/approve updates DB status"
+      ],
+      "next": "Build endpoint patch executor, maintenance window and rollback/verification",
+      "blocked": true
+    },
+    {
+      "key": "FE-15",
+      "title": "Predictive risk using measured trends",
+      "priority": "P1",
+      "state": "IN_DEVELOPMENT",
+      "owner": "backend_analytics",
+      "requires": [
+        "M3"
+      ],
+      "evidence": [
+        "device-metrics.js analyzeMeasuredTelemetry"
+      ],
+      "next": "Calibrate false-positive behavior against real representative telemetry",
+      "blocked": true
+    },
+    {
+      "key": "FE-16",
+      "title": "End-to-end verified remediation",
+      "priority": "P1",
+      "state": "IN_DEVELOPMENT",
+      "owner": "endpoint_operations",
+      "requires": [
+        "M4"
+      ],
+      "evidence": [
+        "server.js queues Remediate-* commands; no reviewed matching script artifacts evidenced"
+      ],
+      "next": "Create signed allowlisted playbooks + approval/rollback/postcheck; no arbitrary privileged execution",
+      "blocked": true
+    },
+    {
+      "key": "M4",
+      "title": "26-issue self-service troubleshooting framework",
+      "priority": "P1",
+      "state": "NOT_STARTED",
+      "owner": "it_support_engineering",
+      "requires": [
+        "M3"
+      ],
+      "evidence": [
+        "docs/product/TROUBLESHOOTING-AUTOHEALING.md (requirements only)"
+      ],
+      "next": "Implement incident store, D0-D3 risk engine, read-only triage and user consent",
+      "blocked": true
+    },
+    {
+      "key": "M5",
+      "title": "Verified resolution analytics and audit",
+      "priority": "P1",
+      "state": "NOT_STARTED",
+      "owner": "product_analytics",
+      "requires": [
+        "M4"
+      ],
+      "evidence": [
+        "Existing command logs do not establish repaired outcome"
+      ],
+      "next": "Define/implement incident attempts, postchecks, reopened cases and accurate denominators",
+      "blocked": true
+    },
+    {
+      "key": "FE-23",
+      "title": "Local ticketing versus external ITSM",
+      "priority": "P1",
+      "state": "CODE_COMPLETE",
+      "owner": "helpdesk",
+      "requires": [],
+      "evidence": [
+        "server.js /api/v1/tickets; external_sync NOT_CONNECTED"
+      ],
+      "next": "Verify full local ticket workflow; separately plan optional ITSM integration",
+      "blocked": false
+    },
+    {
+      "key": "FE-24",
+      "title": "M365/Azure/Intune integration",
+      "priority": "P2",
+      "state": "NOT_STARTED",
+      "owner": "optional_integrations",
+      "requires": [
+        "M6"
+      ],
+      "evidence": [
+        "server.js /api/v1/compliance/cloud-audit -> NOT_CONNECTED"
+      ],
+      "next": "Only after owner opts in: design Graph auth/privacy and acceptance",
+      "blocked": false
+    },
+    {
+      "key": "FE-25",
+      "title": "License compliance with evidence",
+      "priority": "P1",
+      "state": "IN_DEVELOPMENT",
+      "owner": "compliance_ops",
+      "requires": [
+        "M3"
+      ],
+      "evidence": [
+        "server.js license endpoint returns UNKNOWN/NOT_CONFIGURED"
+      ],
+      "next": "Implement measured license attestation, do not invent compliant status",
+      "blocked": true
+    },
+    {
+      "key": "M6",
+      "title": "Optional tool.aaditechs.in control service",
+      "priority": "P2",
+      "state": "NOT_STARTED",
+      "owner": "product_owner",
+      "requires": [
+        "M3"
+      ],
+      "evidence": [
+        "No required central service deployed"
+      ],
+      "next": "Define separately; prohibit local core availability dependency",
+      "blocked": false
+    },
+    {
+      "key": "DEC-001",
+      "title": "Go/PostgreSQL source lock versus implemented Node.js/MySQL",
+      "priority": "P0",
+      "state": "BLOCKED",
+      "owner": "product_owner_and_architecture_reviewer",
+      "requires": [
+        "M0"
+      ],
+      "evidence": [
+        "doc1_full.txt / doc2_full.txt source mirrors",
+        "docs/product/ORIGINAL-REQUIREMENTS-TRACEABILITY.md",
+        "Owner decision issue #79 opened; architecture remains unapproved",
+        "Open owner options: A: owner-approved amendment retaining Node/MySQL; B: migrate to Go/PostgreSQL"
+      ],
+      "next": "Record signed architecture decision with data-schema/agent compatibility/security and migration/no-migration plan",
+      "blocked": true,
+      "issue_url": "https://github.com/rehman2671/Aaditech-toolkit-new/issues/79"
+    },
+    {
+      "key": "DEC-002",
+      "title": "Phased release Windows-first versus all three endpoint operating systems",
+      "priority": "P0",
+      "state": "BLOCKED",
+      "owner": "product_owner_and_endpoint_owner",
+      "requires": [
+        "M0"
+      ],
+      "evidence": [
+        "doc1_full.txt / doc2_full.txt source mirrors",
+        "docs/product/ORIGINAL-REQUIREMENTS-TRACEABILITY.md",
+        "Open owner options: A: approve first signed Windows-agent release, retain macOS/Linux as required product scope; B: require all platform agents in initial release"
+      ],
+      "next": "Explicitly approve initial-release exit criteria and funded macOS/Linux parity milestone without waiving original requirements",
+      "blocked": true
+    },
+    {
+      "key": "DEC-003",
+      "title": "First-class signed per-tenant MSI factory and Windows service versus scheduled task",
+      "priority": "P0",
+      "state": "BLOCKED",
+      "owner": "product_owner_and_endpoint_security",
+      "requires": [
+        "M0"
+      ],
+      "evidence": [
+        "doc1_full.txt / doc2_full.txt source mirrors",
+        "docs/product/ORIGINAL-REQUIREMENTS-TRACEABILITY.md",
+        "Open owner options: A: implement original Windows service and approved in-platform MSI factory; B: approve functional equivalence for task via ADR and design a signed factory"
+      ],
+      "next": "Define owner-reviewed required MSI package profiles/short-lived enrollment/signing/role approvals and service-versus-task acceptance",
+      "blocked": true
+    },
+    {
+      "key": "M7",
+      "title": "Original mandatory full telemetry, multi-OS, MSI, reports and SRE parity",
+      "priority": "P1",
+      "state": "NOT_STARTED",
+      "owner": "platform_team",
+      "requires": [
+        "DEC-001",
+        "DEC-002",
+        "M3"
+      ],
+      "evidence": [
+        "doc1_full.txt / doc2_full.txt source mirrors",
+        "docs/product/ORIGINAL-REQUIREMENTS-TRACEABILITY.md"
+      ],
+      "next": "Atomize requirement, decide owner acceptance, then code/tests and witnessed E2E evidence",
+      "blocked": true
+    },
+    {
+      "key": "PR-015",
+      "title": "Windows macOS Linux agent parity",
+      "priority": "P1",
+      "state": "NOT_STARTED",
+      "owner": "product_owner",
+      "requires": [
+        "DEC-002"
+      ],
+      "evidence": [
+        "doc1_full.txt / doc2_full.txt source mirrors",
+        "docs/product/ORIGINAL-REQUIREMENTS-TRACEABILITY.md"
+      ],
+      "next": "Atomize requirement, decide owner acceptance, then code/tests and witnessed E2E evidence",
+      "blocked": true
+    },
+    {
+      "key": "PR-016",
+      "title": "In-platform signed per-tenant MSI factory",
+      "priority": "P1",
+      "state": "NOT_STARTED",
+      "owner": "product_owner",
+      "requires": [
+        "DEC-003"
+      ],
+      "evidence": [
+        "doc1_full.txt / doc2_full.txt source mirrors",
+        "docs/product/ORIGINAL-REQUIREMENTS-TRACEABILITY.md"
+      ],
+      "next": "Atomize requirement, decide owner acceptance, then code/tests and witnessed E2E evidence",
+      "blocked": true
+    },
+    {
+      "key": "PR-017",
+      "title": "Real full multi-OS hardware metrics/history",
+      "priority": "P1",
+      "state": "NOT_STARTED",
+      "owner": "product_owner",
+      "requires": [
+        "DEC-001"
+      ],
+      "evidence": [
+        "doc1_full.txt / doc2_full.txt source mirrors",
+        "docs/product/ORIGINAL-REQUIREMENTS-TRACEABILITY.md"
+      ],
+      "next": "Atomize requirement, decide owner acceptance, then code/tests and witnessed E2E evidence",
+      "blocked": true
+    },
+    {
+      "key": "PR-018",
+      "title": "Policy-configurable weighted device health score",
+      "priority": "P1",
+      "state": "NOT_STARTED",
+      "owner": "product_owner",
+      "requires": [
+        "DEC-001"
+      ],
+      "evidence": [
+        "doc1_full.txt / doc2_full.txt source mirrors",
+        "docs/product/ORIGINAL-REQUIREMENTS-TRACEABILITY.md"
+      ],
+      "next": "Atomize requirement, decide owner acceptance, then code/tests and witnessed E2E evidence",
+      "blocked": true
+    },
+    {
+      "key": "PR-019",
+      "title": "Agent lifecycle service/tamper/rotation/updates",
+      "priority": "P1",
+      "state": "NOT_STARTED",
+      "owner": "product_owner",
+      "requires": [
+        "DEC-003"
+      ],
+      "evidence": [
+        "doc1_full.txt / doc2_full.txt source mirrors",
+        "docs/product/ORIGINAL-REQUIREMENTS-TRACEABILITY.md"
+      ],
+      "next": "Atomize requirement, decide owner acceptance, then code/tests and witnessed E2E evidence",
+      "blocked": true
+    },
+    {
+      "key": "PR-020",
+      "title": "Full asset/site/policy and fine-grained roles",
+      "priority": "P1",
+      "state": "NOT_STARTED",
+      "owner": "product_owner",
+      "requires": [
+        "DEC-001"
+      ],
+      "evidence": [
+        "doc1_full.txt / doc2_full.txt source mirrors",
+        "docs/product/ORIGINAL-REQUIREMENTS-TRACEABILITY.md"
+      ],
+      "next": "Atomize requirement, decide owner acceptance, then code/tests and witnessed E2E evidence",
+      "blocked": true
+    },
+    {
+      "key": "PR-021",
+      "title": "Tamper-resistant audit, retention and scheduled PDF/Excel reporting",
+      "priority": "P1",
+      "state": "NOT_STARTED",
+      "owner": "product_owner",
+      "requires": [
+        "DEC-001"
+      ],
+      "evidence": [
+        "doc1_full.txt / doc2_full.txt source mirrors",
+        "docs/product/ORIGINAL-REQUIREMENTS-TRACEABILITY.md"
+      ],
+      "next": "Atomize requirement, decide owner acceptance, then code/tests and witnessed E2E evidence",
+      "blocked": true
+    },
+    {
+      "key": "PR-022",
+      "title": "Platform observability, HA, backpressure and DR",
+      "priority": "P1",
+      "state": "NOT_STARTED",
+      "owner": "product_owner",
+      "requires": [
+        "DEC-001"
+      ],
+      "evidence": [
+        "doc1_full.txt / doc2_full.txt source mirrors",
+        "docs/product/ORIGINAL-REQUIREMENTS-TRACEABILITY.md"
+      ],
+      "next": "Atomize requirement, decide owner acceptance, then code/tests and witnessed E2E evidence",
+      "blocked": true
+    },
+    {
+      "key": "PR-023",
+      "title": "Privacy-safe application/process usage",
+      "priority": "P1",
+      "state": "NOT_STARTED",
+      "owner": "product_owner",
+      "requires": [
+        "DEC-002"
+      ],
+      "evidence": [
+        "doc1_full.txt / doc2_full.txt source mirrors",
+        "docs/product/ORIGINAL-REQUIREMENTS-TRACEABILITY.md"
+      ],
+      "next": "Atomize requirement, decide owner acceptance, then code/tests and witnessed E2E evidence",
+      "blocked": true
+    },
+    {
+      "key": "PR-024",
+      "title": "Full alerts and maintenance suppression",
+      "priority": "P1",
+      "state": "NOT_STARTED",
+      "owner": "product_owner",
+      "requires": [
+        "DEC-001"
+      ],
+      "evidence": [
+        "doc1_full.txt / doc2_full.txt source mirrors",
+        "docs/product/ORIGINAL-REQUIREMENTS-TRACEABILITY.md"
+      ],
+      "next": "Atomize requirement, decide owner acceptance, then code/tests and witnessed E2E evidence",
+      "blocked": true
+    },
+    {
+      "key": "PR-025",
+      "title": "Approved AI tooling, never uncontrolled agent privilege",
+      "priority": "P1",
+      "state": "NOT_STARTED",
+      "owner": "product_owner",
+      "requires": [
+        "M4"
+      ],
+      "evidence": [
+        "doc1_full.txt / doc2_full.txt source mirrors",
+        "docs/product/ORIGINAL-REQUIREMENTS-TRACEABILITY.md"
+      ],
+      "next": "Atomize requirement, decide owner acceptance, then code/tests and witnessed E2E evidence",
+      "blocked": true
+    },
+    {
+      "key": "PR-026",
+      "title": "Atomic original requirements traceability and ADR",
+      "priority": "P1",
+      "state": "NOT_STARTED",
+      "owner": "product_owner",
+      "requires": [
+        "M0"
+      ],
+      "evidence": [
+        "doc1_full.txt / doc2_full.txt source mirrors",
+        "docs/product/ORIGINAL-REQUIREMENTS-TRACEABILITY.md",
+        "2026-11-23 original DOCX and text mirror normalized exact body-text match (see source-line register)"
+      ],
+      "next": "Atomize requirement, decide owner acceptance, then code/tests and witnessed E2E evidence",
+      "blocked": true
+    },
+    {
+      "key": "PR-027",
+      "title": "Windows service vs task scheduling original requirement",
+      "priority": "P1",
+      "state": "NOT_STARTED",
+      "owner": "product_owner",
+      "requires": [
+        "DEC-003"
+      ],
+      "evidence": [
+        "doc1_full.txt / doc2_full.txt source mirrors",
+        "docs/product/ORIGINAL-REQUIREMENTS-TRACEABILITY.md"
+      ],
+      "next": "Atomize requirement, decide owner acceptance, then code/tests and witnessed E2E evidence",
+      "blocked": true
+    },
+    {
+      "key": "FE-38",
+      "title": "Stop false-positive cloud/security compliance badges",
+      "priority": "P0",
+      "state": "NOT_STARTED",
+      "owner": "dashboard_security_engineering",
+      "requires": [],
+      "evidence": [
+        "Enterprise/portal/index.html 2114-2118 hard-coded green Active/Enrolled/Encrypted",
+        "server.js /api/v1/compliance/cloud-audit returns NOT_CONNECTED for cloud",
+        "Tracking issue #78 opened; no source-code change in docs PR",
+        "Design acceptance docs/product/FE38-SECURITY-STATUS-RENDERING-CONTRACT.md, runtime unchanged"
+      ],
+      "next": "Implement independent P0 dashboard truthfulness fix without waiting for DEC-001; issue #78 provides backend-field/null/stale/security acceptance matrix",
+      "blocked": true,
+      "issue_url": "https://github.com/rehman2671/Aaditech-toolkit-new/issues/78"
+    },
+    {
+      "key": "DEC-004",
+      "title": "Original feature and telemetry/reporting sequencing",
+      "priority": "P0",
+      "state": "BLOCKED",
+      "owner": "product_owner_and_enterprise_it",
+      "requires": [
+        "M0"
+      ],
+      "evidence": [
+        "docs/product/REVIEW-AND-ACCEPTANCE-HANDOFF.md",
+        "docs/product/OWNER-DECISION-REVIEW-PACKET.md",
+        "Open owner options: A: phase advanced telemetry and reporting after LAN acceptance while preserving full scope; B: block initial release until full original metrics/report/export coverage"
+      ],
+      "next": "Approve per-feature release tiers and acceptance of 1h/24h/7d/30d charts, policy health score, app usage, scheduled reports and SRE observability",
+      "blocked": true
+    },
+    {
+      "key": "DEC-005",
+      "title": "Auto-healing D0-D3 risk/consent/approval and verified outcomes",
+      "priority": "P0",
+      "state": "BLOCKED",
+      "owner": "product_owner_and_security_it_lead",
+      "requires": [
+        "M0"
+      ],
+      "evidence": [
+        "docs/product/REVIEW-AND-ACCEPTANCE-HANDOFF.md",
+        "docs/product/OWNER-DECISION-REVIEW-PACKET.md",
+        "Open owner options: A: approve read-only first then safe, limited verified repair pilots; B: diagnostics only until separate policy approval"
+      ],
+      "next": "Approve playbook tier rules, employee consent, change approvals, privacy/retention, never-auto-fix categories and independent verified outcome definition",
+      "blocked": true
+    }
+  ],
+  "original_sources": [
+    "Aaditech_Endpoint_Monitoring_Management_Final_Requirements.docx",
+    "Aaditech_Master_Development_Directive_Go_Edition_updated.docx",
+    "doc1_full.txt (normalized Word-body content matched original DOCX)",
+    "doc2_full.txt (normalized Word-body content matched original DOCX)"
+  ],
+  "architecture_conflict": {
+    "decision_id": "DEC-001",
+    "original": "Go/PostgreSQL locked",
+    "code": "Node.js/Express + MySQL 8",
+    "status": "OWNER_ADR_REQUIRED",
+    "note": "No silent material stack change"
+  },
+  "requirement_line_register": "docs/product/ORIGINAL-REQUIREMENTS-LINE-REGISTER.json",
+  "owner_decision_handoff": "docs/product/REVIEW-AND-ACCEPTANCE-HANDOFF.md",
+  "acceptance_evidence_template": "docs/product/ACCEPTANCE-EVIDENCE-RECORD.md",
+  "stack_decision_options": "docs/product/STACK-DECISION-DOSSIER.md",
+  "source_fidelity_verification": {
+    "status": "NORMALIZED_WORD_BODY_EXACT_MATCH",
+    "date": "2026-11-23",
+    "method": "OOXML word/document.xml w:p/w:t extraction, whitespace and dash/quote normalization",
+    "original_docx_git_blobs": [
+      "f6ce4e35ff93eff19a22649b0641ea20428bd40f",
+      "56bbf305e5a0a5cd043df54fb65302727bd14f90"
+    ],
+    "not_claimed": [
+      "human ADR approval",
+      "source binary-byte equivalence",
+      "original requirements fully implemented",
+      "production acceptance"
+    ]
+  },
+  "design_acceptance_specs": {
+    "FE38": "docs/product/FE38-SECURITY-STATUS-RENDERING-CONTRACT.md",
+    "M1_M2": "docs/product/LAN-INSTALLATION-IMPLEMENTATION-BACKLOG.md"
+  },
+  "owner_decision_packet": "docs/product/OWNER-DECISION-REVIEW-PACKET.md"
+}

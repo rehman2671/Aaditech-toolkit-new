@@ -1,5 +1,8 @@
 # IT TOOLKIT ENHANCEMENT - PROGRESS TRACKING CHECKLISTS
 
+> **LEGACY BASE TOOLKIT TASK LIST (2026-11-23):** Historic checkbox completion does not measure AadiTech Enterprise intranet deployment or production acceptance. Current evidence-based [product feature matrix](../docs/product/FEATURE-ACCEPTANCE-MATRIX.md) and [delivery tracker](../docs/product/DELIVERY-TRACKER.json) supersede completion claims for new work; preserve these checklists as earlier implementation history.
+
+
 **Project Start Date:** 2026-07-10  
 **Total Phases:** 3  
 **Total Tasks:** 18 major + 50+ subtasks  

@@ -1,0 +1,243 @@
+{
+  "schema_version": 1,
+  "observed_date": "2026-11-24",
+  "main_sha": "911f509620029c513305c88b26ca0da4e1b7da37",
+  "source_candidate_sha": "f88143083f4d9de8d980aaf215990e281d1218cd",
+  "source_documentation_sha": "c6eafa1f13ad0998fc0572cf6c0daa26e59f1462",
+  "source_governance_sha": "67abb1bff711a400b55b3f695311917a7d3069c9",
+  "method": "GitHub PR files compared by blob SHA with #108 and main; exact counts are NOT semantic equivalence. Legacy PR files are against their original base. Imported files verified non-overlapping with changes from main.",
+  "pr_count": 33,
+  "entries": [
+    {
+      "pr": 108,
+      "changed_paths": 95,
+      "exact_candidate_paths": 95,
+      "disposition": "BASE",
+      "independent_review_required": true
+    },
+    {
+      "pr": 107,
+      "changed_paths": 89,
+      "exact_candidate_paths": 88,
+      "disposition": "SUCCESSOR",
+      "independent_review_required": true
+    },
+    {
+      "pr": 106,
+      "changed_paths": 83,
+      "exact_candidate_paths": 81,
+      "disposition": "SUCCESSOR",
+      "independent_review_required": true
+    },
+    {
+      "pr": 105,
+      "changed_paths": 70,
+      "exact_candidate_paths": 69,
+      "disposition": "SUCCESSOR",
+      "independent_review_required": true
+    },
+    {
+      "pr": 104,
+      "changed_paths": 7,
+      "exact_candidate_paths": 6,
+      "disposition": "SUCCESSOR",
+      "independent_review_required": true
+    },
+    {
+      "pr": 103,
+      "changed_paths": 4,
+      "exact_candidate_paths": 4,
+      "disposition": "EXACT",
+      "independent_review_required": true
+    },
+    {
+      "pr": 102,
+      "changed_paths": 68,
+      "exact_candidate_paths": 66,
+      "disposition": "SUCCESSOR",
+      "independent_review_required": true
+    },
+    {
+      "pr": 101,
+      "changed_paths": 30,
+      "exact_candidate_paths": 25,
+      "disposition": "SUCCESSOR",
+      "independent_review_required": true
+    },
+    {
+      "pr": 100,
+      "changed_paths": 5,
+      "exact_candidate_paths": 2,
+      "disposition": "SUCCESSOR",
+      "independent_review_required": true
+    },
+    {
+      "pr": 99,
+      "changed_paths": 25,
+      "exact_candidate_paths": 18,
+      "disposition": "SUCCESSOR",
+      "independent_review_required": true
+    },
+    {
+      "pr": 98,
+      "changed_paths": 5,
+      "exact_candidate_paths": 1,
+      "disposition": "SUCCESSOR",
+      "independent_review_required": true
+    },
+    {
+      "pr": 97,
+      "changed_paths": 11,
+      "exact_candidate_paths": 8,
+      "disposition": "SUCCESSOR",
+      "independent_review_required": true
+    },
+    {
+      "pr": 96,
+      "changed_paths": 5,
+      "exact_candidate_paths": 4,
+      "disposition": "SUCCESSOR",
+      "independent_review_required": true
+    },
+    {
+      "pr": 95,
+      "changed_paths": 6,
+      "exact_candidate_paths": 4,
+      "disposition": "SUCCESSOR",
+      "independent_review_required": true
+    },
+    {
+      "pr": 94,
+      "changed_paths": 5,
+      "exact_candidate_paths": 4,
+      "disposition": "SUCCESSOR",
+      "independent_review_required": true
+    },
+    {
+      "pr": 93,
+      "changed_paths": 20,
+      "exact_candidate_paths": 17,
+      "disposition": "SUCCESSOR",
+      "independent_review_required": true
+    },
+    {
+      "pr": 92,
+      "changed_paths": 7,
+      "exact_candidate_paths": 5,
+      "disposition": "SUCCESSOR",
+      "independent_review_required": true
+    },
+    {
+      "pr": 91,
+      "changed_paths": 5,
+      "exact_candidate_paths": 2,
+      "disposition": "SUCCESSOR",
+      "independent_review_required": true
+    },
+    {
+      "pr": 90,
+      "changed_paths": 4,
+      "exact_candidate_paths": 3,
+      "disposition": "SUCCESSOR",
+      "independent_review_required": true
+    },
+    {
+      "pr": 89,
+      "changed_paths": 3,
+      "exact_candidate_paths": 2,
+      "disposition": "SUCCESSOR",
+      "independent_review_required": true
+    },
+    {
+      "pr": 88,
+      "changed_paths": 3,
+      "exact_candidate_paths": 2,
+      "disposition": "SUCCESSOR",
+      "independent_review_required": true
+    },
+    {
+      "pr": 86,
+      "changed_paths": 3,
+      "exact_candidate_paths": 2,
+      "disposition": "SUCCESSOR",
+      "independent_review_required": true
+    },
+    {
+      "pr": 85,
+      "changed_paths": 11,
+      "exact_candidate_paths": 9,
+      "disposition": "SUCCESSOR",
+      "independent_review_required": true
+    },
+    {
+      "pr": 84,
+      "changed_paths": 2,
+      "exact_candidate_paths": 1,
+      "disposition": "SUCCESSOR",
+      "independent_review_required": true
+    },
+    {
+      "pr": 82,
+      "changed_paths": 2,
+      "exact_candidate_paths": 2,
+      "disposition": "EXACT",
+      "independent_review_required": true
+    },
+    {
+      "pr": 81,
+      "changed_paths": 5,
+      "exact_candidate_paths": 3,
+      "disposition": "SUCCESSOR",
+      "independent_review_required": true
+    },
+    {
+      "pr": 77,
+      "changed_paths": 26,
+      "exact_candidate_paths": 0,
+      "disposition": "IMPORT",
+      "independent_review_required": true
+    },
+    {
+      "pr": 76,
+      "changed_paths": 5,
+      "exact_candidate_paths": 4,
+      "disposition": "SUCCESSOR",
+      "independent_review_required": true
+    },
+    {
+      "pr": 75,
+      "changed_paths": 6,
+      "exact_candidate_paths": 0,
+      "disposition": "IMPORT",
+      "independent_review_required": true
+    },
+    {
+      "pr": 61,
+      "changed_paths": 46,
+      "exact_candidate_paths": 1,
+      "disposition": "HISTORICAL_REVIEW",
+      "independent_review_required": true
+    },
+    {
+      "pr": 4,
+      "changed_paths": 13,
+      "exact_candidate_paths": 0,
+      "disposition": "HISTORICAL_REVIEW",
+      "independent_review_required": true
+    },
+    {
+      "pr": 3,
+      "changed_paths": 15,
+      "exact_candidate_paths": 0,
+      "disposition": "HISTORICAL_REVIEW",
+      "independent_review_required": true
+    },
+    {
+      "pr": 2,
+      "changed_paths": 24,
+      "exact_candidate_paths": 0,
+      "disposition": "HISTORICAL_REVIEW",
+      "independent_review_required": true
+    }
+  ]
+}

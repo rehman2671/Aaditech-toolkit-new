@@ -1,4 +1,7 @@
 # Technical Architecture Specification
+
+> **ARCHITECTURE CONFLICT REQUIRES OWNER ADR (2026-11-23):** The current code is Node.js/MySQL, while the original *Go Backend Edition* directive expressly locks Go/PostgreSQL. This design does not prove Go is implemented, and current code does not automatically waive the original stack. See [original requirements crosswalk and DEC-001](../product/ORIGINAL-REQUIREMENTS-TRACEABILITY.md) and [proposed LAN architecture](../product/INTRANET-ARCHITECTURE.md).
+
 ## Aaditech Endpoint Monitoring & Management Platform
 
 **Document Version:** 1.0.0  

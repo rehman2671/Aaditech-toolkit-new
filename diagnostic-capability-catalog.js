@@ -1,5 +1,6 @@
 // Explicit capability inventory for all original diagnostic categories.
 // Contract availability is not a deployed collector, approval or resolution.
+import {additionalDiagnosticReviewContracts} from './diagnostic-review-contracts.js';
 import {troubleshootingCatalog} from './troubleshooting-policy.js';
 const rows=[
  ['RESOURCE_PRESSURE','aaditech-resource-diagnostic-v1',['cpu_percent','ram_percent','disk_percent'],'LOCAL_REFERENCE','LOCAL_REFERENCE','LOCAL_REFERENCE'],
@@ -12,7 +13,8 @@ const rows=[
  ['FIREWALL_STATUS',null,[]]
 ];
 const registry=new Map(rows.map(([id,schema,fields,linux='NOT_IMPLEMENTED',windows='NOT_IMPLEMENTED',macos='NOT_IMPLEMENTED'])=>
- [id,Object.freeze({diagnostic_id:id,artifact_schema:schema,artifact_fields:Object.freeze(fields),
+ [id,Object.freeze({diagnostic_id:id,artifact_schema:schema??additionalDiagnosticReviewContracts[id]?.schema??null,
+  artifact_fields:Object.freeze(schema?fields:Object.keys(additionalDiagnosticReviewContracts[id]?.fields??{})),
   linux,windows,macos,remote_collector_available:false,execution_authorized:false,repair_authorized:false})]));
 const expected=new Set(troubleshootingCatalog.map(x=>x.diagnostic_id).filter(Boolean));
 if(registry.size!==expected.size||[...expected].some(id=>!registry.has(id)))throw Error('DIAGNOSTIC_CAPABILITY_CATALOG_DRIFT');

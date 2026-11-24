@@ -5,6 +5,7 @@ import crypto from 'node:crypto';
 import mysql from 'mysql2/promise';
 import request from 'supertest';
 import * as db from './db.js';
+import {createRecoveryReviewRequest,reserveRecoveryReview} from './device-recovery-review.js';
 
 if (process.env.GITHUB_ACTIONS !== 'true' ||
     process.env.AADITECH_ATOMIC_BATCH_REHEARSAL !== 'isolated-ci' ||
@@ -22,6 +23,7 @@ const pool = mysql.createPool({
 const tenantA=crypto.randomUUID(), tenantB=crypto.randomUUID();
 const devA='N29-'+crypto.randomBytes(8).toString('hex');
 const devB='N29-'+crypto.randomBytes(8).toString('hex');
+const reviewDevice=crypto.randomUUID(), reviewTenant=crypto.randomUUID();
 const hostA='N29-HTTP-'+crypto.randomBytes(5).toString('hex');
 const token='itk_dev_'+crypto.randomBytes(24).toString('hex');
 const tokenHash=crypto.createHash('sha256').update(token).digest('hex');
@@ -156,6 +158,34 @@ try {
   assert.equal(await countReceipt(key+'-revoked'),0);
   assert.equal(await countHistory(),historyBeforeRevocation);
   await assert.rejects(()=>db.recordCredentialBoundHeartbeat(devA,{tenantId:tenantA,tokenHash}),/COMMAND_CREDENTIAL_CHANGED/);
+  // Review-only recovery: real InnoDB concurrent reservation, no token issuance.
+  const label='review-'+crypto.randomBytes(8).toString('hex');
+  await pool.query('INSERT INTO tenants (id,name,slug) VALUES (?,?,?)',[reviewTenant,label,label]);
+  await pool.query("INSERT INTO devices (id,tenant_id,hostname,device_uid,device_token_hash,agent_token_revoked,status) VALUES (?,?,?,?,?,1,'registered')",
+    [reviewDevice,reviewTenant,label,label,sha(label)]);
+  const admins=[];
+  for(const suffix of ['-requester','-reviewer']){
+    const [u]=await pool.query("INSERT INTO users (tenant_id,username,email,password_hash,role,active,status) VALUES (?,?,?,?,'SUPER_ADMIN',1,'ACTIVE')",[reviewTenant,label+suffix,label+suffix+'@invalid.example','CI-only-no-login']);
+    admins.push({id:u.insertId,tenant_id:reviewTenant,role:'SUPER_ADMIN'});
+  }
+  const requests=await Promise.allSettled(Array.from({length:4},()=>createRecoveryReviewRequest(pool,{principal:admins[0],deviceId:reviewDevice})));
+  assert.equal(requests.filter(x=>x.status==='fulfilled').length,1);
+  const req=requests.find(x=>x.status==='fulfilled').value;
+  const [clock]=await pool.query('SELECT CAST(UNIX_TIMESTAMP(NOW(3))*1000 AS UNSIGNED) AS now_ms');
+  const now=Number(clock[0].now_ms), keys=crypto.generateKeyPairSync('ed25519');
+  const payload=Buffer.from(JSON.stringify({schema:'aaditech-device-recovery-evidence-v1',purpose:'REVIEW_ONLY_CREDENTIAL_RECOVERY',tenant_id:reviewTenant,device_id:reviewDevice,request_id:req.request_id,challenge_sha256:req.challenge_sha256,credential_fingerprint:req.credential_fingerprint,ownership_evidence_sha256:'c'.repeat(64),command_reconciliation_sha256:'d'.repeat(64),local_handoff_evidence_sha256:'e'.repeat(64),issued_at_ms:now-100,expires_at_ms:now+120000}));
+  const options={principal:admins[1],deviceId:reviewDevice,requestId:req.request_id,
+    evidence:{payload,signature:crypto.sign(null,payload,keys.privateKey)},
+    trustedPins:{payloadSha256:sha(payload),reviewerSpkiSha256:sha(keys.publicKey.export({type:'spki',format:'der'})),reviewerPublicKeyPem:keys.publicKey.export({type:'spki',format:'pem'})}};
+  await assert.rejects(()=>reserveRecoveryReview(pool,{...options,principal:admins[0]}),/RECOVERY_REVIEW_NOT_RESERVABLE/);
+  const reviews=await Promise.allSettled(Array.from({length:4},()=>reserveRecoveryReview(pool,options)));
+  assert.equal(reviews.filter(x=>x.status==='fulfilled').length,1);
+  assert.equal(reviews.find(x=>x.status==='fulfilled').value.replacement_allowed,false);
+  const [stillRevoked]=await pool.query('SELECT agent_token_revoked,device_token_hash FROM devices WHERE id=?',[reviewDevice]);
+  assert.equal(Number(stillRevoked[0].agent_token_revoked),1);
+  assert.equal(stillRevoked[0].device_token_hash,sha(label));
+  assert.equal(await single("SELECT COUNT(*) AS n FROM audit_logs WHERE tenant_id=? AND action IN ('DEVICE_RECOVERY_REVIEW_REQUESTED','DEVICE_RECOVERY_REVIEW_RESERVED')",[reviewTenant]),2);
+  console.log('[PASS] Durable review request and reservation serialize across connections, no credential mutation.');
   console.log('N29 PASS: atomic rollback, MySQL worker races, single history/alert/outbox, HTTP replay, 409 and revoked credential write fencing');
 } catch(err) {
   failure=err;
@@ -170,6 +200,11 @@ try {
     await pool.query('DELETE FROM events WHERE tenant_id IN (?,?)',[tenantA,tenantB]);
     await pool.query('DELETE FROM telemetry_batches WHERE tenant_id IN (?,?)',[tenantA,tenantB]);
     await pool.query('DELETE FROM devices WHERE id IN (?,?)',[devA,devB]);
+    await pool.query('DELETE FROM device_recovery_reviews WHERE tenant_id=?',[reviewTenant]);
+    await pool.query('DELETE FROM audit_logs WHERE tenant_id=?',[reviewTenant]);
+    await pool.query('DELETE FROM users WHERE tenant_id=?',[reviewTenant]);
+    await pool.query('DELETE FROM devices WHERE id=?',[reviewDevice]);
+    await pool.query('DELETE FROM tenants WHERE id=?',[reviewTenant]);
   } catch(err) { console.error('N29 test cleanup:',err.message);failure ||= err; }
   await pool.end();
   db.stopDbHealthCheck();

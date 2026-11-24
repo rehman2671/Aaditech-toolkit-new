@@ -65,9 +65,9 @@ if (process.env.ITK_IDENTITY_PROBE_WORKER === '1') {
       );
       return { claimed: true };
     });
-    process.send({ type: 'result', ...result });
+    await new Promise((resolve,reject)=>process.send({type:'result',...result},err=>err?reject(err):resolve()));
   } catch (err) {
-    process.send?.({ type: 'error', error: err?.message || String(err) });
+    if(process.send) await new Promise(resolve=>process.send({type:'error',error:err?.message||String(err)},()=>resolve()));
     process.exitCode = 1;
   } finally {
     db.setConnectionStateForTesting(false, null);
@@ -115,7 +115,8 @@ if (process.env.ITK_IDENTITY_PROBE_WORKER === '1') {
       if (message?.type === 'error') finish(new Error(message.error));
     });
     child.on('error', error => finish(error));
-    child.on('exit', code => {
+    // The exit event can precede IPC delivery. Close follows stream closure.
+    child.on('close', code => {
       if (!settled) finish(new Error(`Worker exited before reporting result (${code}): ${stderr}`));
     });
   });

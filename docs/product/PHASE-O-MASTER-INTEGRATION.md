@@ -76,3 +76,7 @@ Exact prior head `937a3a97`: CI [45443140077](https://github.com/rehman2671/Aadi
 ### O1 diagnostic CI guard reconciliation
 
 At `36e8f200`, CI #45444870106 failed N62 because the same exact approved compiler install pins now occur once in each of two build jobs, and N70 because its raw secret-context regex matched ordinary prose `environment secrets.`. Deployment safety #45444870101 passed. N62 now requires both named jobs to contain each exact pin once and checks global count two; N70 refuses all GitHub expression interpolation within the isolated diagnostic job, requires exact executable build/lifecycle command lines and their order, and retains permissions/environment/action/no-publication checks. Added negative fixtures for compiler drift, secret interpolation, write permissions and commented-out execution. This is guard reconciliation, not a bypass or MSI lifecycle acceptance. Fresh CI required.
+
+### O1 N62 source reconstruction
+
+At `9fbf9032`, Node/Vitest and N70 lint passed, safety #45446897874 passed; CI #45446897752 PowerShell parser rejected N62 due to a malformed text substitution which duplicated the tail of the test. Reconstructed from the previous clean source with literal replacement, retaining per-job and global exact pin assertions. Verified both named job boundaries and all four expected pin occurrences structurally; native PowerShell parser and full combined CI must run again. No policy or production workflow relaxation.

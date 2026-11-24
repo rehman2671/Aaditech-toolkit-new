@@ -1,0 +1,1611 @@
+{
+  "schema_version": 1,
+  "document_type": "granular_troubleshooting_work_register",
+  "date": "2026-11-25",
+  "parent_tracker": "DELIVERY-TRACKER.json",
+  "production_accepted": false,
+  "note": "Planning/implementation register, not verified delivery. Guidance and review formats are source-level only; existing reference collectors are partial, not platform acceptance. Parent tracker remains authoritative. No task is marked accepted.",
+  "counts": {
+    "IMPLEMENTED_PENDING_COMBINED_CI": 42,
+    "PENDING": 109,
+    "PARTIAL_REFERENCE_ONLY": 7
+  },
+  "tasks": [
+    {
+      "id": "TR-01-GUIDE",
+      "parent": "M4",
+      "title": "Issue-specific offline guidance and hazard precedence",
+      "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+      "evidence": [
+        "troubleshooting-guidance.js",
+        "tests/unit/troubleshooting-guidance.test.js"
+      ]
+    },
+    {
+      "id": "TR-01-INTAKE",
+      "parent": "M4",
+      "title": "Authenticated employee intake, role/scope and consent validation for PC_SLOW",
+      "state": "PENDING",
+      "requires": [
+        "TR-01-GUIDE"
+      ],
+      "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
+    },
+    {
+      "id": "TR-01-OUTCOME",
+      "parent": "M5",
+      "title": "Independent outcome verification and reopen lifecycle",
+      "state": "PENDING",
+      "requires": [
+        "TR-01-INTAKE"
+      ],
+      "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
+    },
+    {
+      "id": "TR-02-GUIDE",
+      "parent": "M4",
+      "title": "Issue-specific offline guidance and hazard precedence",
+      "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+      "evidence": [
+        "troubleshooting-guidance.js",
+        "tests/unit/troubleshooting-guidance.test.js"
+      ]
+    },
+    {
+      "id": "TR-02-INTAKE",
+      "parent": "M4",
+      "title": "Authenticated employee intake, role/scope and consent validation for WIFI_NO_INTERNET",
+      "state": "PENDING",
+      "requires": [
+        "TR-02-GUIDE"
+      ],
+      "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
+    },
+    {
+      "id": "TR-02-OUTCOME",
+      "parent": "M5",
+      "title": "Independent outcome verification and reopen lifecycle",
+      "state": "PENDING",
+      "requires": [
+        "TR-02-INTAKE"
+      ],
+      "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
+    },
+    {
+      "id": "TR-03-GUIDE",
+      "parent": "M4",
+      "title": "Issue-specific offline guidance and hazard precedence",
+      "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+      "evidence": [
+        "troubleshooting-guidance.js",
+        "tests/unit/troubleshooting-guidance.test.js"
+      ]
+    },
+    {
+      "id": "TR-03-INTAKE",
+      "parent": "M4",
+      "title": "Authenticated employee intake, role/scope and consent validation for WINDOWS_UPDATE_FAILURE",
+      "state": "PENDING",
+      "requires": [
+        "TR-03-GUIDE"
+      ],
+      "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
+    },
+    {
+      "id": "TR-03-OUTCOME",
+      "parent": "M5",
+      "title": "Independent outcome verification and reopen lifecycle",
+      "state": "PENDING",
+      "requires": [
+        "TR-03-INTAKE"
+      ],
+      "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
+    },
+    {
+      "id": "TR-04-GUIDE",
+      "parent": "M4",
+      "title": "Issue-specific offline guidance and hazard precedence",
+      "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+      "evidence": [
+        "troubleshooting-guidance.js",
+        "tests/unit/troubleshooting-guidance.test.js"
+      ]
+    },
+    {
+      "id": "TR-04-INTAKE",
+      "parent": "M4",
+      "title": "Authenticated employee intake, role/scope and consent validation for DISK_FULL",
+      "state": "PENDING",
+      "requires": [
+        "TR-04-GUIDE"
+      ],
+      "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
+    },
+    {
+      "id": "TR-04-OUTCOME",
+      "parent": "M5",
+      "title": "Independent outcome verification and reopen lifecycle",
+      "state": "PENDING",
+      "requires": [
+        "TR-04-INTAKE"
+      ],
+      "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
+    },
+    {
+      "id": "TR-05-GUIDE",
+      "parent": "M4",
+      "title": "Issue-specific offline guidance and hazard precedence",
+      "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+      "evidence": [
+        "troubleshooting-guidance.js",
+        "tests/unit/troubleshooting-guidance.test.js"
+      ]
+    },
+    {
+      "id": "TR-05-INTAKE",
+      "parent": "M4",
+      "title": "Authenticated employee intake, role/scope and consent validation for BLUE_SCREEN",
+      "state": "PENDING",
+      "requires": [
+        "TR-05-GUIDE"
+      ],
+      "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
+    },
+    {
+      "id": "TR-05-OUTCOME",
+      "parent": "M5",
+      "title": "Qualified human escalation and independently cleared hazard",
+      "state": "PENDING",
+      "requires": [
+        "TR-05-INTAKE"
+      ],
+      "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
+    },
+    {
+      "id": "TR-06-GUIDE",
+      "parent": "M4",
+      "title": "Issue-specific offline guidance and hazard precedence",
+      "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+      "evidence": [
+        "troubleshooting-guidance.js",
+        "tests/unit/troubleshooting-guidance.test.js"
+      ]
+    },
+    {
+      "id": "TR-06-INTAKE",
+      "parent": "M4",
+      "title": "Authenticated employee intake, role/scope and consent validation for NO_SOUND",
+      "state": "PENDING",
+      "requires": [
+        "TR-06-GUIDE"
+      ],
+      "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
+    },
+    {
+      "id": "TR-06-OUTCOME",
+      "parent": "M5",
+      "title": "Independent outcome verification and reopen lifecycle",
+      "state": "PENDING",
+      "requires": [
+        "TR-06-INTAKE"
+      ],
+      "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
+    },
+    {
+      "id": "TR-07-GUIDE",
+      "parent": "M4",
+      "title": "Issue-specific offline guidance and hazard precedence",
+      "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+      "evidence": [
+        "troubleshooting-guidance.js",
+        "tests/unit/troubleshooting-guidance.test.js"
+      ]
+    },
+    {
+      "id": "TR-07-INTAKE",
+      "parent": "M4",
+      "title": "Authenticated employee intake, role/scope and consent validation for BLUETOOTH_FAILURE",
+      "state": "PENDING",
+      "requires": [
+        "TR-07-GUIDE"
+      ],
+      "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
+    },
+    {
+      "id": "TR-07-OUTCOME",
+      "parent": "M5",
+      "title": "Independent outcome verification and reopen lifecycle",
+      "state": "PENDING",
+      "requires": [
+        "TR-07-INTAKE"
+      ],
+      "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
+    },
+    {
+      "id": "TR-08-GUIDE",
+      "parent": "M4",
+      "title": "Issue-specific offline guidance and hazard precedence",
+      "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+      "evidence": [
+        "troubleshooting-guidance.js",
+        "tests/unit/troubleshooting-guidance.test.js"
+      ]
+    },
+    {
+      "id": "TR-08-INTAKE",
+      "parent": "M4",
+      "title": "Authenticated employee intake, role/scope and consent validation for PRINTER_FAILURE",
+      "state": "PENDING",
+      "requires": [
+        "TR-08-GUIDE"
+      ],
+      "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
+    },
+    {
+      "id": "TR-08-OUTCOME",
+      "parent": "M5",
+      "title": "Independent outcome verification and reopen lifecycle",
+      "state": "PENDING",
+      "requires": [
+        "TR-08-INTAKE"
+      ],
+      "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
+    },
+    {
+      "id": "TR-09-GUIDE",
+      "parent": "M4",
+      "title": "Issue-specific offline guidance and hazard precedence",
+      "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+      "evidence": [
+        "troubleshooting-guidance.js",
+        "tests/unit/troubleshooting-guidance.test.js"
+      ]
+    },
+    {
+      "id": "TR-09-INTAKE",
+      "parent": "M4",
+      "title": "Authenticated employee intake, role/scope and consent validation for DISPLAY_FAILURE",
+      "state": "PENDING",
+      "requires": [
+        "TR-09-GUIDE"
+      ],
+      "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
+    },
+    {
+      "id": "TR-09-OUTCOME",
+      "parent": "M5",
+      "title": "Qualified human escalation and independently cleared hazard",
+      "state": "PENDING",
+      "requires": [
+        "TR-09-INTAKE"
+      ],
+      "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
+    },
+    {
+      "id": "TR-10-GUIDE",
+      "parent": "M4",
+      "title": "Issue-specific offline guidance and hazard precedence",
+      "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+      "evidence": [
+        "troubleshooting-guidance.js",
+        "tests/unit/troubleshooting-guidance.test.js"
+      ]
+    },
+    {
+      "id": "TR-10-INTAKE",
+      "parent": "M4",
+      "title": "Authenticated employee intake, role/scope and consent validation for SLOW_BOOT",
+      "state": "PENDING",
+      "requires": [
+        "TR-10-GUIDE"
+      ],
+      "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
+    },
+    {
+      "id": "TR-10-OUTCOME",
+      "parent": "M5",
+      "title": "Independent outcome verification and reopen lifecycle",
+      "state": "PENDING",
+      "requires": [
+        "TR-10-INTAKE"
+      ],
+      "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
+    },
+    {
+      "id": "TR-11-GUIDE",
+      "parent": "M4",
+      "title": "Issue-specific offline guidance and hazard precedence",
+      "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+      "evidence": [
+        "troubleshooting-guidance.js",
+        "tests/unit/troubleshooting-guidance.test.js"
+      ]
+    },
+    {
+      "id": "TR-11-INTAKE",
+      "parent": "M4",
+      "title": "Authenticated employee intake, role/scope and consent validation for SUSPECTED_MALWARE",
+      "state": "PENDING",
+      "requires": [
+        "TR-11-GUIDE"
+      ],
+      "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
+    },
+    {
+      "id": "TR-11-OUTCOME",
+      "parent": "M5",
+      "title": "Qualified human escalation and independently cleared hazard",
+      "state": "PENDING",
+      "requires": [
+        "TR-11-INTAKE"
+      ],
+      "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
+    },
+    {
+      "id": "TR-12-GUIDE",
+      "parent": "M4",
+      "title": "Issue-specific offline guidance and hazard precedence",
+      "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+      "evidence": [
+        "troubleshooting-guidance.js",
+        "tests/unit/troubleshooting-guidance.test.js"
+      ]
+    },
+    {
+      "id": "TR-12-INTAKE",
+      "parent": "M4",
+      "title": "Authenticated employee intake, role/scope and consent validation for OUTLOOK_CRASH",
+      "state": "PENDING",
+      "requires": [
+        "TR-12-GUIDE"
+      ],
+      "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
+    },
+    {
+      "id": "TR-12-OUTCOME",
+      "parent": "M5",
+      "title": "Independent outcome verification and reopen lifecycle",
+      "state": "PENDING",
+      "requires": [
+        "TR-12-INTAKE"
+      ],
+      "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
+    },
+    {
+      "id": "TR-13-GUIDE",
+      "parent": "M4",
+      "title": "Issue-specific offline guidance and hazard precedence",
+      "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+      "evidence": [
+        "troubleshooting-guidance.js",
+        "tests/unit/troubleshooting-guidance.test.js"
+      ]
+    },
+    {
+      "id": "TR-13-INTAKE",
+      "parent": "M4",
+      "title": "Authenticated employee intake, role/scope and consent validation for SHELL_FROZEN",
+      "state": "PENDING",
+      "requires": [
+        "TR-13-GUIDE"
+      ],
+      "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
+    },
+    {
+      "id": "TR-13-OUTCOME",
+      "parent": "M5",
+      "title": "Independent outcome verification and reopen lifecycle",
+      "state": "PENDING",
+      "requires": [
+        "TR-13-INTAKE"
+      ],
+      "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
+    },
+    {
+      "id": "TR-14-GUIDE",
+      "parent": "M4",
+      "title": "Issue-specific offline guidance and hazard precedence",
+      "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+      "evidence": [
+        "troubleshooting-guidance.js",
+        "tests/unit/troubleshooting-guidance.test.js"
+      ]
+    },
+    {
+      "id": "TR-14-INTAKE",
+      "parent": "M4",
+      "title": "Authenticated employee intake, role/scope and consent validation for BATTERY_DRAIN",
+      "state": "PENDING",
+      "requires": [
+        "TR-14-GUIDE"
+      ],
+      "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
+    },
+    {
+      "id": "TR-14-OUTCOME",
+      "parent": "M5",
+      "title": "Independent outcome verification and reopen lifecycle",
+      "state": "PENDING",
+      "requires": [
+        "TR-14-INTAKE"
+      ],
+      "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
+    },
+    {
+      "id": "TR-15-GUIDE",
+      "parent": "M4",
+      "title": "Issue-specific offline guidance and hazard precedence",
+      "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+      "evidence": [
+        "troubleshooting-guidance.js",
+        "tests/unit/troubleshooting-guidance.test.js"
+      ]
+    },
+    {
+      "id": "TR-15-INTAKE",
+      "parent": "M4",
+      "title": "Authenticated employee intake, role/scope and consent validation for VPN_NO_INTERNET",
+      "state": "PENDING",
+      "requires": [
+        "TR-15-GUIDE"
+      ],
+      "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
+    },
+    {
+      "id": "TR-15-OUTCOME",
+      "parent": "M5",
+      "title": "Independent outcome verification and reopen lifecycle",
+      "state": "PENDING",
+      "requires": [
+        "TR-15-INTAKE"
+      ],
+      "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
+    },
+    {
+      "id": "TR-16-GUIDE",
+      "parent": "M4",
+      "title": "Issue-specific offline guidance and hazard precedence",
+      "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+      "evidence": [
+        "troubleshooting-guidance.js",
+        "tests/unit/troubleshooting-guidance.test.js"
+      ]
+    },
+    {
+      "id": "TR-16-INTAKE",
+      "parent": "M4",
+      "title": "Authenticated employee intake, role/scope and consent validation for COPILOT_POLICY",
+      "state": "PENDING",
+      "requires": [
+        "TR-16-GUIDE"
+      ],
+      "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
+    },
+    {
+      "id": "TR-16-OUTCOME",
+      "parent": "M5",
+      "title": "Independent outcome verification and reopen lifecycle",
+      "state": "PENDING",
+      "requires": [
+        "TR-16-INTAKE"
+      ],
+      "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
+    },
+    {
+      "id": "TR-17-GUIDE",
+      "parent": "M4",
+      "title": "Issue-specific offline guidance and hazard precedence",
+      "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+      "evidence": [
+        "troubleshooting-guidance.js",
+        "tests/unit/troubleshooting-guidance.test.js"
+      ]
+    },
+    {
+      "id": "TR-17-INTAKE",
+      "parent": "M4",
+      "title": "Authenticated employee intake, role/scope and consent validation for PREINSTALLED_APPS",
+      "state": "PENDING",
+      "requires": [
+        "TR-17-GUIDE"
+      ],
+      "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
+    },
+    {
+      "id": "TR-17-OUTCOME",
+      "parent": "M5",
+      "title": "Independent outcome verification and reopen lifecycle",
+      "state": "PENDING",
+      "requires": [
+        "TR-17-INTAKE"
+      ],
+      "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
+    },
+    {
+      "id": "TR-18-GUIDE",
+      "parent": "M4",
+      "title": "Issue-specific offline guidance and hazard precedence",
+      "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+      "evidence": [
+        "troubleshooting-guidance.js",
+        "tests/unit/troubleshooting-guidance.test.js"
+      ]
+    },
+    {
+      "id": "TR-18-INTAKE",
+      "parent": "M4",
+      "title": "Authenticated employee intake, role/scope and consent validation for TELEMETRY_POLICY",
+      "state": "PENDING",
+      "requires": [
+        "TR-18-GUIDE"
+      ],
+      "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
+    },
+    {
+      "id": "TR-18-OUTCOME",
+      "parent": "M5",
+      "title": "Independent outcome verification and reopen lifecycle",
+      "state": "PENDING",
+      "requires": [
+        "TR-18-INTAKE"
+      ],
+      "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
+    },
+    {
+      "id": "TR-19-GUIDE",
+      "parent": "M4",
+      "title": "Issue-specific offline guidance and hazard precedence",
+      "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+      "evidence": [
+        "troubleshooting-guidance.js",
+        "tests/unit/troubleshooting-guidance.test.js"
+      ]
+    },
+    {
+      "id": "TR-19-INTAKE",
+      "parent": "M4",
+      "title": "Authenticated employee intake, role/scope and consent validation for DRIVER_REGRESSION",
+      "state": "PENDING",
+      "requires": [
+        "TR-19-GUIDE"
+      ],
+      "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
+    },
+    {
+      "id": "TR-19-OUTCOME",
+      "parent": "M5",
+      "title": "Qualified human escalation and independently cleared hazard",
+      "state": "PENDING",
+      "requires": [
+        "TR-19-INTAKE"
+      ],
+      "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
+    },
+    {
+      "id": "TR-20-GUIDE",
+      "parent": "M4",
+      "title": "Issue-specific offline guidance and hazard precedence",
+      "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+      "evidence": [
+        "troubleshooting-guidance.js",
+        "tests/unit/troubleshooting-guidance.test.js"
+      ]
+    },
+    {
+      "id": "TR-20-INTAKE",
+      "parent": "M4",
+      "title": "Authenticated employee intake, role/scope and consent validation for CONTEXT_MENU",
+      "state": "PENDING",
+      "requires": [
+        "TR-20-GUIDE"
+      ],
+      "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
+    },
+    {
+      "id": "TR-20-OUTCOME",
+      "parent": "M5",
+      "title": "Independent outcome verification and reopen lifecycle",
+      "state": "PENDING",
+      "requires": [
+        "TR-20-INTAKE"
+      ],
+      "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
+    },
+    {
+      "id": "TR-21-GUIDE",
+      "parent": "M4",
+      "title": "Issue-specific offline guidance and hazard precedence",
+      "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+      "evidence": [
+        "troubleshooting-guidance.js",
+        "tests/unit/troubleshooting-guidance.test.js"
+      ]
+    },
+    {
+      "id": "TR-21-INTAKE",
+      "parent": "M4",
+      "title": "Authenticated employee intake, role/scope and consent validation for POWER_SAVER",
+      "state": "PENDING",
+      "requires": [
+        "TR-21-GUIDE"
+      ],
+      "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
+    },
+    {
+      "id": "TR-21-OUTCOME",
+      "parent": "M5",
+      "title": "Independent outcome verification and reopen lifecycle",
+      "state": "PENDING",
+      "requires": [
+        "TR-21-INTAKE"
+      ],
+      "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
+    },
+    {
+      "id": "TR-22-GUIDE",
+      "parent": "M4",
+      "title": "Issue-specific offline guidance and hazard precedence",
+      "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+      "evidence": [
+        "troubleshooting-guidance.js",
+        "tests/unit/troubleshooting-guidance.test.js"
+      ]
+    },
+    {
+      "id": "TR-22-INTAKE",
+      "parent": "M4",
+      "title": "Authenticated employee intake, role/scope and consent validation for SLOW_STARTUP",
+      "state": "PENDING",
+      "requires": [
+        "TR-22-GUIDE"
+      ],
+      "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
+    },
+    {
+      "id": "TR-22-OUTCOME",
+      "parent": "M5",
+      "title": "Independent outcome verification and reopen lifecycle",
+      "state": "PENDING",
+      "requires": [
+        "TR-22-INTAKE"
+      ],
+      "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
+    },
+    {
+      "id": "TR-23-GUIDE",
+      "parent": "M4",
+      "title": "Issue-specific offline guidance and hazard precedence",
+      "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+      "evidence": [
+        "troubleshooting-guidance.js",
+        "tests/unit/troubleshooting-guidance.test.js"
+      ]
+    },
+    {
+      "id": "TR-23-INTAKE",
+      "parent": "M4",
+      "title": "Authenticated employee intake, role/scope and consent validation for STORE_APPS_FAILURE",
+      "state": "PENDING",
+      "requires": [
+        "TR-23-GUIDE"
+      ],
+      "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
+    },
+    {
+      "id": "TR-23-OUTCOME",
+      "parent": "M5",
+      "title": "Independent outcome verification and reopen lifecycle",
+      "state": "PENDING",
+      "requires": [
+        "TR-23-INTAKE"
+      ],
+      "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
+    },
+    {
+      "id": "TR-24-GUIDE",
+      "parent": "M4",
+      "title": "Issue-specific offline guidance and hazard precedence",
+      "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+      "evidence": [
+        "troubleshooting-guidance.js",
+        "tests/unit/troubleshooting-guidance.test.js"
+      ]
+    },
+    {
+      "id": "TR-24-INTAKE",
+      "parent": "M4",
+      "title": "Authenticated employee intake, role/scope and consent validation for BURNING_SMELL",
+      "state": "PENDING",
+      "requires": [
+        "TR-24-GUIDE"
+      ],
+      "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
+    },
+    {
+      "id": "TR-24-OUTCOME",
+      "parent": "M5",
+      "title": "Qualified human escalation and independently cleared hazard",
+      "state": "PENDING",
+      "requires": [
+        "TR-24-INTAKE"
+      ],
+      "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
+    },
+    {
+      "id": "TR-25-GUIDE",
+      "parent": "M4",
+      "title": "Issue-specific offline guidance and hazard precedence",
+      "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+      "evidence": [
+        "troubleshooting-guidance.js",
+        "tests/unit/troubleshooting-guidance.test.js"
+      ]
+    },
+    {
+      "id": "TR-25-INTAKE",
+      "parent": "M4",
+      "title": "Authenticated employee intake, role/scope and consent validation for UNEXPECTED_SLEEP",
+      "state": "PENDING",
+      "requires": [
+        "TR-25-GUIDE"
+      ],
+      "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
+    },
+    {
+      "id": "TR-25-OUTCOME",
+      "parent": "M5",
+      "title": "Independent outcome verification and reopen lifecycle",
+      "state": "PENDING",
+      "requires": [
+        "TR-25-INTAKE"
+      ],
+      "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
+    },
+    {
+      "id": "TR-26-GUIDE",
+      "parent": "M4",
+      "title": "Issue-specific offline guidance and hazard precedence",
+      "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+      "evidence": [
+        "troubleshooting-guidance.js",
+        "tests/unit/troubleshooting-guidance.test.js"
+      ]
+    },
+    {
+      "id": "TR-26-INTAKE",
+      "parent": "M4",
+      "title": "Authenticated employee intake, role/scope and consent validation for FIREWALL_STATUS",
+      "state": "PENDING",
+      "requires": [
+        "TR-26-GUIDE"
+      ],
+      "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
+    },
+    {
+      "id": "TR-26-OUTCOME",
+      "parent": "M5",
+      "title": "Independent outcome verification and reopen lifecycle",
+      "state": "PENDING",
+      "requires": [
+        "TR-26-INTAKE"
+      ],
+      "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
+    },
+    {
+      "id": "DIAG-RESOURCE_PRESSURE-CONTRACT",
+      "parent": "FE-16",
+      "title": "Bounded signed review-only format",
+      "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+      "evidence": [
+        "diagnostic-evidence.js",
+        "diagnostic-review-contracts.js",
+        "tests/unit/diagnostic-review-contracts.test.js"
+      ]
+    },
+    {
+      "id": "DIAG-RESOURCE_PRESSURE-LINUX",
+      "parent": "PR-015",
+      "title": "Privacy-approved actual LINUX collector and physical endpoint acceptance",
+      "state": "PARTIAL_REFERENCE_ONLY",
+      "requires": [
+        "DIAG-RESOURCE_PRESSURE-CONTRACT"
+      ],
+      "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+    },
+    {
+      "id": "DIAG-RESOURCE_PRESSURE-WINDOWS",
+      "parent": "PR-015",
+      "title": "Privacy-approved actual WINDOWS collector and physical endpoint acceptance",
+      "state": "PARTIAL_REFERENCE_ONLY",
+      "requires": [
+        "DIAG-RESOURCE_PRESSURE-CONTRACT"
+      ],
+      "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+    },
+    {
+      "id": "DIAG-RESOURCE_PRESSURE-MACOS",
+      "parent": "PR-015",
+      "title": "Privacy-approved actual MACOS collector and physical endpoint acceptance",
+      "state": "PARTIAL_REFERENCE_ONLY",
+      "requires": [
+        "DIAG-RESOURCE_PRESSURE-CONTRACT"
+      ],
+      "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+    },
+    {
+      "id": "DIAG-RESOURCE_PRESSURE-CUSTODY",
+      "parent": "FE-16",
+      "title": "Authorized attempt and independently bound evidence custody",
+      "state": "PENDING",
+      "requires": [
+        "DIAG-RESOURCE_PRESSURE-CONTRACT"
+      ],
+      "acceptance": "Durable attempt, trusted scope/clock/key custody, approved retention, replay and independent review."
+    },
+    {
+      "id": "DIAG-APPROVED_NETWORK_STATUS-CONTRACT",
+      "parent": "FE-16",
+      "title": "Bounded signed review-only format",
+      "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+      "evidence": [
+        "diagnostic-evidence.js",
+        "diagnostic-review-contracts.js",
+        "tests/unit/diagnostic-review-contracts.test.js"
+      ]
+    },
+    {
+      "id": "DIAG-APPROVED_NETWORK_STATUS-LINUX",
+      "parent": "PR-015",
+      "title": "Privacy-approved actual LINUX collector and physical endpoint acceptance",
+      "state": "PARTIAL_REFERENCE_ONLY",
+      "requires": [
+        "DIAG-APPROVED_NETWORK_STATUS-CONTRACT"
+      ],
+      "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+    },
+    {
+      "id": "DIAG-APPROVED_NETWORK_STATUS-WINDOWS",
+      "parent": "PR-015",
+      "title": "Privacy-approved actual WINDOWS collector and physical endpoint acceptance",
+      "state": "PENDING",
+      "requires": [
+        "DIAG-APPROVED_NETWORK_STATUS-CONTRACT"
+      ],
+      "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+    },
+    {
+      "id": "DIAG-APPROVED_NETWORK_STATUS-MACOS",
+      "parent": "PR-015",
+      "title": "Privacy-approved actual MACOS collector and physical endpoint acceptance",
+      "state": "PENDING",
+      "requires": [
+        "DIAG-APPROVED_NETWORK_STATUS-CONTRACT"
+      ],
+      "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+    },
+    {
+      "id": "DIAG-APPROVED_NETWORK_STATUS-CUSTODY",
+      "parent": "FE-16",
+      "title": "Authorized attempt and independently bound evidence custody",
+      "state": "PENDING",
+      "requires": [
+        "DIAG-APPROVED_NETWORK_STATUS-CONTRACT"
+      ],
+      "acceptance": "Durable attempt, trusted scope/clock/key custody, approved retention, replay and independent review."
+    },
+    {
+      "id": "DIAG-UPDATE_STATUS-CONTRACT",
+      "parent": "FE-16",
+      "title": "Bounded signed review-only format",
+      "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+      "evidence": [
+        "diagnostic-evidence.js",
+        "diagnostic-review-contracts.js",
+        "tests/unit/diagnostic-review-contracts.test.js"
+      ]
+    },
+    {
+      "id": "DIAG-UPDATE_STATUS-LINUX",
+      "parent": "PR-015",
+      "title": "Privacy-approved actual LINUX collector and physical endpoint acceptance",
+      "state": "PENDING",
+      "requires": [
+        "DIAG-UPDATE_STATUS-CONTRACT"
+      ],
+      "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+    },
+    {
+      "id": "DIAG-UPDATE_STATUS-WINDOWS",
+      "parent": "PR-015",
+      "title": "Privacy-approved actual WINDOWS collector and physical endpoint acceptance",
+      "state": "PENDING",
+      "requires": [
+        "DIAG-UPDATE_STATUS-CONTRACT"
+      ],
+      "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+    },
+    {
+      "id": "DIAG-UPDATE_STATUS-MACOS",
+      "parent": "PR-015",
+      "title": "Privacy-approved actual MACOS collector and physical endpoint acceptance",
+      "state": "PENDING",
+      "requires": [
+        "DIAG-UPDATE_STATUS-CONTRACT"
+      ],
+      "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+    },
+    {
+      "id": "DIAG-UPDATE_STATUS-CUSTODY",
+      "parent": "FE-16",
+      "title": "Authorized attempt and independently bound evidence custody",
+      "state": "PENDING",
+      "requires": [
+        "DIAG-UPDATE_STATUS-CONTRACT"
+      ],
+      "acceptance": "Durable attempt, trusted scope/clock/key custody, approved retention, replay and independent review."
+    },
+    {
+      "id": "DIAG-DISK_CAPACITY_HEALTH-CONTRACT",
+      "parent": "FE-16",
+      "title": "Bounded signed review-only format",
+      "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+      "evidence": [
+        "diagnostic-evidence.js",
+        "diagnostic-review-contracts.js",
+        "tests/unit/diagnostic-review-contracts.test.js"
+      ]
+    },
+    {
+      "id": "DIAG-DISK_CAPACITY_HEALTH-LINUX",
+      "parent": "PR-015",
+      "title": "Privacy-approved actual LINUX collector and physical endpoint acceptance",
+      "state": "PARTIAL_REFERENCE_ONLY",
+      "requires": [
+        "DIAG-DISK_CAPACITY_HEALTH-CONTRACT"
+      ],
+      "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+    },
+    {
+      "id": "DIAG-DISK_CAPACITY_HEALTH-WINDOWS",
+      "parent": "PR-015",
+      "title": "Privacy-approved actual WINDOWS collector and physical endpoint acceptance",
+      "state": "PARTIAL_REFERENCE_ONLY",
+      "requires": [
+        "DIAG-DISK_CAPACITY_HEALTH-CONTRACT"
+      ],
+      "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+    },
+    {
+      "id": "DIAG-DISK_CAPACITY_HEALTH-MACOS",
+      "parent": "PR-015",
+      "title": "Privacy-approved actual MACOS collector and physical endpoint acceptance",
+      "state": "PARTIAL_REFERENCE_ONLY",
+      "requires": [
+        "DIAG-DISK_CAPACITY_HEALTH-CONTRACT"
+      ],
+      "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+    },
+    {
+      "id": "DIAG-DISK_CAPACITY_HEALTH-CUSTODY",
+      "parent": "FE-16",
+      "title": "Authorized attempt and independently bound evidence custody",
+      "state": "PENDING",
+      "requires": [
+        "DIAG-DISK_CAPACITY_HEALTH-CONTRACT"
+      ],
+      "acceptance": "Durable attempt, trusted scope/clock/key custody, approved retention, replay and independent review."
+    },
+    {
+      "id": "DIAG-AUDIO_STATUS-CONTRACT",
+      "parent": "FE-16",
+      "title": "Bounded signed review-only format",
+      "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+      "evidence": [
+        "diagnostic-evidence.js",
+        "diagnostic-review-contracts.js",
+        "tests/unit/diagnostic-review-contracts.test.js"
+      ]
+    },
+    {
+      "id": "DIAG-AUDIO_STATUS-LINUX",
+      "parent": "PR-015",
+      "title": "Privacy-approved actual LINUX collector and physical endpoint acceptance",
+      "state": "PENDING",
+      "requires": [
+        "DIAG-AUDIO_STATUS-CONTRACT"
+      ],
+      "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+    },
+    {
+      "id": "DIAG-AUDIO_STATUS-WINDOWS",
+      "parent": "PR-015",
+      "title": "Privacy-approved actual WINDOWS collector and physical endpoint acceptance",
+      "state": "PENDING",
+      "requires": [
+        "DIAG-AUDIO_STATUS-CONTRACT"
+      ],
+      "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+    },
+    {
+      "id": "DIAG-AUDIO_STATUS-MACOS",
+      "parent": "PR-015",
+      "title": "Privacy-approved actual MACOS collector and physical endpoint acceptance",
+      "state": "PENDING",
+      "requires": [
+        "DIAG-AUDIO_STATUS-CONTRACT"
+      ],
+      "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+    },
+    {
+      "id": "DIAG-AUDIO_STATUS-CUSTODY",
+      "parent": "FE-16",
+      "title": "Authorized attempt and independently bound evidence custody",
+      "state": "PENDING",
+      "requires": [
+        "DIAG-AUDIO_STATUS-CONTRACT"
+      ],
+      "acceptance": "Durable attempt, trusted scope/clock/key custody, approved retention, replay and independent review."
+    },
+    {
+      "id": "DIAG-BLUETOOTH_STATUS-CONTRACT",
+      "parent": "FE-16",
+      "title": "Bounded signed review-only format",
+      "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+      "evidence": [
+        "diagnostic-evidence.js",
+        "diagnostic-review-contracts.js",
+        "tests/unit/diagnostic-review-contracts.test.js"
+      ]
+    },
+    {
+      "id": "DIAG-BLUETOOTH_STATUS-LINUX",
+      "parent": "PR-015",
+      "title": "Privacy-approved actual LINUX collector and physical endpoint acceptance",
+      "state": "PENDING",
+      "requires": [
+        "DIAG-BLUETOOTH_STATUS-CONTRACT"
+      ],
+      "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+    },
+    {
+      "id": "DIAG-BLUETOOTH_STATUS-WINDOWS",
+      "parent": "PR-015",
+      "title": "Privacy-approved actual WINDOWS collector and physical endpoint acceptance",
+      "state": "PENDING",
+      "requires": [
+        "DIAG-BLUETOOTH_STATUS-CONTRACT"
+      ],
+      "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+    },
+    {
+      "id": "DIAG-BLUETOOTH_STATUS-MACOS",
+      "parent": "PR-015",
+      "title": "Privacy-approved actual MACOS collector and physical endpoint acceptance",
+      "state": "PENDING",
+      "requires": [
+        "DIAG-BLUETOOTH_STATUS-CONTRACT"
+      ],
+      "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+    },
+    {
+      "id": "DIAG-BLUETOOTH_STATUS-CUSTODY",
+      "parent": "FE-16",
+      "title": "Authorized attempt and independently bound evidence custody",
+      "state": "PENDING",
+      "requires": [
+        "DIAG-BLUETOOTH_STATUS-CONTRACT"
+      ],
+      "acceptance": "Durable attempt, trusted scope/clock/key custody, approved retention, replay and independent review."
+    },
+    {
+      "id": "DIAG-PRINT_STATUS-CONTRACT",
+      "parent": "FE-16",
+      "title": "Bounded signed review-only format",
+      "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+      "evidence": [
+        "diagnostic-evidence.js",
+        "diagnostic-review-contracts.js",
+        "tests/unit/diagnostic-review-contracts.test.js"
+      ]
+    },
+    {
+      "id": "DIAG-PRINT_STATUS-LINUX",
+      "parent": "PR-015",
+      "title": "Privacy-approved actual LINUX collector and physical endpoint acceptance",
+      "state": "PENDING",
+      "requires": [
+        "DIAG-PRINT_STATUS-CONTRACT"
+      ],
+      "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+    },
+    {
+      "id": "DIAG-PRINT_STATUS-WINDOWS",
+      "parent": "PR-015",
+      "title": "Privacy-approved actual WINDOWS collector and physical endpoint acceptance",
+      "state": "PENDING",
+      "requires": [
+        "DIAG-PRINT_STATUS-CONTRACT"
+      ],
+      "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+    },
+    {
+      "id": "DIAG-PRINT_STATUS-MACOS",
+      "parent": "PR-015",
+      "title": "Privacy-approved actual MACOS collector and physical endpoint acceptance",
+      "state": "PENDING",
+      "requires": [
+        "DIAG-PRINT_STATUS-CONTRACT"
+      ],
+      "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+    },
+    {
+      "id": "DIAG-PRINT_STATUS-CUSTODY",
+      "parent": "FE-16",
+      "title": "Authorized attempt and independently bound evidence custody",
+      "state": "PENDING",
+      "requires": [
+        "DIAG-PRINT_STATUS-CONTRACT"
+      ],
+      "acceptance": "Durable attempt, trusted scope/clock/key custody, approved retention, replay and independent review."
+    },
+    {
+      "id": "DIAG-BOOT_TIMING-CONTRACT",
+      "parent": "FE-16",
+      "title": "Bounded signed review-only format",
+      "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+      "evidence": [
+        "diagnostic-evidence.js",
+        "diagnostic-review-contracts.js",
+        "tests/unit/diagnostic-review-contracts.test.js"
+      ]
+    },
+    {
+      "id": "DIAG-BOOT_TIMING-LINUX",
+      "parent": "PR-015",
+      "title": "Privacy-approved actual LINUX collector and physical endpoint acceptance",
+      "state": "PENDING",
+      "requires": [
+        "DIAG-BOOT_TIMING-CONTRACT"
+      ],
+      "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+    },
+    {
+      "id": "DIAG-BOOT_TIMING-WINDOWS",
+      "parent": "PR-015",
+      "title": "Privacy-approved actual WINDOWS collector and physical endpoint acceptance",
+      "state": "PENDING",
+      "requires": [
+        "DIAG-BOOT_TIMING-CONTRACT"
+      ],
+      "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+    },
+    {
+      "id": "DIAG-BOOT_TIMING-MACOS",
+      "parent": "PR-015",
+      "title": "Privacy-approved actual MACOS collector and physical endpoint acceptance",
+      "state": "PENDING",
+      "requires": [
+        "DIAG-BOOT_TIMING-CONTRACT"
+      ],
+      "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+    },
+    {
+      "id": "DIAG-BOOT_TIMING-CUSTODY",
+      "parent": "FE-16",
+      "title": "Authorized attempt and independently bound evidence custody",
+      "state": "PENDING",
+      "requires": [
+        "DIAG-BOOT_TIMING-CONTRACT"
+      ],
+      "acceptance": "Durable attempt, trusted scope/clock/key custody, approved retention, replay and independent review."
+    },
+    {
+      "id": "DIAG-APPLICATION_HEALTH-CONTRACT",
+      "parent": "FE-16",
+      "title": "Bounded signed review-only format",
+      "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+      "evidence": [
+        "diagnostic-evidence.js",
+        "diagnostic-review-contracts.js",
+        "tests/unit/diagnostic-review-contracts.test.js"
+      ]
+    },
+    {
+      "id": "DIAG-APPLICATION_HEALTH-LINUX",
+      "parent": "PR-015",
+      "title": "Privacy-approved actual LINUX collector and physical endpoint acceptance",
+      "state": "PENDING",
+      "requires": [
+        "DIAG-APPLICATION_HEALTH-CONTRACT"
+      ],
+      "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+    },
+    {
+      "id": "DIAG-APPLICATION_HEALTH-WINDOWS",
+      "parent": "PR-015",
+      "title": "Privacy-approved actual WINDOWS collector and physical endpoint acceptance",
+      "state": "PENDING",
+      "requires": [
+        "DIAG-APPLICATION_HEALTH-CONTRACT"
+      ],
+      "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+    },
+    {
+      "id": "DIAG-APPLICATION_HEALTH-MACOS",
+      "parent": "PR-015",
+      "title": "Privacy-approved actual MACOS collector and physical endpoint acceptance",
+      "state": "PENDING",
+      "requires": [
+        "DIAG-APPLICATION_HEALTH-CONTRACT"
+      ],
+      "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+    },
+    {
+      "id": "DIAG-APPLICATION_HEALTH-CUSTODY",
+      "parent": "FE-16",
+      "title": "Authorized attempt and independently bound evidence custody",
+      "state": "PENDING",
+      "requires": [
+        "DIAG-APPLICATION_HEALTH-CONTRACT"
+      ],
+      "acceptance": "Durable attempt, trusted scope/clock/key custody, approved retention, replay and independent review."
+    },
+    {
+      "id": "DIAG-SHELL_STATUS-CONTRACT",
+      "parent": "FE-16",
+      "title": "Bounded signed review-only format",
+      "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+      "evidence": [
+        "diagnostic-evidence.js",
+        "diagnostic-review-contracts.js",
+        "tests/unit/diagnostic-review-contracts.test.js"
+      ]
+    },
+    {
+      "id": "DIAG-SHELL_STATUS-LINUX",
+      "parent": "PR-015",
+      "title": "Privacy-approved actual LINUX collector and physical endpoint acceptance",
+      "state": "PENDING",
+      "requires": [
+        "DIAG-SHELL_STATUS-CONTRACT"
+      ],
+      "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+    },
+    {
+      "id": "DIAG-SHELL_STATUS-WINDOWS",
+      "parent": "PR-015",
+      "title": "Privacy-approved actual WINDOWS collector and physical endpoint acceptance",
+      "state": "PENDING",
+      "requires": [
+        "DIAG-SHELL_STATUS-CONTRACT"
+      ],
+      "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+    },
+    {
+      "id": "DIAG-SHELL_STATUS-MACOS",
+      "parent": "PR-015",
+      "title": "Privacy-approved actual MACOS collector and physical endpoint acceptance",
+      "state": "PENDING",
+      "requires": [
+        "DIAG-SHELL_STATUS-CONTRACT"
+      ],
+      "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+    },
+    {
+      "id": "DIAG-SHELL_STATUS-CUSTODY",
+      "parent": "FE-16",
+      "title": "Authorized attempt and independently bound evidence custody",
+      "state": "PENDING",
+      "requires": [
+        "DIAG-SHELL_STATUS-CONTRACT"
+      ],
+      "acceptance": "Durable attempt, trusted scope/clock/key custody, approved retention, replay and independent review."
+    },
+    {
+      "id": "DIAG-BATTERY_HEALTH-CONTRACT",
+      "parent": "FE-16",
+      "title": "Bounded signed review-only format",
+      "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+      "evidence": [
+        "diagnostic-evidence.js",
+        "diagnostic-review-contracts.js",
+        "tests/unit/diagnostic-review-contracts.test.js"
+      ]
+    },
+    {
+      "id": "DIAG-BATTERY_HEALTH-LINUX",
+      "parent": "PR-015",
+      "title": "Privacy-approved actual LINUX collector and physical endpoint acceptance",
+      "state": "PENDING",
+      "requires": [
+        "DIAG-BATTERY_HEALTH-CONTRACT"
+      ],
+      "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+    },
+    {
+      "id": "DIAG-BATTERY_HEALTH-WINDOWS",
+      "parent": "PR-015",
+      "title": "Privacy-approved actual WINDOWS collector and physical endpoint acceptance",
+      "state": "PENDING",
+      "requires": [
+        "DIAG-BATTERY_HEALTH-CONTRACT"
+      ],
+      "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+    },
+    {
+      "id": "DIAG-BATTERY_HEALTH-MACOS",
+      "parent": "PR-015",
+      "title": "Privacy-approved actual MACOS collector and physical endpoint acceptance",
+      "state": "PENDING",
+      "requires": [
+        "DIAG-BATTERY_HEALTH-CONTRACT"
+      ],
+      "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+    },
+    {
+      "id": "DIAG-BATTERY_HEALTH-CUSTODY",
+      "parent": "FE-16",
+      "title": "Authorized attempt and independently bound evidence custody",
+      "state": "PENDING",
+      "requires": [
+        "DIAG-BATTERY_HEALTH-CONTRACT"
+      ],
+      "acceptance": "Durable attempt, trusted scope/clock/key custody, approved retention, replay and independent review."
+    },
+    {
+      "id": "DIAG-MANAGED_POLICY_STATUS-CONTRACT",
+      "parent": "FE-16",
+      "title": "Bounded signed review-only format",
+      "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+      "evidence": [
+        "diagnostic-evidence.js",
+        "diagnostic-review-contracts.js",
+        "tests/unit/diagnostic-review-contracts.test.js"
+      ]
+    },
+    {
+      "id": "DIAG-MANAGED_POLICY_STATUS-LINUX",
+      "parent": "PR-015",
+      "title": "Privacy-approved actual LINUX collector and physical endpoint acceptance",
+      "state": "PENDING",
+      "requires": [
+        "DIAG-MANAGED_POLICY_STATUS-CONTRACT"
+      ],
+      "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+    },
+    {
+      "id": "DIAG-MANAGED_POLICY_STATUS-WINDOWS",
+      "parent": "PR-015",
+      "title": "Privacy-approved actual WINDOWS collector and physical endpoint acceptance",
+      "state": "PENDING",
+      "requires": [
+        "DIAG-MANAGED_POLICY_STATUS-CONTRACT"
+      ],
+      "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+    },
+    {
+      "id": "DIAG-MANAGED_POLICY_STATUS-MACOS",
+      "parent": "PR-015",
+      "title": "Privacy-approved actual MACOS collector and physical endpoint acceptance",
+      "state": "PENDING",
+      "requires": [
+        "DIAG-MANAGED_POLICY_STATUS-CONTRACT"
+      ],
+      "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+    },
+    {
+      "id": "DIAG-MANAGED_POLICY_STATUS-CUSTODY",
+      "parent": "FE-16",
+      "title": "Authorized attempt and independently bound evidence custody",
+      "state": "PENDING",
+      "requires": [
+        "DIAG-MANAGED_POLICY_STATUS-CONTRACT"
+      ],
+      "acceptance": "Durable attempt, trusted scope/clock/key custody, approved retention, replay and independent review."
+    },
+    {
+      "id": "DIAG-APPROVED_SOFTWARE_INVENTORY-CONTRACT",
+      "parent": "FE-16",
+      "title": "Bounded signed review-only format",
+      "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+      "evidence": [
+        "diagnostic-evidence.js",
+        "diagnostic-review-contracts.js",
+        "tests/unit/diagnostic-review-contracts.test.js"
+      ]
+    },
+    {
+      "id": "DIAG-APPROVED_SOFTWARE_INVENTORY-LINUX",
+      "parent": "PR-015",
+      "title": "Privacy-approved actual LINUX collector and physical endpoint acceptance",
+      "state": "PENDING",
+      "requires": [
+        "DIAG-APPROVED_SOFTWARE_INVENTORY-CONTRACT"
+      ],
+      "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+    },
+    {
+      "id": "DIAG-APPROVED_SOFTWARE_INVENTORY-WINDOWS",
+      "parent": "PR-015",
+      "title": "Privacy-approved actual WINDOWS collector and physical endpoint acceptance",
+      "state": "PENDING",
+      "requires": [
+        "DIAG-APPROVED_SOFTWARE_INVENTORY-CONTRACT"
+      ],
+      "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+    },
+    {
+      "id": "DIAG-APPROVED_SOFTWARE_INVENTORY-MACOS",
+      "parent": "PR-015",
+      "title": "Privacy-approved actual MACOS collector and physical endpoint acceptance",
+      "state": "PENDING",
+      "requires": [
+        "DIAG-APPROVED_SOFTWARE_INVENTORY-CONTRACT"
+      ],
+      "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+    },
+    {
+      "id": "DIAG-APPROVED_SOFTWARE_INVENTORY-CUSTODY",
+      "parent": "FE-16",
+      "title": "Authorized attempt and independently bound evidence custody",
+      "state": "PENDING",
+      "requires": [
+        "DIAG-APPROVED_SOFTWARE_INVENTORY-CONTRACT"
+      ],
+      "acceptance": "Durable attempt, trusted scope/clock/key custody, approved retention, replay and independent review."
+    },
+    {
+      "id": "DIAG-OS_SHELL_CONFIGURATION-CONTRACT",
+      "parent": "FE-16",
+      "title": "Bounded signed review-only format",
+      "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+      "evidence": [
+        "diagnostic-evidence.js",
+        "diagnostic-review-contracts.js",
+        "tests/unit/diagnostic-review-contracts.test.js"
+      ]
+    },
+    {
+      "id": "DIAG-OS_SHELL_CONFIGURATION-LINUX",
+      "parent": "PR-015",
+      "title": "Privacy-approved actual LINUX collector and physical endpoint acceptance",
+      "state": "PENDING",
+      "requires": [
+        "DIAG-OS_SHELL_CONFIGURATION-CONTRACT"
+      ],
+      "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+    },
+    {
+      "id": "DIAG-OS_SHELL_CONFIGURATION-WINDOWS",
+      "parent": "PR-015",
+      "title": "Privacy-approved actual WINDOWS collector and physical endpoint acceptance",
+      "state": "PENDING",
+      "requires": [
+        "DIAG-OS_SHELL_CONFIGURATION-CONTRACT"
+      ],
+      "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+    },
+    {
+      "id": "DIAG-OS_SHELL_CONFIGURATION-MACOS",
+      "parent": "PR-015",
+      "title": "Privacy-approved actual MACOS collector and physical endpoint acceptance",
+      "state": "PENDING",
+      "requires": [
+        "DIAG-OS_SHELL_CONFIGURATION-CONTRACT"
+      ],
+      "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+    },
+    {
+      "id": "DIAG-OS_SHELL_CONFIGURATION-CUSTODY",
+      "parent": "FE-16",
+      "title": "Authorized attempt and independently bound evidence custody",
+      "state": "PENDING",
+      "requires": [
+        "DIAG-OS_SHELL_CONFIGURATION-CONTRACT"
+      ],
+      "acceptance": "Durable attempt, trusted scope/clock/key custody, approved retention, replay and independent review."
+    },
+    {
+      "id": "DIAG-POWER_PLAN_STATUS-CONTRACT",
+      "parent": "FE-16",
+      "title": "Bounded signed review-only format",
+      "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+      "evidence": [
+        "diagnostic-evidence.js",
+        "diagnostic-review-contracts.js",
+        "tests/unit/diagnostic-review-contracts.test.js"
+      ]
+    },
+    {
+      "id": "DIAG-POWER_PLAN_STATUS-LINUX",
+      "parent": "PR-015",
+      "title": "Privacy-approved actual LINUX collector and physical endpoint acceptance",
+      "state": "PENDING",
+      "requires": [
+        "DIAG-POWER_PLAN_STATUS-CONTRACT"
+      ],
+      "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+    },
+    {
+      "id": "DIAG-POWER_PLAN_STATUS-WINDOWS",
+      "parent": "PR-015",
+      "title": "Privacy-approved actual WINDOWS collector and physical endpoint acceptance",
+      "state": "PENDING",
+      "requires": [
+        "DIAG-POWER_PLAN_STATUS-CONTRACT"
+      ],
+      "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+    },
+    {
+      "id": "DIAG-POWER_PLAN_STATUS-MACOS",
+      "parent": "PR-015",
+      "title": "Privacy-approved actual MACOS collector and physical endpoint acceptance",
+      "state": "PENDING",
+      "requires": [
+        "DIAG-POWER_PLAN_STATUS-CONTRACT"
+      ],
+      "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+    },
+    {
+      "id": "DIAG-POWER_PLAN_STATUS-CUSTODY",
+      "parent": "FE-16",
+      "title": "Authorized attempt and independently bound evidence custody",
+      "state": "PENDING",
+      "requires": [
+        "DIAG-POWER_PLAN_STATUS-CONTRACT"
+      ],
+      "acceptance": "Durable attempt, trusted scope/clock/key custody, approved retention, replay and independent review."
+    },
+    {
+      "id": "DIAG-FIREWALL_STATUS-CONTRACT",
+      "parent": "FE-16",
+      "title": "Bounded signed review-only format",
+      "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+      "evidence": [
+        "diagnostic-evidence.js",
+        "diagnostic-review-contracts.js",
+        "tests/unit/diagnostic-review-contracts.test.js"
+      ]
+    },
+    {
+      "id": "DIAG-FIREWALL_STATUS-LINUX",
+      "parent": "PR-015",
+      "title": "Privacy-approved actual LINUX collector and physical endpoint acceptance",
+      "state": "PENDING",
+      "requires": [
+        "DIAG-FIREWALL_STATUS-CONTRACT"
+      ],
+      "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+    },
+    {
+      "id": "DIAG-FIREWALL_STATUS-WINDOWS",
+      "parent": "PR-015",
+      "title": "Privacy-approved actual WINDOWS collector and physical endpoint acceptance",
+      "state": "PENDING",
+      "requires": [
+        "DIAG-FIREWALL_STATUS-CONTRACT"
+      ],
+      "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+    },
+    {
+      "id": "DIAG-FIREWALL_STATUS-MACOS",
+      "parent": "PR-015",
+      "title": "Privacy-approved actual MACOS collector and physical endpoint acceptance",
+      "state": "PENDING",
+      "requires": [
+        "DIAG-FIREWALL_STATUS-CONTRACT"
+      ],
+      "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+    },
+    {
+      "id": "DIAG-FIREWALL_STATUS-CUSTODY",
+      "parent": "FE-16",
+      "title": "Authorized attempt and independently bound evidence custody",
+      "state": "PENDING",
+      "requires": [
+        "DIAG-FIREWALL_STATUS-CONTRACT"
+      ],
+      "acceptance": "Durable attempt, trusted scope/clock/key custody, approved retention, replay and independent review."
+    }
+  ]
+}

@@ -6,7 +6,9 @@ const STATES = new Set(['absent', 'present', 'unknown']);
 const FIELDS = ['database', 'credentials', 'service'];
 export function validateInstallationIdentity(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value) ||
-      Object.keys(value).length !== 2 || value.schema_version !== 1 ||
+      ![Object.prototype,null].includes(Object.getPrototypeOf(value)) ||
+      Reflect.ownKeys(value).length !== 2 || ['schema_version','installation_id'].some(k=>
+        !Object.hasOwn(value,k)||!Object.hasOwn(Object.getOwnPropertyDescriptor(value,k),'value')) || value.schema_version !== 1 ||
       typeof value.installation_id !== 'string' || value.installation_id.length !== 36 ||
       !UUID_V4.test(value.installation_id)) throw new Error('INVALID_INSTALLATION_IDENTITY');
   return Object.freeze({ schema_version: 1, installation_id: value.installation_id });
@@ -17,7 +19,12 @@ const plan = (reason, installation_id = null) => Object.freeze({
 });
 export function planInstallationIdentity({ intent, observed, localIdentity = null,
   backupIdentity = null, previousInstanceFenced = false } = {}) {
-  if (!observed || FIELDS.some(k => !STATES.has(observed[k]) || observed[k] === 'unknown')) {
+  if (!observed || typeof observed !== 'object' || Array.isArray(observed) ||
+      ![Object.prototype,null].includes(Object.getPrototypeOf(observed)) ||
+      Reflect.ownKeys(observed).some(k=>!FIELDS.includes(k)) ||
+      FIELDS.some(k => !Object.hasOwn(observed,k) ||
+        !Object.hasOwn(Object.getOwnPropertyDescriptor(observed,k),'value') ||
+        !STATES.has(observed[k]) || observed[k] === 'unknown')) {
     return blocked('LOCAL_STATE_UNKNOWN');
   }
   let local, backup;

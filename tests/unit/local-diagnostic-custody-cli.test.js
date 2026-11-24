@@ -38,3 +38,13 @@ describe.skipIf(process.platform==='win32')('local operator diagnostic custody C
   expect(result.stderr).not.toContain(dir);expect(result.stderr).not.toContain(r.artifact_sha256);
  }));
 });
+
+describe.skipIf(process.platform==='win32')('battery collector custody integration',()=>{
+ it('retains actual canonical battery observation with explicit write and read consent',()=>fixture(async dir=>{
+  const result=await run(['collect','--directory',dir,'--confirm-local-retention','--','battery','--confirm-local-read-only']);
+  const verified=await run(read(dir,result.artifact_sha256));
+  expect(verified.artifact).toMatchObject({schema:'aaditech-battery-diagnostic-v1',capacity_percent:null});
+  expect(verified.integrity_verified).toBe(true);
+  expect(verified.signature_verified).toBe(false);
+ }));
+});

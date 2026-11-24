@@ -126,3 +126,43 @@ export async function reserveRecoveryReview(pool,{principal,deviceId,requestId,e
       grant_consumed:false,replacement_allowed:false,production_accepted:false});
   });
 }
+
+/**
+ * Internal, read-only review status for an authenticated active tenant admin.
+ * This is not an activation authorization, and never returns proof material.
+ * The current revoked credential and outstanding-command gates are rechecked.
+ */
+export async function inspectRecoveryReview(pool,{principal,deviceId,requestId}={}){
+  validateContext(pool,principal,deviceId);
+  if(!isUuid(requestId))fail('RECOVERY_REVIEW_INVALID');
+  principal=Object.freeze({id:principal.id,tenant_id:principal.tenant_id,role:principal.role});
+  return transact(pool,async c=>{
+    const {now,fingerprint}=await lockContext(c,principal,deviceId,{deferActor:true});
+    const [rows]=await c.query('SELECT * FROM device_recovery_reviews WHERE request_id=? AND tenant_id=? AND device_id=? FOR UPDATE',
+      [requestId,principal.tenant_id,deviceId]);
+    const row=rows?.length===1?rows[0]:null;
+    if(!row||row.request_id!==requestId||row.tenant_id!==principal.tenant_id||row.device_id!==deviceId)fail('RECOVERY_REVIEW_NOT_FOUND');
+    const requesterId=Number(row.requester_id),reviewerId=Number(row.reviewer_id);
+    const expires=Number(row.expires_at_ms),created=Number(row.created_at_ms);
+    if(!Number.isSafeInteger(requesterId)||requesterId<=0||
+       !Number.isSafeInteger(created)||created<=0||!Number.isSafeInteger(expires)||expires<=created||
+       !['PENDING','REVIEW_RESERVED'].includes(row.state)||!isDigest(row.credential_fingerprint)||
+       !isDigest(row.challenge_sha256))fail('RECOVERY_REVIEW_STATE_INVALID');
+    const reserved=row.state==='REVIEW_RESERVED';
+    const reviewExpiry=Number(row.review_expires_at_ms),reviewed=Number(row.reviewed_at_ms);
+    if(reserved&&(!Number.isSafeInteger(reviewerId)||reviewerId<=0||reviewerId===requesterId||
+       !Number.isSafeInteger(reviewed)||reviewed<created||!Number.isSafeInteger(reviewExpiry)||
+       reviewExpiry<=reviewed||reviewExpiry>expires||!isDigest(row.evidence_sha256)||!isDigest(row.reviewer_spki_sha256)))
+       fail('RECOVERY_REVIEW_STATE_INVALID');
+    for(const id of [...new Set([principal.id,requesterId,...(reserved?[reviewerId]:[])])].sort((a,b)=>a-b))
+      await lockActiveAdmin(c,{...principal,id});
+    const [clock]=await c.query('SELECT CAST(UNIX_TIMESTAMP(NOW(3))*1000 AS UNSIGNED) AS now_ms');
+    const checkedNow=Number(clock?.[0]?.now_ms);
+    if(!Number.isSafeInteger(checkedNow)||checkedNow<now)fail('RECOVERY_REVIEW_CLOCK_UNAVAILABLE');
+    const status=row.credential_fingerprint!==fingerprint?'STALE_CREDENTIAL':
+      checkedNow>=expires||(reserved&&checkedNow>=reviewExpiry)?'EXPIRED':row.state;
+    return Object.freeze({request_id:requestId,tenant_id:principal.tenant_id,device_id:deviceId,
+      status,expires_at_ms:reserved?reviewExpiry:expires,checked_at_ms:checkedNow,
+      replacement_allowed:false,grant_consumed:false,production_accepted:false});
+  });
+}

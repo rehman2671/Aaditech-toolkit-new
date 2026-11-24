@@ -793,7 +793,11 @@ function Send-AgentBatch {
         $stored = Invoke-SQLite -Query "SELECT batch_id, body_json, event_ids FROM telemetry_outbox WHERE status='pending' ORDER BY created_at ASC LIMIT 1;" -DatabasePath $QueueDb -AsJson
         $storedRows = @()
         if (-not [string]::IsNullOrWhiteSpace([string]$stored)) {
-            $storedRows = @($stored | ConvertFrom-Json)
+            # Windows PowerShell 5.1 writes a JSON array as one pipeline
+            # object, while PS7 enumerates it. Assign first, then normalize.
+            $decodedStored = ConvertFrom-Json -InputObject ([string]$stored) -ErrorAction Stop
+            if ($null -ne $decodedStored) { $storedRows = @($decodedStored) }
+            if ($storedRows.Count -gt 1) { throw 'Multiple durable pending batches' }
         }
         $batchId = $null
         $ids = @()
@@ -801,15 +805,37 @@ function Send-AgentBatch {
         if ($storedRows.Count -gt 0) {
             $batchId = [string]$storedRows[0].batch_id
             $body = [string]$storedRows[0].body_json
-            $ids = @($storedRows[0].event_ids | ConvertFrom-Json)
-            if ($batchId -notmatch '^[0-9a-fA-F]{32}$' -or [string]::IsNullOrWhiteSpace($body)) {
+            $idsJson = [string]$storedRows[0].event_ids
+            if (-not $idsJson.TrimStart().StartsWith('[')) { throw 'Invalid stored event IDs' }
+            $decodedIds = ConvertFrom-Json -InputObject $idsJson -ErrorAction Stop
+            if ($null -ne $decodedIds) { $ids = @($decodedIds) }
+            if ($batchId -notmatch '^[0-9a-fA-F]{32}$' -or [string]::IsNullOrWhiteSpace($body) -or $ids.Count -gt 50) {
                 throw 'Invalid durable telemetry retry payload; retaining outbox'
+            }
+            $seenIds = @{}
+            foreach ($eventId in $ids) {
+                if (($eventId -isnot [int] -and $eventId -isnot [long]) -or $eventId -le 0 -or $seenIds.ContainsKey([long]$eventId)) {
+                    throw 'Invalid or repeated stored event ID'
+                }
+                $seenIds[[long]$eventId] = $true
+            }
+            $storedBody = ConvertFrom-Json -InputObject $body -ErrorAction Stop
+            if ($storedBody.batch_id -isnot [string] -or $storedBody.batch_id -cne $batchId -or
+                $storedBody.events -isnot [array] -or $storedBody.events.Count -ne $ids.Count) {
+                throw 'Stored batch and event IDs disagree'
+            }
+            for ($i=0; $i -lt $ids.Count; $i++) {
+                $clientId = $storedBody.events[$i].client_msg_id
+                if ($clientId -isnot [string] -or -not $clientId.EndsWith((':' + [string]$ids[$i]), [StringComparison]::Ordinal)) {
+                    throw 'Stored event identity mismatch'
+                }
             }
         } else {
             $pending = Invoke-SQLite -Query "SELECT id, kind, payload, sanitized, created_at FROM outbox WHERE status='pending' ORDER BY id ASC LIMIT 50;" -DatabasePath $QueueDb -AsJson
             $pendingRows = @()
             if (-not [string]::IsNullOrWhiteSpace([string]$pending)) {
-                $pendingRows = @($pending | ConvertFrom-Json)
+                $decodedPending = ConvertFrom-Json -InputObject ([string]$pending) -ErrorAction Stop
+                if ($null -ne $decodedPending) { $pendingRows = @($decodedPending) }
             }
             $queueInstanceId = if ($pendingRows.Count -gt 0) { Get-QueueInstanceId } else { $null }
             $events = @(

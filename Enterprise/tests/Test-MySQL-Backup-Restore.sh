@@ -34,8 +34,12 @@ if [[ "$command_text" == *mysqldump* ]]; then
     'INSERT INTO example VALUES (1);' \
     "-- fixture padding $(printf '%0300d' 0)" \
     '-- Dump completed on 2026-11-15 12:00:00'
+elif [[ "$command_text" == *'stop caddy api'* ]]; then
+  if [ -n "${FAKE_REPLACE_SOURCE:-}" ]; then
+    printf '%s\n' 'UNVERIFIED REPLACEMENT' > "$FAKE_REPLACE_SOURCE"
+  fi
 elif [[ "$command_text" == *'--binary-mode=1'* ]]; then
-  cat > /dev/null
+  if [ -n "${FAKE_IMPORTED_FILE:-}" ]; then cat > "$FAKE_IMPORTED_FILE"; else cat > /dev/null; fi
   if [ "${FAKE_IMPORT_FAIL:-0}" = 1 ]; then exit 19; fi
 elif [[ "$command_text" == *'SELECT COUNT('* ]]; then
   printf '1\n'
@@ -121,6 +125,15 @@ bash "$RESTORE" --yes "$FILE"
 grep -q 'stop caddy api' "$FAKE_DOCKER_LOG"
 grep -q 'DROP DATABASE' "$FAKE_DOCKER_LOG"
 grep -q -- '--binary-mode=1' "$FAKE_DOCKER_LOG"
+
+# Replacing the original after validation must not affect imported bytes.
+mkdir -p "$TEMP/replace"
+cp "$FILE" "$TEMP/replace/$(basename "$FILE")"
+cp "$FILE.sha256" "$TEMP/replace/$(basename "$FILE")"
+candidate="$TEMP/replace/$(basename "$FILE")"
+FAKE_REPLACE_SOURCE="$candidate" FAKE_IMPORTED_FILE="$TEMP/imported.sql" bash "$RESTORE" --yes --db-only "$candidate"
+cmp "$TEMP/imported.sql" "$FILE"
+grep -q 'UNVERIFIED REPLACEMENT' "$candidate"
 
 # Failed import must return nonzero and leave application services stopped.
 : > "$FAKE_DOCKER_LOG"

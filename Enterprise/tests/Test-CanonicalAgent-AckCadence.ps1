@@ -74,7 +74,7 @@ function Get-AgentIP { return '127.0.0.1' }
 function Get-InstalledAgentVersion { return '1.1.2' }
 function Get-AgentToken { param($Config); return 'itk_dev_mock_only' }
 function Get-RestCertificate { param($Config); return $null }
-function Write-AgentLog { param([string]$Message) }
+function Write-AgentLog { param([string]$Message) Write-Host $Message }
 function Get-NextBackoffSleepSeconds { param([int]$FailedConsecutive); return 0 }
 function Invoke-QueueSleep { param($SleepSeconds) }
 function Invoke-RestMethod {
@@ -137,6 +137,25 @@ Assert-True ($script:Updates[-1] -match 'WHERE status=''pending'' AND id IN \(17
 $storedEvent = $script:Sent[-1] | ConvertFrom-Json
 Assert-True ($storedEvent.events[0].client_msg_id -eq '0123456789abcdef0123456789abcdef:17') 'N28 stable event ID preserved'
 Assert-True ($null -eq $script:PendingSnapshot) 'matching ACK retires snapshot'
+
+# Explicit multi-row and empty JSON arrays exercise both Windows PS5.1 and PS7.
+$script:QueryRows = '[{"id":21,"kind":"health","payload":"{}","sanitized":1,"created_at":"2026-11-17 00:00:00"},{"id":22,"kind":"health","payload":"{}","sanitized":1,"created_at":"2026-11-17 00:00:01"}]'
+$script:Mode = 'offline'
+$null = Send-AgentBatch -Config $cfg
+$multiBody = $script:PendingSnapshot.body_json
+$multiIds = $script:PendingSnapshot.event_ids
+$script:Mode = 'duplicate'
+$before = $script:Sent.Count
+foreach ($badIds in @('[21,21]', '[21,23]', '21', '["21",22]', '[null,22]')) {
+    $script:PendingSnapshot.event_ids = $badIds
+    $null = Send-AgentBatch -Config $cfg
+    Assert-True ($script:Sent.Count -eq $before) 'corrupt local IDs never sent'
+    Assert-True ($null -ne $script:PendingSnapshot) 'corrupt local snapshot retained'
+}
+$script:PendingSnapshot.event_ids = $multiIds
+Assert-True ((Send-AgentBatch -Config $cfg) -eq 2) 'multi-event replay succeeds'
+Assert-True ($script:Sent[-1] -ceq $multiBody) 'multi-event replay exact bytes'
+Assert-True ($script:Updates[-1] -match 'id IN \(21,22\)') 'both exact event IDs retired'
 
 # Bad HTTP 2xx and partial ACKs must keep one durable pending snapshot; the
 # saved payload must survive every error until an exact matching response.

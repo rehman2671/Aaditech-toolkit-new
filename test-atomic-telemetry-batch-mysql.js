@@ -5,7 +5,7 @@ import crypto from 'node:crypto';
 import mysql from 'mysql2/promise';
 import request from 'supertest';
 import * as db from './db.js';
-import {createRecoveryReviewRequest,reserveRecoveryReview} from './device-recovery-review.js';
+import {createRecoveryReviewRequest,reserveRecoveryReview,inspectRecoveryReview} from './device-recovery-review.js';
 
 if (process.env.GITHUB_ACTIONS !== 'true' ||
     process.env.AADITECH_ATOMIC_BATCH_REHEARSAL !== 'isolated-ci' ||
@@ -185,6 +185,10 @@ try {
   const reviews=await Promise.allSettled(Array.from({length:4},()=>reserveRecoveryReview(pool,options)));
   assert.equal(reviews.filter(x=>x.status==='fulfilled').length,1);
   assert.equal(reviews.find(x=>x.status==='fulfilled').value.replacement_allowed,false);
+  const inspected=await inspectRecoveryReview(pool,{principal:admins[1],deviceId:reviewDevice,requestId:req.request_id});
+  assert.equal(inspected.status,'REVIEW_RESERVED');
+  assert.equal(inspected.replacement_allowed,false);
+  assert.equal(Object.hasOwn(inspected,'credential_fingerprint'),false);
   const [stillRevoked]=await pool.query('SELECT agent_token_revoked,device_token_hash FROM devices WHERE id=?',[reviewDevice]);
   assert.equal(Number(stillRevoked[0].agent_token_revoked),1);
   assert.equal(stillRevoked[0].device_token_hash,sha(label));

@@ -1,6 +1,6 @@
 import {describe,it,expect,vi} from 'vitest';
 import {createHash,generateKeyPairSync,sign} from 'node:crypto';
-import {createRecoveryReviewRequest,reserveRecoveryReview} from '../../device-recovery-review.js';
+import {createRecoveryReviewRequest,reserveRecoveryReview,inspectRecoveryReview} from '../../device-recovery-review.js';
 const tenant='00000000-0000-4000-8000-000000000011',device='00000000-0000-4000-8000-000000000012',request='00000000-0000-4000-8000-000000000013';
 const now=1700000000000,tokenHash='b'.repeat(64),sha=x=>createHash('sha256').update(x).digest('hex');
 const fingerprint=sha('aaditech:recovery-review:v1:'+tokenHash);
@@ -104,4 +104,29 @@ it('rejects coercible identity and malformed exact-length authority before start
   p.trustedPins.ownershipEvidenceSha256+='\n';
   await expect(reserveRecoveryReview(f.pool,{principal:reviewer,deviceId:device,requestId:request,...p})).rejects.toThrow('RECOVERY_REVIEW_INVALID');
   expect(f.conn.beginTransaction).not.toHaveBeenCalled();
+});
+
+describe('read-only recovery lifecycle status',()=>{
+  const inspect=f=>inspectRecoveryReview(f.pool,{principal:reviewer,deviceId:device,requestId:request});
+  const common={created_at_ms:now-1000};
+  const reserved={...common,state:'REVIEW_RESERVED',reviewer_id:2,reviewed_at_ms:now-100,
+    review_expires_at_ms:now+500,evidence_sha256:'c'.repeat(64),reviewer_spki_sha256:'d'.repeat(64)};
+  it('returns only categorical status, never a grant, raw fingerprint or challenge',async()=>{
+    for(const [rowPatch,secondClock,status] of [[common,now,'PENDING'],[reserved,now,'REVIEW_RESERVED'],
+      [reserved,now+500,'EXPIRED'],[{...common,credential_fingerprint:'f'.repeat(64)},now,'STALE_CREDENTIAL']]){
+      const f=fixture({rowPatch,secondClock});const result=await inspect(f);
+      expect(result).toMatchObject({status,replacement_allowed:false,grant_consumed:false,production_accepted:false});
+      expect(result).not.toHaveProperty('credential_fingerprint');expect(result).not.toHaveProperty('challenge_sha256');
+      expect(f.conn.query.mock.calls.every(([sql])=>sql.startsWith('SELECT'))).toBe(true);
+      expect(f.conn.commit).toHaveBeenCalledOnce();
+    }
+  });
+  it('denies malformed or foreign rows, inactive actors, and clock regression',async()=>{
+    for(const opts of [{rowPatch:{...common,tenant_id:'foreign'}},{rowPatch:{...reserved,reviewer_id:1}},
+      {rowPatch:{...reserved,evidence_sha256:null}},{rowPatch:common,requesterPatch:{active:0}},
+      {rowPatch:common,secondClock:now-1}]){
+      const f=fixture(opts);await expect(inspect(f)).rejects.toThrow();
+      expect(f.conn.rollback).toHaveBeenCalledOnce();
+    }
+  });
 });

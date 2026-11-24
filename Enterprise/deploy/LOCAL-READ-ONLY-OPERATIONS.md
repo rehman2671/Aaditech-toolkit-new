@@ -83,3 +83,12 @@ Exit 2 means interruption or fresh-host blockers; exit 1 refusal; exit 0 no obse
 2026-11-25 — PR #113 operator input hardening: both local LAN readiness and setup continuity JSON stdin entry points reuse the existing signed-bundle duplicate-key and 64-level nesting guard after fatal UTF-8 decoding and JSON syntax validation. Duplicate decoded keys (including escaped aliases), ambiguous nested inputs and excessive depth refuse before host/journal inspection. Existing read-only confirmation, byte bounds, redacted errors and exit-code semantics retained. Regression cases added; fresh exact-head CI and independent review pending. No installer/resume authorization, owner ADR, main merge or production acceptance.
 
 2026-11-25 — #113 CI 45493407981 on 59fc7928 failed to import the signed-LAN regression suite because of a missing fixture-call closing parenthesis introduced in the previous test edit. 566 other tests and PowerShell validation passed; API and both MSI jobs skipped. Corrected the fixture syntax without changing the duplicate-key/depth rejection or weakening assertions. Fresh CI required; no production acceptance.
+
+## Offline employee advisory guide (2026-11-25)
+
+```sh
+node scripts/local-troubleshooting-guide.mjs --html > local-troubleshooting-guide.html
+node scripts/local-troubleshooting-guide.mjs --category TR-01 --hazard UNKNOWN
+```
+
+Open the generated HTML locally in a browser. It contains 26 disclosure cards and an upfront hazard warning, no scripts, remote assets, forms or device collection. Routine card instructions apply only when no hazard is suspected; the JSON CLI defaults to refusal of invalid/missing hazard values and applies hazard-specific advice. This is advisory reference only, not an authenticated employee portal, intake or repair. Use the organization's approved IT support channel. The internal scoped planned-only lookup does not expose any HTTP endpoint or authorize execution.

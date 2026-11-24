@@ -243,3 +243,7 @@ Strict history verification may intentionally block a historical installation wh
 ### 2026-11-25 — Additional review-branch evidence (PR #113)
 
 PR-019 and M4 remain IN_DEVELOPMENT: stricter stored-state and canonical DB integer validation, intake UUID and safe aggregate validation, and session discard after uncertain commits; seven focused tests added. No runtime credential activation or actual diagnostic execution. Prior #113 head CI is historical; new exact-head CI and independent acceptance pending.
+
+## 2026-11-25 — Parallel diagnostic, setup and migration evidence batch (#113)
+
+Added bounded canonical signed network-status and disk-capacity/health artifact contracts, explicitly distinguishing null and NOT_RUN from measured observations without collecting private paths, SSIDs or destinations. Setup and installation identity preflight require explicit own data properties, reject inherited/accessor evidence; migration planning rejects malformed entries, line-terminated names/versions and over-limit sequence counts. Six focused regression cases added. No actual endpoint collection, diagnostic execution, repair, installer activation, schema migration change or production approval. Fresh exact-head CI and independent review required; existing #109 and #111 integration boundaries retained.

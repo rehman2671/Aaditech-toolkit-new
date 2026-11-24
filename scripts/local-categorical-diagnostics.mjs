@@ -71,3 +71,58 @@ export async function collectLocalDiskDiagnostic({confirmation,targetDirectory}=
  return result({schema:'aaditech-disk-diagnostic-v1',free_percent:free,
   health_state:null,read_only_state:null});
 }
+
+// Linux power_supply sysfs only; an explicit selected battery, never a scan.
+const batteryName=x=>typeof x==='string'&&x.length<=32&&/^BAT[0-9]{1,6}$/.test(x)&&!/\s/.test(x);
+const strictUInt=x=>typeof x==='string'&&x.length<=18&&/^(0|[1-9][0-9]*)$/.test(x)&&!/\s/.test(x)?BigInt(x):null;
+export function parseBatteryObservations({type,present,charge,status,energyFull,energyDesign,chargeFull,chargeDesign}={}){
+ const empty={charge_percent:null,charging_state:null,capacity_percent:null};
+ if(type!=='Battery'||present!=='1')return empty;
+ const chargeValue=strictUInt(charge);
+ const states=new Map([['Charging','CHARGING'],['Discharging','DISCHARGING'],['Full','FULL'],['Not charging','NOT_CHARGING']]);
+ const ratio=(a,b)=>{
+  a=strictUInt(a);b=strictUInt(b);
+  return a!==null&&b!==null&&b>0n&&a<=b?Number(a*10000n/b)/100:null;
+ };
+ // Never mix energy and charge units or clamp inconsistent capacity readings.
+ // A reported energy pair takes precedence; an invalid pair is not hidden.
+ const hasEnergy=energyFull!==null&&energyFull!==undefined||energyDesign!==null&&energyDesign!==undefined;
+ return {charge_percent:chargeValue!==null&&chargeValue<=100n?Number(chargeValue):null,
+  charging_state:states.get(status)??null,
+  capacity_percent:hasEnergy?ratio(energyFull,energyDesign):ratio(chargeFull,chargeDesign)};
+}
+export async function collectLocalBatteryDiagnostic({confirmation,batteryId}={}){
+ if(confirmation!=='COLLECT_LOCAL_BATTERY_ONLY'||!batteryName(batteryId))fail();
+ let observations={};
+ if(process.platform==='linux'){
+  try{
+   const dir=await realpath('/sys/class/power_supply/'+batteryId);
+   if(!dir.startsWith('/sys/devices/'))throw Error('LOCAL_OBSERVATION_UNAVAILABLE');
+   const before=await lstat(dir);
+   if(!before.isDirectory())throw Error('LOCAL_OBSERVATION_UNAVAILABLE');
+   const field=async name=>{
+    try{
+     const path=dir+'/'+name;
+     const fd=await open(path,constants.O_RDONLY|constants.O_NOFOLLOW|constants.O_NONBLOCK);
+     try{
+      if(!(await fd.stat()).isFile())return null;
+      const bytes=Buffer.alloc(129);let n=0;
+      while(n<bytes.length){const {bytesRead}=await fd.read(bytes,n,bytes.length-n,null);if(!bytesRead)break;n+=bytesRead}
+      if(n>128||bytes.subarray(0,n).some(x=>x>127))return null;
+      return bytes.subarray(0,n).toString('ascii').replace(/\n$/,'');
+     }finally{await fd.close()}
+    }catch{return null}
+   };
+   const type=await field('type'),present=await field('present');
+   if(type==='Battery'&&present==='1'){
+    observations={type,present,charge:await field('capacity'),status:await field('status'),
+     energyFull:await field('energy_full'),energyDesign:await field('energy_full_design'),
+     chargeFull:await field('charge_full'),chargeDesign:await field('charge_full_design')};
+    const after=await lstat(dir);
+    if(before.dev!==after.dev||before.ino!==after.ino||await realpath('/sys/class/power_supply/'+batteryId)!==dir||
+      await field('type')!==type||await field('present')!==present)observations={};
+   }
+  }catch{observations={}}
+ }
+ return result({schema:'aaditech-battery-diagnostic-v1',...parseBatteryObservations(observations)});
+}

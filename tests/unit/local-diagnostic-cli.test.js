@@ -14,7 +14,7 @@ describe('local diagnostic CLI',()=>{
   const dir=await mkdtemp(join(await realpath(tmpdir()),'itk-local-cli-'));
   try{
    for(const args of [['disk','--target',dir,confirm],['resource','--target',dir,'--sample-ms','100',confirm],
-     ['network','--interface','lo',confirm]]){
+     ['network','--interface','lo',confirm],['battery','--battery','BAT999999',confirm]]){
     const r=await run(args);
     expect(r.artifact_sha256).toBe(createHash('sha256').update(JSON.stringify(r.artifact)).digest('hex'));
     expect(r).toMatchObject({collection_scope:'LOCAL_OPERATOR_REFERENCE',remote_execution_authorized:false,production_accepted:false});

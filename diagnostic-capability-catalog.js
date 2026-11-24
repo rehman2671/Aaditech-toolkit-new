@@ -8,7 +8,7 @@ const rows=[
  ['DISK_CAPACITY_HEALTH','aaditech-disk-diagnostic-v1',['free_percent','health_state','read_only_state'],'LOCAL_CAPACITY_REFERENCE','LOCAL_CAPACITY_REFERENCE','LOCAL_CAPACITY_REFERENCE'],
  ['UPDATE_STATUS',null,[]],['AUDIO_STATUS',null,[]],['BLUETOOTH_STATUS',null,[]],
  ['PRINT_STATUS',null,[]],['BOOT_TIMING',null,[]],['APPLICATION_HEALTH',null,[]],
- ['SHELL_STATUS',null,[]],['BATTERY_HEALTH',null,[]],['MANAGED_POLICY_STATUS',null,[]],
+ ['SHELL_STATUS',null,[]],['BATTERY_HEALTH',null,[],'LINUX_PASSIVE_REFERENCE'],['MANAGED_POLICY_STATUS',null,[]],
  ['APPROVED_SOFTWARE_INVENTORY',null,[]],['OS_SHELL_CONFIGURATION',null,[]],['POWER_PLAN_STATUS',null,[]],
  ['FIREWALL_STATUS',null,[]]
 ];

@@ -3,7 +3,7 @@ import {createHash,generateKeyPairSync,randomUUID,sign} from 'node:crypto';
 import {mkdtemp,realpath,readdir,rm,statfs} from 'node:fs/promises';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
-import {collectLocalNetworkDiagnostic as network,collectLocalDiskDiagnostic as disk,parseLinuxIPv4DefaultRoute as route} from '../../scripts/local-categorical-diagnostics.mjs';
+import {collectLocalNetworkDiagnostic as network,collectLocalDiskDiagnostic as disk,collectLocalBatteryDiagnostic as battery,parseLinuxIPv4DefaultRoute as route} from '../../scripts/local-categorical-diagnostics.mjs';
 import {verifyCategoricalDiagnosticArtifact} from '../../diagnostic-evidence.js';
 const header='Iface Destination Gateway Flags RefCnt Use Metric Mask MTU Window IRTT';
 const entry=(name,dest='00000000',flags='0003',mask='00000000')=>[name,dest,'0100000A',flags,0,0,0,mask,0,0,0].join(' ');
@@ -44,6 +44,10 @@ describe('passive local categorical collectors',()=>{
   expect(Object.keys(doc)).toEqual(['schema','link_state','default_route_state','approved_probe_state']);
   expect(doc.approved_probe_state).toBe('NOT_RUN');expect(r.artifact_sha256).toBe(sha(r.artifact));
   expect(verify(r,'APPROVED_NETWORK_STATUS')).toMatchObject({artifact_content_verified:true,measured_fields:r.measured_fields,attempt_executed:false,production_accepted:false});
+ });
+ it('validates an actual local battery observation through the signed review contract',async()=>{
+  const r=await battery({confirmation:'COLLECT_LOCAL_BATTERY_ONLY',batteryId:'BAT0'});
+  expect(verify(r,'BATTERY_HEALTH')).toMatchObject({artifact_content_verified:true,measured_fields:r.measured_fields,measurement_truth_verified:false,attempt_executed:false});
  });
  it('measures available filesystem capacity and never infers SMART health or writability',async()=>{
   const dir=await mkdtemp(join(await realpath(tmpdir()),'itk-disk-'));

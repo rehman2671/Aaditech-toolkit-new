@@ -288,10 +288,19 @@ try {
     assert.equal(recovery.body.outstanding_commands, 1);
     assert.ok(recovery.body.blockers.includes('COMMAND_RECONCILIATION_REQUIRED'));
     assert.equal((await result(port, outstandingId)).status, 401);
+    const dispatch = await fetch('http://127.0.0.1:' + port + '/api/v1/commands/dispatch', {
+      method:'POST', headers:{...auth,'Content-Type':'application/json'},
+      body:JSON.stringify({device_id:deviceId,kind:'run-script',payload:{script:'Scripts/QuickCheck.ps1'}}),
+      signal:AbortSignal.timeout(12000)
+    });
+    assert.equal(dispatch.status, 409);
+    assert.equal((await dispatch.json()).error, 'DEVICE_CREDENTIAL_NOT_ACTIVE');
   }
   const [unfinished] = await pool.execute('SELECT status, completed_at FROM command_queue WHERE id = ?', [outstandingId]);
   assert.equal(unfinished[0].status, 'IN_PROGRESS');
   assert.equal(unfinished[0].completed_at, null);
+  const [queueCount] = await pool.execute('SELECT COUNT(*) AS total FROM command_queue WHERE device_id = ?', [deviceId]);
+  assert.equal(Number(queueCount[0].total), 2, 'Revoked-device dispatch must not create a queue row');
   console.log('[PASS] Two production workers enforce durable revocation/audit, credential-bound claim/result and preserve unresolved commands.');
 } finally {
   setPartition(true);

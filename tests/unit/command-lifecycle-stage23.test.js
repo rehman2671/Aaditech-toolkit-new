@@ -3,6 +3,26 @@ import * as db from '../../db.js';
 import { commandResultSchema } from '../../validation.js';
 
 const originalMode = process.env.NODE_ENV;
+const credential = { tenantId: 'tenant-A', tokenHash: 'a'.repeat(64) };
+// Mock the transaction's locked device read separately from command SQL.
+// Every caller still exercises the production credential guard and CAS.
+function transactionPool(query) {
+  return {
+    query,
+    getConnection: async () => ({
+      beginTransaction: async () => {}, commit: async () => {},
+      rollback: async () => {}, release: () => {},
+      query: async (sql, params = []) => {
+        if (sql.startsWith('SELECT id, tenant_id, device_token_hash')) {
+          expect(sql).toContain('FOR UPDATE');
+          return [[{ id: params[0], tenant_id: credential.tenantId,
+            device_token_hash: credential.tokenHash, agent_token_revoked: 0 }], []];
+        }
+        return query(sql, params);
+      }
+    })
+  };
+}
 afterEach(() => {
   db.setConnectionStateForTesting(false, null);
   if (originalMode === undefined) delete process.env.NODE_ENV;
@@ -13,15 +33,15 @@ describe('Phase N23 command queue: database is authoritative', () => {
   it('fails closed on failed MySQL insert; never queues a ghost command', async () => {
     process.env.NODE_ENV = 'production';
     const writes = [];
-    db.setConnectionStateForTesting(true, { query: async (sql) => {
+    db.setConnectionStateForTesting(true, transactionPool(async (sql) => {
       writes.push(sql);
       if (sql.includes('INSERT INTO command_queue')) {
         throw Object.assign(new Error('simulated MySQL disk outage'), { code: 'ER_DISK_FULL' });
       }
       return [[], []];
-    }});
+    }));
     const command = { id: 'n23-db-failure', device_id: 'device-A', kind: 'DIAGNOSTIC', payload: {} };
-    await expect(db.queueCommandInDb(command)).rejects.toMatchObject({ code: 'ER_DISK_FULL' });
+    await expect(db.queueCommandInDb(command, credential)).rejects.toMatchObject({ code: 'ER_DISK_FULL' });
     expect(writes.some(sql => sql.includes('INSERT INTO command_queue'))).toBe(true);
     expect(await db.getCommandById(command.id)).toBeNull();
     expect(await db.getPendingCommandsForDevice(command.device_id)).toEqual([]);
@@ -48,7 +68,7 @@ describe('Phase N23 command queue: database is authoritative', () => {
     process.env.NODE_ENV = 'production';
     let pending = true;
     const operations = [];
-    db.setConnectionStateForTesting(true, { query: async (sql, params = []) => {
+    db.setConnectionStateForTesting(true, transactionPool(async (sql, params = []) => {
       operations.push({ sql, params });
       if (sql.startsWith('UPDATE command_queue SET')) {
         const accepted = pending && params[0] === 'cmd-1' && params[1] === 'device-1';
@@ -56,11 +76,11 @@ describe('Phase N23 command queue: database is authoritative', () => {
         return [{ affectedRows: accepted ? 1 : 0 }, []];
       }
       return [[], []];
-    }});
+    }));
     const results = await Promise.all([
-      db.markCommandPickedUp('cmd-1', 'device-1'),
-      db.markCommandPickedUp('cmd-1', 'device-1'),
-      db.markCommandPickedUp('cmd-1', 'wrong-device')
+      db.markCommandPickedUp('cmd-1', 'device-1', credential),
+      db.markCommandPickedUp('cmd-1', 'device-1', credential),
+      db.markCommandPickedUp('cmd-1', 'wrong-device', credential)
     ]);
     expect(results).toEqual([true, false, false]);
     expect(operations).toHaveLength(3);
@@ -71,7 +91,7 @@ describe('Phase N23 command queue: database is authoritative', () => {
     process.env.NODE_ENV = 'production';
     let state = 'PENDING';
     const queries = [];
-    db.setConnectionStateForTesting(true, { query: async (sql, params = []) => {
+    db.setConnectionStateForTesting(true, transactionPool(async (sql, params = []) => {
       queries.push({ sql, params });
       if (sql.includes("AND status = 'IN_PROGRESS'")) {
         if (state !== 'IN_PROGRESS' || params[5] !== 'device-A') return [{ affectedRows: 0 }, []];
@@ -84,12 +104,12 @@ describe('Phase N23 command queue: database is authoritative', () => {
         return [{ affectedRows: 1 }, []];
       }
       return [[], []];
-    }});
-    expect(await db.completeCommandInDb('cmd-X', 'completed', 'done', '', 0, 'device-A')).toBe(false);
-    expect(await db.markCommandPickedUp('cmd-X', 'device-A')).toBe(true);
-    expect(await db.completeCommandInDb('cmd-X', 'completed', 'done', '', 0, 'device-B')).toBe(false);
-    expect(await db.completeCommandInDb('cmd-X', 'completed', 'done', '', 0, 'device-A')).toBe(true);
-    expect(await db.completeCommandInDb('cmd-X', 'failed', 'late overwrite', '', 1, 'device-A')).toBe(false);
+    }));
+    expect(await db.completeCommandInDb('cmd-X', 'completed', 'done', '', 0, 'device-A', credential)).toBe(false);
+    expect(await db.markCommandPickedUp('cmd-X', 'device-A', credential)).toBe(true);
+    expect(await db.completeCommandInDb('cmd-X', 'completed', 'done', '', 0, 'device-B', credential)).toBe(false);
+    expect(await db.completeCommandInDb('cmd-X', 'completed', 'done', '', 0, 'device-A', credential)).toBe(true);
+    expect(await db.completeCommandInDb('cmd-X', 'failed', 'late overwrite', '', 1, 'device-A', credential)).toBe(false);
     expect(queries.filter(q => q.sql.includes("AND status = 'IN_PROGRESS'"))).toHaveLength(4);
     expect(queries.every(q => q.sql.includes('device_id = ?'))).toBe(true);
     expect(state).toBe('COMPLETED');
@@ -105,11 +125,16 @@ describe('Phase N23 command queue: database is authoritative', () => {
 
   it('fails closed on database update errors without fabricated acknowledgment', async () => {
     process.env.NODE_ENV = 'production';
-    db.setConnectionStateForTesting(true, { query: async () => {
+    db.setConnectionStateForTesting(true, transactionPool(async () => {
       throw Object.assign(new Error('MySQL unavailable'), { code: 'ECONNRESET' });
-    }});
-    await expect(db.markCommandPickedUp('cmd-F', 'device-A')).rejects.toMatchObject({ code: 'ECONNRESET' });
+    }));
+    await expect(db.markCommandPickedUp('cmd-F', 'device-A', credential)).rejects.toMatchObject({ code: 'ECONNRESET' });
+    await expect(db.completeCommandInDb('cmd-F', 'completed', '', '', 0, 'device-A', credential))
+      .rejects.toMatchObject({ code: 'ECONNRESET' });
+    await expect(db.markCommandPickedUp('cmd-F', 'device-A')).rejects.toThrow('COMMAND_CREDENTIAL_CHANGED');
     await expect(db.completeCommandInDb('cmd-F', 'completed', '', '', 0, 'device-A'))
-      .rejects.toThrow('Database connection unavailable');
+      .rejects.toThrow('COMMAND_CREDENTIAL_CHANGED');
+    await expect(db.queueCommandInDb({id:'cmd-F',device_id:'device-A',kind:'DIAGNOSTIC'}))
+      .rejects.toThrow('COMMAND_CREDENTIAL_CHANGED');
   });
 });

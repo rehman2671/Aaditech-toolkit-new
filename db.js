@@ -2148,7 +2148,7 @@ export async function getDeviceProcesses(deviceId) {
 // ---------------- COMMANDS ----------------
 // The database is the authority for remote command dispatch. Never mark an
 // uncommitted command accepted or retain a shadow queue in production.
-export async function queueCommandInDb(cmd) {
+export async function queueCommandInDb(cmd, credential = undefined) {
   try {
     const cmdId = cmd.id ? String(cmd.id) : crypto.randomUUID();
     cmd.id = cmdId;
@@ -2173,7 +2173,7 @@ export async function queueCommandInDb(cmd) {
         id, device_id, hostname, command_type, payload, hmac_signature, signed_content, status, dispatched_by, dispatched_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(3))
     `;
-    const result = await executeQuery(sql, [
+    const result = await executeCredentialBoundCommandWrite(memCmd.device_id, credential, sql, [
       cmdId, memCmd.device_id, memCmd.hostname,
       memCmd.command_type, JSON.stringify(payload),
       memCmd.hmac_signature, memCmd.signed_content,
@@ -2185,7 +2185,7 @@ export async function queueCommandInDb(cmd) {
   } catch (err) {
     // No client-supplied command payload, script name, or SQL credentials in logs.
     console.error('queueCommandInDb failed:', err.code || 'COMMAND_QUEUE_INSERT_FAILED');
-    if (process.env.NODE_ENV !== 'test') throw err;
+    if (process.env.NODE_ENV !== 'test' || credential !== undefined) throw err;
     return false;
   }
 }

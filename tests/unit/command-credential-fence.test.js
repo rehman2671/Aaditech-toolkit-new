@@ -17,16 +17,17 @@ function setup(rows=[active],writeFails=false) {
   db.setConnectionStateForTesting(true,{getConnection:async()=>conn});
   return conn;
 }
+const enqueue=()=>db.queueCommandInDb({id:command,device_id:owner,kind:'run-script'},credential);
 const claim=()=>db.markCommandPickedUp(command,owner,credential);
 const complete=()=>db.completeCommandInDb(command,'completed','ok','',0,owner,credential);
 describe('credential-bound command mutation transaction',()=>{
   it('locks the same device row before a claim or terminal result and commits once',async()=>{
-    for(const mutation of [claim,complete]){
+    for(const mutation of [enqueue,claim,complete]){
       const c=setup();
       expect(await mutation()).toBe(true);
       expect(c.query.mock.calls[0][0]).toContain('FOR UPDATE');
       expect(c.query.mock.calls[0][1]).toEqual([owner,credential.tenantId]);
-      expect(c.query.mock.calls[1][0]).toContain('UPDATE command_queue');
+      expect(c.query.mock.calls[1][0]).toMatch(/(?:INSERT INTO|UPDATE) command_queue/);
       expect(c.commit).toHaveBeenCalledTimes(1);
       expect(c.rollback).not.toHaveBeenCalled();
       expect(c.release).toHaveBeenCalledTimes(1);
@@ -36,7 +37,7 @@ describe('credential-bound command mutation transaction',()=>{
     for(const rows of [[],[active,active],[{...active,agent_token_revoked:1}],
       [{...active,agent_token_revoked:null}],[{...active,device_token_hash:'b'.repeat(64)}],
       [{...active,tenant_id:'tenant-b'}]]){
-      for(const mutation of [claim,complete]){
+      for(const mutation of [enqueue,claim,complete]){
         const c=setup(rows);
         await expect(mutation()).rejects.toThrow('COMMAND_CREDENTIAL_CHANGED');
         expect(c.query).toHaveBeenCalledTimes(1);

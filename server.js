@@ -2510,7 +2510,14 @@ app.post(['/api/commands', '/api/v1/commands/dispatch'], requireRole(['SUPER_ADM
   };
 
   let queued = false;
-  try { queued = await db.queueCommandInDb(cmd); } catch (_) {}
+  try {
+    queued = await db.queueCommandInDb(cmd, process.env.NODE_ENV === 'test' ? undefined :
+      { tenantId: req.user.tenant_id, tokenHash: agent.device_token_hash });
+  } catch (error) {
+    if (error.message === 'COMMAND_CREDENTIAL_CHANGED') {
+      return res.status(409).json({ error: 'DEVICE_CREDENTIAL_NOT_ACTIVE' });
+    }
+  }
   if (!queued) return res.status(503).json({ error: 'COMMAND_QUEUE_UNAVAILABLE' });
 
   logAudit(req.user, "COMMAND_DISPATCHED", `Device:${agent.hostname}`, { 
@@ -3389,8 +3396,13 @@ app.post(['/api/v1/remediation/trigger', '/api/remediation/trigger'], requireRol
       payload: { script_name: 'Remediate-' + policy.action_type + '.ps1' },
       status: 'pending',
       dispatched_by: req.user?.username || 'admin'
-    });
-  } catch (_) {}
+    }, process.env.NODE_ENV === 'test' ? undefined :
+      { tenantId, tokenHash: device.device_token_hash });
+  } catch (error) {
+    if (error.message === 'COMMAND_CREDENTIAL_CHANGED') {
+      return res.status(409).json({ error: 'DEVICE_CREDENTIAL_NOT_ACTIVE' });
+    }
+  }
   if (!queued) return res.status(503).json({ error: 'COMMAND_QUEUE_UNAVAILABLE' });
   const action = 'Queued approved remediation: ' + policy.action_type;
   const log = await db.logRemediation({

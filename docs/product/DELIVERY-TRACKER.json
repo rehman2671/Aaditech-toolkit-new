@@ -202,9 +202,47 @@
       ],
       "evidence": [
         "command-signing.js",
-        "test-network-db-fault-injection.js"
+        "test-network-db-fault-injection.js",
+        "Proposed PR #96 retires legacy unsafe command executor; #97 denies reboot without consent (unmerged, not physical acceptance)"
       ],
-      "next": "Demonstrate real physical command, interrupted network, dedupe and result verification",
+      "next": "Independently review PR #96/#97; demonstrate signed command execution/ACK on physically enrolled Windows endpoints with verified recipient/expiry, consent and negative abuse tests; ACK is not resolution",
+      "blocked": true
+    },
+    {
+      "key": "AT-SEC-02",
+      "title": "Retire public legacy standalone agent remote command executor",
+      "priority": "P0",
+      "state": "CI_VERIFIED",
+      "owner": "independent_agent_security_reviewer",
+      "requires": [
+        "FE-09"
+      ],
+      "evidence": [
+        "Unmerged PR #96 head c6bd01b2bed47707418fded57a90b5a07c049ec8",
+        "CI 45292527338 SUCCESS 3/3 including native Windows legacy agent source check",
+        "Deployment safety 45292527296 SUCCESS 2/2",
+        "Legacy Aaditech-Agent.ps1 now TELEMETRY-ONLY; no unbound outer cmd.kind or unapproved privileged repair"
+      ],
+      "next": "Independently review and reconcile agent bundle/Windows CI with PR #95/#97, then protected landing and signed MSI physical Windows validation; don't claim remote commands are safe from this source test",
+      "blocked": true
+    },
+    {
+      "key": "AT-SEC-03",
+      "title": "Default-deny unapproved reboot and unsigned elevated MSI self-update",
+      "priority": "P0",
+      "state": "CI_VERIFIED",
+      "owner": "independent_security_and_release_reviewer",
+      "requires": [
+        "AT-OPS-01",
+        "DEC-005"
+      ],
+      "evidence": [
+        "Unmerged PR #97 head 3392ddd7c17e759e52853964774cffe71e772487",
+        "CI 45294006952 SUCCESS 3/3 including Windows reboot/self-update refusals",
+        "Deployment safety 45294004792 SUCCESS 2/2",
+        "Reboot blocked at API/portal/worker and SYSTEM task; automatic TEMP MSI download/elevated msiexec disabled"
+      ],
+      "next": "Implement independent owner/device consent, maintenance window, audited signed privileged IPC, out-of-band signed MSI hash and signer, immutable staging, rollback and real Windows approval before enabling reboot or unattended update",
       "blocked": true
     },
     {
@@ -248,9 +286,10 @@
       "requires": [],
       "evidence": [
         "main diagnostic CI 45062353330",
-        "Enterprise/agent/SETUP-WINDOWS.md"
+        "Enterprise/agent/SETUP-WINDOWS.md",
+        "Unmerged PR #95 approval-hash + signer-gated downloaded MSI scripts; #97 disables unsigned unattended worker MSI auto-update"
       ],
-      "next": "Review N74; sign and verify physical Windows install/upgrade",
+      "next": "After independent review and protected merge, sign real publisher-owned MSI and witness physical Windows install, configured enrollment, upgrade and rollback; auto-update is disabled until approved release integrity",
       "blocked": true
     },
     {
@@ -294,7 +333,8 @@
         "FE-19"
       ],
       "evidence": [
-        "Issue #62 OPEN; main unprotected; no releases"
+        "Issue #62 OPEN; main unprotected; no releases",
+        "Unmerged PR #95/#96/#97 exact-head CI green but independent reviews, release signing and protected main remain absent"
       ],
       "next": "Authorize reviewer, enforce non-bypass protected main and independently sign/publish vetted release",
       "blocked": true

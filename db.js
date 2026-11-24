@@ -88,6 +88,9 @@ export async function cacheDelPattern(pattern) {
   }
 }
 
+// All real deployments must use persistent MySQL. Only an explicitly
+// isolated automated test profile may use the demo/memory SQL emulator.
+// Unset/development/staging NODE_ENV is never proof of a safe test harness.
 // ---------------- MYSQL INITIALIZATION & RESILIENCE ----------------
 let isConnecting = false;
 let dbHealthCheckTimer = null;
@@ -96,7 +99,7 @@ export async function attemptConnection() {
   if (isConnecting) return isConnected;
   // Read/validate configuration BEFORE setting isConnecting. A validation
   // failure must not poison all future health-check/reconnect attempts.
-  if (process.env.NODE_ENV === 'production') {
+  if (process.env.NODE_ENV !== 'test') {
     for (const name of ['DB_HOST', 'DB_USER', 'DB_PASSWORD', 'DB_NAME']) {
       if (!process.env[name] || !process.env[name].trim()) {
         throw new Error(`${name} must be explicitly configured in production`);
@@ -112,7 +115,7 @@ export async function attemptConnection() {
   const poolSize = parseInt(process.env.DB_POOL_SIZE || '20', 10);
   // Device identity advisory locks pin one connection temporarily; require
   // at least one additional connection for the protected DB operations.
-  if (process.env.NODE_ENV === 'production') {
+  if (process.env.NODE_ENV !== 'test') {
     if (!Number.isInteger(port) || port < 1 || port > 65535) {
       throw new Error('DB_PORT must be a valid TCP port in production');
     }
@@ -153,7 +156,7 @@ export async function attemptConnection() {
     try {
       await newPool.query('SELECT 1 + 1 AS solution');
     } catch (conErr) {
-      if (process.env.NODE_ENV !== 'production' && (conErr.code === 'ECONNREFUSED' || conErr.message?.includes('ECONNREFUSED')) && (host === '127.0.0.1' || host === 'localhost')) {
+      if (process.env.NODE_ENV === 'test' && (conErr.code === 'ECONNREFUSED' || conErr.message?.includes('ECONNREFUSED')) && (host === '127.0.0.1' || host === 'localhost')) {
         try {
           const { execSync } = await import('node:child_process');
           execSync('/etc/init.d/mariadb start', { stdio: 'ignore' });
@@ -565,7 +568,7 @@ export async function executeQuery(sql, params = []) {
       const [results] = await pool.query(sql, params);
       return results;
     } catch (err) {
-      if (process.env.NODE_ENV === 'production') {
+      if (process.env.NODE_ENV !== 'test') {
         console.error("MySQL query execution error in production:", err.message);
         if (err.fatal || ['ECONNRESET', 'ECONNREFUSED', 'EPIPE', 'ETIMEDOUT', 'PROTOCOL_CONNECTION_LOST'].includes(err.code)) {
           isConnected = false;
@@ -578,7 +581,7 @@ export async function executeQuery(sql, params = []) {
 
   // Production must never enter the demo/in-memory datastore, even when a
   // stale ALLOW_FALLBACK_DB setting is present on a deployed machine.
-  if (process.env.NODE_ENV === 'production') {
+  if (process.env.NODE_ENV !== 'test') {
     throw new Error('Database connection unavailable in production environment: cannot execute query on memory fallback');
   }
 
@@ -1315,7 +1318,7 @@ export async function getDeviceById(id) {
   if (!id) return null;
   const key = `id:${id}`;
 
-  const production = process.env.NODE_ENV === 'production';  const cached = deviceLookupCache.get(key);
+  const production = process.env.NODE_ENV !== 'test';  const cached = deviceLookupCache.get(key);
   if (!production && cached && Date.now() < cached.expiresAt) return cached.record;
 
   const rows = await executeQuery('SELECT * FROM devices WHERE id = ? LIMIT 1', [String(id)]);
@@ -1384,7 +1387,7 @@ export async function withDeviceIdentityLock(hostname, deviceUid, fn) {
     }
     });
   }
-  if (process.env.NODE_ENV === 'production') {
+  if (process.env.NODE_ENV !== 'test') {
     throw new Error('Refusing device identity operation without MySQL advisory locks');
   }
 
@@ -1423,7 +1426,7 @@ export async function getEnrollmentIdentityMatches(hostname, deviceUid) {
     );
     return rows.map(formatDeviceRecord);
   }
-  if (process.env.NODE_ENV === 'production') {
+  if (process.env.NODE_ENV !== 'test') {
     throw new Error('Cannot check enrollment ownership without MySQL.');
   }
   // Test/development fallback uses all matching devices, not .find().
@@ -1438,7 +1441,7 @@ export async function getDeviceByHostname(hostname) {
   const hTrim = String(hostname).trim();
   const key = `host:${hTrim.toLowerCase()}`;
 
-  const production = process.env.NODE_ENV === 'production';  const cached = deviceLookupCache.get(key);
+  const production = process.env.NODE_ENV !== 'test';  const cached = deviceLookupCache.get(key);
   if (!production && cached && Date.now() < cached.expiresAt) return cached.record;
 
   const rows = await executeQuery('SELECT * FROM devices WHERE hostname = ? LIMIT 1', [hTrim]);
@@ -1462,7 +1465,7 @@ export async function getDeviceByUid(deviceUid) {
   const uTrim = String(deviceUid).trim();
   const key = `uid:${uTrim.toLowerCase()}`;
 
-  const production = process.env.NODE_ENV === 'production';  const cached = deviceLookupCache.get(key);
+  const production = process.env.NODE_ENV !== 'test';  const cached = deviceLookupCache.get(key);
   if (!production && cached && Date.now() < cached.expiresAt) return cached.record;
 
   const rows = await executeQuery('SELECT * FROM devices WHERE device_uid = ? LIMIT 1', [uTrim]);
@@ -1483,7 +1486,7 @@ export async function getDeviceByUid(deviceUid) {
 
 export async function getDeviceByTokenHash(hash) {
   if (!hash) return null;
-  const production = process.env.NODE_ENV === 'production';
+  const production = process.env.NODE_ENV !== 'test';
   const key = `hash:${hash}`;
   // Revocation on other API workers must invalidate authentication immediately.
   if (!production) {
@@ -1869,7 +1872,7 @@ export async function flushTelemetryQueue() {
       await pool.query(sql, [rows]);
     } catch (err) {
       telemetryQueue.unshift(...batch);
-      if (process.env.NODE_ENV === 'production') {
+      if (process.env.NODE_ENV !== 'test') {
         console.error('Fatal: Failed to flush batched telemetry in production:', err.message);
         throw err;
       }
@@ -1915,7 +1918,7 @@ export async function insertTelemetryBatch(records) {
       `;
       await pool.query(sql, [rows]);
     } catch (err) {
-      if (process.env.NODE_ENV === 'production') {
+      if (process.env.NODE_ENV !== 'test') {
         console.error('insertTelemetryBatch error in production:', err.message);
         throw err;
       }
@@ -2043,7 +2046,7 @@ export async function getDeviceProcesses(deviceId) {
     'SELECT * FROM device_processes WHERE device_id = ? ORDER BY cpu_pct DESC LIMIT 100',
     [String(deviceId)]
   );
-  if (process.env.NODE_ENV === 'production') {
+  if (process.env.NODE_ENV !== 'test') {
     // Persistent DB is the only production authority; never export a stale
     // in-process snapshot after MySQL has no corresponding rows.
     return Array.isArray(rows) ? rows : [];
@@ -2087,12 +2090,12 @@ export async function queueCommandInDb(cmd) {
       memCmd.status.toUpperCase(), memCmd.dispatched_by
     ]);
     if (result?.affectedRows !== 1) throw new Error('COMMAND_QUEUE_INSERT_NOT_COMMITTED');
-    if (process.env.NODE_ENV !== 'production') memCommands.push(memCmd);
+    if (process.env.NODE_ENV === 'test') memCommands.push(memCmd);
     return true;
   } catch (err) {
     // No client-supplied command payload, script name, or SQL credentials in logs.
     console.error('queueCommandInDb failed:', err.code || 'COMMAND_QUEUE_INSERT_FAILED');
-    if (process.env.NODE_ENV === 'production') throw err;
+    if (process.env.NODE_ENV !== 'test') throw err;
     return false;
   }
 }
@@ -2130,7 +2133,7 @@ export async function getCommands(filters = {}) {
 
   const rows = await executeQuery(sql, params);
   // Empty production SQL results are authoritative; no in-memory fallback.
-  if (rows && (rows.length > 0 || process.env.NODE_ENV === 'production')) {
+  if (rows && (rows.length > 0 || process.env.NODE_ENV !== 'test')) {
     return rows.map(r => ({
       ...r,
       agent_id: r.device_id,
@@ -2159,7 +2162,7 @@ export async function getCommands(filters = {}) {
 }
 
 export async function getCommandById(id) {
-  const c = process.env.NODE_ENV === 'production' ? null :
+  const c = process.env.NODE_ENV !== 'test' ? null :
     memCommands.find(x => String(x.id) === String(id));
   if (c) {
     return {
@@ -2196,7 +2199,7 @@ export async function getPendingCommandsForDevice(deviceId, limit = 50) {
       payload: typeof r.payload === 'string' ? JSON.parse(r.payload || '{}') : (r.payload || {})
     }));
   }
-  if (process.env.NODE_ENV === 'production') return [];
+  if (process.env.NODE_ENV !== 'test') return [];
   const memResults = memCommands.filter(c => 
     (String(c.device_id).toLowerCase() === String(deviceId).toLowerCase() || 
      (c.hostname && String(c.hostname).toLowerCase() === String(deviceId).toLowerCase())) &&
@@ -2215,7 +2218,7 @@ export async function getPendingCommandsForDevice(deviceId, limit = 50) {
 // No automatic expiry/replay: destructive operations need human review when
 // the result is lost; the endpoint agent's local dedup is defense in depth.
 export async function markCommandPickedUp(id, deviceId = null) {
-  const c = process.env.NODE_ENV === 'production' ? null :
+  const c = process.env.NODE_ENV !== 'test' ? null :
     memCommands.find(x => String(x.id) === String(id));
   const owner = deviceId || c?.device_id;
   if (!owner) return false;
@@ -2236,7 +2239,7 @@ export async function markCommandPickedUp(id, deviceId = null) {
 // claim. Duplicate, pre-poll, or stale reports MUST NOT overwrite final history.
 export async function completeCommandInDb(cmdId, status, stdout, stderr, exitCode, deviceId = null) {
   if (!['completed', 'failed'].includes(status)) return false;
-  const c = process.env.NODE_ENV === 'production' ? null :
+  const c = process.env.NODE_ENV !== 'test' ? null :
     memCommands.find(x => String(x.id) === String(cmdId));
   const owner = deviceId || c?.device_id;
   if (!owner) return false;
@@ -2261,9 +2264,40 @@ export async function completeCommandInDb(cmdId, status, stdout, stderr, exitCod
     return true;
   } catch (err) {
     console.error('completeCommandInDb failed:', err.code || 'COMMAND_RESULT_WRITE_FAILED');
-    if (process.env.NODE_ENV === 'production') throw err;
+    if (process.env.NODE_ENV !== 'test') throw err;
     return false;
   }
+}
+
+// Read-only exact receipt for a previously committed terminal command. A
+// collation-insensitive SQL string comparison would allow changed output;
+// compare the persisted UTF-8-decoded values byte-for-byte in JavaScript.
+// Never acknowledge from a non-test process's demonstration datastore.
+export async function getExactCommandResultReceipt(cmdId, deviceId, status, stdout, stderr, exitCode) {
+  if (!cmdId || !deviceId || !['completed', 'failed'].includes(status)) return null;
+  let rows;
+  if (isMysqlConnected()) {
+    [rows] = await pool.query(
+      'SELECT id, device_id, status, stdout, stderr, exit_code, completed_at FROM command_queue WHERE id = ? AND device_id = ? LIMIT 1',
+      [String(cmdId), String(deviceId)]
+    );
+  } else if (process.env.NODE_ENV === 'test') {
+    rows = memCommands.filter(c => String(c.id) === String(cmdId) &&
+      String(c.device_id) === String(deviceId));
+  } else {
+    throw new Error('COMMAND_RESULT_RECEIPT_DATABASE_UNAVAILABLE');
+  }
+  if (!Array.isArray(rows) || rows.length !== 1) return null;
+  const row = rows[0];
+  if (String(row.id) !== String(cmdId) || String(row.device_id) !== String(deviceId) ||
+      String(row.status).toLowerCase() !== status ||
+      typeof row.stdout !== 'string' || row.stdout !== stdout ||
+      typeof row.stderr !== 'string' || row.stderr !== stderr ||
+      row.exit_code == null || Number(row.exit_code) !== exitCode ||
+      !row.completed_at) return null;
+  const completed = new Date(row.completed_at);
+  if (!Number.isFinite(completed.getTime())) return null;
+  return { id: String(row.id), status, completed_at: completed.toISOString() };
 }
 
 // ---------------- ALERTS ----------------
@@ -2304,7 +2338,7 @@ export async function getAlertById(id) {
 }
 
 export async function createAlert(alt, notifications = []) {
-  if (process.env.NODE_ENV === 'production' && !alt?.tenant_id) {
+  if (process.env.NODE_ENV !== 'test' && !alt?.tenant_id) {
     throw new Error('TENANT_REQUIRED');
   }
   const sql = `
@@ -2328,7 +2362,7 @@ export async function createAlert(alt, notifications = []) {
     }
   }
   let res;
-  if (process.env.NODE_ENV === 'production' && jobs.length) {
+  if (process.env.NODE_ENV !== 'test' && jobs.length) {
     if (!isMysqlConnected() || !pool?.getConnection) throw new Error('OUTBOX_DATABASE_UNAVAILABLE');
     const conn = await pool.getConnection();
     try {
@@ -2534,7 +2568,7 @@ export async function createAlertRule(rule) {
     rule.enabled !== false ? 1 : 0,
     JSON.stringify(rule.condition || {})
   ]);
-  if (!isMysqlConnected() && process.env.NODE_ENV !== 'production') {
+  if (!isMysqlConnected() && process.env.NODE_ENV === 'test') {
     // Test-only data store must mirror MySQL writes so tenant ownership can
     // be checked in subsequent read/update/delete requests.
     memAlertRules.push({ ...rule, id: ruleId,
@@ -2560,7 +2594,7 @@ export async function updateAlertRule(id, updates) {
   if (fields.length === 0) return false;
   params.push(id);
   await executeQuery(`UPDATE alert_rules SET ${fields.join(', ')} WHERE id = ?`, params);
-  if (!isMysqlConnected() && process.env.NODE_ENV !== 'production') {
+  if (!isMysqlConnected() && process.env.NODE_ENV === 'test') {
     const fixture = memAlertRules.find(r => String(r.id) === String(id));
     if (fixture) Object.assign(fixture, updates);
   }
@@ -2570,7 +2604,7 @@ export async function updateAlertRule(id, updates) {
 
 export async function deleteAlertRule(id) {
   await executeQuery('DELETE FROM alert_rules WHERE id = ?', [id]);
-  if (!isMysqlConnected() && process.env.NODE_ENV !== 'production') {
+  if (!isMysqlConnected() && process.env.NODE_ENV === 'test') {
     const idx = memAlertRules.findIndex(r => String(r.id) === String(id));
     if (idx >= 0) memAlertRules.splice(idx, 1);
   }
@@ -3042,7 +3076,7 @@ export async function getRemediationLogs(limit = 100, tenantId) {
 // Event ownership is persisted at ingest using authenticated device ID.
 // Hostname joins are forbidden for tenant-facing reads; hostnames repeat.
 export async function addEvent(event) {
-  if (process.env.NODE_ENV === 'production' &&
+  if (process.env.NODE_ENV !== 'test' &&
       (!event?.tenant_id || !event?.device_id)) {
     throw new Error('EVENT_DEVICE_TENANT_REQUIRED');
   }

@@ -36,9 +36,22 @@ describe('Server & API Integration Test Suite', () => {
   });
 
   describe('0. Agent enrollment transport hardening', () => {
-    it('production rejects fleet HMAC-only device impersonation without auto-provisioning', async () => {
+    it('production rejects fleet HMAC-only impersonation when database admission is healthy', async () => {
       const previousEnvironment = process.env.NODE_ENV;
+      const previousConnected = db.isMysqlConnected();
+      const previousPool = db.getPool();
+      // The HMAC credential rejection must be tested past the new persistent
+      // DB admission middleware. The Vitest synthetic DB is usually disconnected;
+      // without explicit connection state, a correct 503 masks the 403 auth gate.
+      let unexpectedDatabaseQueries = 0;
+      const noQueryPool = {
+        query: async () => {
+          unexpectedDatabaseQueries += 1;
+          throw new Error('HMAC-only refusal must not query durable tenant state');
+        }
+      };
       process.env.NODE_ENV = 'production';
+      db.setConnectionStateForTesting(true, noQueryPool);
       try {
         const response = await request(app)
           .get('/api/v1/commands/poll?hostname=UNENROLLED-HMAC-HOST')
@@ -47,8 +60,32 @@ describe('Server & API Integration Test Suite', () => {
           .set('X-Timestamp', String(Date.now()));
         expect(response.status).toBe(403);
         expect(response.body.error).toBe('ENROLLED_DEVICE_TOKEN_REQUIRED');
+        expect(unexpectedDatabaseQueries).toBe(0);
       } finally {
-        process.env.NODE_ENV = previousEnvironment;
+        db.setConnectionStateForTesting(previousConnected, previousPool);
+        if (previousEnvironment === undefined) delete process.env.NODE_ENV;
+        else process.env.NODE_ENV = previousEnvironment;
+      }
+    });
+
+    it('production refuses API requests before authentication when MySQL is offline', async () => {
+      const previousEnvironment = process.env.NODE_ENV;
+      const previousConnected = db.isMysqlConnected();
+      const previousPool = db.getPool();
+      process.env.NODE_ENV = 'production';
+      db.setConnectionStateForTesting(false, null);
+      try {
+        const response = await request(app)
+          .get('/api/v1/commands/poll?hostname=UNENROLLED-HMAC-HOST')
+          .set('X-Agent-Signature', 'a'.repeat(64))
+          .set('X-Device-UID', 'dev-uid-UNENROLLED-HMAC-HOST')
+          .set('X-Timestamp', String(Date.now()));
+        expect(response.status).toBe(503);
+        expect(response.body.error).toBe('DATABASE_UNAVAILABLE');
+      } finally {
+        db.setConnectionStateForTesting(previousConnected, previousPool);
+        if (previousEnvironment === undefined) delete process.env.NODE_ENV;
+        else process.env.NODE_ENV = previousEnvironment;
       }
     });
 
@@ -414,6 +451,23 @@ describe('Server & API Integration Test Suite', () => {
       const realResult = await request(app).post(resultUrl)
         .set('X-Device-Token', agentToken).send(body);
       expect(realResult.status).toBe(200);
+      expect(realResult.body.duplicate).toBe(false);
+      expect(realResult.body.completed_at).toBeTruthy();
+
+      // A lost HTTP ACK must be recoverable by replaying the exact same result.
+      const duplicate = await request(app).post(resultUrl)
+        .set('X-Device-Token', agentToken).send(body);
+      expect(duplicate.status).toBe(200);
+      expect(duplicate.body).toEqual({ ...realResult.body, duplicate: true });
+      const changedCase = await request(app).post(resultUrl)
+        .set('X-Device-Token', agentToken).send({ ...body, output: body.output.toUpperCase() });
+      expect(changedCase.status).toBe(409);
+      const changedWhitespace = await request(app).post(resultUrl)
+        .set('X-Device-Token', agentToken).send({ ...body, output: body.output + ' ' });
+      expect(changedWhitespace.status).toBe(409);
+      const wrongOwnerReplay = await request(app).post(resultUrl)
+        .set('X-Device-Token', secondAgentToken).send(body);
+      expect([401,403]).toContain(wrongOwnerReplay.status);
 
       // Once the real device acknowledged a command, replay must not overwrite
       // the immutable terminal result, even with the original valid token.

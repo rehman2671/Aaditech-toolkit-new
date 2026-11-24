@@ -15,7 +15,7 @@ needs so `deploy.ps1` can run end-to-end, including building the agent .exe
   - ps2exe PowerShell module (Windows PowerShell 5.1 only - see below)
   - wix dotnet global tool
   - optional: Windows SDK signtool (artifacts stay UNSIGNED without it)
-  - execution policy + admin checks
+  - read-only execution policy + admin checks (NEVER auto-downgrade policy)
 
 CRITICAL (ps2exe):
 MScholtes/PS2EXE targets the .NET Framework compiler and ONLY works under
@@ -34,7 +34,7 @@ Usage (run as Administrator):
   pwsh ./Enterprise/deploy/Install-Prereqs.ps1            # install everything
   pwsh ./Enterprise/deploy/Install-Prereqs.ps1 -SkipDocker  # server only, no Docker
   pwsh ./Enterprise/deploy/Install-Prereqs.ps1 -IncludeSdk  # also install Windows SDK
-  pwsh ./Enterprise/deploy/Install-Prereqs.ps1 -VerifyOnly  # check, install nothing
+  pwsh ./Enterprise/deploy/Install-Prereqs.ps1 -VerifyOnly  # non-mutating inventory; no admin required
 
 Exit codes:
   0 = ready to run deploy.ps1 (or nothing to do)
@@ -56,6 +56,9 @@ param(
 $ErrorActionPreference = 'Stop'
 $rebootRequired = $false
 $warnings = [System.Collections.Generic.List[string]]::new()
+# Readiness must deny unknown/disabled Windows features or bogus Compose.
+$wslStateUnverified = $false
+$dockerComposeVerified = $false
 
 function Log  { Write-Host "[prereq] $args" -ForegroundColor Cyan }
 function Warn { Write-Host "[prereq][WARN] $args" -ForegroundColor Yellow }
@@ -74,20 +77,30 @@ if (-not $onWindows) {
 
 $principal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
 $elevated  = $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-if (-not $elevated) {
-    Write-Host "[prereq][ERROR] This script installs software system-wide and must run as Administrator." -ForegroundColor Red
-    Write-Host "  Right-click PowerShell -> 'Run as administrator', then re-run." -ForegroundColor Red
+if (-not $elevated -and -not $VerifyOnly) {
+    Write-Host "[prereq][ERROR] Installation requires Administrator; no changes were made." -ForegroundColor Red
     exit 1
+}
+if (-not $elevated -and $VerifyOnly) {
+    Warn 'Read-only inventory is permitted without elevation, but privileged feature status cannot be confirmed.'
+    $warnings.Add('Administrator-required Windows feature state NOT VERIFIED')
 }
 
 # ---------------------------------------------------------------- execution policy
 
-$cur = (Get-ExecutionPolicy -Scope CurrentUser)
-if ($cur -eq 'Restricted' -or $cur -eq 'AllSigned') {
-    Set-ExecutionPolicy -Scope CurrentUser RemoteSigned -Force
-    Log "Execution policy changed: $cur -> RemoteSigned (CurrentUser)"
+# NEVER lower a corporate execution policy. Even an installation request
+# cannot authorize moving AllSigned/Restricted to the weaker RemoteSigned.
+$cur = Get-ExecutionPolicy
+$policyReviewRequired = $cur -eq 'Restricted' -or $cur -eq 'AllSigned'
+if ($policyReviewRequired) {
+    Warn "Effective PowerShell policy '$cur' needs operator/IT approval; policy was NOT changed."
+    $warnings.Add("Execution policy $cur blocks unsupported unsigned operations")
+    if (-not $VerifyOnly) {
+        Write-Host '[prereq][BLOCKED] Obtain approved, signed prerequisites through organizational policy.' -ForegroundColor Red
+        exit 3
+    }
 } else {
-    Log "Execution policy OK: $cur"
+    Log "Effective execution policy observed: $cur (not changed)"
 }
 
 function Get-CommandPath {
@@ -103,6 +116,7 @@ function Test-Winget {
 
 function Install-WingetPackage {
     param([string]$Id, [string]$Display)
+    if ($VerifyOnly) { throw 'READ_ONLY_VERIFY_MODE: refusing package installation' }
     Log "Installing $Display ($Id) via winget..."
     winget install -e --id $Id --accept-package-agreements --accept-source-agreements --silent
     if ($LASTEXITCODE -ne 0 -and $LASTEXITCODE -ne 0x8A150011) {
@@ -127,9 +141,25 @@ if ($git) {
 # ---------------------------------------------------------------- 2. WSL2 + Docker
 
 if (-not $SkipDocker) {
-    $wslFeature = Get-WindowsOptionalFeature -Online -FeatureName Microsoft-Windows-Subsystem-Linux -ErrorAction SilentlyContinue
-    $vmFeature  = Get-WindowsOptionalFeature -Online -FeatureName VirtualMachinePlatform -ErrorAction SilentlyContinue
+    if ($VerifyOnly -and -not $elevated) {
+        # Do not escalate or mutate a machine just to gather dry-run data.
+        $wslFeature = $null
+        $vmFeature = $null
+        Warn 'WSL2/VirtualMachinePlatform feature state NOT VERIFIED without elevation.'
+    } else {
+        $wslFeature = Get-WindowsOptionalFeature -Online -FeatureName Microsoft-Windows-Subsystem-Linux -ErrorAction SilentlyContinue
+        $vmFeature  = Get-WindowsOptionalFeature -Online -FeatureName VirtualMachinePlatform -ErrorAction SilentlyContinue
+    }
 
+    if (-not $wslFeature -or -not $vmFeature) {
+        $wslStateUnverified = $true
+        $warnings.Add('WSL2/VirtualMachinePlatform feature readiness NOT VERIFIED')
+        Warn 'Unable to confirm both Windows feature states.'
+    }
+    if (($wslFeature -and $wslFeature.State -ne 'Enabled') -or
+        ($vmFeature -and $vmFeature.State -ne 'Enabled')) {
+        $wslStateUnverified = $true
+    }
     if ($wslFeature -and $wslFeature.State -ne 'Enabled') {
         if ($VerifyOnly) {
             Warn 'WSL feature disabled - would run: Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Windows-Subsystem-Linux -NoRestart'
@@ -152,9 +182,12 @@ if (-not $SkipDocker) {
     $docker = Get-CommandPath 'docker'
     $composeOk = $false
     if ($docker) {
-        $composeVer = (& docker compose version 2>$null | Out-String).Trim()
-        $composeOk = [bool]$composeVer
+        # Nonempty error text is not proof of an installed Compose v2 plugin.
+        $composeVer = (& docker compose version --short 2>$null | Out-String).Trim()
+        $composeOk = ($LASTEXITCODE -eq 0) -and
+            ($composeVer -match '^v?2\.[0-9]+\.[0-9]+([+.-][0-9A-Za-z.-]+)?$')
     }
+    $dockerComposeVerified = $composeOk
     if ($docker -and $composeOk) {
         Ok "Docker + compose v2 already installed: $composeVer"
     } elseif ($VerifyOnly) {
@@ -293,7 +326,12 @@ if ($rebootRequired) {
     exit 2
 }
 
-if ($stillMissing.Count -gt 0) { exit 3 }
+if ($stillMissing.Count -gt 0 -or $policyReviewRequired -or
+    ($VerifyOnly -and -not $elevated) -or
+    (-not $SkipDocker -and ($wslStateUnverified -or -not $dockerComposeVerified))) {
+    Write-Host '[prereq][BLOCKED] Inventory contains missing or unverified prerequisites. No readiness approval.' -ForegroundColor Yellow
+    exit 3
+}
 Write-Host ""
 Write-Host "Ready. Next: pwsh ./Enterprise/deploy/deploy.ps1" -ForegroundColor Green
 exit 0

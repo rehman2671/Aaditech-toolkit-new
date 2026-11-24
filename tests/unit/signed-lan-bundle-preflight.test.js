@@ -115,7 +115,7 @@ describe('operator local LAN readiness CLI',()=>{
   for(const bad of [{...cfg,password:'private'},{...cfg,bundle:{...cfg.bundle,manifest:'relative'}}])
    await expect(runLocalLanPreflightCli(Buffer.from(JSON.stringify(bad)),confirm)).rejects.toThrow('LOCAL_PREFLIGHT_INPUT_INVALID');
   await expect(runLocalLanPreflightCli(Buffer.alloc(32769),confirm)).rejects.toThrow('LOCAL_PREFLIGHT_INPUT_INVALID');
- });
+ }));
  it('rejects duplicate top-level and escaped nested keys and excessive depth before local observation',()=>fixture(async({input})=>{
   const raw=JSON.stringify(config(input));
   const cases=['{"bundle":null,'+raw.slice(1),

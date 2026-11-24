@@ -10,7 +10,7 @@ const fail=code=>{throw Error(code);};
 const isUuid=x=>typeof x==='string'&&x.length===36&&uuid.test(x);
 const isDigest=x=>typeof x==='string'&&x.length===64&&hex.test(x)&&x!=='0'.repeat(64);
 const safeDbInt=x=>typeof x==='number'&&Number.isSafeInteger(x)?x:
-  typeof x==='string'&&/^(0|[1-9][0-9]*)$/.test(x)&&Number.isSafeInteger(Number(x))?Number(x):NaN;
+  typeof x==='string'&&/^(0|[1-9][0-9]*)$/.test(x)&&String(Number(x))===x&&Number.isSafeInteger(Number(x))?Number(x):NaN;
 function validPending(row,now){
   const created=safeDbInt(row.created_at_ms),expires=safeDbInt(row.expires_at_ms);
   return Number.isSafeInteger(created)&&created>0&&created<=now&&
@@ -44,7 +44,7 @@ async function lockActiveAdmin(c,principal){
   const [users]=await c.query('SELECT id,tenant_id,role,active,status FROM users WHERE id=? AND tenant_id=? FOR UPDATE',
     [principal.id,principal.tenant_id]);
   const user=users?.length===1?users[0]:null;
-  if(!user||Number(user.id)!==principal.id||user.tenant_id!==principal.tenant_id||
+  if(!user||safeDbInt(user.id)!==principal.id||user.tenant_id!==principal.tenant_id||
      user.role!=='SUPER_ADMIN'||![1,true,'1'].includes(user.active)||user.status!=='ACTIVE')fail('RECOVERY_REVIEW_ACTOR_DENIED');
 }
 async function lockContext(c,principal,deviceId,{deferActor=false}={}){

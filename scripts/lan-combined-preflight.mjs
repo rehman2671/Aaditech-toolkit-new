@@ -6,10 +6,13 @@ export async function inspectLocalLanReadiness({confirmation,bundle,host}={}){
  if(confirmation!=='INSPECT_LOCAL_LAN_ONLY'||!bundle||!host)throw Error('EXPLICIT_LOCAL_PREFLIGHT_REQUIRED');
  // Do not inspect host until independently pinned release bytes pass.
  // All inputs must originate from the trusted local operator, not HTTP.
- const release=await verifySignedLanBundle(bundle);
+ const releaseInputs={...bundle};
+ const hostInputs={...host,ports:Array.isArray(host.ports)?[...host.ports]:host.ports,
+  markerPaths:host.markerPaths?{...host.markerPaths}:host.markerPaths};
+ const release=await verifySignedLanBundle(releaseInputs);
  if(release.verified!==true||release.publisher_signature_verified!==true||
     release.payload_integrity_verified!==true)throw Error('SIGNED_RELEASE_NOT_VERIFIED');
- const observed=await inspectLanHost(host);
+ const observed=await inspectLanHost(hostInputs);
  const blocking=[];
  const expected={reference_platform:'OBSERVED_LINUX',privilege:'ROOT_OBSERVED',
   cpu:'MEETS_INPUT_THRESHOLD',physical_memory:'MEETS_INPUT_THRESHOLD',disk:'MEETS_INPUT_THRESHOLD'};

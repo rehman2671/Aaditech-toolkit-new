@@ -6,11 +6,11 @@ const rows=[
  ['RESOURCE_PRESSURE','aaditech-resource-diagnostic-v1',['cpu_percent','ram_percent','disk_percent'],'LOCAL_REFERENCE','LOCAL_REFERENCE','LOCAL_REFERENCE'],
  ['APPROVED_NETWORK_STATUS','aaditech-network-diagnostic-v1',['link_state','default_route_state','approved_probe_state'],'LINUX_PASSIVE_REFERENCE','NOT_IMPLEMENTED','NOT_IMPLEMENTED'],
  ['DISK_CAPACITY_HEALTH','aaditech-disk-diagnostic-v1',['free_percent','health_state','read_only_state'],'LOCAL_CAPACITY_REFERENCE','LOCAL_CAPACITY_REFERENCE','LOCAL_CAPACITY_REFERENCE'],
- ['UPDATE_STATUS',null,[]],['AUDIO_STATUS',null,[]],['BLUETOOTH_STATUS',null,[]],
- ['PRINT_STATUS',null,[]],['BOOT_TIMING',null,[]],['APPLICATION_HEALTH',null,[]],
- ['SHELL_STATUS',null,[]],['BATTERY_HEALTH',null,[],'LINUX_PASSIVE_REFERENCE'],['MANAGED_POLICY_STATUS',null,[]],
- ['APPROVED_SOFTWARE_INVENTORY',null,[]],['OS_SHELL_CONFIGURATION',null,[]],['POWER_PLAN_STATUS',null,[]],
- ['FIREWALL_STATUS',null,[]]
+ ['UPDATE_STATUS',null,[],'NOT_IMPLEMENTED','WINDOWS_PASSIVE_REFERENCE'],['AUDIO_STATUS',null,[]],['BLUETOOTH_STATUS',null,[],'NOT_IMPLEMENTED','WINDOWS_PASSIVE_REFERENCE'],
+ ['PRINT_STATUS',null,[],'NOT_IMPLEMENTED','WINDOWS_PASSIVE_REFERENCE'],['BOOT_TIMING',null,[],'NOT_IMPLEMENTED','WINDOWS_PASSIVE_REFERENCE'],['APPLICATION_HEALTH',null,[]],
+ ['SHELL_STATUS',null,[]],['BATTERY_HEALTH',null,[],'LINUX_PASSIVE_REFERENCE','WINDOWS_PASSIVE_REFERENCE'],['MANAGED_POLICY_STATUS',null,[]],
+ ['APPROVED_SOFTWARE_INVENTORY',null,[]],['OS_SHELL_CONFIGURATION',null,[]],['POWER_PLAN_STATUS',null,[],'NOT_IMPLEMENTED','WINDOWS_PASSIVE_REFERENCE'],
+ ['FIREWALL_STATUS',null,[],'NOT_IMPLEMENTED','WINDOWS_PASSIVE_REFERENCE']
 ];
 const registry=new Map(rows.map(([id,schema,fields,linux='NOT_IMPLEMENTED',windows='NOT_IMPLEMENTED',macos='NOT_IMPLEMENTED'])=>
  [id,Object.freeze({diagnostic_id:id,artifact_schema:schema??additionalDiagnosticReviewContracts[id]?.schema??null,

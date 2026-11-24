@@ -171,3 +171,40 @@ export async function inspectDiagnosticPlan(pool,input){
    diagnostic_authorized:false,execution_authorized:false,repair_authorized:false,production_accepted:false});
  });
 }
+
+// Scope-limited category breakdown. Only intake and distinct planned incident
+// counts are measured. A single grouped query, with explicit invalid-state
+// count, keeps denominators consistent. No external report exposure.
+export async function summarizeTroubleshootingCategories(pool,input){
+ const s=context(pool,input,['principal','installationId','deviceId']);
+ return transaction(pool,async c=>{
+  await lockScope(c,s);
+  const [rows]=await c.query(
+   "SELECT i.category_id, i.hazard, i.status, COUNT(*) AS reported, COALESCE(SUM(EXISTS(SELECT 1 FROM troubleshooting_diagnostic_plans p WHERE p.incident_id=i.incident_id AND p.installation_id=i.installation_id AND p.tenant_id=i.tenant_id AND p.device_id=i.device_id AND p.actor_user_id=i.actor_user_id)),0) AS planned_incidents FROM troubleshooting_incidents i WHERE i.installation_id=? AND i.tenant_id=? AND i.device_id=? AND i.actor_user_id=? GROUP BY i.category_id,i.hazard,i.status",
+   [s.installationId,s.tenant,s.deviceId,s.actor]);
+  if(!Array.isArray(rows)||rows.length>156)fail('INCIDENT_CATEGORY_REPORT_UNVERIFIED');
+  const buckets=new Map(troubleshootingCatalog.map(x=>[x.id,{category_id:x.id,reported:0,open:0,escalated:0,incidents_with_plans:0}]));
+  const seen=new Set();
+  const count=x=>{const n=dbInt(x);if(!Number.isSafeInteger(n)||n<0)fail('INCIDENT_CATEGORY_REPORT_UNVERIFIED');return n};
+  const add=(a,b)=>{const n=a+b;if(!Number.isSafeInteger(n))fail('INCIDENT_CATEGORY_REPORT_UNVERIFIED');return n};
+  for(const row of rows){
+   if(!row||!buckets.has(row.category_id))fail('INCIDENT_CATEGORY_REPORT_UNVERIFIED');
+   const p=planTroubleshooting({category_id:row.category_id,intake_channel:'TECHNICIAN',hazard:row.hazard});
+   if(p.reason==='INVALID_INPUT'||!['NONE','UNKNOWN','PHYSICAL_HAZARD','SUSPECTED_COMPROMISE','DATA_LOSS_RISK','BOOT_OR_ENCRYPTION_DAMAGE'].includes(row.hazard)||
+      row.status!==(p.decision==='HUMAN_ONLY'?'ESCALATED':'OPEN'))fail('INCIDENT_CATEGORY_REPORT_UNVERIFIED');
+   const key=JSON.stringify([row.category_id,row.hazard,row.status]);
+   if(seen.has(key))fail('INCIDENT_CATEGORY_REPORT_UNVERIFIED');seen.add(key);
+   const reported=count(row.reported),planned=count(row.planned_incidents);
+   if(reported===0||planned>reported||(row.status!=='OPEN'||row.hazard!=='NONE')&&planned!==0)fail('INCIDENT_CATEGORY_REPORT_UNVERIFIED');
+   const b=buckets.get(row.category_id);
+   b.reported=add(b.reported,reported);
+   const field=row.status==='OPEN'?'open':'escalated';b[field]=add(b[field],reported);
+   b.incidents_with_plans=add(b.incidents_with_plans,planned);
+  }
+  const categories=Object.freeze([...buckets.values()].map(x=>Object.freeze(x)));
+  const totals=Object.freeze(Object.fromEntries(['reported','open','escalated','incidents_with_plans'].map(k=>[k,categories.reduce((n,x)=>add(n,x[k]),0)])));
+  return Object.freeze({categories,totals,scope:'CURRENT_TECHNICIAN_DEVICE',period:'ALL_RECORDED',
+   diagnosed:null,executed_attempts:null,verified_resolved:null,resolution_rate:null,
+   outcome_measurement:'NOT_IMPLEMENTED',production_accepted:false});
+ });
+}

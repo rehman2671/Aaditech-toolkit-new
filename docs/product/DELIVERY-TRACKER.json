@@ -74,7 +74,7 @@
         "M1 is stack-neutral until DEC-001 owner signoff; current public DNS Node/MySQL path is implementation reality, not an approved final LAN stack",
         "#105 signed LAN manifest reference: CI 45375159540 and safety 45375159676 SUCCESS; no approved release payload, host compatibility or WAN-disconnected install",
         "#106 be288bc414663f48ef61e5b5e8a56855956146fe: read-only host reference (CPU/RAM/disk/TCP marker observations) and opt-in TLS probe; CI 45376416641 and safety 45376416754 SUCCESS; host OS/runtime and resource absence unverified",
-        "#107 8e0696ad0505d46d090d94318c2c42fd06b329c5: local Windows host reference and guided planning; CI running, safety passed; no Windows Server runtime acceptance"
+        "#107 8e0696ad0505d46d090d94318c2c42fd06b329c5: local Windows host reference and guided planning; CI 45379723828 and safety 45379723785 SUCCESS; no Windows Server runtime acceptance"
       ],
       "next": "After DEC-001: approved runtime/OS matrix, signed complete pinned offline payload, actual resource discovery, locked staging, mutation adapter and witnessed offline install; Linux/Windows observations are not authorization",
       "blocked": true,
@@ -93,9 +93,11 @@
         "server.js /api/setup",
         "Enterprise/portal/index.html renderSetup",
         "Design backlog docs/product/LAN-INSTALLATION-IMPLEMENTATION-BACKLOG.md (not implemented)",
-        "#107 ordered setup plan, fresh/reconfigure distinction, invalidated evidence and failed-stage refusal; no durable execution, browser handoff or persisted stage authorization"
+        "#107 ordered setup plan, fresh/reconfigure distinction, invalidated evidence and failed-stage refusal; no durable execution, browser handoff or persisted stage authorization",
+        "#107 8e0696ad0505d46d090d94318c2c42fd06b329c5: exact-head CI and safety SUCCESS, native Windows PowerShell 5.1/7 host checks",
+        "#108 24761d2f5be59108ce175e8cd533c2d7c7926261: append-only STARTED/COMPLETED setup journal, identity/release binding and atomic no-replacement publication; CI running, safety passed; no runtime execution or external rollback anchor"
       ],
-      "next": "After DEC-001 and approved deployment adapter: bind verified evidence to installation/release, lock and persist actual setup transitions, recover safely, implement authenticated installer-to-browser handoff and protected secrets/DB/PKI provisioning",
+      "next": "After DEC-001, bind trusted evidence to actual runtime/installation/release and independently anchor journal head; implement installer locking, Windows ACL journal adapter, verified interrupted-stage reconciliation and authenticated installer-to-browser handoff",
       "blocked": true,
       "issue_url": "https://github.com/rehman2671/Aaditech-toolkit-new/issues/80"
     },
@@ -305,9 +307,10 @@
         "Enterprise/deploy/backup.sh",
         "Enterprise/deploy/restore.sh",
         "deployment safety 45062353339",
-        "#104 authenticated backup manifest reference: CI and deployment safety SUCCESS; no actual encryption or independent restore witnessed"
+        "#104 authenticated backup manifest reference: CI and deployment safety SUCCESS; no actual encryption or independent restore witnessed",
+        "#108 24761d2f5be59108ce175e8cd533c2d7c7926261: actual bounded AES-256-GCM file encryption and authenticated staged recovery reference, 64 MiB POSIX only; CI running, safety passed; no actual DB restore or witnessed recovery"
       ],
-      "next": "Implement independently reviewed encrypted backup production/key custody, manifest binding and isolated actual restore; verify old-host fencing and witnessed offsite recovery",
+      "next": "Implement streaming large database-consistent encrypted exports, independently controlled key/signer custody and nonce-use/rotation policy, Windows ACL storage, authenticated manifest binding and actual isolated restore; verify old-host fencing and witnessed offsite recovery",
       "blocked": true
     },
     {

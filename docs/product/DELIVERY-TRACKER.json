@@ -531,16 +531,17 @@
       "key": "FE-19",
       "title": "N73 GitHub ruleset integrity patch",
       "priority": "P0",
-      "state": "CI_VERIFIED",
+      "state": "IN_DEVELOPMENT",
       "owner": "independent_reviewer",
       "requires": [],
       "evidence": [
         "PR #75 open head 67abb1bff711a400b55b3f695311917a7d3069c9",
         "CI 45072083622 success",
         "safety 45072083593 success",
-        "PR #109 tested head 7b4a0ebf2b65eb638d0e2da7a0b1aa6bbb72601a: CI 45447219419 4/4 executed jobs and safety 45447219513 2/2 SUCCESS including actual unsigned Windows EXE/MSI installation, upgrade, uninstall, inert legacy-task retirement and tenant/device/SQLite preservation; protected signing skipped. Not merged or production accepted."
+        "PR #109 tested head 7b4a0ebf2b65eb638d0e2da7a0b1aa6bbb72601a: CI 45447219419 4/4 executed jobs and safety 45447219513 2/2 SUCCESS including actual unsigned Windows EXE/MSI installation, upgrade, uninstall, inert legacy-task retirement and tenant/device/SQLite preservation; protected signing skipped. Not merged or production accepted.",
+        "2026-11-25 Phase O residual governance transport review: fixed-origin continuation for short pages, redirect refusal, no-store fetch, empty continuation denial and detail metadata consistency; synthetic regression fixtures committed; fresh exact-head CI pending. Prior N73 CI remains historical only."
       ],
-      "next": "Obtain independent review and repo administrator protected-main ruleset",
+      "next": "Verify residual N73 exact-head CI and independently reconcile into #109; obtain independent reviewer and repo administrator protected-main ruleset.",
       "blocked": true
     },
     {

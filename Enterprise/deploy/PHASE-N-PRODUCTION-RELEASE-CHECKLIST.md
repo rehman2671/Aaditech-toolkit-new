@@ -1,5 +1,16 @@
 # Phase N — Production release acceptance and sign-off
 
+## Stage N73 — complete bounded governance reads (CODE READY; CI/REVIEW PENDING; PRODUCTION BLOCKED)
+
+- [x] Paginate inherited/repository rulesets at the fixed API origin, deny redirects and fail closed on malformed, duplicate, incomplete or over-limit responses.
+- [x] Validate ruleset detail identity, reread ruleset membership and reread main SHA/protection to detect drift.
+- [x] Add synthetic regression tests to existing N71 test dispatch.
+- [ ] Exact-head CI, independent review, merge and fresh main Windows diagnostic MSI and safety acceptance: **PENDING**.
+- [ ] Authorized GitHub administrator protection, independent approvals, protected signing, Hostinger VPS, real Windows enrollment and encrypted offsite MySQL restore: **PENDING**.
+
+See [N73 acceptance](PHASE-N-STAGE73-ACCEPTANCE.md). No production authorization follows from synthetic tests.
+
+
 ## Stage N72 — strictly up-to-date main checks and admin-ready ruleset (MERGED; PR CI 3/3 + SAFETY 2/2; MAIN MSI 4/4 + SAFETY 2/2; PRODUCTION BLOCKED)
 
 - [x] Runtime live-protection gate now requires all five trusted GitHub Actions checks in **one** strictly up-to-date main ruleset; no loose/stale-context union can approve a signed release.

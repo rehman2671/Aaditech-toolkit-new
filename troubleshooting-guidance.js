@@ -53,11 +53,11 @@ export function getEmployeeGuidance(input){
  if(!issue||!['UNKNOWN','NONE',...Object.keys(hazards)].includes(hazard))return blocked;
  // Never let a self-service presentation invent recorded consent/policy.
  const plan=planTroubleshooting({category_id,intake_channel:'SELF_SERVICE',hazard});
- const urgent=Object.hasOwn(hazards,hazard)?hazards[hazard]:null;
+ const urgent=category_id==='TR-24'?hazards.PHYSICAL_HAZARD:Object.hasOwn(hazards,hazard)?hazards[hazard]:null;
  const instructions=urgent?[urgent]:issue.repair_tier==='D3'?issue.steps:
   hazard==='UNKNOWN'?['Check for physical danger, suspected compromise, data-loss risk or boot/encryption damage before proceeding. If uncertain, contact IT.']:issue.steps;
  return Object.freeze({category_id,title:issue.title,decision:plan.decision,reason:plan.reason,
   guidance_type:urgent||issue.repair_tier==='D3'?'HUMAN_ONLY':hazard==='UNKNOWN'?'HAZARD_ASSESSMENT':'ADVISORY_ONLY',
-  instructions:Object.freeze([...instructions]),success_check:issue.success_check,
+  instructions:Object.freeze([...instructions]),success_check:urgent?'Qualified assistance confirms the hazard has been cleared.':issue.success_check,
   diagnostic_authorized:false,repair_authorized:false,execution_authorized:false,verified_resolved:false,production_accepted:false});
 }

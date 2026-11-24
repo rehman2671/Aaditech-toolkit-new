@@ -4,7 +4,7 @@
   "date": "2026-11-25",
   "parent_tracker": "DELIVERY-TRACKER.json",
   "production_accepted": false,
-  "note": "Planning/implementation register, not verified delivery. Guidance and review formats are source-level only; existing reference collectors are partial, not platform acceptance. Parent tracker remains authoritative. No task is marked accepted.",
+  "note": "Planning/implementation register, not verified delivery. Guidance and review formats are source-level only; existing reference collectors are partial, not platform acceptance. Parent tracker remains authoritative. No task is marked accepted. Combined review reconciliation preserves all 158 original IDs; partial entries identify local reference source/test files; no platform verification or acceptance inferred.",
   "counts": {
     "IMPLEMENTED_PENDING_COMBINED_CI": 42,
     "PENDING": 109,
@@ -810,7 +810,11 @@
       "requires": [
         "DIAG-RESOURCE_PRESSURE-CONTRACT"
       ],
-      "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+      "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution.",
+      "evidence": [
+        "scripts/local-resource-diagnostic.mjs",
+        "tests/unit/local-resource-diagnostic.test.js"
+      ]
     },
     {
       "id": "DIAG-RESOURCE_PRESSURE-WINDOWS",
@@ -820,7 +824,11 @@
       "requires": [
         "DIAG-RESOURCE_PRESSURE-CONTRACT"
       ],
-      "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+      "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution.",
+      "evidence": [
+        "scripts/local-resource-diagnostic.mjs",
+        "tests/unit/local-resource-diagnostic.test.js"
+      ]
     },
     {
       "id": "DIAG-RESOURCE_PRESSURE-MACOS",
@@ -830,7 +838,11 @@
       "requires": [
         "DIAG-RESOURCE_PRESSURE-CONTRACT"
       ],
-      "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+      "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution.",
+      "evidence": [
+        "scripts/local-resource-diagnostic.mjs",
+        "tests/unit/local-resource-diagnostic.test.js"
+      ]
     },
     {
       "id": "DIAG-RESOURCE_PRESSURE-CUSTODY",
@@ -861,7 +873,11 @@
       "requires": [
         "DIAG-APPROVED_NETWORK_STATUS-CONTRACT"
       ],
-      "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+      "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution.",
+      "evidence": [
+        "scripts/local-categorical-diagnostics.mjs",
+        "tests/unit/local-categorical-diagnostics.test.js"
+      ]
     },
     {
       "id": "DIAG-APPROVED_NETWORK_STATUS-WINDOWS",
@@ -963,7 +979,11 @@
       "requires": [
         "DIAG-DISK_CAPACITY_HEALTH-CONTRACT"
       ],
-      "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+      "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution.",
+      "evidence": [
+        "scripts/local-categorical-diagnostics.mjs",
+        "tests/unit/local-categorical-diagnostics.test.js"
+      ]
     },
     {
       "id": "DIAG-DISK_CAPACITY_HEALTH-WINDOWS",
@@ -973,7 +993,11 @@
       "requires": [
         "DIAG-DISK_CAPACITY_HEALTH-CONTRACT"
       ],
-      "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+      "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution.",
+      "evidence": [
+        "scripts/local-categorical-diagnostics.mjs",
+        "tests/unit/local-categorical-diagnostics.test.js"
+      ]
     },
     {
       "id": "DIAG-DISK_CAPACITY_HEALTH-MACOS",
@@ -983,7 +1007,11 @@
       "requires": [
         "DIAG-DISK_CAPACITY_HEALTH-CONTRACT"
       ],
-      "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+      "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution.",
+      "evidence": [
+        "scripts/local-categorical-diagnostics.mjs",
+        "tests/unit/local-categorical-diagnostics.test.js"
+      ]
     },
     {
       "id": "DIAG-DISK_CAPACITY_HEALTH-CUSTODY",

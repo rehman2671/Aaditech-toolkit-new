@@ -3394,7 +3394,7 @@ app.get(['/api/v1/analytics/predictive', '/api/analytics/predictive'], async (re
       total_hosts_registered: agents.length,
       total_hosts_analyzed: analysis.filter(a =>
         a.status === 'ANALYZED' || a.status === 'NO_DEPLETION_TREND').length,
-      hosts_at_disk_risk: analysis.filter(a => a.projected_days_until_full && a.projected_days_until_full < 14).length,
+      hosts_at_disk_risk: analysis.filter(a => Number.isFinite(a.projected_days_until_full) && a.projected_days_until_full >= 0 && a.projected_days_until_full < 14).length,
       anomalous_hosts: analysis.filter(a => a.anomaly_score > 30).length
     },
     predictions: analysis

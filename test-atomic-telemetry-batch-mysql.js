@@ -268,6 +268,29 @@ try {
   }
   assert.equal((await db.runDatabaseMigrations()).applied.length,0);
   console.log('[PASS] Migration history drift refused and original checksum restored in disposable CI.');
+  // Exact tenant fixture only; no actual external delivery.
+  const [outboxRows]=await pool.query('SELECT id FROM notification_outbox WHERE tenant_id=? ORDER BY id LIMIT 1',[tenantA]);
+  assert.equal(outboxRows.length,1);
+  const oid=outboxRows[0].id,lease=crypto.randomUUID();
+  await pool.query("UPDATE notification_outbox SET status='PROCESSING', attempts=1, lease_token=?, lease_expires_at=DATE_SUB(UTC_TIMESTAMP(3), INTERVAL 1 SECOND) WHERE id=?",[lease,oid]);
+  assert.equal(await db.finishNotificationOutbox(oid,lease,'DELIVERED'),false);
+  assert.equal(await db.retryNotificationOutbox({id:oid,lease_token:lease,attempts:1},'FIXTURE_RETRY'),false);
+  assert.equal(await single("SELECT COUNT(*) AS n FROM notification_outbox WHERE id=? AND lease_token=? AND status='PROCESSING'",[oid,lease]),1);
+  await pool.query("UPDATE notification_outbox SET lease_expires_at=DATE_ADD(UTC_TIMESTAMP(3), INTERVAL 60 SECOND) WHERE id=?",[oid]);
+  assert.equal(await db.finishNotificationOutbox(oid,crypto.randomUUID(),'DELIVERED'),false);
+  assert.equal(await db.retryNotificationOutbox({id:oid,lease_token:lease,attempts:1},'FIXTURE_RETRY'),true);
+  assert.equal(await single("SELECT COUNT(*) AS n FROM notification_outbox WHERE id=? AND status='PENDING' AND lease_token IS NULL",[oid]),1);
+  const nextLease=crypto.randomUUID();
+  await pool.query("UPDATE notification_outbox SET status='PROCESSING', attempts=2, lease_token=?, lease_expires_at=DATE_ADD(UTC_TIMESTAMP(3), INTERVAL 60 SECOND) WHERE id=?",[nextLease,oid]);
+  assert.equal(await db.finishNotificationOutbox(oid,lease,'DELIVERED'),false);
+  assert.equal(await db.finishNotificationOutbox(oid,nextLease,'DELIVERED'),true);
+  assert.equal(await db.finishNotificationOutbox(oid,nextLease,'DELIVERED'),false);
+  const testRule=await db.createAlertRule({tenant_id:tenantA,name:'N29-zero-'+key,metric:'disk',condition_op:'<=',threshold:0,enabled:false});
+  assert.equal(Number((await db.getAlertRuleById(testRule.id)).threshold),0);
+  assert.equal((await db.getAlertRuleById(testRule.id)).enabled,false);
+  await pool.query('UPDATE alert_rules SET enabled=2 WHERE id=?',[testRule.id]);
+  assert.equal((await db.getAlertRuleById(testRule.id)).enabled,false);
+  console.log('[PASS] Expired outbox lease refusal, retry/ACK fencing, zero rule threshold and ambiguous SQL enablement.');
   console.log('N29 PASS: atomic rollback, MySQL worker races, single history/alert/outbox, HTTP replay, 409 and revoked credential write fencing');
 } catch(err) {
   failure=err;

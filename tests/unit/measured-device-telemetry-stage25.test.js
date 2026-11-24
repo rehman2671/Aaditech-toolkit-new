@@ -78,7 +78,7 @@ describe('Stage N25 device metric provenance and non-synthetic predictions', () 
     });
     expect(analyzeMeasuredTelemetry(samples([110, 108, 106]), device, now)
       .projected_days_until_full).toBeNull();
-    const stable = analyzeMeasuredTelemetry(samples([100, 101, 102, 103, 105]), device, now);
+    const stable = analyzeMeasuredTelemetry(samples([100, 101, 102, 103, 105]), {...device,disk_free:'105 GB'}, now);
     expect(stable.status).toBe('NO_DEPLETION_TREND');
     expect(stable.projected_days_until_full).toBeNull();
     expect(stable.daily_growth_gb).toBe(0);

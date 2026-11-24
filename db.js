@@ -2691,7 +2691,7 @@ export async function finishNotificationOutbox(id, lease, status) {
   }
   const result = await executeQuery(
     "UPDATE notification_outbox SET status = ?, lease_token = NULL, lease_expires_at = NULL, last_error = NULL " +
-    "WHERE id = ? AND lease_token = ? AND status = 'PROCESSING'",
+    "WHERE id = ? AND lease_token = ? AND status = 'PROCESSING' AND lease_expires_at > UTC_TIMESTAMP(3)",
     [status, id, lease]
   );
   return result?.affectedRows === 1;
@@ -2699,13 +2699,14 @@ export async function finishNotificationOutbox(id, lease, status) {
 
 export async function retryNotificationOutbox(row, code = 'DELIVERY_FAILED') {
   if (!row?.id || !row?.lease_token) throw new Error('OUTBOX_LEASE_REQUIRED');
-  const attempts = Math.max(1, Number(row.attempts || 1));
-  const safe = /^[A-Z0-9_]{1,64}$/.test(String(code)) ? code : 'DELIVERY_FAILED';
+  const attempts = row.attempts;
+  if (!Number.isInteger(attempts) || attempts < 1 || attempts > 5) throw new Error('INVALID_OUTBOX_ATTEMPTS');
+  const safe = typeof code === 'string' && code.length <= 64 && /^[A-Z0-9_]+$/.test(code) && !/\s/.test(code) ? code : 'DELIVERY_FAILED';
   const delay = Math.min(3600, 15 * (2 ** Math.min(10, attempts - 1)));
   const updated = await executeQuery(
     "UPDATE notification_outbox SET status = ?, lease_token = NULL, lease_expires_at = NULL, " +
     "available_at = DATE_ADD(UTC_TIMESTAMP(3), INTERVAL ? SECOND), last_error = ? " +
-    "WHERE id = ? AND lease_token = ? AND status = 'PROCESSING'",
+    "WHERE id = ? AND lease_token = ? AND status = 'PROCESSING' AND lease_expires_at > UTC_TIMESTAMP(3)",
     [attempts >= 5 ? 'DEAD' : 'PENDING', delay, safe, row.id, row.lease_token]
   );
   return updated?.affectedRows === 1;
@@ -2766,17 +2767,21 @@ export function invalidateAlertRulesCache() {
 
 export async function getAlertRules() {
   const now = Date.now();
-  if (alertRulesCache && now < alertRulesCacheExpires) {
+  // Only explicit test fixtures may reuse local rule state. Deployed replicas
+  // read the authoritative SQL rules on every call.
+  if (process.env.NODE_ENV === 'test' && alertRulesCache && now < alertRulesCacheExpires) {
     return alertRulesCache;
   }
   const rows = await executeQuery('SELECT * FROM alert_rules ORDER BY created_at ASC');
   const rules = rows.map(r => ({
     ...r,
-    enabled: Boolean(r.enabled),
+    enabled: r.enabled === true || r.enabled === 1,
     condition: r.condition_json ? (typeof r.condition_json === 'string' ? JSON.parse(r.condition_json) : r.condition_json) : { threshold_gb: r.threshold, memory_pct: r.threshold, cpu_pct: r.threshold }
   }));
-  alertRulesCache = rules;
-  alertRulesCacheExpires = now + 30000; // 30 seconds TTL
+  if (process.env.NODE_ENV === 'test') {
+    alertRulesCache = rules;
+    alertRulesCacheExpires = now + 30000;
+  }
   return rules;
 }
 
@@ -2786,7 +2791,7 @@ export async function getAlertRuleById(id) {
   const r = rows[0];
   return {
     ...r,
-    enabled: Boolean(r.enabled),
+    enabled: r.enabled === true || r.enabled === 1,
     condition: r.condition_json ? (typeof r.condition_json === 'string' ? JSON.parse(r.condition_json) : r.condition_json) : { threshold: r.threshold }
   };
 }
@@ -2797,12 +2802,13 @@ export async function getAlertRuleByName(name) {
   const r = rows[0];
   return {
     ...r,
-    enabled: Boolean(r.enabled),
+    enabled: r.enabled === true || r.enabled === 1,
     condition: r.condition_json ? (typeof r.condition_json === 'string' ? JSON.parse(r.condition_json) : r.condition_json) : { threshold: r.threshold }
   };
 }
 
 export async function createAlertRule(rule) {
+  if (rule.enabled !== undefined && typeof rule.enabled !== 'boolean') throw new Error('INVALID_ALERT_RULE_ENABLED');
   const ruleId = rule.id || `rule-${crypto.randomUUID()}`;
   const sql = `
     INSERT INTO alert_rules (id, tenant_id, name, description, metric, condition_op, threshold, duration_mins, severity, enabled, condition_json, created_at)
@@ -2815,7 +2821,7 @@ export async function createAlertRule(rule) {
     rule.description || '',
     rule.metric || 'cpu',
     rule.condition_op || '>=',
-    rule.threshold || 80,
+    rule.threshold ?? 80,
     rule.duration_mins || 5,
     rule.severity || 'warning',
     rule.enabled !== false ? 1 : 0,
@@ -2833,6 +2839,7 @@ export async function createAlertRule(rule) {
 }
 
 export async function updateAlertRule(id, updates) {
+  if (updates.enabled !== undefined && typeof updates.enabled !== 'boolean') throw new Error('INVALID_ALERT_RULE_ENABLED');
   const fields = [];
   const params = [];
   if (updates.name !== undefined) { fields.push('name = ?'); params.push(updates.name); }

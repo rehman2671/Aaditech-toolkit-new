@@ -1,5 +1,12 @@
 // Stage N25: Never turn missing or historic default utilization into a measurement.
 export const TELEMETRY_FRESHNESS_MS = 15 * 60_000;
+const MAX_FORECAST_GAP_MS = 60 * 60_000;
+const MAX_SNAPSHOT_SKEW_MS = 5 * 60_000;
+// SQL history is FLOAT while the current display uses decimal GB text.
+const diskAgrees = (a,b) => Math.abs(a-b) <= Math.max(0.001, Math.max(a,b)*1e-7);
+function observedTime(raw) {
+  return raw instanceof Date ? raw.getTime() : typeof raw === 'string' && raw.length <= 128 ? Date.parse(raw) : NaN;
+}
 function finite(value, max) {
   return typeof value === 'number' && Number.isFinite(value) && value >= 0 &&
     value <= max ? value : null;
@@ -20,9 +27,9 @@ function stored(raw, suffix, max) {
   return regex.test(value) ? finite(Number.parseFloat(value), max) : null;
 }
 export function deviceMetricView(row, now = Date.now()) {
-  const at = row?.telemetry_reported_at ? new Date(row.telemetry_reported_at).getTime() : NaN;
+  const at = observedTime(row?.telemetry_reported_at);
   const known = Number.isFinite(at);
-  const fresh = known && at <= now && now - at <= TELEMETRY_FRESHNESS_MS;
+  const fresh = known && Number.isFinite(now) && at <= now && now - at <= TELEMETRY_FRESHNESS_MS;
   const cpu = fresh ? stored(row.cpu_usage, '%', 100) : null;
   const ram = fresh ? stored(row.memory_usage, '%', 100) : null;
   const disk = fresh ? stored(row.disk_free, 'GB', 1000000) : null;
@@ -43,7 +50,7 @@ export function analyzeMeasuredTelemetry(history, device, now = Date.now()) {
   const ram = current.memory_usage === null ? null : Number.parseFloat(current.memory_usage);
   const disk = current.disk_free_gb;
   const candidates = (Array.isArray(history) ? history : []).map(h => ({
-    time: h?.recorded_at ? new Date(h.recorded_at).getTime() : NaN,
+    time: observedTime(h?.recorded_at),
     disk: finite(h?.disk_free_gb, 1000000)
   })).filter(h => Number.isFinite(h.time) && h.time <= now && now - h.time <= 7 * 86400000 &&
     h.disk !== null).sort((a, b) => a.time - b.time);
@@ -70,6 +77,12 @@ export function analyzeMeasuredTelemetry(history, device, now = Date.now()) {
   const first = samples[0], last = samples.at(-1);
   const days = (last.time - first.time) / 86400000;
   if (days < 1 / 24 || now - last.time > TELEMETRY_FRESHNESS_MS) return result;
+  // Avoid a confident forecast across an observation outage, or between
+  // incompatible current and historical snapshots. This is advisory only.
+  if (samples.some((sample,i)=>i>0 && sample.time-samples[i-1].time>MAX_FORECAST_GAP_MS))
+    return {...result, forecast_blocker:'OBSERVATION_GAP'};
+  if (Math.abs(last.time-observedTime(device.telemetry_reported_at))>MAX_SNAPSHOT_SKEW_MS || !diskAgrees(last.disk,disk))
+    return {...result, forecast_blocker:'SNAPSHOT_MISMATCH'};
   const consumption = first.disk - last.disk;
   const rate = consumption > 0 ? consumption / days : 0;
   const remaining = rate > 0 ? Math.ceil(disk / rate) : null;
@@ -98,7 +111,8 @@ export function evaluateMeasuredAlert(rule, measured) {
   const value = metric === 'cpu' ? measured?.cpu :
     metric === 'ram' ? measured?.ram : measured?.disk;
   const threshold = typeof rule?.threshold === 'number' ? rule.threshold :
-    typeof rule?.threshold === 'string' && rule.threshold.trim() !== '' ?
+    typeof rule?.threshold === 'string' && rule.threshold.length <= 32 &&
+      rule.threshold === rule.threshold.trim() && /^\d+(?:\.\d+)?$/.test(rule.threshold) ?
       Number(rule.threshold) : NaN;
   if (typeof value !== 'number' || !Number.isFinite(value) || value < 0 || value > max ||
       !Number.isFinite(threshold) || threshold < 0 || threshold > max) return null;

@@ -76,6 +76,8 @@ jobs:
         run: pwsh -NoProfile -File ./Enterprise/tests/Test-LegacyAgentTelemetryOnly.ps1
       - name: Test signed UUID command lifecycle and result contract
         run: pwsh -NoProfile -File ./Enterprise/tests/Test-CommandUuidLifecycle.ps1
+      - name: Real SQLite UUID ledger concurrency and crash boundary
+        run: python ./Enterprise/tests/test_command_uuid_sqlite.py
       - name: Reboot commands require approval, never auto-execute
         run: pwsh -NoProfile -File ./Enterprise/tests/Test-RebootDefaultDeny.ps1
       - name: MSI self-updater must refuse unsigned installation

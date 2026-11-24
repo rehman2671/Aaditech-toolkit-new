@@ -32,7 +32,6 @@ try {
 
 $Endpoint = $config.endpoint
 $Token    = if ($config.device_token) { $config.device_token } else { $config.token }
-$SigningKey = if ($config.command_signing_key) { $config.command_signing_key } else { $Token }
 $Interval = if ($config.interval_seconds) { [int]$config.interval_seconds } else { 30 }
 
 Write-Host "============================================================" -ForegroundColor Cyan
@@ -41,25 +40,9 @@ Write-Host "  Reporting Server: $Endpoint" -ForegroundColor Green
 Write-Host "  Interval: ${Interval}s" -ForegroundColor Yellow
 Write-Host "============================================================" -ForegroundColor Cyan
 
-function Verify-CommandSignature {
-    param(
-        [string]$Content,
-        [string]$Signature,
-        [string]$Key
-    )
-    if (-not $Signature -or -not $Content -or -not $Key) {
-        return $false
-    }
-    try {
-        $hmac = New-Object System.Security.Cryptography.HMACSHA256
-        $hmac.Key = [System.Text.Encoding]::UTF8.GetBytes($Key)
-        $hashBytes = $hmac.ComputeHash([System.Text.Encoding]::UTF8.GetBytes($Content))
-        $computedSig = ($hashBytes | ForEach-Object { $_.ToString("x2") }) -join ""
-        return ($computedSig.ToLower() -eq $Signature.ToLower())
-    } catch {
-        return $false
-    }
-}
+# No remote command signature validator lives in this legacy telemetry
+# collector. Only the separately installed Agent-Collect.ps1 performs
+# domain-separated, tenant/device/host/time-bound command verification.
 
 function Get-HardwareDetails {
     $cs = Get-CimInstance Win32_ComputerSystem -ErrorAction SilentlyContinue
@@ -286,118 +269,19 @@ function Send-TelemetryPayload {
     }
 }
 
-function Poll-And-Execute-Commands {
-    $pollUrl = $config.poll_url
-    if (-not $pollUrl) {
-        $base = $Endpoint -replace '/api/v1/ingest/telemetry', '' -replace '/api/ingest', ''
-        $pollUrl = "$base/api/commands/poll?hostname=$($env:COMPUTERNAME)"
-    }
-
-    $headers = @{ 
-        "X-Device-Token" = $Token
-        "Authorization"  = "Bearer $Token" 
-    }
-
-    try {
-        $cmds = Invoke-RestMethod -Uri $pollUrl -Method Get -Headers $headers -TimeoutSec 10
-        if ($cmds -and $cmds.Count -gt 0) {
-            foreach ($cmd in $cmds) {
-                Write-Host "[$((Get-Date).ToString('HH:mm:ss'))] [*] Received dispatched command: $($cmd.kind) (ID: $($cmd.id))" -ForegroundColor Cyan
-                
-                # 1. Cryptographic HMAC verification of command payload
-                $sigValid = $false
-                $keyToTry = if ($SigningKey) { $SigningKey } else { $Token }
-                if ($cmd.signature -and $cmd.signed_content) {
-                    $sigValid = Verify-CommandSignature -Content $cmd.signed_content -Signature $cmd.signature -Key $keyToTry
-                    if (-not $sigValid -and $Token -and ($keyToTry -ne $Token)) {
-                        $sigValid = Verify-CommandSignature -Content $cmd.signed_content -Signature $cmd.signature -Key $Token
-                    }
-                }
-
-                if (-not $sigValid) {
-                    Write-Host "[$((Get-Date).ToString('HH:mm:ss'))] [SECURITY ALERT] Command $($cmd.id) rejected: Invalid or missing cryptographic HMAC signature!" -ForegroundColor Red
-                    
-                    # Report security failure back to management server
-                    $base = $Endpoint -replace '/api/v1/ingest/telemetry', '' -replace '/api/ingest', ''
-                    $resultUrl = "$base/api/commands/$($cmd.id)/result"
-                    $resultBody = @{
-                        status    = "failed"
-                        output    = "Security error: Cryptographic HMAC signature verification failed. Command rejected by endpoint agent."
-                        exit_code = 403
-                    } | ConvertTo-Json
-
-                    try {
-                        Invoke-RestMethod -Uri $resultUrl -Method Post -Body $resultBody -Headers @{ 
-                            "Content-Type"   = "application/json"
-                            "X-Device-Token" = $Token
-                            "Authorization"  = "Bearer $Token" 
-                        } -TimeoutSec 10 | Out-Null
-                    } catch {}
-                    continue
-                }
-
-                Write-Host "[$((Get-Date).ToString('HH:mm:ss'))] [+] Command $($cmd.id) HMAC signature verified. Executing..." -ForegroundColor Green
-                $output = ""
-                $exitCode = 0
-
-                try {
-                    switch -Regex ($cmd.kind) {
-                        "DIAGNOSTIC|HEALTH_CHECK" {
-                            $output = "Diagnostic completed. CPU, RAM, and Disk Health within normal operational thresholds. Host: $($env:COMPUTERNAME)"
-                        }
-                        "CLEAN_TEMP|REMEDIATE_DISK" {
-                            Remove-Item "$env:TEMP\*" -Recurse -Force -ErrorAction SilentlyContinue
-                            $output = "Cleaned temporary files. Temp directory cleared."
-                        }
-                        "RESTART_SPOOLER|REMEDIATE_SPOOLER" {
-                            Restart-Service -Name "Spooler" -Force -ErrorAction SilentlyContinue
-                            $output = "Windows Print Spooler service successfully restarted."
-                        }
-                        "REBOOT" {
-                            $output = "Reboot scheduled in 60 seconds."
-                        }
-                        default {
-                            $output = "Arbitrary remote script execution is disabled for zero-trust compliance. Unapproved command kind '$($cmd.kind)' rejected."
-                            $exitCode = 1
-                        }
-                    }
-                } catch {
-                    $output = "Execution failed: $($_.Exception.Message)"
-                    $exitCode = 1
-                }
-
-                # Report Result back
-                $base = $Endpoint -replace '/api/v1/ingest/telemetry', '' -replace '/api/ingest', ''
-                $resultUrl = "$base/api/commands/$($cmd.id)/result"
-                $resultBody = @{
-                    status    = if ($exitCode -eq 0) { "completed" } else { "failed" }
-                    output    = $output
-                    exit_code = $exitCode
-                } | ConvertTo-Json
-
-                Invoke-RestMethod -Uri $resultUrl -Method Post -Body $resultBody -Headers @{ 
-                    "Content-Type"   = "application/json"
-                    "X-Device-Token" = $Token
-                    "Authorization"  = "Bearer $Token" 
-                } -TimeoutSec 10 | Out-Null
-                Write-Host "[$((Get-Date).ToString('HH:mm:ss'))] [OK] Command $($cmd.id) marked $resultBody.status" -ForegroundColor Green
-            }
-        }
-    } catch {
-        # Silent poll errors
-    }
-}
+# Legacy standalone compatibility mode is telemetry-only. The obsolete
+# remote execution loop (unsigned outer command.kind and unrestricted
+# regex switch) was retired to avoid unapproved local privileged actions.
 
 # Execution Loop
+Write-Warning "Legacy AadiTech standalone agent is TELEMETRY-ONLY. Remote commands disabled; deploy verified installed MSI worker for signed command processing."
 if ($Once) {
     Send-TelemetryPayload
-    Poll-And-Execute-Commands
-    Write-Host "[OK] Single pass completed." -ForegroundColor Green
+    Write-Host "[INFO] Telemetry-only single pass finished; no command executed or repair verified." -ForegroundColor Cyan
     exit 0
 }
 
 while ($true) {
     Send-TelemetryPayload
-    Poll-And-Execute-Commands
     Start-Sleep -Seconds $Interval
 }

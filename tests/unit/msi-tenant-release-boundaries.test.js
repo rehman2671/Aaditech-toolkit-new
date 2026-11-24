@@ -59,6 +59,20 @@ describe('Production MSI package tenant and secret safeguards', () => {
     expect(JSON.stringify(calls[0].params)).not.toContain('one-time-confidential-credential');
   });
 
+  it('denies MSI request bootstrap creation without a verified tenant scope', async () => {
+    // Hard contract: even a SUPER_ADMIN cannot create an enrollment secret
+    // against an implicit default workspace when its principal is unscoped.
+    const { readFileSync } = await import('node:fs');
+    const serverSource = readFileSync(new URL('../../server.js', import.meta.url), 'utf8');
+    const block = serverSource.split("app.post('/api/v1/msi/generate'")[1]
+      ?.split("app.get('/api/v1/msi/packages'")[0];
+    expect(block).toContain("if (!req.user?.tenant_id) return res.status(403).json({ error: 'TENANT_REQUIRED' });");
+    expect(block).toContain('const tenantId = req.user.tenant_id;');
+    expect(block).not.toContain('req.user.tenant_id ||');
+    expect(block.indexOf("if (!req.user?.tenant_id)")).toBeLessThan(
+      block.indexOf('generateBootstrapToken('));
+  });
+
   it('rejects traversal, unauthorised tenant override and unbounded expiration', () => {
     const valid = { package_name: 'IT-Toolkit-Agent-Enterprise', version: '1.1.2',
       group_id: 'production-fleet', bootstrap_expiry_hours: 48 };

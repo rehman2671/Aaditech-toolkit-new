@@ -34,6 +34,20 @@ describe('Agent setup origin trust policy', () => {
     }
   });
 
+  it('never trusts caller Host or HTTP scheme in any non-test deployment mode', () => {
+    const request = { headers: { host: 'attacker.example.com', 'x-forwarded-proto': 'http' }, protocol: 'http' };
+    for (const mode of [undefined, '', 'development', 'staging', 'Production']) {
+      if (mode === undefined) delete process.env.NODE_ENV;
+      else process.env.NODE_ENV = mode;
+      process.env.SERVER_HOST = 'office.example.org';
+      expect(resolveAgentOrigin(request)).toEqual({host:'office.example.org', protocol:'https'});
+      delete process.env.SERVER_HOST;
+      expect(resolveAgentOrigin(request)).toBeNull();
+      process.env.SERVER_HOST = '192.168.1.9';
+      expect(resolveAgentOrigin(request)).toBeNull();
+    }
+  });
+
   it('allows developer loopback but rejects attacker header injection and forwarding spoofing', () => {
     process.env.NODE_ENV = 'test';
     const request = { headers: { host: '127.0.0.1:3000', 'x-forwarded-proto': 'https' }, protocol: 'http' };

@@ -176,8 +176,12 @@ try {
   const payload=Buffer.from(JSON.stringify({schema:'aaditech-device-recovery-evidence-v1',purpose:'REVIEW_ONLY_CREDENTIAL_RECOVERY',tenant_id:reviewTenant,device_id:reviewDevice,request_id:req.request_id,challenge_sha256:req.challenge_sha256,credential_fingerprint:req.credential_fingerprint,ownership_evidence_sha256:'c'.repeat(64),command_reconciliation_sha256:'d'.repeat(64),local_handoff_evidence_sha256:'e'.repeat(64),issued_at_ms:now-100,expires_at_ms:now+120000}));
   const options={principal:admins[1],deviceId:reviewDevice,requestId:req.request_id,
     evidence:{payload,signature:crypto.sign(null,payload,keys.privateKey)},
-    trustedPins:{payloadSha256:sha(payload),reviewerSpkiSha256:sha(keys.publicKey.export({type:'spki',format:'der'})),reviewerPublicKeyPem:keys.publicKey.export({type:'spki',format:'pem'})}};
+    trustedPins:{payloadSha256:sha(payload),reviewerSpkiSha256:sha(keys.publicKey.export({type:'spki',format:'der'})),reviewerPublicKeyPem:keys.publicKey.export({type:'spki',format:'pem'}),ownershipEvidenceSha256:'c'.repeat(64),commandReconciliationSha256:'d'.repeat(64),localHandoffEvidenceSha256:'e'.repeat(64)}};
   await assert.rejects(()=>reserveRecoveryReview(pool,{...options,principal:admins[0]}),/RECOVERY_REVIEW_NOT_RESERVABLE/);
+  await pool.query('UPDATE users SET active=0 WHERE id=?',[admins[0].id]);
+  await assert.rejects(()=>reserveRecoveryReview(pool,options),/RECOVERY_REVIEW_ACTOR_DENIED/);
+  await pool.query('UPDATE users SET active=1 WHERE id=?',[admins[0].id]);
+  await assert.rejects(()=>reserveRecoveryReview(pool,{...options,trustedPins:{...options.trustedPins,ownershipEvidenceSha256:'f'.repeat(64)}}),/RECOVERY_REVIEW_ARTIFACT_MISMATCH/);
   const reviews=await Promise.allSettled(Array.from({length:4},()=>reserveRecoveryReview(pool,options)));
   assert.equal(reviews.filter(x=>x.status==='fulfilled').length,1);
   assert.equal(reviews.find(x=>x.status==='fulfilled').value.replacement_allowed,false);

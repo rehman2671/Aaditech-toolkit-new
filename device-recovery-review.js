@@ -23,7 +23,14 @@ async function transact(pool,fn){
     if(!discard)c.release();
   }
 }
-async function lockContext(c,principal,deviceId){
+async function lockActiveAdmin(c,principal){
+  const [users]=await c.query('SELECT id,tenant_id,role,active,status FROM users WHERE id=? AND tenant_id=? FOR UPDATE',
+    [principal.id,principal.tenant_id]);
+  const user=users?.length===1?users[0]:null;
+  if(!user||Number(user.id)!==principal.id||user.tenant_id!==principal.tenant_id||
+     user.role!=='SUPER_ADMIN'||![1,true,'1'].includes(user.active)||user.status!=='ACTIVE')fail('RECOVERY_REVIEW_ACTOR_DENIED');
+}
+async function lockContext(c,principal,deviceId,{deferActor=false}={}){
   // Always lock device before users/review row; revocation and command
   // mutations serialize on the same device row.
   const [owners]=await c.query(
@@ -33,11 +40,7 @@ async function lockContext(c,principal,deviceId){
   if(!owner||owner.id!==deviceId||owner.tenant_id!==principal.tenant_id||
      ![1,true,'1'].includes(owner.agent_token_revoked)||
      typeof owner.device_token_hash!=='string'||!hex.test(owner.device_token_hash))fail('RECOVERY_REVIEW_DEVICE_NOT_READY');
-  const [users]=await c.query('SELECT id,tenant_id,role,active,status FROM users WHERE id=? AND tenant_id=? FOR UPDATE',
-    [principal.id,principal.tenant_id]);
-  const user=users?.length===1?users[0]:null;
-  if(!user||Number(user.id)!==principal.id||user.tenant_id!==principal.tenant_id||
-     user.role!=='SUPER_ADMIN'||![1,true,'1'].includes(user.active)||user.status!=='ACTIVE')fail('RECOVERY_REVIEW_ACTOR_DENIED');
+  if(!deferActor)await lockActiveAdmin(c,principal);
   const [counts]=await c.query(
     "SELECT (SELECT COUNT(*) FROM devices WHERE device_token_hash=?) AS matches_count, "+
     "(SELECT COUNT(*) FROM command_queue WHERE device_id=? AND (status IS NULL OR UPPER(status) NOT IN ('COMPLETED','FAILED','CANCELLED','EXPIRED'))) AS outstanding_count",
@@ -56,6 +59,7 @@ async function audit(c,principal,deviceId,action,details){
 }
 export async function createRecoveryReviewRequest(pool,{principal,deviceId}={}){
   validateContext(pool,principal,deviceId);
+  principal=Object.freeze({id:principal.id,tenant_id:principal.tenant_id,role:principal.role});
   return transact(pool,async c=>{
     const {now,fingerprint}=await lockContext(c,principal,deviceId);
     const [active]=await c.query('SELECT request_id FROM device_recovery_reviews WHERE tenant_id=? AND device_id=? AND expires_at_ms>? LIMIT 1 FOR UPDATE',
@@ -73,9 +77,17 @@ export async function createRecoveryReviewRequest(pool,{principal,deviceId}={}){
 }
 export async function reserveRecoveryReview(pool,{principal,deviceId,requestId,evidence,trustedPins}={}){
   validateContext(pool,principal,deviceId);
-  if(typeof requestId!=='string'||!uuid.test(requestId)||!evidence||!trustedPins)fail('RECOVERY_REVIEW_INVALID');
+  if(typeof requestId!=='string'||!uuid.test(requestId)||!evidence||!trustedPins||
+     !Buffer.isBuffer(evidence.payload)||evidence.payload.length===0||evidence.payload.length>8192||
+     !Buffer.isBuffer(evidence.signature)||evidence.signature.length!==64||
+     !['payloadSha256','reviewerSpkiSha256','ownershipEvidenceSha256','commandReconciliationSha256','localHandoffEvidenceSha256'].every(k=>typeof trustedPins[k]==='string'&&hex.test(trustedPins[k])&&trustedPins[k]!=='0'.repeat(64)))fail('RECOVERY_REVIEW_INVALID');
+  // Copy mutable inputs before any asynchronous DB operation. Pins are
+  // supplied by the trusted integration, not by the signed envelope.
+  principal=Object.freeze({id:principal.id,tenant_id:principal.tenant_id,role:principal.role});
+  evidence={payload:Buffer.from(evidence.payload),signature:Buffer.from(evidence.signature)};
+  trustedPins=Object.freeze({...trustedPins});
   return transact(pool,async c=>{
-    const {now,fingerprint}=await lockContext(c,principal,deviceId);
+    const {now,fingerprint}=await lockContext(c,principal,deviceId,{deferActor:true});
     const [rows]=await c.query('SELECT * FROM device_recovery_reviews WHERE request_id=? AND tenant_id=? AND device_id=? FOR UPDATE',
       [requestId,principal.tenant_id,deviceId]);
     const row=rows?.length===1?rows[0]:null;
@@ -83,14 +95,29 @@ export async function reserveRecoveryReview(pool,{principal,deviceId,requestId,e
        row.state!=='PENDING'||Number(row.requester_id)===principal.id||
        !Number.isSafeInteger(Number(row.expires_at_ms))||Number(row.expires_at_ms)<=now||
        row.credential_fingerprint!==fingerprint||!hex.test(row.challenge_sha256||''))fail('RECOVERY_REVIEW_NOT_RESERVABLE');
+    // Both independent actors must still be authorized. Lock them in
+    // deterministic ID order even when reviewing two different devices.
+    const requesterId=Number(row.requester_id);
+    if(!Number.isSafeInteger(requesterId)||requesterId<=0)fail('RECOVERY_REVIEW_NOT_RESERVABLE');
+    for(const id of [requesterId,principal.id].sort((a,b)=>a-b))
+      await lockActiveAdmin(c,{...principal,id});
     const checked=verifyDeviceRecoveryEvidence({
       payload:evidence.payload,signature:evidence.signature,reviewerPublicKeyPem:trustedPins.reviewerPublicKeyPem,
       expected:{payloadSha256:trustedPins.payloadSha256,reviewerSpkiSha256:trustedPins.reviewerSpkiSha256,
         tenantId:principal.tenant_id,deviceId,requestId,challengeSha256:row.challenge_sha256,credentialFingerprint:fingerprint},
       nowMs:now});
-    if(checked.expires_at_ms>Number(row.expires_at_ms))fail('RECOVERY_REVIEW_NOT_RESERVABLE');
+    const signed=JSON.parse(evidence.payload.toString('utf8'));
+    if(signed.ownership_evidence_sha256!==trustedPins.ownershipEvidenceSha256||
+       signed.command_reconciliation_sha256!==trustedPins.commandReconciliationSha256||
+       signed.local_handoff_evidence_sha256!==trustedPins.localHandoffEvidenceSha256)fail('RECOVERY_REVIEW_ARTIFACT_MISMATCH');
+    // Re-read DB time after acquiring both administrator locks and verifying
+    // signature, so waiting on a lock cannot extend the review window.
+    const [clock]=await c.query('SELECT CAST(UNIX_TIMESTAMP(NOW(3))*1000 AS UNSIGNED) AS now_ms');
+    const commitNow=Number(clock?.[0]?.now_ms);
+    if(!Number.isSafeInteger(commitNow)||commitNow<now||checked.expires_at_ms<=commitNow||
+       checked.expires_at_ms>Number(row.expires_at_ms))fail('RECOVERY_REVIEW_NOT_RESERVABLE');
     const [updated]=await c.query("UPDATE device_recovery_reviews SET state='REVIEW_RESERVED',reviewer_id=?,evidence_sha256=?,reviewer_spki_sha256=?,reviewed_at_ms=?,review_expires_at_ms=? WHERE request_id=? AND tenant_id=? AND device_id=? AND state='PENDING' AND expires_at_ms>?",
-      [principal.id,checked.evidence_sha256,trustedPins.reviewerSpkiSha256,now,checked.expires_at_ms,requestId,principal.tenant_id,deviceId,now]);
+      [principal.id,checked.evidence_sha256,trustedPins.reviewerSpkiSha256,commitNow,checked.expires_at_ms,requestId,principal.tenant_id,deviceId,commitNow]);
     if(updated?.affectedRows!==1)fail('RECOVERY_REVIEW_WRITE_UNCONFIRMED');
     await audit(c,principal,deviceId,'DEVICE_RECOVERY_REVIEW_RESERVED',{request_id:requestId,evidence_sha256:checked.evidence_sha256});
     return Object.freeze({request_id:requestId,state:'REVIEW_RESERVED',review_reserved:true,

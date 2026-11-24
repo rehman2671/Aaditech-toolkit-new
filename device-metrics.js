@@ -42,20 +42,30 @@ export function analyzeMeasuredTelemetry(history, device, now = Date.now()) {
   const cpu = current.cpu_usage === null ? null : Number.parseFloat(current.cpu_usage);
   const ram = current.memory_usage === null ? null : Number.parseFloat(current.memory_usage);
   const disk = current.disk_free_gb;
-  const samples = (Array.isArray(history) ? history : []).map(h => ({
+  const candidates = (Array.isArray(history) ? history : []).map(h => ({
     time: h?.recorded_at ? new Date(h.recorded_at).getTime() : NaN,
     disk: finite(h?.disk_free_gb, 1000000)
   })).filter(h => Number.isFinite(h.time) && h.time <= now && now - h.time <= 7 * 86400000 &&
     h.disk !== null).sort((a, b) => a.time - b.time);
+  // Count distinct observation times, not duplicate rows; conflicting
+  // measurements at one timestamp are unusable evidence.
+  const byTime=new Map(),conflicts=new Set();
+  for(const sample of candidates){
+    if(byTime.has(sample.time)&&byTime.get(sample.time).disk!==sample.disk)conflicts.add(sample.time);
+    else if(!byTime.has(sample.time))byTime.set(sample.time,sample);
+  }
+  const samples=[...byTime.values()].filter(x=>!conflicts.has(x.time));
   const result = {
     hostname: device?.hostname || null,
     status: 'INSUFFICIENT_DATA', sample_count: samples.length, minimum_required_samples: 5,
     disk_free_gb: disk, daily_growth_gb: null, projected_days_until_full: null,
     memory_usage_pct: ram, cpu_usage_pct: cpu, anomaly_score: null, health_rating: 'Unrated',
     telemetry_status: current.telemetry_status,
+    conflicting_sample_times: conflicts.size,
     recommended_action: 'Insufficient fresh measured telemetry to compute statistical trend'
   };
-  if (current.telemetry_status !== 'AGENT_REPORTED' || disk === null || samples.length < 5)
+  if (current.telemetry_status !== 'AGENT_REPORTED' || disk === null || samples.length < 5 || conflicts.size>0 ||
+      [true,1,'1'].includes(device?.agent_token_revoked))
     return result;
   const first = samples[0], last = samples.at(-1);
   const days = (last.time - first.time) / 86400000;
@@ -63,14 +73,16 @@ export function analyzeMeasuredTelemetry(history, device, now = Date.now()) {
   const consumption = first.disk - last.disk;
   const rate = consumption > 0 ? consumption / days : 0;
   const remaining = rate > 0 ? Math.ceil(disk / rate) : null;
-  const score = (ram !== null && ram > 85 ? 40 : 0) +
-    (cpu !== null && cpu > 80 ? 30 : 0) +
+  // A disk forecast may be valid even when CPU/RAM are absent. Do not
+  // turn missing dimensions into a falsely healthy composite score.
+  const score = ram === null || cpu === null ? null :
+    (ram > 85 ? 40 : 0) + (cpu > 80 ? 30 : 0) +
     (remaining !== null && remaining < 14 ? 30 : 0);
   return {
     ...result, status: remaining === null ? 'NO_DEPLETION_TREND' : 'ANALYZED',
     daily_growth_gb: rate > 0 ? -Number(rate.toFixed(3)) : 0,
     projected_days_until_full: remaining, anomaly_score: score,
-    health_rating: score > 60 ? 'Critical' : score > 30 ? 'Warning' : 'Optimal',
+    health_rating: score === null ? 'Unrated' : score > 60 ? 'Critical' : score > 30 ? 'Warning' : 'Optimal',
     recommended_action: remaining !== null && remaining < 14 ?
       'Investigate measured disk depletion' :
       ram !== null && ram > 85 ? 'Investigate measured memory pressure' :

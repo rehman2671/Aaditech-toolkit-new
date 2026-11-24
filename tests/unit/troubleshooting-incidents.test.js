@@ -1,5 +1,5 @@
 import {describe,it,expect,vi} from 'vitest';
-import {createTroubleshootingIncident as create,inspectTroubleshootingIncident as inspect,recordDiagnosticPlan as plan,inspectDiagnosticPlan,summarizeTroubleshootingIntake as summary} from '../../troubleshooting-incidents.js';
+import {createTroubleshootingIncident as create,inspectTroubleshootingIncident as inspect,recordDiagnosticPlan as plan,inspectDiagnosticPlan,summarizeTroubleshootingCategories,summarizeTroubleshootingIntake as summary} from '../../troubleshooting-incidents.js';
 const installationId='6f8c5ad9-e52e-4ea4-a1c7-f1dc23688a9e',tenant='00000000-0000-4000-8000-000000000001',deviceId='00000000-0000-4000-8000-000000000002',requestId='00000000-0000-4000-8000-000000000003',incidentId='00000000-0000-4000-8000-000000000004';
 const principal={id:1,tenant_id:tenant,role:'SUPER_ADMIN'};
 const input={principal,installationId,deviceId,requestId,categoryId:'TR-01',hazard:'NONE'};
@@ -152,5 +152,55 @@ describe('scoped diagnostic plan inspection',()=>{
   const f=fixture();for(const bad of [{...args,planId:'invalid'},{...args,command:'private'}])
    await expect(inspectDiagnosticPlan(f.pool,bad)).rejects.toThrow('INCIDENT_INVALID');
   expect(f.pool.getConnection).not.toHaveBeenCalled();
+ });
+});
+
+describe('scoped per-category intake analytics',()=>{
+ const args={principal,installationId,deviceId};
+ const group=(category_id,hazard,status,reported='1',planned_incidents='0')=>({category_id,hazard,status,reported,planned_incidents});
+ const human=new Set(['TR-05','TR-09','TR-11','TR-19','TR-24']);
+ const ids=Array.from({length:26},(_,i)=>'TR-'+String(i+1).padStart(2,'0'));
+ for(const category_id of ids){
+  it(category_id+' reports actual intake and never invents outcome metrics',async()=>{
+   const status=human.has(category_id)?'ESCALATED':'OPEN';
+   const f=fixture({rows:[group(category_id,'NONE',status,'2',status==='OPEN'?'1':'0')]});
+   const r=await summarizeTroubleshootingCategories(f.pool,args);
+   expect(r.categories).toHaveLength(26);
+   expect(r.categories.find(x=>x.category_id===category_id)).toEqual({category_id,reported:2,open:status==='OPEN'?2:0,escalated:status==='ESCALATED'?2:0,incidents_with_plans:status==='OPEN'?1:0});
+   expect(r.totals.reported).toBe(2);expect(r.diagnosed).toBeNull();expect(r.executed_attempts).toBeNull();
+   expect(r.verified_resolved).toBeNull();expect(r.resolution_rate).toBeNull();expect(r.production_accepted).toBe(false);
+   expect(f.c.query.mock.calls.at(-1)[1]).toEqual([installationId,tenant,deviceId,1]);
+   expect(f.c.query.mock.calls.every(([q])=>q.startsWith('SELECT'))).toBe(true);
+  });
+  it(category_id+' rejects contradictory hazard and status',async()=>{
+   const f=fixture({rows:[group(category_id,'PHYSICAL_HAZARD','OPEN')]});
+   await expect(summarizeTroubleshootingCategories(f.pool,args)).rejects.toThrow('INCIDENT_CATEGORY_REPORT_UNVERIFIED');
+   expect(f.c.rollback).toHaveBeenCalledOnce();
+  });
+ }
+ it('fills absent categories with measured zero; unavailable outcomes remain null',async()=>{
+  const r=await summarizeTroubleshootingCategories(fixture().pool,args);
+  expect(r.categories.every(x=>x.reported===0)).toBe(true);
+  expect(r.totals).toEqual({reported:0,open:0,escalated:0,incidents_with_plans:0});
+  expect(r.outcome_measurement).toBe('NOT_IMPLEMENTED');
+ });
+ it('aggregates distinct hazard groups and refuses duplicate grouped rows',async()=>{
+  const a=group('TR-01','NONE','OPEN','2','1'),b=group('TR-01','UNKNOWN','OPEN','3'),c=group('TR-01','DATA_LOSS_RISK','ESCALATED','1');
+  const r=await summarizeTroubleshootingCategories(fixture({rows:[a,b,c]}).pool,args);
+  expect(r.totals).toEqual({reported:6,open:5,escalated:1,incidents_with_plans:1});
+  await expect(summarizeTroubleshootingCategories(fixture({rows:[a,a]}).pool,args)).rejects.toThrow();
+ });
+ it('rejects invalid counts, impossible planned status and overflow',async()=>{
+  for(const rows of [[group('TR-01','NONE','OPEN','01')],[group('TR-01','NONE','OPEN',true)],
+   [group('TR-01','NONE','OPEN','0')],[group('TR-01','NONE','OPEN','1','2')],
+   [group('TR-01','UNKNOWN','OPEN','1','1')],[group('TR-24','NONE','ESCALATED','1','1')],
+   [group('TR-99','NONE','OPEN')],[group('TR-01','INVALID','OPEN')],
+   [group('TR-01','NONE','OPEN',Number.MAX_SAFE_INTEGER),group('TR-02','NONE','OPEN',1)]]){
+   await expect(summarizeTroubleshootingCategories(fixture({rows}).pool,args)).rejects.toThrow('INCIDENT_CATEGORY_REPORT_UNVERIFIED');
+  }
+ });
+ it('denies inactive and foreign authority',async()=>{
+  for(const opts of [{owner:{tenant_id:'other'}},{user:{active:0}}])
+   await expect(summarizeTroubleshootingCategories(fixture(opts).pool,args)).rejects.toThrow('INCIDENT_SCOPE_DENIED');
  });
 });

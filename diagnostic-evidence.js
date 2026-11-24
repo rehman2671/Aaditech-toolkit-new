@@ -56,3 +56,35 @@ export function verifyResourceDiagnosticArtifact({artifact,proof}={}){
  return Object.freeze({...binding,artifact_content_verified:true,
    measurement_truth_verified:false,measured_fields:metrics.filter(k=>doc[k]!==null).length});
 }
+
+// Additional privacy-preserving review contracts. These categorical fields
+// contain no addresses, SSIDs, paths, device serials or user content.
+// No probes, commands, network requests or collection are performed here.
+const categorical=(...allowed)=>x=>x===null||allowed.includes(x);
+const percent=x=>x===null||(typeof x==='number'&&Number.isFinite(x)&&x>=0&&x<=100);
+const artifactContracts=Object.freeze({
+ APPROVED_NETWORK_STATUS:Object.freeze({schema:'aaditech-network-diagnostic-v1',fields:Object.freeze({
+  link_state:categorical('UP','DOWN'),default_route_state:categorical('PRESENT','ABSENT'),
+  approved_probe_state:categorical('REACHABLE','UNREACHABLE','NOT_RUN')
+ })}),
+ DISK_CAPACITY_HEALTH:Object.freeze({schema:'aaditech-disk-diagnostic-v1',fields:Object.freeze({
+  free_percent:percent,health_state:categorical('HEALTHY','WARNING','CRITICAL'),
+  read_only_state:categorical('READ_ONLY','WRITABLE')
+ })})
+});
+export function verifyCategoricalDiagnosticArtifact({artifact,proof}={}){
+ const binding=verifyDiagnosticEvidence(proof);
+ const id=proof.expected.diagnosticId;
+ if(!Object.hasOwn(artifactContracts,id)||!Buffer.isBuffer(artifact)||
+    artifact.length<1||artifact.length>512)fail();
+ const bytes=Buffer.from(artifact),contract=artifactContracts[id];
+ if(sha(bytes)!==proof.expected.artifactSha256)fail();
+ let doc;try{doc=JSON.parse(bytes.toString('utf8'))}catch{fail()}
+ if(!doc||typeof doc!=='object'||Array.isArray(doc)||doc.schema!==contract.schema)fail();
+ const keys=Object.keys(contract.fields);
+ if(!keys.every(k=>Object.hasOwn(doc,k)&&contract.fields[k](doc[k])))fail();
+ const canonical=Buffer.from(JSON.stringify({schema:contract.schema,...Object.fromEntries(keys.map(k=>[k,doc[k]]))}));
+ if(!canonical.equals(bytes))fail();
+ return Object.freeze({...binding,artifact_content_verified:true,measurement_truth_verified:false,
+   measured_fields:keys.filter(k=>doc[k]!==null&&doc[k]!=='NOT_RUN').length});
+}

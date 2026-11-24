@@ -133,6 +133,8 @@ export async function verifyAuthenticatedBackup({
     identity:Object.freeze({schema_version:1,installation_id:record.installation_id}),
     backup_id:record.backup_id,
     created_at:record.created_at,
+    payload_size:record.payload_size,
+    payload_sha256:record.payload_sha256,
     signer_spki_sha256:pin
   });
 }

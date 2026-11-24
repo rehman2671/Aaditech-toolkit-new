@@ -54,8 +54,39 @@ $psSource=[IO.File]::ReadAllText($exeBuilder)
 $wixSource=[IO.File]::ReadAllText($msiBuilder)
 $installPs='Install-Module -Name ps2exe -RequiredVersion '+$lock.ps2exe+' -Repository PSGallery -Force -Scope CurrentUser'
 $installWix='dotnet tool install --global wix --version '+$lock.wix
-if ([regex]::Matches($ci,[regex]::Escape($installPs)).Count -ne 1 -or
-    [regex]::Matches($ci,[regex]::Escape($installWix)).Count -ne 1 -or
+# Both isolated diagnostic jobs must use the exact reviewed versions.
+# Count globally AND within each named job, so duplication in one job cannot
+# hide a missing pin in the other. N70 separately audits parsed YAML.
+foreach ($jobName in @('agent-build','phase-o-msi-diagnostic')) {
+    $jobPattern='(?ms)^  '+[regex]::Escape($jobName)+':\r?$\n(?<body>.*?)(?=^  [a-z0-9-]+:\r?$|\z)'
+    $jobMatches=[regex]::Matches($ci,$jobPattern)
+    if ($jobMatches.Count -ne 1) { throw 'N62 expected exactly one named diagnostic job.' }
+    $body=$jobMatches[0].Groups['body'].Value
+    foreach ($command in @($installPs,$installWix)) {
+        if ([regex]::Matches($body,'(?m)^\s*run: '+[regex]::Escape($command)+'\r?
+    $ci.IndexOf('Install-Module ps2exe -Force',[StringComparison]::Ordinal) -ge 0 -or
+    $ci.IndexOf('wix --version "5.*"',[StringComparison]::Ordinal) -ge 0) {
+    throw 'N62 Windows CI may have an unpinned EXE or MSI compiler.'
+}
+$importPs=$psSource.IndexOf('BuildToolchainLock.psm1',[StringComparison]::Ordinal)
+$admitPs=$psSource.IndexOf('Assert-N62InstalledPs2Exe',[StringComparison]::Ordinal)
+$execPs=$psSource.IndexOf('& ps2exe @compileParams',[StringComparison]::Ordinal)
+$importWix=$wixSource.IndexOf('BuildToolchainLock.psm1',[StringComparison]::Ordinal)
+$admitWix=$wixSource.IndexOf('Assert-N62InstalledWix',[StringComparison]::Ordinal)
+$execWix=$wixSource.IndexOf('& $wix.Source build',[StringComparison]::Ordinal)
+if ($importPs -lt 0 -or $admitPs -le $importPs -or $execPs -le $admitPs -or
+    $importWix -lt 0 -or $admitWix -le $importWix -or $execWix -le $admitWix) {
+    throw 'N62 signed/diagnostic compiler version check is not before build invocation.'
+}
+Write-Host 'N62 PASS: reviewed exact PS2EXE/WiX pins, no floating CI restore, offline downgrade/upgrade/injected-version rejection and admission before both build operations.'
+exit 0
+).Count -ne 1) {
+            throw 'N62 named Windows build job lacks the exact approved compiler pin.'
+        }
+    }
+}
+if ([regex]::Matches($ci,[regex]::Escape($installPs)).Count -ne 2 -or
+    [regex]::Matches($ci,[regex]::Escape($installWix)).Count -ne 2 -or
     $ci.IndexOf('Install-Module ps2exe -Force',[StringComparison]::Ordinal) -ge 0 -or
     $ci.IndexOf('wix --version "5.*"',[StringComparison]::Ordinal) -ge 0) {
     throw 'N62 Windows CI may have an unpinned EXE or MSI compiler.'

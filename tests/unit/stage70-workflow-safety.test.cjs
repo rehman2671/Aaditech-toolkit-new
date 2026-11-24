@@ -96,3 +96,14 @@ deny('Phase O diagnostic job must run actual major upgrade test',ci,s=>{
   const i=s.lastIndexOf('Test-Windows-MsiUpgrade.ps1');
   return s.slice(0,i)+'Fake-Windows-MsiUpgrade.ps1'+s.slice(i+'Test-Windows-MsiUpgrade.ps1'.length);
 });
+
+function mutateDiagnostic(source, fn) {
+  const start=source.indexOf('  phase-o-msi-diagnostic:\n');
+  assert.ok(start>=0);
+  return source.slice(0,start)+fn(source.slice(start));
+}
+deny('Phase O diagnostic cannot use a floating PS2EXE compiler',ci,s=>mutateDiagnostic(s,d=>d.replace(' -RequiredVersion 1.0.18','')));
+deny('Phase O diagnostic cannot use a floating WiX compiler',ci,s=>mutateDiagnostic(s,d=>d.replace('--version 5.0.2','--version 5.*')));
+deny('Phase O diagnostic cannot interpolate secret context even with bracket notation',ci,s=>mutateDiagnostic(s,d=>d.replace('run: Install-Module -Name ps2exe','run: echo '+ '$'+"{{ secrets['SIGNING_KEY'] }}"+' ; Install-Module -Name ps2exe')));
+deny('Phase O diagnostic cannot use write permission',ci,s=>mutateDiagnostic(s,d=>d.replace('contents: read','contents: write')));
+deny('Phase O diagnostic cannot replace actual lifecycle execution with a comment',ci,s=>mutateDiagnostic(s,d=>d.replace('./Enterprise/tests/Test-Windows-MsiInstall.ps1','# ./Enterprise/tests/Test-Windows-MsiInstall.ps1')));

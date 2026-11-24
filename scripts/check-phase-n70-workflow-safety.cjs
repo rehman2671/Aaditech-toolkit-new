@@ -70,10 +70,26 @@ function auditN70WorkflowBundle(files) {
       if (checkout.uses !== 'actions/checkout@11d5960a326750d5838078e36cf38b85af677262' ||
           checkout.with?.['persist-credentials'] !== false ||
           steps.slice(1).some(s=>s.uses || s.env || s.if !== undefined || s['continue-on-error'] !== undefined) ||
-          /secrets\s*\.|Release-Sign\.ps1|upload-artifact|gh release/i.test(JSON.stringify(diagnostic))) fail();
-      const required=['build-agent.ps1','build-msi.ps1','Assert-N67UnprovisionedReleaseConfig','Test-Windows-MsiInstall.ps1','Test-Windows-MsiUpgrade.ps1'];
-      const commands=steps.map(s=>String(s.run||'')).join('\n');
-      if (required.some(s=>!commands.includes(s))) fail();
+          /\$\{\{|Release-Sign\.ps1|upload-artifact|gh\s+release/i.test(JSON.stringify(diagnostic))) fail();
+      // No interpolation at all in this isolated job: this rejects secret
+      // contexts (including bracket syntax) without matching prose comments.
+      // Assert executable command lines, not merely names or comments.
+      const commandLines=steps.flatMap(s=>String(s.run||'').split(/\r?\n/).map(line=>line.trim()));
+      const required=[
+        'Install-Module -Name ps2exe -RequiredVersion 1.0.18 -Repository PSGallery -Force -Scope CurrentUser',
+        'dotnet tool install --global wix --version 5.0.2',
+        './Enterprise/agent/build/build-agent.ps1',
+        './Enterprise/agent/wix/build-msi.ps1',
+        './Enterprise/tests/Test-Windows-MsiInstall.ps1',
+        './Enterprise/tests/Test-Windows-MsiUpgrade.ps1',
+      ];
+      if (required.some(cmd=>commandLines.filter(line=>line===cmd).length!==1) ||
+          !commandLines.some(line=>line.startsWith('$null = Assert-N67UnprovisionedReleaseConfig '))) fail();
+      const positions=required.map(cmd=>commandLines.indexOf(cmd));
+      // PS2EXE install -> EXE, WiX install -> MSI -> install -> upgrade.
+      if (!(positions[0]<positions[2] && positions[2]<positions[1] &&
+            positions[1]<positions[3] && positions[3]<positions[4] &&
+            positions[4]<positions[5])) fail();
     }
     if (filename.endsWith('deployment-safety.yml')) {
       const events=wf.on;

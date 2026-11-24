@@ -190,10 +190,8 @@
     </Component>
 
 <!-- ==================== scheduled tasks ==================== -->
-    <!-- E4: the routine task runs as NETWORK SERVICE (least privilege). Admin-  -->
-    <!-- required work (MSI self-upgrade, reboot, elevated-only collectors) is   -->
-    <!-- staged to the on-demand elevated task (ITToolkitAgentElevated), which   -->
-    <!-- runs as SYSTEM/Highest and only ever starts via `schtasks /run`.        -->
+    <!-- Only the routine NETWORK SERVICE task is supported. The legacy
+         privileged task must be retired and absence verified before use. -->
     <CustomAction Id="CreateSchedTask"
                   Directory="INSTALLFOLDER"
                   Return="check"
@@ -201,12 +199,12 @@
                   Execute="deferred"
                   ExeCommand="&quot;[SystemFolder]schtasks.exe&quot; /create /tn ITToolkitAgent /sc minute /mo $(var.AgentInterval) /ru &quot;NT AUTHORITY\NETWORK SERVICE&quot; /rp &quot;&quot; /f /tr &quot;\&quot;[INSTALLFOLDER]IT-Toolkit-Agent.exe\&quot; -LoopMinutes $(var.AgentInterval)&quot;" />
 
-    <CustomAction Id="CreateElevatedTask"
+    <CustomAction Id="RetireLegacyElevatedTask"
                   Directory="INSTALLFOLDER"
-                  Return="ignore"
+                  Return="check"
                   Impersonate="no"
                   Execute="deferred"
-                  ExeCommand="&quot;[SystemFolder]WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -ExecutionPolicy Bypass -File &quot;[SCRIPTS_DIR]Create-ElevatedTask.ps1&quot; -AgentExe &quot;[INSTALLFOLDER]IT-Toolkit-Agent.exe&quot;" />
+                  ExeCommand="&quot;[SystemFolder]WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -ExecutionPolicy Bypass -File &quot;[SCRIPTS_DIR]Create-ElevatedTask.ps1&quot;" />
 
     <CustomAction Id="RemoveSchedTask"
                   Directory="INSTALLFOLDER"
@@ -260,8 +258,8 @@
            scheduling After=InstallFinalize makes msiexec fail with Error 2762
            ("Unable to schedule operation"). After=InstallFiles is the last valid
            slot that still guarantees the files exist first. -->
-      <Custom Action="CreateSchedTask" After="InstallFiles" Condition="NOT Installed AND NOT REMOVE" />
-      <Custom Action="CreateElevatedTask" After="CreateSchedTask" Condition="NOT Installed AND NOT REMOVE" />
+      <Custom Action="RetireLegacyElevatedTask" After="InstallFiles" Condition="NOT REMOVE" />
+      <Custom Action="CreateSchedTask" After="RetireLegacyElevatedTask" Condition="NOT Installed AND NOT REMOVE" />
       <Custom Action="HardenRuntimeJsonAcl" After="InstallFiles" Condition="NOT REMOVE" />
       <Custom Action="HardenAgentDataAcl" After="HardenRuntimeJsonAcl" Condition="NOT REMOVE" />
       <Custom Action="HardenLocalJsonAcl" After="HardenAgentDataAcl" Condition="NOT REMOVE" />

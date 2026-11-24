@@ -25,3 +25,18 @@ if($raw -match '(?i)Restart-Computer|shutdown\.exe') {
     throw 'Worker still has automatic OS reboot primitives'
 }
 Write-Host '[PASS] Unapproved signed reboot is refused; no SYSTEM request or false completion.'
+
+# The actual worker entry point must refuse legacy elevation before even
+# looking for a configuration or importing modules.
+$workerShell=(Get-Process -Id $PID).Path
+$output=& $workerShell -NoProfile -File $path -ElevatedOnce -ConfigPath 'Z:\missing-itk-config.json' 2>&1
+if ($LASTEXITCODE -ne 3 -or ($output -join ' ') -notmatch 'LEGACY_ELEVATED_WORKER_DISABLED') {
+    throw 'Legacy elevated entry point was not refused before configuration'
+}
+$delegate=@($ast.FindAll({
+    param($n) $n -is [Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -eq 'Request-ElevatedJob'
+},$true))
+if($delegate.Count -ne 1) {throw 'Expected deny-only compatibility function'}
+Invoke-Expression $delegate[0].Extent.Text
+if ((Request-ElevatedJob -Action 'update') -ne $false) {throw 'Legacy privileged delegation accepted'}
+Write-Host '[PASS] Legacy elevated entry point and delegation are blocked.'

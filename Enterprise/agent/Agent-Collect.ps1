@@ -16,6 +16,13 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
+# Legacy MSI could launch this worker as SYSTEM from a lower-privilege
+# request. Reject that entry point before config, modules, queue or network.
+if ($ElevatedOnce) {
+    Write-Output 'LEGACY_ELEVATED_WORKER_DISABLED'
+    exit 3
+}
+
 function Resolve-ToolkitRoot {
     # Installed layout:  <InstallRoot>\Scripts\Modules, <InstallRoot>\Config
     # Repo layout:       <repo>\Scripts\Modules,       <repo>\Config
@@ -55,49 +62,10 @@ function Test-IsElevated {
     catch { return $false }
 }
 
-function Get-ElevatedTaskRequestPath {
-    return (Join-Path (Split-Path $ConfigPath -Parent) 'elevated-job.json')
-}
-
-# E4: hand ONLY reviewed agent update requests to the
-# on-demand elevated task (ITToolkitAgentElevated). The main task is unprivileged,
-# so any action that needs SYSTEM is staged as a small JSON request file and the
-# elevated task is asked to run it once. Returns $true when the request was
-# staged and the elevated task is available.
+# Compatibility function: never stage or delegate any privileged work.
 function Request-ElevatedJob {
-    param(
-        [string]$Action,
-        [hashtable]$Payload = @{}
-    )
-    # Reboot requires a separate signed maintenance-window/owner-consent
-    # workflow that is not implemented. Never stage it for a SYSTEM task.
-    if ($Action -eq 'reboot') {
-        Write-AgentLog 'REBOOT_APPROVAL_REQUIRED: no privileged reboot request was staged'
-        return $false
-    }
-    try {
-        $req = [ordered]@{ action = $Action; requested = (Get-Date).ToString('o') } + $Payload
-        ($req | ConvertTo-Json -Compress -Depth 6) | Set-Content (Get-ElevatedTaskRequestPath) -ErrorAction Stop
-        # Ask the Task Scheduler for a one-time run of the elevated task. The
-        # task is registered by the MSI as SYSTEM/Highest; if it is missing
-        # (manual/dev installs) the request file alone keeps the operation
-        # visible to any later elevated pass.
-        try {
-            (& schtasks.exe /run /tn ITToolkitAgentElevated 2>&1 | Out-Null)
-            Write-AgentLog "Elevated task triggered for $Action"
-        }
-        catch { Write-AgentLog "Elevated task not triggered ($($_.Exception.Message)); request kept for next elevated pass" }
-        return $true
-    }
-    catch {
-        Write-AgentLog "Could not stage elevated request ($Action): $($_.Exception.Message)"
-        return $false
-    }
-}
-
-function Clear-ElevatedRequest {
-    $p = Get-ElevatedTaskRequestPath
-    if (Test-Path $p) { Remove-Item $p -Force -ErrorAction SilentlyContinue }
+    param([string]$Action,[hashtable]$Payload = @{})
+    return $false
 }
 
 function Read-AgentConfig {
@@ -637,12 +605,10 @@ function Invoke-AgentCollection {
 
     foreach ($feature in $Config.features) {
         if (-not $feature.enabled) { continue }
-        # E4: collectors needing elevation are opt-in. Under the least-privilege
-        # NETWORK SERVICE task these run only when this process is elevated
-        # (i.e. the on-demand elevated task, which reuses this same loop).
-        $needsElev = [bool]$feature.requires_elevation
-        if ($needsElev -and -not (Test-IsElevated)) {
-            Write-AgentLog "Skipping $($feature.name): requires elevation (opt-in; runs only under the elevated task)"
+        # Elevated collectors require a separate reviewed local execution
+        # boundary. Never run them through the automatic installed worker.
+        if ([bool]$feature.requires_elevation) {
+            Write-AgentLog "Skipping $($feature.name): separate administrator approval required"
             continue
         }
         $scriptPath = $feature.script
@@ -1260,47 +1226,6 @@ Write-AgentLog "Agent cycle start (endpoint: $($Config.endpoint))"
 
 # mTLS: fetch the client cert once before the first endpoint call.
 $null = Ensure-ClientCert -Config $Config
-
-# E4: on-demand elevated task (-ElevatedOnce). Runs exactly one privileged
-# cycle (elevated collectors run, self-upgrade installs, reboot remains disabled without human approval)
-# then clears any staged elevated request. Never loops.
-if ($ElevatedOnce) {
-    Write-AgentLog "Elevated once run (privileged cycle)"
-
-    # Never interpret an old elevated-job.json 'reboot' instruction.
-    # Historical files were writable without a signed change-approval record;
-    # the privileged pass must not consume them as authorization.
-    $jobPath = Get-ElevatedTaskRequestPath
-    if (Test-Path $jobPath) {
-        Write-AgentLog 'Ignoring staged elevated-job.json action; unapproved reboot execution is disabled'
-    }
-
-    Prune-Queue
-    try { $null = Send-AgentHeartbeat -Config $Config }
-    catch { Write-AgentLog "Heartbeat failed: $($_.Exception.Message)" }
-
-    if (-not $CollectOnly -and -not $FlushOnly) { $null = Update-AgentIfNeeded -Config $Config }
-
-    if (-not $FlushOnly) {
-        $ran = Invoke-AgentCollection -Config $Config
-        Write-AgentLog "Elevated collection: $($ran -join ', ')"
-    }
-    if (-not $CollectOnly) {
-        $null = Send-AgentBatch -Config $Config
-    }
-    if (-not $FlushOnly -and -not $CollectOnly) {
-        $cmds = Get-PendingCommands -Config $Config
-        foreach ($cmd in $cmds) {
-            Invoke-VerifiedCommandOnce -Config $Config -Cmd $cmd
-        }
-    }
-
-    if (-not $CollectOnly) { Send-PendingCommandResults -Config $Config }
-
-    Clear-ElevatedRequest
-    Write-AgentLog "Elevated once complete"
-    exit 0
-}
 
 # N27: full inventory/upgrade work can stay on the installed 30-minute
 # schedule while lightweight measured telemetry stays fresher than the server's

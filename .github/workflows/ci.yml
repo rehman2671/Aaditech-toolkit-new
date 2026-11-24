@@ -91,6 +91,10 @@ jobs:
         run: python ./Enterprise/tests/test_command_uuid_sqlite.py
       - name: Reboot commands require approval, never auto-execute
         run: pwsh -NoProfile -File ./Enterprise/tests/Test-RebootDefaultDeny.ps1
+      - name: Legacy privileged task retirement (mocked exact task boundary)
+        run: pwsh -NoProfile -File ./Enterprise/tests/Test-LegacyElevatedTaskRetirement.ps1
+      - name: Legacy privileged task retirement on Windows PowerShell 5.1
+        run: powershell.exe -NoProfile -ExecutionPolicy Bypass -File ./Enterprise/tests/Test-LegacyElevatedTaskRetirement.ps1
       - name: MSI self-updater must refuse unsigned installation
         run: pwsh -NoProfile -File ./Enterprise/tests/Test-SelfUpdateDefaultDeny.ps1
       - name: Test one-use enrollment bootstrap token is cleared after provisioning

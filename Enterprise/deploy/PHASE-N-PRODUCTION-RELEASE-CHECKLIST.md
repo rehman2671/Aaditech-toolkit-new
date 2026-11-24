@@ -762,3 +762,9 @@ Strict history verification may intentionally block a historical installation wh
 
 
 > **2026-11-25 Phase O residual N73 review:** fixed-origin short-page continuation, redirect/cache hardening and stricter ruleset-detail metadata validation proposed on the current integration baseline. Both complete inventory passes remain intact. Exact-head CI, independent review and all live gates remain pending. See [N73 acceptance](PHASE-N-STAGE73-ACCEPTANCE.md).
+
+### 2026-11-25 Phase O follow-up
+
+- [x] Review-only recovery and internal incident intake fail-closed integrity changes proposed in #113; seven regression cases added.
+- [ ] Fresh exact-head and combined CI, independent review and actual protected signed publication.
+- [ ] Physical LAN/Windows acceptance, secure credential handoff and production restore evidence. No activation or diagnostic execution approved.

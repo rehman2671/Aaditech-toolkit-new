@@ -132,3 +132,8 @@ Decision for integration: retain master mandatory batch ID and current credentia
 ## Phase O telemetry policy reconciliation (2026-11-24)
 
 Selective reconciliation of #111 5ecd18c1 against #109 1c90d449: master mandatory stable batch-ID admission and already-integrated command quarantine/reconciliation retained; only persistent app-usage snapshot migration 016 and relevant tests imported, no competing unkeyed production path. Snapshot commits inside keyed telemetry transaction; exact replay cannot overwrite newer data; read checks unique current active credential, tenant and freshness. Real MySQL regressions added for replay, foreign/rotated/revoked/expired, empty and oversized evidence. Prior Redis key helper retained for existing regression coverage but deployed portal no longer consumes it. Fresh combined CI and staging migration/backup required; no credential replacement or production acceptance.
+
+
+## Phase O exact-head verification and coverage recovery (2026-11-24)
+
+Master #109 exact head 1c90d4492ecb8f192c28203bac502f772549651f CI #45456930486 4/4 executed SUCCESS (Node, PowerShell, real MySQL API, unsigned Windows MSI); deployment safety #45456930417 SUCCESS. Protected signed build skipped. #111 exact b1ff5176 CI #45457267890 all 483 tests/74 files passed, but statement coverage 69.73% below unchanged 70% threshold; API skipped. Added focused snapshot read/write, explicit empty/absent, duplicate receipt, invalid data, credential, rollback and DB-unavailable tests without reducing coverage gate. Fresh CI required; migration 016 staging backup/restore and physical source acquisition pending. Master quarantine/reconciliation verified at prior exact head, replacement issuance/independent ownership and secure handoff remain blocked.

@@ -70,9 +70,14 @@ function evaluate(snapshot, expectedSha, repoName) {
   }
   return Object.freeze({ allowed: blockers.length === 0, blockers });
 }
+// N73: read all pages from a fixed trusted API origin, bounded and fail-closed.
+const RULESET_PAGE_SIZE = 100;
+const MAX_RULESET_PAGES = 5;
 async function github(path, token) {
   const resp = await fetch('https://api.github.com' + path, {
     method: 'GET',
+    redirect: 'error',
+    cache: 'no-store',
     headers: {
       Accept: 'application/vnd.github+json',
       'User-Agent': 'aaditech-n71-readonly-governance-audit',
@@ -82,20 +87,61 @@ async function github(path, token) {
     signal: AbortSignal.timeout(15000)
   });
   if (!resp.ok) throw new Error('N71 cannot verify required GitHub governance metadata (HTTP ' + resp.status + ')');
-  return resp.json();
+  return { data: await resp.json(), link: resp.headers.get('link') || '' };
+}
+async function readRulesetIds(prefix, token) {
+  const ids = new Set();
+  for (let page = 1; page <= MAX_RULESET_PAGES; page++) {
+    const { data, link } = await github(prefix + '/rulesets?includes_parents=true&per_page=' +
+      RULESET_PAGE_SIZE + '&page=' + page, token);
+    if (!Array.isArray(data) || data.length > RULESET_PAGE_SIZE) {
+      throw new Error('N73 invalid GitHub ruleset page');
+    }
+    for (const entry of data) {
+      if (!Number.isSafeInteger(entry?.id) || entry.id <= 0 || ids.has(entry.id)) {
+        throw new Error('N73 invalid or repeated ruleset identifier');
+      }
+      ids.add(entry.id);
+    }
+    // Never follow an arbitrary URL from a Link header. A full page is
+    // conservatively followed even if the server omitted its next link.
+    const hasNext = /<[^>]+>\s*;\s*rel="next"/i.test(link);
+    if (data.length < RULESET_PAGE_SIZE && !hasNext) return [...ids];
+    if (data.length === 0) throw new Error('N73 empty nonterminal ruleset page');
+  }
+  throw new Error('N73 ruleset pagination limit reached; completeness unverified');
 }
 async function readLiveSnapshot(repo, token) {
   if (!REPO.test(repo || '')) throw new Error('N71 requires an exact owner/repository identity');
   const prefix = '/repos/' + repo;
-  const repository = await github(prefix, token);
-  const branch = await github(prefix + '/branches/main', token);
-  const summaries = await github(prefix + '/rulesets?includes_parents=true', token);
-  if (!Array.isArray(summaries)) throw new Error('N71 invalid GitHub ruleset response');
-  const rulesets = await Promise.all(summaries.map(async r => {
-    if (!Number.isInteger(r.id)) throw new Error('N71 invalid ruleset identifier');
-    return github(prefix + '/rulesets/' + r.id, token);
-  }));
-  return { repository, branch, rulesets };
+  const { data: repository } = await github(prefix, token);
+  const { data: branch } = await github(prefix + '/branches/main', token);
+  const ids = await readRulesetIds(prefix, token);
+  const rulesets = [];
+  // Bounded concurrency; avoid an unbounded burst of API requests.
+  for (let offset = 0; offset < ids.length; offset += 10) {
+    const batch = await Promise.all(ids.slice(offset, offset + 10).map(async id => {
+      const { data: detail } = await github(prefix + '/rulesets/' + id, token);
+      if (!detail || detail.id !== id || !Array.isArray(detail.rules)) {
+        throw new Error('N73 invalid or mismatched ruleset detail');
+      }
+      return detail;
+    }));
+    rulesets.push(...batch);
+  }
+  // Detect list changes during detail retrieval, including new inherited
+  // rulesets. This is not an atomic GitHub policy snapshot.
+  const finalIds = await readRulesetIds(prefix, token);
+  if (ids.length !== finalIds.length || finalIds.some(id => !ids.includes(id))) {
+    throw new Error('N73 ruleset membership changed during verification');
+  }
+  const { data: finalBranch } = await github(prefix + '/branches/main', token);
+  if (branch?.name !== finalBranch?.name ||
+      branch?.protected !== finalBranch?.protected ||
+      branch?.commit?.sha !== finalBranch?.commit?.sha) {
+    throw new Error('N73 main branch changed during governance verification');
+  }
+  return { repository, branch: finalBranch, rulesets };
 }
 async function live(repo, sha, token) {
   if (!REPO.test(repo || '') || !SHA.test(sha || '') ||

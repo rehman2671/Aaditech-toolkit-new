@@ -2,26 +2,28 @@ import { describe,it,expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { commandResultSchema } from '../../validation.js';
 const s=readFileSync(new URL('../../Enterprise/agent/Agent-Collect.ps1',import.meta.url),'utf8');
-describe('installed worker UUID command lifecycle',()=>{
-  it('uses a separate UUID ledger, retaining the old integer table',()=>{
-    expect(s).toContain('CREATE TABLE IF NOT EXISTS executed_commands_v2');
+describe('installed worker durable UUID result lifecycle',()=>{
+  it('retains old ledgers, uses unique bound UUID claims and no int conversion',()=>{
+    expect(s).toContain('CREATE TABLE IF NOT EXISTS command_results_v3');
     expect(s).toContain('command_id TEXT PRIMARY KEY NOT NULL');
-    expect(s).toContain('INSERT OR IGNORE INTO executed_commands_v2');
-    expect(s).toContain('SELECT changes();');
+    expect(s).toContain('INSERT OR IGNORE INTO command_results_v3');
+    expect(s).toContain('WHERE NOT EXISTS (SELECT 1 FROM executed_commands_v2');
     expect(s).not.toContain('param([int]$CommandId');
   });
-  it('verifies before claim, executes then records before reporting',()=>{
+  it('verifies before claim, executes then records before delivery',()=>{
     const section=s.slice(s.indexOf('function Invoke-VerifiedCommandOnce {'),s.indexOf('# ------------------------------------------------------------------ main'));
-    const order=['Resolve-VerifiedAgentCommand','Try-ClaimVerifiedCommand','Invoke-RemoteCommand','Record-ExecutedCommand','Send-CommandResult -Config $Config -CmdId $id -Result $normalized'].map(x=>section.indexOf(x));
+    const order=['Resolve-VerifiedAgentCommand','Try-ClaimVerifiedCommand','Invoke-RemoteCommand','Record-ExecutedCommand'].map(x=>section.indexOf(x));
     expect(order.every(x=>x>=0)).toBe(true);
     expect(order).toEqual([...order].sort((a,b)=>a-b));
     expect(s.match(/Invoke-VerifiedCommandOnce -Config \$Config -Cmd \$cmd/g)).toHaveLength(2);
+    expect(s.match(/Send-PendingCommandResults -Config \$Config/g)).toHaveLength(2);
   });
-  it('does not send hostname in a strict result body',()=>{
+  it('persists strict normalized body and requires a matching authoritative receipt',()=>{
     expect(commandResultSchema.safeParse({status:'completed',output:'ok',exit_code:0}).success).toBe(true);
     expect(commandResultSchema.safeParse({hostname:'PC',status:'completed',output:'ok',exit_code:0}).success).toBe(false);
-    const block=s.slice(s.indexOf('function Send-CommandResult {'),s.indexOf('function Invoke-VerifiedCommandOnce {'));
-    expect(block).not.toContain('hostname  =');
-    expect(block).toContain('ConvertTo-CommandResult $Result');
+    expect(s).toContain("body=CAST(X'$bodyHex' AS TEXT),delivery='pending'");
+    expect(s).toContain("MaximumRedirection=0");
+    expect(s).toContain("delivery='acknowledged'");
+    expect(s).toContain("aaditech:command-result-binding:v1");
   });
 });

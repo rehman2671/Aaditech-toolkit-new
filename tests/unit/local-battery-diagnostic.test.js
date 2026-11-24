@@ -14,7 +14,7 @@ describe('Linux passive battery observation',()=>{
  for(const [i,v] of [null,undefined,0,50,true,{},[],'-1','101','01','1e1','0x10','50\n',' 50','50.1','9'.repeat(19)].entries())
   it('rejects invalid charge observation '+i,()=>expect(parse({...base,charge:v}).charge_percent).toBeNull());
  for(const [raw,status] of [['Charging','CHARGING'],['Discharging','DISCHARGING'],['Full','FULL'],['Not charging','NOT_CHARGING'],['Unknown',null],['Charging\n',null],[true,null],[null,null]])
-  it('maps status '+String(raw),()=>expect(parse({...base,status}).charging_state).toBe(status));
+  it('maps status '+String(raw),()=>expect(parse({...base,status:raw}).charging_state).toBe(status));
  for(const [i,v] of [null,undefined,0,'0','-1','799','01','1e3','1000\n','9'.repeat(19)].entries())
   it('refuses invalid design capacity '+i,()=>expect(parse({...base,energyDesign:v}).capacity_percent).toBeNull());
  for(const [i,v] of [null,undefined,'0',0,true,'1001','-1','0800','800\n','8e2'].entries())

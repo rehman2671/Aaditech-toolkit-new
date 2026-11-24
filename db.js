@@ -7,7 +7,7 @@ import { extractMeasurements, deviceMetricView } from './device-metrics.js';
 import bcrypt from 'bcrypt';
 import { fileURLToPath } from 'url';
 import { getAgentVersion } from './agent-artifacts.js';
-import { classifyDeviceCredentialRecovery } from './enrollment-security.js';
+import { classifyDeviceCredentialRecovery, isCredentialDeviceId, credentialDbCount } from './enrollment-security.js';
 import { appUsageCredentialCacheKey } from './telemetry-security.js';
 import { withSchemaMigrationLock } from './schema-migration-lock.js';
 import { planMigrationHistory } from './schema-migration-integrity.js';
@@ -1484,6 +1484,7 @@ export async function getActiveDeviceAppUsageCacheKey(deviceId, tenantId) {
 export async function getDeviceByTokenHash(hash) {
   if (!hash) return null;
   const production = process.env.NODE_ENV !== 'test';
+  if (production && (typeof hash !== 'string' || hash.length !== 64 || !/^[a-f0-9]{64}$/.test(hash))) return null;
   const key = `hash:${hash}`;
   // Revocation on other API workers must invalidate authentication immediately.
   if (!production) {
@@ -1495,7 +1496,6 @@ export async function getDeviceByTokenHash(hash) {
   // A stale legacy hash must never become valid again after token rotation.
   // LIMIT 2 detects ambiguous rows without exposing an arbitrary owner.
   if (production) {
-    if (typeof hash !== 'string' || !/^[a-f0-9]{64}$/.test(hash)) return null;
     const rows = await executeQuery(
       'SELECT * FROM devices WHERE device_token_hash = ? LIMIT 2',
       [hash]
@@ -1641,7 +1641,7 @@ export async function updateDevice(id, updates) {
 // No demo fallback, no credential issuance, and no synthetic check-in update.
 export async function revokeDeviceCredential({ principal, deviceId, reasonCode, ipAddress }) {
   if (!principal?.id || !principal?.tenant_id || principal.role !== 'SUPER_ADMIN' ||
-      !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(deviceId || '')) ||
+      !isCredentialDeviceId(deviceId) ||
       !['COMPROMISED','DEVICE_LOST','DECOMMISSIONED','ADMINISTRATIVE_HOLD'].includes(reasonCode)) {
     throw new Error('DEVICE_REVOCATION_INVALID');
   }
@@ -1655,7 +1655,7 @@ export async function revokeDeviceCredential({ principal, deviceId, reasonCode, 
       'SELECT id, tenant_id, agent_token_revoked FROM devices WHERE id = ? AND tenant_id = ? FOR UPDATE',
       [deviceId, principal.tenant_id]
     );
-    if (rows.length !== 1 || String(rows[0].tenant_id) !== String(principal.tenant_id) ||
+    if (!Array.isArray(rows) || rows.length !== 1 || String(rows[0].tenant_id) !== String(principal.tenant_id) ||
         String(rows[0].id).toLowerCase() !== deviceId.toLowerCase()) {
       await conn.rollback();
       committed = true;
@@ -1666,6 +1666,7 @@ export async function revokeDeviceCredential({ principal, deviceId, reasonCode, 
       committed = true;
       return { status: 'already_revoked' };
     }
+    if (![false,0,'0'].includes(rows[0].agent_token_revoked)) throw new Error('DEVICE_REVOCATION_STATE_UNVERIFIED');
     const [changed] = await conn.query(
       'UPDATE devices SET agent_token_revoked = 1 WHERE id = ? AND tenant_id = ?',
       [deviceId, principal.tenant_id]
@@ -1706,8 +1707,7 @@ export async function revokeDeviceCredential({ principal, deviceId, reasonCode, 
 // was deployed. This never changes a credential or claims endpoint execution.
 export async function reconcileRevokedDevicePendingCommands({principal,deviceId,action,ipAddress}) {
   if (!principal?.id || !principal?.tenant_id || principal.role !== 'SUPER_ADMIN' ||
-      typeof deviceId !== 'string' ||
-      !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(deviceId) ||
+      !isCredentialDeviceId(deviceId) ||
       action !== 'CANCEL_NEVER_CLAIMED_PENDING') throw new Error('DEVICE_RECONCILIATION_INVALID');
   if (!isMysqlConnected() || !pool?.getConnection) throw new Error('DEVICE_RECONCILIATION_MYSQL_REQUIRED');
   const conn=await pool.getConnection();
@@ -1735,8 +1735,8 @@ export async function reconcileRevokedDevicePendingCommands({principal,deviceId,
       "SELECT COUNT(*) AS outstanding FROM command_queue WHERE device_id=? "+
       "AND (status IS NULL OR UPPER(status) NOT IN ('COMPLETED','FAILED','CANCELLED','EXPIRED'))",[owner.id]);
     const count=counts?.[0]?.outstanding;
-    const outstanding=Number(count);
-    if (count==null||!Number.isSafeInteger(outstanding)||outstanding<0) throw new Error('DEVICE_RECONCILIATION_UNCONFIRMED');
+    const outstanding=credentialDbCount(count);
+    if (counts?.length!==1||outstanding===null) throw new Error('DEVICE_RECONCILIATION_UNCONFIRMED');
     if (cancelled>0) {
       const [audit]=await conn.query(
         'INSERT INTO audit_logs (id,tenant_id,actor_id,actor_email,actor,action,target_resource,details,ip_address,created_at) VALUES (?,?,?,?,?,?,?,?,?,NOW(3))',
@@ -1761,8 +1761,7 @@ export async function reconcileRevokedDevicePendingCommands({principal,deviceId,
 // no write, audit mutation, raw token or hash in the returned object.
 export async function getDeviceCredentialRecoveryPreflight({ principal, deviceId }) {
   if (!principal?.id || !principal?.tenant_id || principal.role !== 'SUPER_ADMIN' ||
-      typeof deviceId !== 'string' ||
-      !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(deviceId)) {
+      !isCredentialDeviceId(deviceId)) {
     throw new Error('DEVICE_RECOVERY_PREFLIGHT_INVALID');
   }
   if (!isMysqlConnected() || !pool?.query) throw new Error('DEVICE_RECOVERY_MYSQL_REQUIRED');

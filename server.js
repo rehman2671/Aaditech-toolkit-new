@@ -1087,6 +1087,7 @@ app.delete(['/api/v1/devices/:id', '/api/devices/:id', '/api/agents/:id'], requi
 // Require a deliberate authenticated bearer request, not an ambient cookie
 // or form submission. No route to issue replacement credentials is implied.
 app.post('/api/v1/devices/:id/credentials/revoke', requireRole(['SUPER_ADMIN']), async (req, res) => {
+  res.set('Cache-Control','no-store');
   const authorization = req.headers.authorization;
   if (typeof authorization !== 'string' || !authorization.startsWith('Bearer ') ||
       authorization.slice(7).trim() !== req.token || !req.is('application/json')) {
@@ -1099,6 +1100,7 @@ app.post('/api/v1/devices/:id/credentials/revoke', requireRole(['SUPER_ADMIN']),
       principal: req.user, ...request, ipAddress: req.ip
     });
     if (result.status === 'not_found') return res.status(404).json({ error: 'DEVICE_NOT_FOUND' });
+    if (!['revoked','already_revoked'].includes(result.status)) return res.status(503).json({error:'DEVICE_REVOCATION_UNCONFIRMED'});
     return res.json({ device_id: request.deviceId, credential_revoked: true,
       already_revoked: result.status === 'already_revoked',
       cancelled_pending_commands: result.cancelled_pending_commands ?? null });

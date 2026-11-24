@@ -64,3 +64,14 @@ describe.skipIf(process.platform==='win32')('POSIX private identity reference st
     } finally { await rm(dir,{recursive:true,force:true}); }
   });
 });
+
+it('requires explicit own data fields for identity and observed local state',()=>{
+ expect(()=>validateInstallationIdentity(Object.create(A))).toThrow('INVALID_INSTALLATION_IDENTITY');
+ let reads=0;const accessor={...A};Object.defineProperty(accessor,'installation_id',{enumerable:true,get(){reads++;return A.installation_id}});
+ expect(()=>validateInstallationIdentity(accessor)).toThrow('INVALID_INSTALLATION_IDENTITY');
+ expect(reads).toBe(0);
+ const observed={...empty};Object.defineProperty(observed,'database',{enumerable:true,get(){reads++;return 'absent'}});
+ for(const bad of [Object.create(empty),observed,{...empty,extra:true}])
+  expect(plan({intent:'fresh',observed:bad}).reason).toBe('LOCAL_STATE_UNKNOWN');
+ expect(reads).toBe(0);
+});

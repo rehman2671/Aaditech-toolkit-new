@@ -93,3 +93,82 @@ test('N72 reject non-strict, missing or fragmented required status rules', () =>
     }});
   }, 'fragmentation across separate strict rules');
 });
+
+ // N73: synthetic transport fixtures; never contact GitHub or use real credentials.
+const { readLiveSnapshot, live } = require('../../scripts/check-phase-n71-live-main-protection.cjs');
+function withTransport(t, scenario = {}) {
+  let listing = 0, branchReads = 0;
+  const calls = [];
+  t.mock.method(globalThis, 'fetch', async (url, opts) => {
+    const u = new URL(url);
+    assert.equal(u.origin, 'https://api.github.com');
+    assert.equal(opts.method, 'GET');
+    assert.equal(opts.redirect, 'error');
+    assert.equal(opts.cache, 'no-store');
+    calls.push(u.pathname + u.search);
+    let data, link = '', status = 200;
+    if (u.pathname.endsWith('/branches/main')) {
+      branchReads++;
+      data = sample().branch;
+      if (scenario.drift && branchReads === 2) data.commit.sha = 'b'.repeat(40);
+    } else if (u.pathname.endsWith('/rulesets')) {
+      const page = Number(u.searchParams.get('page'));
+      assert.equal(u.searchParams.get('includes_parents'), 'true');
+      assert.equal(u.searchParams.get('per_page'), '100');
+      if (page === 1) listing++;
+      if (scenario.limit) {
+        data = Array.from({length:100}, (_,i)=>({id:(page-1)*100+i+1}));
+      } else if (page === 1) {
+        data = [{id:1}];
+        if (scenario.pages || scenario.duplicate || scenario.emptyNext)
+          link = '<https://untrusted.invalid/ignored>; rel="next"';
+        if (scenario.invalidId) data = [{id:0}];
+      } else {
+        data = scenario.emptyNext ? [] : [{id:scenario.duplicate ? 1 : 2}];
+        if (scenario.emptyNext) link = '<https://untrusted.invalid/ignored>; rel="next"';
+        if (scenario.http) status = 503;
+      }
+      if (scenario.membership && listing === 2) data = [{id:3}];
+    } else if (/\/rulesets\/\d+$/.test(u.pathname)) {
+      const id = Number(u.pathname.split('/').pop());
+      data = {...sample().rulesets[0], id};
+      if (scenario.mismatch) data.id = 999;
+      if (scenario.malformed) delete data.rules;
+      if (id === 2 && scenario.bypass) data.bypass_actors = [{actor_id:7}];
+    } else {
+      data = sample().repository;
+    }
+    return {ok:status===200,status,headers:new Headers({link}),json:async()=>data};
+  });
+  return calls;
+}
+test('N73 follows next page only at trusted fixed API origin and rereads main', async t => {
+  const calls = withTransport(t,{pages:true});
+  const s = await readLiveSnapshot(REPO,'synthetic-token');
+  assert.deepEqual(s.rulesets.map(r=>r.id),[1,2]);
+  assert.equal(calls.filter(c=>c.includes('page=2') && c.includes('&page=2')).length,2);
+  assert.equal(calls.filter(c=>c.endsWith('/branches/main')).length,2);
+  assert.equal(evaluate(s,SHA,REPO).allowed,true);
+});
+test('N73 second-page bypass evidence blocks release', async t => {
+  withTransport(t,{pages:true,bypass:true});
+  const result = await live(REPO,SHA,'synthetic-token');
+  assert.equal(result.allowed,false);
+  assert.match(result.blockers.join(' '),/bypass/);
+});
+for (const [name,scenario,pattern] of [
+  ['duplicate IDs',{duplicate:true},/repeated ruleset/],
+  ['invalid ID',{invalidId:true},/invalid or repeated/],
+  ['mismatched detail',{mismatch:true},/mismatched ruleset/],
+  ['malformed detail',{malformed:true},/mismatched ruleset/],
+  ['membership drift',{membership:true},/membership changed/],
+  ['main drift',{drift:true},/main branch changed/],
+  ['pagination cap',{limit:true},/pagination limit/],
+  ['nonterminal empty page',{emptyNext:true},/empty nonterminal/],
+  ['later-page HTTP error',{pages:true,http:true},/HTTP 503/]
+]) {
+  test('N73 fails closed on '+name,async t=>{
+    withTransport(t,scenario);
+    await assert.rejects(readLiveSnapshot(REPO,'synthetic-token'),pattern);
+  });
+}

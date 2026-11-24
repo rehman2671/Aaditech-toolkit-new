@@ -26,8 +26,15 @@ $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
 $principal = New-Object Security.Principal.WindowsPrincipal($identity)
 if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
     $thisScript = $MyInvocation.MyCommand.Path
-    if ($thisScript -match '"') { throw 'Unsupported path containing a quote character.' }
-    $arguments = "-NoProfile -ExecutionPolicy Bypass -STA -File `"$thisScript`""
+    # Preserve an explicitly selected configuration path across UAC.
+    # Without this, elevation silently edited the default ProgramData file
+    # instead of the custom file the operator requested.
+    # Neither argument contains a secret, but refuse quote/CR/LF characters
+    # to avoid ambiguous Windows process-command-line argument parsing.
+    if ($thisScript -match '["\r\n]' -or $ConfigPath -match '["\r\n]') {
+        throw 'Unsupported setup path containing a quote or newline.'
+    }
+    $arguments = "-NoProfile -ExecutionPolicy Bypass -STA -File `"$thisScript`" -ConfigPath `"$ConfigPath`""
     Start-Process -FilePath (Join-Path $env:WINDIR 'System32\WindowsPowerShell\v1.0\powershell.exe') -ArgumentList $arguments -Verb RunAs
     return
 }

@@ -73,6 +73,9 @@ jobs:
 
       - name: Test generic MSI HTTPS setup and server reconfiguration
         run: pwsh -NoProfile -File ./Enterprise/tests/Test-ConfigureAgent.ps1
+      # N74: installed GUI uses native Windows PowerShell 5.1.
+      - name: N74 native Windows PowerShell 5.1 first-run credential ACL regression
+        run: powershell.exe -NoProfile -ExecutionPolicy Bypass -File ./Enterprise/tests/Test-ConfigureAgent.ps1
       - name: Test per-device signed command verification in installed worker
         run: pwsh -NoProfile -File ./Enterprise/tests/Test-CommandVerification.ps1
       - name: Legacy standalone telemetry-only, remote execution disabled

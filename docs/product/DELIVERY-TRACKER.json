@@ -113,9 +113,10 @@
         "2026-11-25 PR #113: Setup planning now rejects inherited, hidden and accessor evidence, requires explicit own verified gates; reference only, no executable installer.",
         "2026-11-25 PR #113: Combined local signed bundle and host preflight produces categorical blockers, no private file paths or keys in result, and snapshots inputs before awaits. Does not grant installer execution.",
         "2026-11-25 PR #113 prior exact c9ea1431f3b434d0c8da51fe4e91eda6ee9eab83 CI 45489179421 succeeded (Node/Vitest, PowerShell, real API/MySQL; both MSI jobs skipped). New batch: Local combined setup preflight CLI supports operator-consumable JSON report; invalid input/refused bundle exits 1, actual blockers exit 2, no observed blockers exits 0 without authorization.",
-        "2026-11-25 PR #113: Local setup continuity reference binds independently approved manifest digest to exact signed journal checkpoint, re-inspects anchored progress after fresh signed-bundle and host inspection, separates fresh-host blockers from interrupted setup status, never authorizes resume or execution."
+        "2026-11-25 PR #113: Local setup continuity reference binds independently approved manifest digest to exact signed journal checkpoint, re-inspects anchored progress after fresh signed-bundle and host inspection, separates fresh-host blockers from interrupted setup status, never authorizes resume or execution.",
+        "2026-11-25 PR #113: Operator setup continuity CLI consumes bounded local JSON and canonical base64 signed checkpoint/signature, requires explicit read-only confirmation and returns redacted continuity/host report with distinct exit codes. No automatic resume or execution."
       ],
-      "next": "Verify latest CI; integrate durable operator reconciliation and approved runtime/browser setup only after owner ADR.",
+      "next": "Verify CI and review independent checkpoint custody; implement approved actual runtime and persistent browser setup.",
       "blocked": true,
       "issue_url": "https://github.com/rehman2671/Aaditech-toolkit-new/issues/80"
     },
@@ -149,9 +150,10 @@
         "Exact prior head 840cc9cddef9092bc44f5aab289e723fff180f7b: CI 45481323903 all four executable jobs passed (Node/Vitest, PowerShell, API/MySQL and unsigned Windows MSI lifecycle); protected signed installer skipped. Deployment safety 45481324009 both jobs passed.",
         "Parallel batch: validate all ordered migration source names/versions/checksums and complete recorded prefix before executing pending DDL, fail on missing/unknown/drifted records, never rewrite old checksums automatically; maintain same session lock, defer startup ready until schema validation and migration completes. Unit history tests plus disposable MySQL intentional checksum corruption/refusal/restoration. Windows worker validates canonical per-device token and typed identity/response, refuses bootstrap fallback on malformed existing token or missing paired token, blocks redirects and bounds timeout for enrollment, poll and update check; native cleanup/credential tests run in PS5.1 and 7. Bounded RESOURCE_PRESSURE signed artifact format admits only canonical JSON CPU/RAM/disk percentages or explicit null; rejects extra/private fields and mismatched digest; verifies format/bytes but not measurement truth or execution. Fresh CI required; no new SQL migration.",
         "2026-11-25 PR #113: Installation identity/preflight now requires explicit own data properties and exact observed local resource fields, refuses inherited/accessor/extra values.",
-        "2026-11-25 PR #113: Setup continuity exact signed journal binding and post-preflight head recheck; no automatic resume or full rollback resistance."
+        "2026-11-25 PR #113: Setup continuity exact signed journal binding and post-preflight head recheck; no automatic resume or full rollback resistance.",
+        "2026-11-25 PR #113: Local setup continuity CLI verifies current independently pinned release and signed journal through existing reference modules; interrupted setup/blockers return exit 2, malformed or unverified input exit 1."
       ],
-      "next": "Validate latest CI and independent checkpoint custody, approved lifecycle/restore and physical deployment.",
+      "next": "Verify fresh CI, physical installation/restore and approved lifecycle/rollback.",
       "blocked": true
     },
     {
@@ -694,9 +696,10 @@
         "2026-11-25 PR #113: Added privacy-preserving signed review-only APPROVED_NETWORK_STATUS and DISK_CAPACITY_HEALTH artifact formats; null/NOT_RUN separate from measured evidence, no network destination, SSID, filesystem path or execution. Three focused tests.",
         "2026-11-25 PR #113: Local operator-only reference resource collector measures actual OS CPU deltas, physical RAM usage and selected filesystem block usage; canonical bounded artifact, digest, null on unavailable observations. Synthetic Ed25519 review verification integration test added. No remote agent integration or repair.",
         "2026-11-25 PR #113 prior exact c9ea1431f3b434d0c8da51fe4e91eda6ee9eab83 CI 45489179421 succeeded (Node/Vitest, PowerShell, real API/MySQL; both MSI jobs skipped). New batch: Passive Linux interface link and selected-interface IPv4 default route observations; no active probes. Actual selected-filesystem available-capacity collector, SMART and mount writability remain null. Local read-only CLI for resource/network/disk with explicit confirmation and signed review compatibility tests.",
-        "2026-11-25 PR #113: POSIX local diagnostic artifact retention uses canonical bounded passive collector content, independently supplied expected digest, private 0700 directory, 0600 file, exclusive no-overwrite publication, file and directory fsync, verified digest readback, duplicate/tamper/permission refusal. No signature, remote upload, authorization, attempt acceptance or automated retention policy."
+        "2026-11-25 PR #113: POSIX local diagnostic artifact retention uses canonical bounded passive collector content, independently supplied expected digest, private 0700 directory, 0600 file, exclusive no-overwrite publication, file and directory fsync, verified digest readback, duplicate/tamper/permission refusal. No signature, remote upload, authorization, attempt acceptance or automated retention policy.",
+        "2026-11-25 PR #113: Explicit local diagnostic custody CLI connects passive collection, content-addressed POSIX artifact retention and digest-verified readback; write confirmation separate from read-only collection confirmation. No remote upload, signing, attempts or automatic deletion."
       ],
-      "next": "Verify fresh CI, review local artifact custody, retention/privacy policy, Windows adapter, approved diagnostic attempt integration.",
+      "next": "Verify fresh CI, review custody/retention policy and implement approved endpoint authorization, Windows adapter and incident attempt lifecycle.",
       "blocked": true
     },
     {

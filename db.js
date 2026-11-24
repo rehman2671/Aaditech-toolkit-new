@@ -7,6 +7,7 @@ import { extractMeasurements, deviceMetricView } from './device-metrics.js';
 import bcrypt from 'bcrypt';
 import { fileURLToPath } from 'url';
 import { getAgentVersion } from './agent-artifacts.js';
+import { classifyDeviceCredentialRecovery } from './enrollment-security.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -1693,6 +1694,28 @@ export async function revokeDeviceCredential({ principal, deviceId, reasonCode, 
     }
     if (!discard) conn.release();
   }
+}
+
+// A single persistent tenant-scoped snapshot; no cache/demo fallback and
+// no write, audit mutation, raw token or hash in the returned object.
+export async function getDeviceCredentialRecoveryPreflight({ principal, deviceId }) {
+  if (!principal?.id || !principal?.tenant_id || principal.role !== 'SUPER_ADMIN' ||
+      typeof deviceId !== 'string' ||
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(deviceId)) {
+    throw new Error('DEVICE_RECOVERY_PREFLIGHT_INVALID');
+  }
+  if (!isMysqlConnected() || !pool?.query) throw new Error('DEVICE_RECOVERY_MYSQL_REQUIRED');
+  const [rows] = await pool.query(
+    "SELECT d.id, d.tenant_id, d.device_token_hash, d.auth_token_hash, d.agent_token_revoked, " +
+    "(SELECT COUNT(*) FROM devices x WHERE x.device_token_hash = d.device_token_hash) AS current_hash_matches, " +
+    "(SELECT COUNT(*) FROM command_queue c WHERE c.device_id = d.id AND " +
+    "(c.status IS NULL OR UPPER(c.status) NOT IN ('COMPLETED','FAILED','CANCELLED','EXPIRED'))) AS outstanding_commands " +
+    "FROM devices d WHERE d.id = ? AND d.tenant_id = ? LIMIT 2",
+    [deviceId, principal.tenant_id]);
+  if (!Array.isArray(rows) || rows.length !== 1 ||
+      String(rows[0].tenant_id) !== String(principal.tenant_id) ||
+      String(rows[0].id).toLowerCase() !== deviceId.toLowerCase()) return null;
+  return { device_id: rows[0].id, ...classifyDeviceCredentialRecovery(rows[0]) };
 }
 
 export async function deleteDevice(id) {

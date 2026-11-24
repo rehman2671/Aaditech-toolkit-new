@@ -22,6 +22,7 @@ for (const name of ['DB_USER', 'DB_PASSWORD', 'JWT_SECRET',
 }
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 const tenantId = crypto.randomUUID();
+const foreignTenantId = crypto.randomUUID();
 const prefix = 'STAGE8-' + crypto.randomBytes(5).toString('hex');
 const realHost = process.env.DB_HOST || '127.0.0.1';
 const realPort = Number(process.env.DB_PORT || 3306);
@@ -203,6 +204,32 @@ try {
   }
   console.log('[PASS] Both workers reject legacy and conflicting agent credential headers.');
   const auth = { Authorization: 'Bearer ' + adminToken };
+  const foreignUsername = prefix + '-foreign';
+  await pool.execute('INSERT INTO tenants (id, name, slug) VALUES (?, ?, ?)',
+    [foreignTenantId, foreignUsername, foreignUsername.toLowerCase()]);
+  const [foreignUser] = await pool.execute(
+    'INSERT INTO users (tenant_id, username, email, password_hash, role, active, status) VALUES (?, ?, ?, ?, ?, 1, ?)',
+    [foreignTenantId, foreignUsername, foreignUsername + '@invalid.example', 'CI-only-no-password-login', 'SUPER_ADMIN', 'ACTIVE']);
+  const foreignToken = jwt.sign({ id: foreignUser.insertId, username: foreignUsername,
+    tenant_id: foreignTenantId, role: 'SUPER_ADMIN', jti: crypto.randomUUID() },
+    process.env.JWT_SECRET, { algorithm: 'HS256', expiresIn: '5m' });
+  async function preflight(port, headers) {
+    const r = await fetch('http://127.0.0.1:' + port + '/api/v1/devices/' + deviceId + '/credentials/recovery-preflight',
+      { headers, signal: AbortSignal.timeout(12000) });
+    return { status:r.status, body:await r.json(), cache:r.headers.get('cache-control') };
+  }
+  for (const port of [mainPort, peerPort]) {
+    const active = await preflight(port, auth);
+    assert.equal(active.status, 200);
+    assert.equal(active.cache, 'no-store');
+    assert.equal(active.body.credential_state, 'CURRENT_UNIQUE');
+    assert.equal(active.body.replacement_allowed, false);
+    assert.ok(active.body.blockers.includes('REVOKE_FIRST'));
+    const foreignAuth = { Authorization: 'Bearer ' + foreignToken };
+    assert.equal((await preflight(port, foreignAuth)).status, 404);
+    assert.equal((await revoke(port, foreignAuth)).status, 404);
+    assert.equal((await preflight(port, { Cookie: 'auth_token=' + adminToken })).status, 403);
+  }
   assert.equal((await revoke(mainPort, auth, crypto.randomUUID())).status, 400);
   assert.equal((await revoke(peerPort, { Cookie: 'auth_token=' + adminToken })).status, 403);
   const [before] = await pool.execute('SELECT last_seen_at FROM devices WHERE id = ?', [deviceId]);
@@ -227,6 +254,11 @@ try {
     // Existing gateway contract: 401 plus the exact typed error.
     assert.equal(denied.status, 401);
     assert.equal(denied.body.error, 'DEVICE_TOKEN_REVOKED');
+    const recovery = await preflight(port, auth);
+    assert.equal(recovery.status, 200);
+    assert.equal(recovery.body.credential_revoked, true);
+    assert.equal(recovery.body.replacement_allowed, false);
+    assert.ok(recovery.body.blockers.includes('AUTHORIZED_RECOVERY_HANDOFF_REQUIRED'));
   }
   console.log('[PASS] Two production workers enforce one durable revocation/audit and deny subsequent agent authentication.');
 } finally {
@@ -247,6 +279,9 @@ try {
       await pool.query('DELETE FROM devices WHERE tenant_id = ?', [tenantId]);
       await pool.query('DELETE FROM companies WHERE tenant_id = ?', [tenantId]);
       await pool.query('DELETE FROM tenants WHERE id = ?', [tenantId]);
+      await pool.query('DELETE FROM user_workspace_memberships WHERE tenant_id = ?', [foreignTenantId]);
+      await pool.query('DELETE FROM users WHERE tenant_id = ?', [foreignTenantId]);
+      await pool.query('DELETE FROM tenants WHERE id = ?', [foreignTenantId]);
     }
   } finally {
     await pool.end();

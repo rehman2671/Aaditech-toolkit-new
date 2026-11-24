@@ -748,7 +748,7 @@ async function verifyDeviceCredential(req, targetDeviceIdentifier) {
       authenticated: false,
       status: 401,
       error: 'DEVICE_TOKEN_REVOKED',
-      detail: 'Device credential has been revoked; re-enrollment is required.'
+      detail: 'Device credential has been revoked; authorized recovery is required. Bootstrap enrollment cannot replace an existing identity.'
     };
   }
 
@@ -1102,6 +1102,27 @@ app.post('/api/v1/devices/:id/credentials/revoke', requireRole(['SUPER_ADMIN']),
     return res.json({ device_id: request.deviceId, credential_revoked: true, already_revoked: result.status === 'already_revoked' });
   } catch (_) {
     return res.status(503).json({ error: 'DEVICE_REVOCATION_UNCONFIRMED' });
+  }
+});
+
+// Recovery evidence only: explicit admin bearer, fresh persisted tenant
+// principal, immutable ID, no caching, no credential issuance.
+app.get('/api/v1/devices/:id/credentials/recovery-preflight', requireRole(['SUPER_ADMIN']), async (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  const authorization = req.headers.authorization;
+  if (typeof authorization !== 'string' || !authorization.startsWith('Bearer ') ||
+      authorization.slice(7).trim() !== req.token) {
+    return res.status(403).json({ error: 'EXPLICIT_ADMIN_BEARER_REQUIRED' });
+  }
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(req.params.id)) {
+    return res.status(400).json({ error: 'DEVICE_RECOVERY_ID_REQUIRED' });
+  }
+  try {
+    const result = await db.getDeviceCredentialRecoveryPreflight({ principal: req.user, deviceId: req.params.id });
+    if (!result) return res.status(404).json({ error: 'DEVICE_NOT_FOUND' });
+    return res.json(result);
+  } catch (_) {
+    return res.status(503).json({ error: 'DEVICE_RECOVERY_STATE_UNVERIFIED' });
   }
 });
 

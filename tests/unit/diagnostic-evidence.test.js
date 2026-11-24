@@ -1,6 +1,6 @@
 import {describe,it,expect} from 'vitest';
 import {randomUUID,generateKeyPairSync,createHash,sign} from 'node:crypto';
-import {verifyDiagnosticEvidence as verify,verifyResourceDiagnosticArtifact} from '../../diagnostic-evidence.js';
+import {verifyDiagnosticEvidence as verify,verifyResourceDiagnosticArtifact,verifyCategoricalDiagnosticArtifact} from '../../diagnostic-evidence.js';
 const sha=x=>createHash('sha256').update(x).digest('hex'),nowMs=1700000000000;
 const {publicKey,privateKey}=generateKeyPairSync('ed25519');
 const expected={installationId:randomUUID(),tenantId:randomUUID(),deviceId:randomUUID(),incidentId:randomUUID(),planId:randomUUID(),
@@ -45,5 +45,37 @@ describe('bounded resource artifact content contract',()=>{
   for(const patch of [{process:'private'},{cpu_percent:'0'},{ram_percent:101},{disk_percent:-1}])
    expect(()=>verifyResourceDiagnosticArtifact(artifactProof({...doc,...patch}))).toThrow();
   const a=artifactProof(doc);a.artifact[0]=0;expect(()=>verifyResourceDiagnosticArtifact(a)).toThrow();
+ });
+});
+
+describe('bounded network and disk diagnostic review contracts',()=>{
+ const network={schema:'aaditech-network-diagnostic-v1',link_state:'UP',default_route_state:'PRESENT',approved_probe_state:'NOT_RUN'};
+ const disk={schema:'aaditech-disk-diagnostic-v1',free_percent:0,health_state:'WARNING',read_only_state:null};
+ function evidence(doc,id,raw){
+  const artifact=raw??Buffer.from(JSON.stringify(doc));
+  const proof=args({diagnostic_id:id,artifact_sha256:sha(artifact)});
+  proof.expected={...proof.expected,diagnosticId:id,artifactSha256:sha(artifact)};
+  return {artifact,proof};
+ }
+ it('distinguishes measured zero and categorical observations from null or not-run evidence',()=>{
+  for(const [doc,id] of [[network,'APPROVED_NETWORK_STATUS'],[disk,'DISK_CAPACITY_HEALTH']])
+   expect(verifyCategoricalDiagnosticArtifact(evidence(doc,id))).toMatchObject({
+    artifact_content_verified:true,measured_fields:2,measurement_truth_verified:false,
+    attempt_executed:false,diagnostic_authorized:false,repair_authorized:false,production_accepted:false});
+ });
+ it('rejects private fields, arbitrary statuses and invalid or coercible measurements',()=>{
+  for(const [doc,id] of [[{...network,ssid:'private'},'APPROVED_NETWORK_STATUS'],
+    [{...network,link_state:'UNKNOWN'},'APPROVED_NETWORK_STATUS'],
+    [{...network,approved_probe_state:true},'APPROVED_NETWORK_STATUS'],
+    [{...disk,free_percent:'0'},'DISK_CAPACITY_HEALTH'],[{...disk,free_percent:101},'DISK_CAPACITY_HEALTH'],
+    [{...disk,path:'private'},'DISK_CAPACITY_HEALTH']])
+   expect(()=>verifyCategoricalDiagnosticArtifact(evidence(doc,id))).toThrow();
+ });
+ it('rejects wrong diagnostic schema, noncanonical bytes, duplicate keys and modified content',()=>{
+  expect(()=>verifyCategoricalDiagnosticArtifact(evidence(disk,'APPROVED_NETWORK_STATUS'))).toThrow();
+  const id='APPROVED_NETWORK_STATUS';
+  expect(()=>verifyCategoricalDiagnosticArtifact(evidence(network,id,Buffer.from(JSON.stringify(network,null,2))))).toThrow();
+  expect(()=>verifyCategoricalDiagnosticArtifact(evidence(network,id,Buffer.from(JSON.stringify(network).replace('"link_state":"UP"','"link_state":"DOWN","link_state":"UP"'))))).toThrow();
+  const a=evidence(network,id);a.artifact[0]=0;expect(()=>verifyCategoricalDiagnosticArtifact(a)).toThrow();
  });
 });

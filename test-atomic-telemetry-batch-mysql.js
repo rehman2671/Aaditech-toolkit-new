@@ -6,7 +6,7 @@ import mysql from 'mysql2/promise';
 import request from 'supertest';
 import * as db from './db.js';
 import {createRecoveryReviewRequest,reserveRecoveryReview,inspectRecoveryReview} from './device-recovery-review.js';
-import {createTroubleshootingIncident,inspectTroubleshootingIncident} from './troubleshooting-incidents.js';
+import {createTroubleshootingIncident,inspectTroubleshootingIncident,recordDiagnosticPlan} from './troubleshooting-incidents.js';
 
 if (process.env.GITHUB_ACTIONS !== 'true' ||
     process.env.AADITECH_ATOMIC_BATCH_REHEARSAL !== 'isolated-ci' ||
@@ -217,7 +217,17 @@ try {
   await assert.rejects(()=>inspectTroubleshootingIncident(pool,{...incidentArgs,installationId:crypto.randomUUID()}),/INCIDENT_NOT_FOUND/);
   assert.equal(await single("SELECT COUNT(*) AS n FROM troubleshooting_incidents WHERE tenant_id=?",[reviewTenant]),1);
   assert.equal(await single("SELECT COUNT(*) AS n FROM audit_logs WHERE tenant_id=? AND action='TROUBLESHOOTING_INCIDENT_RECORDED'",[reviewTenant]),1);
-  console.log('[PASS] Incident concurrent intake, exact replay, conflict, scoped inspection and one audit; no action authorized.');
+  const planRequest=crypto.randomUUID();
+  await assert.rejects(()=>recordDiagnosticPlan(pool,{...incidentArgs,requestId:planRequest}),/DIAGNOSTIC_PLAN_BLOCKED/);
+  const openIncident=await createTroubleshootingIncident(pool,{...incidentInput,requestId:crypto.randomUUID(),categoryId:'TR-01',hazard:'NONE'});
+  const planInput={...incidentArgs,incidentId:openIncident.incident_id,requestId:planRequest};
+  const plans=await Promise.all(Array.from({length:6},()=>recordDiagnosticPlan(pool,planInput)));
+  assert.equal(new Set(plans.map(x=>x.plan_id)).size,1);
+  assert.equal(plans.filter(x=>!x.duplicate).length,1);
+  assert.equal(plans[0].execution_authorized,false);
+  assert.equal(await single("SELECT COUNT(*) AS n FROM troubleshooting_diagnostic_plans WHERE tenant_id=?",[reviewTenant]),1);
+  assert.equal(await single("SELECT COUNT(*) AS n FROM audit_logs WHERE tenant_id=? AND action='TROUBLESHOOTING_DIAGNOSTIC_PLANNED'",[reviewTenant]),1);
+  console.log('[PASS] Incident concurrent intake and diagnostic planning replay; no action authorized.');
   console.log('N29 PASS: atomic rollback, MySQL worker races, single history/alert/outbox, HTTP replay, 409 and revoked credential write fencing');
 } catch(err) {
   failure=err;
@@ -232,6 +242,7 @@ try {
     await pool.query('DELETE FROM events WHERE tenant_id IN (?,?)',[tenantA,tenantB]);
     await pool.query('DELETE FROM telemetry_batches WHERE tenant_id IN (?,?)',[tenantA,tenantB]);
     await pool.query('DELETE FROM devices WHERE id IN (?,?)',[devA,devB]);
+    await pool.query('DELETE FROM troubleshooting_diagnostic_plans WHERE tenant_id=?',[reviewTenant]);
     await pool.query('DELETE FROM troubleshooting_incidents WHERE tenant_id=?',[reviewTenant]);
     await pool.query('DELETE FROM device_recovery_reviews WHERE tenant_id=?',[reviewTenant]);
     await pool.query('DELETE FROM audit_logs WHERE tenant_id=?',[reviewTenant]);

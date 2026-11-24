@@ -174,3 +174,37 @@ export async function inspectSetupHandoff({anchor,handoffBytes,signature,signerP
  return Object.freeze({handoff_evidence_verified:true,progress,session_authenticated:false,
    challenge_consumed:false,execution_authorized:false,production_accepted:false});
 }
+
+// Local POSIX replay tombstone for a verified DISPLAY-only handoff.
+// Caller must serialize journal mutation/current anchor custody and use a
+// trusted, separate persistent private directory. No rollback resistance
+// against deletion or restoration of the entire ledger. Never grants login.
+export async function consumeSetupDisplayChallenge({ledgerDirectory,handoff,clock}={}){
+ if(!handoff||typeof clock!=='function'||!Buffer.isBuffer(handoff.handoffBytes)||
+    !Buffer.isBuffer(handoff.signature)||!Buffer.isBuffer(handoff.anchor?.checkpointBytes)||
+    !Buffer.isBuffer(handoff.anchor?.signature))fail('HANDOFF_TRUST_REQUIRED');
+ const snapshot={...handoff,handoffBytes:Buffer.from(handoff.handoffBytes),signature:Buffer.from(handoff.signature),
+   anchor:{...handoff.anchor,checkpointBytes:Buffer.from(handoff.anchor.checkpointBytes),signature:Buffer.from(handoff.anchor.signature)}};
+ const dir=await privateDir(ledgerDirectory);
+ if(dir===resolve(snapshot.anchor.directory))fail('SEPARATE_HANDOFF_LEDGER_REQUIRED');
+ const started=clock();
+ const verified=await inspectSetupHandoff({...snapshot,nowMs:started});
+ const record=JSON.parse(snapshot.handoffBytes.toString('utf8'));
+ const now=clock();
+ if(!Number.isSafeInteger(now)||now<started||now>=record.expires_at_ms)fail('HANDOFF_BINDING_OR_EXPIRY_INVALID');
+ // Challenge digest alone is the key: changed session/release/payload cannot
+ // reuse it. Even an incomplete receipt denies subsequent attempts.
+ const path=join(dir,'consumed-'+snapshot.expectedChallengeSha256+'.json');
+ let fd;
+ try{
+   fd=await open(path,constants.O_WRONLY|constants.O_CREAT|constants.O_EXCL|constants.O_NOFOLLOW,0o600);
+ }catch(e){if(e.code==='EEXIST')fail('HANDOFF_CHALLENGE_ALREADY_CONSUMED');throw e}
+ try{
+   await fd.chmod(0o600);
+   await fd.writeFile(JSON.stringify({schema_version:1,handoff_sha256:snapshot.expectedHandoffSha256,consumed_at_ms:now})+'\n');
+   await fd.sync();
+ }finally{await fd.close()}
+ const d=await open(dir,constants.O_RDONLY|constants.O_DIRECTORY|constants.O_NOFOLLOW);
+ try{await d.sync()}finally{await d.close()}
+ return Object.freeze({...verified,challenge_consumed:true,session_authenticated:false,execution_authorized:false,production_accepted:false});
+}

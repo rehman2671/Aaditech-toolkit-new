@@ -3,7 +3,7 @@
 // free text, consent record, endpoint collection or action execution.
 import {randomUUID} from 'node:crypto';
 import {validateInstallationIdentity} from './scripts/installation-identity.mjs';
-import {planTroubleshooting} from './troubleshooting-policy.js';
+import {planTroubleshooting,troubleshootingCatalog} from './troubleshooting-policy.js';
 const uuid=x=>typeof x==='string'&&x.length===36&&/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(x);
 const fail=code=>{throw Error(code)};
 function context(pool,input,fields){
@@ -78,5 +78,43 @@ export async function inspectTroubleshootingIncident(pool,input){
    [incidentId,s.installationId,s.tenant,s.deviceId,s.actor]);
   if(rows?.length!==1||rows[0].incident_id!==incidentId)fail('INCIDENT_NOT_FOUND');
   return view(rows[0],s,false);
+ });
+}
+
+// Planning only: no caller-selected command, arguments, consent or approval.
+// Unknown hazards and escalated incidents cannot produce diagnostic plans.
+export async function recordDiagnosticPlan(pool,input){
+ const s=context(pool,input,['principal','installationId','deviceId','incidentId','requestId']);
+ const {incidentId,requestId}=input;
+ if(!uuid(incidentId)||!uuid(requestId))fail('INCIDENT_INVALID');
+ return transaction(pool,async c=>{
+  await lockScope(c,s);
+  const [incidents]=await c.query('SELECT '+columns+' FROM troubleshooting_incidents WHERE incident_id=? AND installation_id=? AND tenant_id=? AND device_id=? AND actor_user_id=? FOR UPDATE',
+   [incidentId,s.installationId,s.tenant,s.deviceId,s.actor]);
+  if(incidents?.length!==1||incidents[0].incident_id!==incidentId)fail('INCIDENT_NOT_FOUND');
+  const incident=incidents[0];view(incident,s,false);
+  const diagnostic=troubleshootingCatalog.find(x=>x.id===incident.category_id)?.diagnostic_id;
+  if(incident.status!=='OPEN'||incident.hazard!=='NONE'||!diagnostic)fail('DIAGNOSTIC_PLAN_BLOCKED');
+  const [rows]=await c.query('SELECT * FROM troubleshooting_diagnostic_plans WHERE incident_id=? AND request_id=? FOR UPDATE',[incidentId,requestId]);
+  if(!Array.isArray(rows)||rows.length>1)fail('DIAGNOSTIC_PLAN_STATE_INVALID');
+  const result=(id,duplicate)=>Object.freeze({plan_id:id,incident_id:incidentId,diagnostic_id:diagnostic,
+    status:'PLANNED_ONLY',duplicate,diagnostic_authorized:false,execution_authorized:false,
+    repair_authorized:false,production_accepted:false});
+  if(rows.length){
+   const row=rows[0];
+   if(!uuid(row.plan_id)||row.incident_id!==incidentId||row.request_id!==requestId||
+      row.installation_id!==s.installationId||row.tenant_id!==s.tenant||row.device_id!==s.deviceId||
+      Number(row.actor_user_id)!==s.actor||row.diagnostic_id!==diagnostic)fail('DIAGNOSTIC_PLAN_STATE_INVALID');
+   return result(row.plan_id,true);
+  }
+  const id=randomUUID();
+  const [r]=await c.query('INSERT INTO troubleshooting_diagnostic_plans (plan_id,incident_id,installation_id,tenant_id,device_id,actor_user_id,request_id,diagnostic_id) VALUES (?,?,?,?,?,?,?,?)',
+   [id,incidentId,s.installationId,s.tenant,s.deviceId,s.actor,requestId,diagnostic]);
+  if(r?.affectedRows!==1)fail('DIAGNOSTIC_PLAN_WRITE_UNCONFIRMED');
+  const [a]=await c.query('INSERT INTO audit_logs (id,tenant_id,actor_id,actor,action,target_resource,details,ip_address,created_at) VALUES (?,?,?,?,?,?,?,?,NOW(3))',
+   [randomUUID(),s.tenant,s.actor,String(s.actor),'TROUBLESHOOTING_DIAGNOSTIC_PLANNED','Incident:'+incidentId,
+    JSON.stringify({plan_id:id,diagnostic_id:diagnostic}),null]);
+  if(a?.affectedRows!==1)fail('INCIDENT_AUDIT_UNCONFIRMED');
+  return result(id,false);
  });
 }

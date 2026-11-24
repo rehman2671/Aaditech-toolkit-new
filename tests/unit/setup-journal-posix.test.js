@@ -3,7 +3,7 @@ import {mkdtemp,chmod,rm,realpath,readFile,writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {createHash,generateKeyPairSync,sign} from 'node:crypto';
-import {inspectSetupJournal,appendSetupJournalEvent,inspectAnchoredSetupJournal,inspectSetupProgress,inspectSetupHandoff} from '../../scripts/setup-journal-posix.mjs';
+import {inspectSetupJournal,appendSetupJournalEvent,inspectAnchoredSetupJournal,inspectSetupProgress,inspectSetupHandoff,consumeSetupDisplayChallenge} from '../../scripts/setup-journal-posix.mjs';
 const id='6f8c5ad9-e52e-4ea4-a1c7-f1dc23688a9e';
 const release='a'.repeat(64),evidence='b'.repeat(64);
 async function fixture(run){
@@ -151,6 +151,17 @@ describe.skipIf(process.platform==='win32')('short-lived signed setup display bi
     await expect(inspectSetupHandoff(handoff(patch))).rejects.toThrow();
   await expect(inspectSetupHandoff({...args,signature:Buffer.alloc(64)})).rejects.toThrow();
   await expect(inspectSetupHandoff({...args,expectedHandoffSha256:'a'.repeat(64)})).rejects.toThrow();
+  const ledgerDirectory=await mkdtemp(join(await realpath(tmpdir()),'itk-handoff-'));
+  try {
+   await chmod(ledgerDirectory,0o700);
+   const consume=()=>consumeSetupDisplayChallenge({ledgerDirectory,handoff:args,clock:()=>nowMs});
+   let reads=0;
+   await expect(consumeSetupDisplayChallenge({ledgerDirectory,handoff:args,clock:()=>++reads===1?nowMs:nowMs+1000})).rejects.toThrow('HANDOFF_BINDING_OR_EXPIRY_INVALID');
+   const results=await Promise.allSettled(Array.from({length:4},consume));
+   expect(results.filter(x=>x.status==='fulfilled')).toHaveLength(1);
+   expect(results.find(x=>x.status==='fulfilled').value).toMatchObject({challenge_consumed:true,session_authenticated:false,execution_authorized:false});
+   await expect(consume()).rejects.toThrow('HANDOFF_CHALLENGE_ALREADY_CONSUMED');
+  }finally{await rm(ledgerDirectory,{recursive:true,force:true})}
   await f.append('PREFLIGHT','COMPLETED');
   await expect(inspectSetupHandoff(args)).rejects.toThrow('CHECKPOINT_HEAD_MISMATCH');
  }));

@@ -28,3 +28,14 @@ describe('guided setup reference state planning',()=>{
   expect(JSON.stringify(result)).not.toContain(localIdentity.installation_id);
  });
 });
+
+it('rejects inherited, accessor and hidden setup evidence without executing getters',()=>{
+ const inherited=Object.create(all);
+ expect(plan({intent:'fresh',observed:empty,evidence:inherited}).reason).toBe('INVALID_EVIDENCE');
+ let reads=0;const accessor={...all};Object.defineProperty(accessor,'approved_release',{enumerable:true,get(){reads++;return 'VERIFIED'}});
+ expect(plan({intent:'fresh',observed:empty,evidence:accessor}).reason).toBe('INVALID_EVIDENCE');expect(reads).toBe(0);
+ const hidden={...all};Object.defineProperty(hidden,'hidden',{value:true});
+ expect(plan({intent:'fresh',observed:empty,evidence:hidden}).reason).toBe('INVALID_EVIDENCE');
+ const missing={...all};delete missing.approved_release;
+ expect(plan({intent:'fresh',observed:empty,evidence:missing}).missing).toContain('approved_release');
+});

@@ -1,5 +1,7 @@
 # AadiTech Enterprise — authoritative product baseline
 
+> **2026-11-25 governance follow-up:** N73 residual transport and ruleset metadata hardening is proposed against the current Phase O integration candidate; see [master integration](PHASE-O-MASTER-INTEGRATION.md) and [N73 acceptance](../../Enterprise/deploy/PHASE-N-STAGE73-ACCEPTANCE.md). CI and independent review pending; no production acceptance.
+
 **Baseline date:** 2026-11-23 (Asia/Kolkata)  
 **Evidence baseline:** `main` at `911f509620029c513305c88b26ca0da4e1b7da37`; unmerged security PRs #75 and #76 are separately identified.  
 **Scope:** requirements, architecture decisions, status evidence and implementation plan. **This documentation is not a deployment or production sign-off.**

@@ -71,9 +71,10 @@
         "Design backlog docs/product/LAN-INSTALLATION-IMPLEMENTATION-BACKLOG.md (not implemented)",
         "Source audit: Enterprise/docker-compose.yml mutable mysql:8.0/caddy:2-alpine and Dockerfile node:20-alpine; npm ci fallback to npm install",
         "AT-LAN-08 offline signed reproducible bundle and Windows Server runtime support test pending",
-        "M1 is stack-neutral until DEC-001 owner signoff; current public DNS Node/MySQL path is implementation reality, not an approved final LAN stack"
+        "M1 is stack-neutral until DEC-001 owner signoff; current public DNS Node/MySQL path is implementation reality, not an approved final LAN stack",
+        "#105 signed LAN manifest reference: fresh full CI and safety not yet confirmed; no approved release payload, host compatibility or WAN-disconnected install"
       ],
-      "next": "After DEC-001: validate Windows Server/Linux runtime support, signed digest-pinned offline image/npm bundle, internal PKI and read-only preflight; see AT-LAN-08",
+      "next": "After DEC-001: verify signed complete pinned offline runtime/dependencies, supported hosts, locked staging, private PKI and read-only host preflight; #105 is signature verification only",
       "blocked": true,
       "issue_url": "https://github.com/rehman2671/Aaditech-toolkit-new/issues/80"
     },
@@ -106,9 +107,10 @@
       ],
       "evidence": [
         "Current tenant/device IDs do not prove installation UUID lifecycle",
-        "#103 474c4af84c88549f442d43730657ac8cb99a814c: fresh exact-head CI not fully verified at observation; stack-neutral UUID contract and POSIX reference store, atomic no-overwrite, real filesystem tests, restore/clone preflight only"
+        "#103 474c4af84c88549f442d43730657ac8cb99a814c: CI 45354274252 and safety 45354274197 SUCCESS; reference UUID and POSIX no-overwrite store only",
+        "#104 3f9e1ef25867f91c93d35e63a8711eb45b8d1de4: Node/MySQL and deployment safety SUCCESS; full CI pending at observation; independently pinned signature, source installation and exact payload checks"
       ],
-      "next": "After owner stack ADR, integrate verified installation identity with actual database/runtime and authenticated backup manifest, installer lock and Windows ACL store; prove old-instance fencing and clone rekey/tenant-device namespace isolation; no destructive restore from preflight",
+      "next": "After owner stack ADR, integrate actual runtime/database identity, trusted installer lock/Windows ACL store, signed backup generation/key custody and verified old-instance fence; implement clone rekey/namespace isolation; no destructive restore from preflight",
       "blocked": true
     },
     {
@@ -209,7 +211,7 @@
         "Combined #99 head 70cb60ea5b74eadf3fb2b4c972a268c7df247d38: CI 45350364704 3/3 and safety 45350364886 2/2 SUCCESS; actual SQLite 8-connection test",
         "Unmerged #100 30de37f0f3ea8aa280e9445811b0f2c2d780c6bc: CI 45350645810 and safety 45350646190 SUCCESS",
         "#101 2de65f53bda3bc938541c47d55436586ce732eff: CI 45352835660 and safety 45352835606 SUCCESS",
-        "Combined #102 7cbe4ce382a2e7fa97c5991ea23ce62742aa2d83: Node/MySQL and deployment safety SUCCESS; full CI pending at observation"
+        "#102 7cbe4ce382a2e7fa97c5991ea23ce62742aa2d83: CI 45354022119 and safety 45354022056 SUCCESS"
       ],
       "next": "Independently review #102; signed physical Windows, packaged SQLite, actual network loss/restart, secure concurrent configuration and pending-result retention/backpressure; never re-execute uncertain claims",
       "blocked": true
@@ -282,7 +284,7 @@
         "#101 2de65f53bda3bc938541c47d55436586ce732eff: CI 45352835660 and safety 45352835606 SUCCESS",
         "SQLite v3 unique claim; atomic terminal body and pending marker; HMAC-bound origin and credential; no redirect; matching receipt required",
         "Old v2 rows preserved and not automatically retried",
-        "#102 combined tree: Node/MySQL and deployment safety SUCCESS; full CI pending at observation"
+        "#102 combined tree CI/safety SUCCESS"
       ],
       "next": "Independent review; real Windows network-loss/restart and packaged SQLite acceptance; installation identity, queue bounds, privileged-action consent and protected signing",
       "blocked": true
@@ -299,9 +301,10 @@
       "evidence": [
         "Enterprise/deploy/backup.sh",
         "Enterprise/deploy/restore.sh",
-        "deployment safety 45062353339"
+        "deployment safety 45062353339",
+        "#104 authenticated backup manifest reference: Node/MySQL and deployment safety SUCCESS; full CI pending at observation; no actual encryption or independent restore witnessed"
       ],
-      "next": "Conduct independently witnessed encrypted offsite backup and isolated restore",
+      "next": "Implement independently reviewed encrypted backup production/key custody, manifest binding and isolated actual restore; verify old-host fencing and witnessed offsite recovery",
       "blocked": true
     },
     {
@@ -379,7 +382,8 @@
         "Unmerged PR #95/#96/#97 exact-head CI green but independent reviews, release signing and protected main remain absent",
         "#99 combined Windows agent rehearsal CI green; separate #100 result receipt proposal; no protected merge or signing",
         "Combined #101 result recovery review branch; no protected merge, signed release or production approval",
-        "#102 consolidated review branch; no protected merge or production approval"
+        "#102 consolidated review branch; no protected merge or production approval",
+        "#105 synthetic publisher signature tests do not constitute independent production signing or release acceptance"
       ],
       "next": "Authorize reviewer, enforce non-bypass protected main and independently sign/publish vetted release",
       "blocked": true

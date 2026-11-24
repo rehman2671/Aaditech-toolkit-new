@@ -105,6 +105,8 @@ describe('FE-38 portal hybrid/cloud audit status truthfulness', () => {
     expect(html).toContain('Not verified');
     expect(html).not.toContain('Agent-reported compliant</span>');
     expect(stats).toContain('100%');
+    expect(stats).toContain('1 of 2 devices measured');
+    expect(html).toContain('Agent-reported noncompliant');
   });
 
   it('has an explicit empty state for missing cloud service and agent arrays', async () => {

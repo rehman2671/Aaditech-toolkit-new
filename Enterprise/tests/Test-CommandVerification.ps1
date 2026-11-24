@@ -20,7 +20,7 @@ $script:ConfigPath = Join-Path $dir 'agent.json'
 function Get-AgentTokenPath { Join-Path $dir 'agent.token' }
 function Get-AgentHostname { 'CI-HOST' }
 function Write-AgentLog { param([string]$Message) }
-$token = 'itk_dev_11111111111111111111111111111111111111111111111'
+$token = 'itk_dev_' + ('1' * 48)
 $identity = @{ device_id = 'device-42'; tenant_id = 'tenant-A'; device_uid = 'ci-uid' }
 function Sign-TestCommand($data, $tok) {
     $content = $data | ConvertTo-Json -Compress -Depth 10
@@ -74,9 +74,60 @@ try {
     $expiredData.issued_at = $now.AddMinutes(-10).ToString('yyyy-MM-ddTHH:mm:ss.fffZ')
     $expiredData.expires_at = $now.AddMinutes(-5).ToString('yyyy-MM-ddTHH:mm:ss.fffZ')
     Assert-Blocked (Sign-TestCommand $expiredData $token) 'expired command'
+    foreach ($entry in @(
+        @{ field='version'; value='1' }, @{ field='version'; value=$true },
+        @{ field='device_id'; value=@('device-42') }, @{ field='tenant_id'; value=@('tenant-A') },
+        @{ field='hostname'; value=@('CI-HOST') }, @{ field='kind'; value=' ' },
+        @{ field='payload'; value=@('not-an-object') }, @{ field='issued_at'; value=1 },
+        @{ field='expires_at'; value=$null }
+    )) {
+        $malformed = [ordered]@{}; foreach ($key in $data.Keys) { $malformed[$key] = $data[$key] }
+        $malformed[$entry.field] = $entry.value
+        Assert-Blocked (Sign-TestCommand $malformed $token) "MAC-valid malformed $($entry.field)"
+    }
+    $nonString = $cmd.PSObject.Copy(); $nonString.signature = @($cmd.signature)
+    Assert-Blocked $nonString 'array signature'
+    $nonString = $cmd.PSObject.Copy(); $nonString.id = @($cmd.id)
+    Assert-Blocked $nonString 'array outer ID'
+    $shortToken = 'itk_dev_' + ('1' * 47)
+    [IO.File]::WriteAllText((Get-AgentTokenPath), $shortToken)
+    Assert-Blocked (Sign-TestCommand $data $shortToken) 'noncanonical credential'
+    [IO.File]::WriteAllText((Get-AgentTokenPath), $token)
     Remove-Item (Join-Path $dir 'agent.identity.json') -Force
     Assert-Blocked $cmd 'missing trusted identity'
-    Write-Host 'Per-device command verification regression tests passed.'
+    # Evaluate the real dispatcher in isolation; only harmless CI fixture
+    # scripts exist under the temporary root. Never start the agent.
+    $dispatch = @($ast.FindAll({
+        param($node)
+        $node -is [Management.Automation.Language.FunctionDefinitionAst] -and
+        $node.Name -eq 'Invoke-RemoteCommand'
+    }, $true))
+    if ($dispatch.Count -ne 1) { throw 'Expected one dispatcher' }
+    Invoke-Expression $dispatch[0].Extent.Text
+    $script:RepoRoot = Join-Path $dir 'root'
+    $outside = Join-Path $dir 'outside'
+    New-Item -ItemType Directory -Path $script:RepoRoot,$outside | Out-Null
+    Set-Content -LiteralPath (Join-Path $script:RepoRoot 'safe.ps1') -Value "Write-Output 'safe fixture'"
+    Set-Content -LiteralPath (Join-Path $outside 'fixture.ps1') -Value "Write-Output 'outside fixture'"
+    $allowed = @{run_script_allowlist=@('safe.ps1','link/fixture.ps1','../outside/fixture.ps1')}
+    $ok = Invoke-RemoteCommand $allowed @{kind='run-script';payload=@{script='safe.ps1'}}
+    if ($ok.status -ne 'completed' -or $ok.output -notmatch 'safe fixture') { throw 'Safe fixture was not executed' }
+    foreach ($invalid in @(@{script=@('safe.ps1')},@{script='../outside/fixture.ps1'})) {
+        if ((Invoke-RemoteCommand $allowed @{kind='run-script';payload=$invalid}).status -ne 'failed') {
+            throw 'Invalid script path was accepted'
+        }
+    }
+    $junction = Join-Path $script:RepoRoot 'link'
+    try {
+        New-Item -ItemType Junction -Path $junction -Target $outside -ErrorAction Stop | Out-Null
+        $denied = Invoke-RemoteCommand $allowed @{kind='run-script';payload=@{script='link/fixture.ps1'}}
+        if ($denied.status -ne 'failed' -or $denied.output -notmatch 'reparse point') {
+            throw 'Allowlisted junction escape was not rejected'
+        }
+    } finally {
+        if (Test-Path -LiteralPath $junction) { [IO.Directory]::Delete($junction) }
+    }
+    Write-Host 'Per-device command verification and script containment regression tests passed.'
 } finally {
     Remove-Item $dir -Recurse -Force -ErrorAction SilentlyContinue
 }

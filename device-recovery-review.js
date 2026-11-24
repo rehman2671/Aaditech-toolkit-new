@@ -7,10 +7,12 @@ const uuid=/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/;
 const hex=/^[a-f0-9]{64}$/;
 const sha=x=>createHash('sha256').update(x).digest('hex');
 const fail=code=>{throw Error(code);};
+const isUuid=x=>typeof x==='string'&&x.length===36&&uuid.test(x);
+const isDigest=x=>typeof x==='string'&&x.length===64&&hex.test(x);
 function validateContext(pool,principal,deviceId){
-  if(!pool?.getConnection||!principal||!uuid.test(principal.tenant_id||'')||
+  if(!pool?.getConnection||!principal||!isUuid(principal.tenant_id)||
      !Number.isSafeInteger(principal.id)||principal.id<=0||
-     principal.role!=='SUPER_ADMIN'||typeof deviceId!=='string'||!uuid.test(deviceId))fail('RECOVERY_REVIEW_INVALID');
+     principal.role!=='SUPER_ADMIN'||!isUuid(deviceId))fail('RECOVERY_REVIEW_INVALID');
 }
 async function transact(pool,fn){
   const c=await pool.getConnection();let committed=false,discard=false;
@@ -39,7 +41,7 @@ async function lockContext(c,principal,deviceId,{deferActor=false}={}){
   const owner=owners?.length===1?owners[0]:null;
   if(!owner||owner.id!==deviceId||owner.tenant_id!==principal.tenant_id||
      ![1,true,'1'].includes(owner.agent_token_revoked)||
-     typeof owner.device_token_hash!=='string'||!hex.test(owner.device_token_hash))fail('RECOVERY_REVIEW_DEVICE_NOT_READY');
+     !isDigest(owner.device_token_hash))fail('RECOVERY_REVIEW_DEVICE_NOT_READY');
   if(!deferActor)await lockActiveAdmin(c,principal);
   const [counts]=await c.query(
     "SELECT (SELECT COUNT(*) FROM devices WHERE device_token_hash=?) AS matches_count, "+
@@ -77,10 +79,10 @@ export async function createRecoveryReviewRequest(pool,{principal,deviceId}={}){
 }
 export async function reserveRecoveryReview(pool,{principal,deviceId,requestId,evidence,trustedPins}={}){
   validateContext(pool,principal,deviceId);
-  if(typeof requestId!=='string'||!uuid.test(requestId)||!evidence||!trustedPins||
+  if(!isUuid(requestId)||!evidence||!trustedPins||
      !Buffer.isBuffer(evidence.payload)||evidence.payload.length===0||evidence.payload.length>8192||
      !Buffer.isBuffer(evidence.signature)||evidence.signature.length!==64||
-     !['payloadSha256','reviewerSpkiSha256','ownershipEvidenceSha256','commandReconciliationSha256','localHandoffEvidenceSha256'].every(k=>typeof trustedPins[k]==='string'&&hex.test(trustedPins[k])&&trustedPins[k]!=='0'.repeat(64)))fail('RECOVERY_REVIEW_INVALID');
+     !['payloadSha256','reviewerSpkiSha256','ownershipEvidenceSha256','commandReconciliationSha256','localHandoffEvidenceSha256'].every(k=>isDigest(trustedPins[k])&&trustedPins[k]!=='0'.repeat(64)))fail('RECOVERY_REVIEW_INVALID');
   // Copy mutable inputs before any asynchronous DB operation. Pins are
   // supplied by the trusted integration, not by the signed envelope.
   principal=Object.freeze({id:principal.id,tenant_id:principal.tenant_id,role:principal.role});
@@ -94,7 +96,7 @@ export async function reserveRecoveryReview(pool,{principal,deviceId,requestId,e
     if(!row||row.request_id!==requestId||row.tenant_id!==principal.tenant_id||row.device_id!==deviceId||
        row.state!=='PENDING'||Number(row.requester_id)===principal.id||
        !Number.isSafeInteger(Number(row.expires_at_ms))||Number(row.expires_at_ms)<=now||
-       row.credential_fingerprint!==fingerprint||!hex.test(row.challenge_sha256||''))fail('RECOVERY_REVIEW_NOT_RESERVABLE');
+       row.credential_fingerprint!==fingerprint||!isDigest(row.challenge_sha256))fail('RECOVERY_REVIEW_NOT_RESERVABLE');
     // Both independent actors must still be authorized. Lock them in
     // deterministic ID order even when reviewing two different devices.
     const requesterId=Number(row.requester_id);

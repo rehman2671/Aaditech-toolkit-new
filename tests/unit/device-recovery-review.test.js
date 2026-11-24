@@ -91,3 +91,17 @@ describe('review reservation live actor and evidence continuity',()=>{
     expect((await pending).review_reserved).toBe(true);
   });
 });
+
+it('rejects coercible identity and malformed exact-length authority before starting a review',async()=>{
+  for(const args of [{principal:{...requester,tenant_id:[tenant]},deviceId:device},
+    {principal:{...requester,tenant_id:tenant+'\n'},deviceId:device},
+    {principal:requester,deviceId:device+'\n'}]){
+    const f=fixture();
+    await expect(createRecoveryReviewRequest(f.pool,args)).rejects.toThrow('RECOVERY_REVIEW_INVALID');
+    expect(f.conn.beginTransaction).not.toHaveBeenCalled();
+  }
+  const f=fixture(),p=proof();
+  p.trustedPins.ownershipEvidenceSha256+='\n';
+  await expect(reserveRecoveryReview(f.pool,{principal:reviewer,deviceId:device,requestId:request,...p})).rejects.toThrow('RECOVERY_REVIEW_INVALID');
+  expect(f.conn.beginTransaction).not.toHaveBeenCalled();
+});

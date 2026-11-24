@@ -1,6 +1,6 @@
 # FE-38 — Cloud/security status rendering acceptance contract
 
-**Status:** DESIGN ONLY; `Enterprise/portal/index.html` **has NOT been fixed**.  
+**Status:** IMPLEMENTED; prior exact integration runtime rendering regressions CI-verified. New coverage-denominator and contradictory-evidence refinements pending fresh CI and independent review.  
 **P0 issue:** [#78](https://github.com/rehman2671/Aaditech-toolkit-new/issues/78)  
 **Required release test:** `AT-SEC-05`. **Independent of DEC-001 backend stack choice.**  
 **Source baseline:** `main` commit `911f509620029c513305c88b26ca0da4e1b7da37`.
@@ -11,7 +11,7 @@ Backend `server.js` `GET /api/v1/compliance/cloud-audit` explicitly returns `sta
 
 `normalizeAgentPosture` labels telemetry `AGENT_REPORTED` only for valid observations no more than 24 hours old; missing reports become `UNVERIFIED`; old/future timestamps become `STALE`. Unknown, partial or stale data must never be promoted to compliant.
 
-The current dashboard `renderIntegrations` in `Enterprise/portal/index.html`, around lines 1989–2120, **ignores these fields** for four green table badges and applies `tone: "ok"` even when summary values are `Not connected` or `N/A`. It also paints `ac.compliance_status` as green even when it says `Not verified` or `Agent-reported noncompliant`. That is a real UI-state defect.
+The historical baseline dashboard `renderIntegrations` in `Enterprise/portal/index.html`, around lines 1989–2120, **ignores these fields** for four green table badges and applies `tone: "ok"` even when summary values are `Not connected` or `N/A`. It also paints `ac.compliance_status` as green even when it says `Not verified` or `Agent-reported noncompliant`. That is a real UI-state defect.
 
 ## Required field-to-UI mapping
 
@@ -42,7 +42,7 @@ The current dashboard `renderIntegrations` in `Enterprise/portal/index.html`, ar
 - Provide visible words and meaningful labels as well as status colors; do not rely on green/red alone.
 - Do not call out to Microsoft or set cloud connection values just to satisfy a unit test; a disconnected connector is an expected valid state.
 
-## Automated tests required (not currently passing)
+## Automated acceptance cases (historical requirements; existing rendering suite passed on deb6a098)
 
 1. **Null cloud**: `cloud.status=NOT_CONNECTED`, `azure_ad_joined=null`, `intune_managed=null` -> visible neutral Not connected, no green Active/Enrolled.
 2. **Unverified endpoint**: no `posture_reported_at`, `bitlocker_encrypted=null`, `defender_realtime_on=null` -> neutral, `Not verified` status.
@@ -57,4 +57,12 @@ The current dashboard `renderIntegrations` in `Enterprise/portal/index.html`, ar
 
 ## Go / no-go
 
-`FE-38` is **NOT_STARTED** in the tracker and `AT-SEC-05` remains **FAIL based on inspected source** until a code fix, UI regression, and reviewer signoff exist. Do not use this documentation as evidence that the defect is resolved.
+`FE-38` is **CI_VERIFIED** for the prior exact revision, with independent reviewer and fresh combined CI still required. The historical AT-SEC-05 label overlaps the distinct command-result recovery tracker; do not treat this dashboard fix as closure of command-result acceptance. See exact-head evidence below.
+
+## Phase O parallel endpoint, dashboard and recovery review hardening (2026-11-25 IST)
+
+Exact integration deb6a0981fa7cfd6693f76ca1b21bf1fe8067de1: CI 45460379289 Node/Vitest, PowerShell, API/MySQL completed successfully, unsigned MSI running at observation; protected signing skipped. Safety 45460379259 both jobs passed. Existing FE-38 actual portal rendering tests and combined integration tests executed in passing Node job 138681188625; former DESIGN ONLY/NOT_STARTED tracking was stale.
+
+Parallel security batch: installed PowerShell verifier requires canonical 56-character per-device token, typed outer command ID/signature/content, object JSON envelope, integral version, nonblank typed identity/kind, object payload and bounded parsed issue/expiry clock; rejects MAC-valid coercible values. Native fixture corrected from a 55-character token, expanded regressions and added Windows PowerShell 5.1 CI alongside pwsh. Allowlisted script dispatcher requires scalar script name, separator-bounded canonical root and rejects root/descendant reparse points; isolated harmless CI script and junction regression. Local ACL integrity and concurrent path replacement remain separate physical acceptance gates. FE-38 portal now shows measured BitLocker denominator against fleet and treats fresh negative security field as noncompliance even with contradictory overall label; rendering regression extended. Review-only authorization input now requires exact-length typed tenant/device/request IDs and hashes, rejecting coercible or newline-tailed pins before transaction. No live activation grant or endpoint proof. Fresh combined CI required.
+
+Keep FE-38 blocked for independent review and production acceptance despite existing runtime/CI evidence; historical AT-SEC-05 identifier is also used for command-result recovery, so do not overwrite that distinct tracking row. No owner ADR, credential issuance, protected signing, main merge or physical acceptance. Remaining: independent evidence custody, durable activation authority, endpoint local handoff, real application usage collection and encrypted staging migration rehearsal.

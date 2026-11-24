@@ -2029,7 +2029,8 @@ function localComplianceStatus(agent) {
     return { label: agent?.evidence_status === 'STALE' || agent?.evidence_status === 'AGENT_REPORTED'
       ? 'Stale — not verified' : 'Not verified', tone: '' };
   }
-  if (agent.compliance_status === 'Agent-reported noncompliant')
+  if (agent.compliance_status === 'Agent-reported noncompliant' ||
+      [agent.bitlocker_encrypted, agent.antivirus_active, agent.firewall_active].includes(false))
     return { label: 'Agent-reported noncompliant', tone: 'off' };
   // A positive total is permitted only for known positive local fields and
   // an explicit fresh complete assessment produced by the backend.
@@ -2082,7 +2083,7 @@ async function renderIntegrations() {
   statCardsEl([
     { label: "Azure AD Sync", value: connected ? (cs.azure_ad_sync || 'Unknown') : 'Not connected', sub: "Cloud connector state", icon: "shield", tone: "info" },
     { label: "Intune Enrollment", value: connected ? (cs.intune_enrolled_pct || 'N/A') : 'Not connected', sub: "Cloud connector state", icon: "devices", tone: "info" },
-    { label: "BitLocker Encryption", value: protectedPercent, sub: "Fresh agent-reported devices only", icon: "key", tone: "info" },
+    { label: "BitLocker Encryption", value: protectedPercent, sub: `${measured.length} of ${agentRows.length} devices measured — agent-reported only`, icon: "key", tone: "info" },
     { label: "Open Local Tickets", value: tickets.filter(t => t.status !== 'Closed').length, sub: "No external ticket sync", icon: "briefcase", tone: "accent" }
   ]);
 

@@ -1029,16 +1029,22 @@ function Resolve-VerifiedAgentCommand {
     param($Config, $Cmd)
     $tokenPath = Get-AgentTokenPath
     $identityPath = Join-Path (Split-Path $ConfigPath -Parent) 'agent.identity.json'
-    if (-not $Cmd -or -not $Cmd.signed_content -or -not $Cmd.signature -or
-        -not (Test-Path $tokenPath) -or -not (Test-Path $identityPath)) { return $null }
+    if (-not $Cmd -or $Cmd.id -isnot [string] -or [string]::IsNullOrWhiteSpace($Cmd.id) -or
+        $Cmd.signed_content -isnot [string] -or $Cmd.signature -isnot [string] -or
+        -not (Test-Path -LiteralPath $tokenPath -PathType Leaf) -or
+        -not (Test-Path -LiteralPath $identityPath -PathType Leaf)) { return $null }
     try {
         $token = (Get-Content -LiteralPath $tokenPath -Raw).Trim()
         $identity = Get-Content -LiteralPath $identityPath -Raw | ConvertFrom-Json
-        if (-not $token.StartsWith('itk_dev_') -or
-            -not $identity.device_id -or -not $identity.tenant_id) { return $null }
-        $content = [string]$Cmd.signed_content
-        $sig = [string]$Cmd.signature
-        if ($content.Length -gt 65536 -or $sig -cnotmatch '^[a-fA-F0-9]{64}$') { return $null }
+        if ($token.Length -ne 56 -or $token -cnotmatch '^itk_dev_[a-f0-9]{48}$' -or
+            $identity -isnot [PSCustomObject]) { return $null }
+        foreach ($field in @('device_id','tenant_id')) {
+            if ($identity.$field -isnot [string] -or [string]::IsNullOrWhiteSpace($identity.$field)) { return $null }
+        }
+        $content = $Cmd.signed_content
+        $sig = $Cmd.signature
+        if ($content.Length -eq 0 -or $content.Length -gt 65536 -or $sig.Length -ne 64 -or
+            $sig -cnotmatch '^[a-fA-F0-9]{64}$') { return $null }
         $h = New-Object System.Security.Cryptography.HMACSHA256
         try {
             $h.Key = [Text.Encoding]::UTF8.GetBytes($token)
@@ -1049,15 +1055,38 @@ function Resolve-VerifiedAgentCommand {
             $diff = $diff -bor ([int]$expected[$i] -bxor [int][Convert]::ToByte($sig.Substring($i*2, 2), 16))
         }
         if ($diff -ne 0) { return $null }
-        $signed = $content | ConvertFrom-Json
-        if ([int]$signed.version -ne 1 -or
-            [string]$signed.command_id -cne [string]$Cmd.id -or
-            [string]$signed.device_id -cne [string]$identity.device_id -or
-            [string]$signed.tenant_id -cne [string]$identity.tenant_id -or
-            [string]$signed.hostname -ine (Get-AgentHostname) -or
-            [string]::IsNullOrWhiteSpace([string]$signed.kind)) { return $null }
-        $issued = [DateTimeOffset]::Parse([string]$signed.issued_at)
-        $expires = [DateTimeOffset]::Parse([string]$signed.expires_at)
+        # Do not permit PowerShell's implicit casts or single-element array
+        # unwrapping to turn a MAC-valid malformed envelope into a command.
+        if (-not $content.TrimStart().StartsWith('{')) { return $null }
+        $jsonOptions = @{ ErrorAction = 'Stop' }
+        if ((Get-Command ConvertFrom-Json).Parameters.ContainsKey('DateKind')) {
+            $jsonOptions.DateKind = 'String'
+        }
+        $signed = $content | ConvertFrom-Json @jsonOptions
+        if ($signed -isnot [PSCustomObject] -or
+            ($signed.version -isnot [int] -and $signed.version -isnot [long]) -or
+            $signed.version -ne 1 -or $signed.payload -isnot [PSCustomObject]) { return $null }
+        foreach ($field in @('command_id','device_id','tenant_id','hostname','kind')) {
+            if ($signed.$field -isnot [string] -or [string]::IsNullOrWhiteSpace($signed.$field)) { return $null }
+        }
+        if ($signed.command_id -cne $Cmd.id -or
+            $signed.device_id -cne $identity.device_id -or
+            $signed.tenant_id -cne $identity.tenant_id -or
+            $signed.hostname -ine (Get-AgentHostname)) { return $null }
+        $times = @()
+        foreach ($field in @('issued_at','expires_at')) {
+            $value = $signed.$field
+            if ($value -is [datetime]) {
+                # Older PowerShell JSON parsers may materialize ISO strings.
+                if ($value.Kind -eq [DateTimeKind]::Unspecified) { return $null }
+                $times += [DateTimeOffset]$value
+            } elseif ($value -is [string] -and $value -cmatch '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$') {
+                $times += [DateTimeOffset]::ParseExact($value, "yyyy-MM-ddTHH:mm:ss.fff'Z'",
+                    [Globalization.CultureInfo]::InvariantCulture, [Globalization.DateTimeStyles]::AssumeUniversal)
+            } else { return $null }
+        }
+        $issued = $times[0]
+        $expires = $times[1]
         $now = [DateTimeOffset]::UtcNow
         if ($now -lt $issued.AddMinutes(-1) -or $now -gt $expires -or
             $expires -le $issued -or ($expires - $issued).TotalMinutes -gt 5) { return $null }
@@ -1105,7 +1134,7 @@ function Invoke-RemoteCommand {
         }
         'run-script' {
             $script = $payload.script
-            if (-not $script) { return @{ status = 'failed'; output = 'No script specified'; exit_code = 1 } }
+            if ($script -isnot [string] -or [string]::IsNullOrWhiteSpace($script)) { return @{ status = 'failed'; output = 'No valid script specified'; exit_code = 1 } }
             # C5: agent-side allowlist defense-in-depth. Even if a rogue server
             # (or a replayed/mutated command) asks for a script, only scripts the
             # operator allowlisted at deploy time run here.
@@ -1117,12 +1146,26 @@ function Invoke-RemoteCommand {
                 return @{ status = 'failed'; output = "Invalid script path or path traversal detected: $script"; exit_code = 1 }
             }
             $path = [System.IO.Path]::GetFullPath((Join-Path $script:RepoRoot $script))
-            $rootFullPath = [System.IO.Path]::GetFullPath($script:RepoRoot)
+            $rootFullPath = [System.IO.Path]::GetFullPath($script:RepoRoot).TrimEnd([char[]]@('\','/')) + [IO.Path]::DirectorySeparatorChar
             if (-not $path.StartsWith($rootFullPath, [System.StringComparison]::OrdinalIgnoreCase)) {
                 return @{ status = 'failed'; output = "Path traversal escaping script root: $script"; exit_code = 1 }
             }
             if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { return @{ status = 'failed'; output = "Script not found: $script"; exit_code = 1 } }
             try {
+                # Reject symlinks/junctions/reparse points under the configured
+                # script root, including the leaf. The installation root must
+                # separately remain protected by deployment ACLs.
+                $cursor = $path
+                while ($cursor.Length -ge $rootFullPath.Length) {
+                    $item = Get-Item -LiteralPath $cursor -Force -ErrorAction Stop
+                    if (($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+                        throw 'Script path contains a reparse point'
+                    }
+                    $cursor = [IO.Path]::GetDirectoryName($cursor)
+                    if (-not $cursor) { throw 'Invalid script ancestor' }
+                }
+                $rootItem = Get-Item -LiteralPath $script:RepoRoot -Force -ErrorAction Stop
+                if (($rootItem.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) { throw 'Script root is a reparse point' }
                 $out = (& $path 2>&1 | Out-String)
                 return @{ status = 'completed'; output = $out; exit_code = $LASTEXITCODE }
             }

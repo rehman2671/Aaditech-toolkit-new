@@ -64,8 +64,10 @@ export async function createRecoveryReviewRequest(pool,{principal,deviceId}={}){
   principal=Object.freeze({id:principal.id,tenant_id:principal.tenant_id,role:principal.role});
   return transact(pool,async c=>{
     const {now,fingerprint}=await lockContext(c,principal,deviceId);
-    const [active]=await c.query('SELECT request_id FROM device_recovery_reviews WHERE tenant_id=? AND device_id=? AND expires_at_ms>? LIMIT 1 FOR UPDATE',
-      [principal.tenant_id,deviceId,now]);
+    // Old generations and expired signed reservations are tombstones, not
+    // active review locks. Preserve all records and their unique digests.
+    const [active]=await c.query("SELECT request_id FROM device_recovery_reviews WHERE tenant_id=? AND device_id=? AND credential_fingerprint=? AND expires_at_ms>? AND (state='PENDING' OR (state='REVIEW_RESERVED' AND (review_expires_at_ms IS NULL OR review_expires_at_ms>?))) LIMIT 1 FOR UPDATE",
+      [principal.tenant_id,deviceId,fingerprint,now,now]);
     if(!Array.isArray(active)||active.length)fail('RECOVERY_REVIEW_ALREADY_OPEN');
     const requestId=randomUUID(),challenge=sha(randomBytes(32)),expires=now+900000;
     const [r]=await c.query('INSERT INTO device_recovery_reviews (request_id,tenant_id,device_id,requester_id,challenge_sha256,credential_fingerprint,created_at_ms,expires_at_ms) VALUES (?,?,?,?,?,?,?,?)',

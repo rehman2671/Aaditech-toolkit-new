@@ -130,3 +130,13 @@ describe('read-only recovery lifecycle status',()=>{
     }
   });
 });
+
+it('blocks only active current-generation review windows without deleting tombstones',async()=>{
+  const f=fixture();
+  await createRecoveryReviewRequest(f.pool,{principal:requester,deviceId:device});
+  const [sql,args]=f.conn.query.mock.calls.find(([q])=>q.startsWith('SELECT request_id'));
+  expect(sql).toContain('credential_fingerprint=?');
+  expect(sql).toContain('review_expires_at_ms>?');
+  expect(args).toEqual([tenant,device,fingerprint,now,now]);
+  expect(f.conn.query.mock.calls.some(([q])=>q.startsWith('DELETE'))).toBe(false);
+});

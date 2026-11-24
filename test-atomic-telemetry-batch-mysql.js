@@ -193,7 +193,15 @@ try {
   assert.equal(Number(stillRevoked[0].agent_token_revoked),1);
   assert.equal(stillRevoked[0].device_token_hash,sha(label));
   assert.equal(await single("SELECT COUNT(*) AS n FROM audit_logs WHERE tenant_id=? AND action IN ('DEVICE_RECOVERY_REVIEW_REQUESTED','DEVICE_RECOVERY_REVIEW_RESERVED')",[reviewTenant]),2);
-  console.log('[PASS] Durable review request and reservation serialize across connections, no credential mutation.');
+  // An expired reservation must not block a fresh review, and its unique
+  // evidence/challenge tombstone must remain intact.
+  await assert.rejects(()=>createRecoveryReviewRequest(pool,{principal:admins[0],deviceId:reviewDevice}),/RECOVERY_REVIEW_ALREADY_OPEN/);
+  await pool.query('UPDATE device_recovery_reviews SET review_expires_at_ms=reviewed_at_ms+1 WHERE request_id=?',[req.request_id]);
+  await pool.query('SELECT SLEEP(0.02)');
+  const newRequest=await createRecoveryReviewRequest(pool,{principal:admins[0],deviceId:reviewDevice});
+  assert.notEqual(newRequest.request_id,req.request_id);
+  assert.equal(await single('SELECT COUNT(*) AS n FROM device_recovery_reviews WHERE tenant_id=? AND device_id=?',[reviewTenant,reviewDevice]),2);
+  console.log('[PASS] Durable review request and reservation serialize across connections, expired reservation permits fresh review, no credential mutation.');
   console.log('N29 PASS: atomic rollback, MySQL worker races, single history/alert/outbox, HTTP replay, 409 and revoked credential write fencing');
 } catch(err) {
   failure=err;

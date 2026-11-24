@@ -83,6 +83,14 @@ backups=("$HERE"/deploy/backups/ittoolkit-*.sql)
 shopt -u nullglob
 [ "${#backups[@]}" -ge 1 ] || { echo 'Backup not created' >&2; exit 1; }
 snapshot="${backups[${#backups[@]}-1]}"
+# Exercise the existing authenticated encryption reference on the actual
+# disposable MySQL dump. This is not a production backup/signing workflow.
+encrypted_stage="$(mktemp -d)"
+chmod 700 "$encrypted_stage"
+trap 'rm -rf -- "$encrypted_stage"' EXIT
+AADITECH_REHEARSAL=isolated-ci node "$HERE/tests/verify-encrypted-mysql-rehearsal.mjs" "$snapshot" "$encrypted_stage"
+recovered="$encrypted_stage/$(basename "$snapshot")"
+cmp "$snapshot" "$recovered"
 
 compose exec -T db sh -ec '
   export MYSQL_PWD="$MYSQL_PASSWORD"
@@ -102,7 +110,7 @@ SQL
 
 # This is a disposable database and the --db-only flag deliberately leaves
 # the API and Caddy OFF after data recovery.
-bash "$HERE/deploy/restore.sh" --yes --db-only "$snapshot"
+bash "$HERE/deploy/restore.sh" --yes --db-only "$recovered"
 
 value="$(compose exec -T db sh -ec '
   export MYSQL_PWD="$MYSQL_PASSWORD"

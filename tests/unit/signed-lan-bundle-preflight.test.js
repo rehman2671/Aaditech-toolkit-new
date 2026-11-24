@@ -117,3 +117,52 @@ describe('operator local LAN readiness CLI',()=>{
   await expect(runLocalLanPreflightCli(Buffer.alloc(32769),confirm)).rejects.toThrow('LOCAL_PREFLIGHT_INPUT_INVALID');
  }));
 });
+
+import {inspectLocalSetupContinuity} from '../../scripts/local-setup-continuity.mjs';
+import {inspectSetupJournal,appendSetupJournalEvent} from '../../scripts/setup-journal-posix.mjs';
+import {chmod,realpath} from 'node:fs/promises';
+describe.skipIf(process.platform==='win32')('local setup continuity with actual journal and release',()=>{
+ const confirmation='INSPECT_LOCAL_SETUP_CONTINUITY_ONLY';
+ async function continuityFixture(input,run){
+  const directory=await mkdtemp(join(await realpath(tmpdir()),'itk-continuity-'));
+  try{
+   await chmod(directory,0o700);
+   const binding={directory,installationId:'6f8c5ad9-e52e-4ea4-a1c7-f1dc23688a9e',releaseSha256:input.trustedManifestSha256};
+   const append=async(event)=>{
+    const state=await inspectSetupJournal(binding);
+    await appendSetupJournalEvent({...binding,step:'PREFLIGHT',event,evidenceSha256:'b'.repeat(64),
+     expectedSequence:state.sequence,expectedPreviousSha256:state.previous_sha256});
+   };
+   await append('STARTED');
+   const state=await inspectSetupJournal(binding),keys=generateKeyPairSync('ed25519');
+   const checkpointBytes=Buffer.from(JSON.stringify({schema_version:1,installation_id:binding.installationId,
+    release_sha256:binding.releaseSha256,sequence:state.sequence,record_sha256:state.previous_sha256})+'\n');
+   const anchor={...binding,checkpointBytes,signature:sign(null,checkpointBytes,keys.privateKey),
+    signerPublicKeyPem:keys.publicKey.export({type:'spki',format:'pem'}),
+    expectedSignerSpkiSha256:sha(keys.publicKey.export({type:'spki',format:'der'})),expectedCheckpointSha256:sha(checkpointBytes)};
+   const host={targetDirectory:input.root,markerPaths:{database:join(input.root,'absent-db'),
+    credentials:join(input.root,'image.tar'),service:join(input.root,'absent-svc')},
+    ports:[443],minCpu:1,minMemoryBytes:1,minFreeBytes:1};
+   await run({confirmation,bundle:input,host,anchor},append);
+  }finally{await rm(directory,{recursive:true,force:true})}
+ }
+ it('reports interrupted setup and separate fresh-host blockers without allowing resume',()=>fixture(async({input})=>{
+  await continuityFixture(input,async args=>{
+   const result=await inspectLocalSetupContinuity(args);
+   expect(result).toMatchObject({decision:'OPERATOR_RECONCILIATION_REQUIRED',progress:{next_step:'PREFLIGHT',checkpoint_verified:true},
+    fresh_host_observation:{decision:'BLOCKED'},resume_authorized:false,execution_authorized:false,production_accepted:false});
+   expect(result.fresh_host_observation.blocking).toContain('marker_credentials');
+   expect(JSON.stringify(result)).not.toContain(args.anchor.directory);
+   expect(JSON.stringify(result)).not.toContain(args.anchor.installationId);
+   expect(JSON.stringify(result)).not.toContain(input.trustedManifestSha256);
+  });
+ }));
+ it('rejects stale journal, wrong release binding and invalid release pins',()=>fixture(async({input})=>{
+  await continuityFixture(input,async(args,append)=>{
+   await expect(inspectLocalSetupContinuity({...args,anchor:{...args.anchor,releaseSha256:'c'.repeat(64)}})).rejects.toThrow('LOCAL_SETUP_CONTINUITY_BINDING_REQUIRED');
+   await expect(inspectLocalSetupContinuity({...args,bundle:{...args.bundle,trustedSignerSpkiSha256:'0'.repeat(64)}})).rejects.toThrow('Publisher signer pin mismatch');
+   await append('COMPLETED');
+   await expect(inspectLocalSetupContinuity(args)).rejects.toThrow('CHECKPOINT_HEAD_MISMATCH');
+  });
+ }));
+});

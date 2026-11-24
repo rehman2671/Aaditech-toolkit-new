@@ -36,7 +36,7 @@ function fakeRequest(pages, details={}, errors={}) {
       return pages[Number(u.searchParams.get('page'))-1] || [];
     }
     const match=path.match(/\/rulesets\/(\d+)$/);
-    if (match) return details[Number(match[1])] || {id:Number(match[1]),target:'tag'};
+    if (match) return details[Number(match[1])] || {id:Number(match[1]),target:'tag',enforcement:'disabled',rules:[]};
     throw Error('Unexpected GitHub API request: '+path);
   };
   return {get,calls};
@@ -171,4 +171,63 @@ test('N73 uncertain wildcard cannot be the only affirmative main protection',asy
   const result=evaluate(snap,SHA,REPO);
   assert.equal(result.allowed,false);
   assert.match(result.blockers.join(';'),/no confirmed active main branch ruleset/);
+});
+
+test('N73 rejects malformed rule metadata even beside an otherwise valid main policy',async()=>{
+  for(const detail of [
+    {id:8,target:'branch',enforcement:'active'},
+    {id:8,target:'branch',rules:[]},
+    {id:8,target:'unknown',enforcement:'disabled',rules:[]},
+    {...mainRule(8),rules:[null]},
+    {...mainRule(8),rules:[{type:''}]},
+    {...mainRule(8),enforcement:'disabled'}
+  ]){
+    const fake=fakeRequest([[{id:7},{id:8,target:'branch',enforcement:'active'}]],{7:mainRule(7),8:detail});
+    await assert.rejects(readLiveSnapshot(REPO,'none',fake.get),/incomplete or inconsistent ruleset detail/);
+  }
+});
+function mockTransport(t,mode) {
+  const calls=[];
+  t.mock.method(globalThis,'fetch',async (url,options)=>{
+    const u=new URL(url);
+    assert.equal(u.origin,'https://api.github.com');
+    assert.equal(options.method,'GET');
+    assert.equal(options.redirect,'error');
+    assert.equal(options.cache,'no-store');
+    calls.push(u.pathname+u.search);
+    let data,link='',status=200;
+    if(u.pathname.endsWith('/branches/main')) {
+      data={name:'main',protected:true,commit:{sha:SHA}};
+    } else if(u.pathname.endsWith('/rulesets')) {
+      const page=Number(u.searchParams.get('page'));
+      if(page===1) {
+        data=[{id:7}];
+        link='<https://untrusted.invalid/never-follow>; rel="next"';
+      } else {
+        data=mode==='empty' ? [] : [{id:8}];
+        if(mode==='empty') link='<https://untrusted.invalid/never-follow>; rel="next"';
+        if(mode==='redirect') status=302;
+      }
+    } else if(u.pathname.endsWith('/rulesets/7')) data=mainRule(7);
+    else if(u.pathname.endsWith('/rulesets/8')) data=mainRule(8,[{actor_id:5}]);
+    else data={full_name:REPO,default_branch:'main'};
+    return {ok:status===200,status,headers:new Headers({link}),json:async()=>data};
+  });
+  return calls;
+}
+test('N73 short-page Link continues at the fixed API origin, preserving both full inventory reads',async t=>{
+  const calls=mockTransport(t,'normal');
+  const snap=await readLiveSnapshot(REPO,'synthetic-token');
+  assert.deepEqual(snap.rulesets.map(r=>r.id),[7,8]);
+  assert.equal(calls.filter(s=>s.includes('&page=2')).length,2);
+  assert.equal(calls.filter(s=>s.endsWith('/rulesets/8')).length,2);
+  assert.match(evaluate(snap,SHA,REPO).blockers.join(';'),/bypass/);
+});
+test('N73 empty page advertising continuation fails closed',async t=>{
+  mockTransport(t,'empty');
+  await assert.rejects(readLiveSnapshot(REPO,'synthetic-token'),/empty nonterminal/);
+});
+test('N73 unexpected redirect response fails closed',async t=>{
+  mockTransport(t,'redirect');
+  await assert.rejects(readLiveSnapshot(REPO,'synthetic-token'),/HTTP 302/);
 });

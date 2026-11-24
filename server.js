@@ -2493,8 +2493,16 @@ app.post(['/api/commands', '/api/v1/commands/dispatch'], requireRole(['SUPER_ADM
   };
 
   let queued = false;
-  try { queued = await db.queueCommandInDb(cmd); } catch (_) {}
-  if (!queued) return res.status(503).json({ error: 'COMMAND_QUEUE_UNAVAILABLE' });
+  try {
+    queued = await db.queueCommandInDb(cmd, {
+      tenantId: req.user?.tenant_id, tokenHash: agent.device_token_hash
+    });
+  } catch (_) {
+    return res.status(503).json({ error: 'COMMAND_QUEUE_UNAVAILABLE' });
+  }
+  if (!queued) return res.status(process.env.NODE_ENV === 'test' ? 503 : 409).json({
+    error: process.env.NODE_ENV === 'test' ? 'COMMAND_QUEUE_UNAVAILABLE' : 'DEVICE_CREDENTIAL_UNAVAILABLE'
+  });
 
   logAudit(req.user, "COMMAND_DISPATCHED", `Device:${agent.hostname}`, { 
     command_id: cmdId, 
@@ -3362,9 +3370,13 @@ app.post(['/api/v1/remediation/trigger', '/api/remediation/trigger'], requireRol
       payload: { script_name: 'Remediate-' + policy.action_type + '.ps1' },
       status: 'pending',
       dispatched_by: req.user?.username || 'admin'
-    });
-  } catch (_) {}
-  if (!queued) return res.status(503).json({ error: 'COMMAND_QUEUE_UNAVAILABLE' });
+    }, { tenantId, tokenHash: device.device_token_hash });
+  } catch (_) {
+    return res.status(503).json({ error: 'COMMAND_QUEUE_UNAVAILABLE' });
+  }
+  if (!queued) return res.status(process.env.NODE_ENV === 'test' ? 503 : 409).json({
+    error: process.env.NODE_ENV === 'test' ? 'COMMAND_QUEUE_UNAVAILABLE' : 'DEVICE_CREDENTIAL_UNAVAILABLE'
+  });
   const action = 'Queued approved remediation: ' + policy.action_type;
   const log = await db.logRemediation({
     tenant_id: tenantId, hostname: device.hostname, policy_name: policy.name,

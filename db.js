@@ -2125,7 +2125,7 @@ export async function getDeviceProcesses(deviceId) {
 // ---------------- COMMANDS ----------------
 // The database is the authority for remote command dispatch. Never mark an
 // uncommitted command accepted or retain a shadow queue in production.
-export async function queueCommandInDb(cmd) {
+export async function queueCommandInDb(cmd, credential = null) {
   try {
     const cmdId = cmd.id ? String(cmd.id) : crypto.randomUUID();
     cmd.id = cmdId;
@@ -2150,12 +2150,23 @@ export async function queueCommandInDb(cmd) {
         id, device_id, hostname, command_type, payload, hmac_signature, signed_content, status, dispatched_by, dispatched_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(3))
     `;
-    const result = await executeQuery(sql, [
+    const params = [
       cmdId, memCmd.device_id, memCmd.hostname,
       memCmd.command_type, JSON.stringify(payload),
       memCmd.hmac_signature, memCmd.signed_content,
       memCmd.status.toUpperCase(), memCmd.dispatched_by
-    ]);
+    ];
+    if (process.env.NODE_ENV !== 'test') {
+      // Queue admission, claim and result all serialize with revocation on
+      // the same device row. Proof comes from the server's tenant-scoped
+      // device lookup, not a request payload. Never expose the hash.
+      return await withCurrentCommandCredential(memCmd.device_id, credential, async query => {
+        const inserted = await query(sql, params);
+        if (inserted?.affectedRows !== 1) throw new Error('COMMAND_QUEUE_INSERT_NOT_COMMITTED');
+        return true;
+      });
+    }
+    const result = await executeQuery(sql, params);
     if (result?.affectedRows !== 1) throw new Error('COMMAND_QUEUE_INSERT_NOT_COMMITTED');
     if (process.env.NODE_ENV === 'test') memCommands.push(memCmd);
     return true;

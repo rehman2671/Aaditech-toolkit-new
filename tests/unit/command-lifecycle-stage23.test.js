@@ -26,15 +26,19 @@ describe('Phase N23 command queue: database is authoritative', () => {
   it('fails closed on failed MySQL insert; never queues a ghost command', async () => {
     process.env.NODE_ENV = 'production';
     const writes = [];
-    db.setConnectionStateForTesting(true, { query: async (sql) => {
+    const query = async (sql) => {
       writes.push(sql);
       if (sql.includes('INSERT INTO command_queue')) {
         throw Object.assign(new Error('simulated MySQL disk outage'), { code: 'ER_DISK_FULL' });
       }
       return [[], []];
-    }});
+    };
+    const {pool,conn}=transactionPool(query);
+    db.setConnectionStateForTesting(true, {...pool,query});
     const command = { id: 'n23-db-failure', device_id: 'device-A', kind: 'DIAGNOSTIC', payload: {} };
-    await expect(db.queueCommandInDb(command)).rejects.toMatchObject({ code: 'ER_DISK_FULL' });
+    await expect(db.queueCommandInDb(command,credential)).rejects.toMatchObject({ code: 'ER_DISK_FULL' });
+    expect(conn.rollback).toHaveBeenCalledTimes(1);
+    expect(conn.commit).not.toHaveBeenCalled();
     expect(writes.some(sql => sql.includes('INSERT INTO command_queue'))).toBe(true);
     expect(await db.getCommandById(command.id)).toBeNull();
     expect(await db.getPendingCommandsForDevice(command.device_id)).toEqual([]);
@@ -152,5 +156,44 @@ describe('Phase O command mutation credential fence',()=>{
     expect(await db.markCommandPickedUp('cmd-A','device-A',credential)).toBe(true);
     expect(conn.query.mock.calls[0][0]).toContain('FOR UPDATE');
     expect(conn.commit).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('Phase O transactional dispatch admission',()=>{
+  const command={id:'cmd-queue',device_id:'device-A',kind:'DIAGNOSTIC',payload:{}};
+  const owner={id:'device-A',tenant_id:'tenant-A',device_token_hash:credential.tokenHash,agent_token_revoked:0};
+  it('locks current credential before insertion and commits one accepted queue row',async()=>{
+    process.env.NODE_ENV='production';
+    const insert=vi.fn(async()=>[{affectedRows:1},[]]);
+    const {pool,conn}=transactionPool(insert,owner);
+    db.setConnectionStateForTesting(true,pool);
+    expect(await db.queueCommandInDb({...command},credential)).toBe(true);
+    expect(conn.query.mock.calls[0][0]).toContain('FOR UPDATE');
+    expect(insert.mock.calls[0][0]).toContain('INSERT INTO command_queue');
+    expect(insert.mock.calls[0][1]).not.toContain(credential.tokenHash);
+    expect(conn.commit).toHaveBeenCalledTimes(1);
+  });
+  it('never inserts using missing, revoked, rotated or cross-tenant credential proof',async()=>{
+    process.env.NODE_ENV='production';
+    for(const changed of [{agent_token_revoked:1},{device_token_hash:'b'.repeat(64)},{tenant_id:'tenant-B'}]){
+      const insert=vi.fn(async()=>[{affectedRows:1},[]]);
+      const {pool,conn}=transactionPool(insert,{...owner,...changed});
+      db.setConnectionStateForTesting(true,pool);
+      expect(await db.queueCommandInDb({...command},credential)).toBe(false);
+      expect(insert).not.toHaveBeenCalled();
+      expect(conn.rollback).toHaveBeenCalledTimes(1);
+    }
+    const {pool,conn}=transactionPool(async()=>[{affectedRows:1},[]],owner);
+    db.setConnectionStateForTesting(true,pool);
+    expect(await db.queueCommandInDb({...command})).toBe(false);
+    expect(conn.query).not.toHaveBeenCalled();
+  });
+  it('rolls back a queue insert without exactly one affected row',async()=>{
+    process.env.NODE_ENV='production';
+    const {pool,conn}=transactionPool(async()=>[{affectedRows:0},[]],owner);
+    db.setConnectionStateForTesting(true,pool);
+    await expect(db.queueCommandInDb({...command},credential)).rejects.toThrow('COMMAND_QUEUE_INSERT_NOT_COMMITTED');
+    expect(conn.rollback).toHaveBeenCalledTimes(1);
+    expect(conn.commit).not.toHaveBeenCalled();
   });
 });

@@ -616,3 +616,10 @@ PR #109 exact head ebd4848d826e5bb8e764d95fce701d8a0a794835: Node/Vitest passed 
 ## Phase O command credential fence (2026-11-24)
 
 Proposed stacked O1 follow-up on #109 583a7e63: deployed command claim and terminal result mutation now lock the current tenant/device credential row in the same MySQL transaction as the command CAS; reject revoked, changed or missing token proof. API dispatch/remediation refuse known revoked/uncredentialed devices at admission. Mocked transaction tests updated. Dispatch insertion is not yet transactionally fenced; no cancellation of already-delivered commands, no rotation/recovery or real two-worker race certification. Fresh combined CI required.
+
+
+## Phase O transactional command dispatch (2026-11-24)
+
+#109 583a7e637d2e3e32cf7612eb7887321ab25b1f48 CI #45451912773: Node, PowerShell and real MySQL API passed; log confirms both workers reject legacy/conflicting headers, concurrent one durable revocation/audit and subsequent auth rejection. Safety #45451912586 passed; newest MSI job still running at observation.
+
+Proposed #111 dispatch extension: queue insertion now uses the same tenant/device/current-hash row lock transaction as command claim/result and revocation. Both manual dispatch and remediation supply server-side credential proof; 409 for stale admission, 503 for DB failure. Mocked tests cover revoked/rotated/foreign/missing proof, one committed insert, rollback and non-exposure of hash. Real cross-worker command race tests, pending command quarantine on recovery, telemetry fencing, rotation and physical endpoint acceptance remain open. Fresh CI required.

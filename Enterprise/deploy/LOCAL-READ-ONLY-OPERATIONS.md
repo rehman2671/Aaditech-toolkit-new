@@ -54,3 +54,7 @@ Exit 0: no observed blockers; external review still required. Exit 2: categorica
 ## Acceptance still required
 
 Fresh exact-head CI and independent reconciliation, owner ADRs, approved runtime package, local TLS and secret provisioning, durable setup, browser bootstrap, physical disconnected LAN installation, trusted endpoint collection, consent and actual incident attempt lifecycle.
+
+## Local setup continuity and artifact retention (2026-11-25)
+
+The programmatic `inspectLocalSetupContinuity` reference combines the exact independently pinned setup journal with a freshly verified signed release and host observations. A pending step requires operator reconciliation; fresh-host blockers are separate and cannot authorize resume. `retainLocalDiagnosticArtifact` and `readRetainedLocalDiagnosticArtifact` provide explicit local POSIX-only content-addressed custody, requiring a trusted absolute 0700 directory, canonical bounded artifact bytes and the expected digest. Files are 0600, published exclusively and synced; duplicate writes are rejected. Readback verifies bytes and refuses tampering and unsafe permissions. No CLI persistence option, remote upload, signature issuance, diagnostic attempt acceptance, automatic deletion, or production authorization. These references do not provide hostile same-UID or whole-directory rollback protection. Six new regression cases across both modules; fresh CI required.

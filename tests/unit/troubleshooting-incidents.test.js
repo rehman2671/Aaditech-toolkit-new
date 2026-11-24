@@ -4,8 +4,8 @@ const installationId='6f8c5ad9-e52e-4ea4-a1c7-f1dc23688a9e',tenant='00000000-000
 const principal={id:1,tenant_id:tenant,role:'SUPER_ADMIN'};
 const input={principal,installationId,deviceId,requestId,categoryId:'TR-01',hazard:'NONE'};
 const row={incident_id:incidentId,installation_id:installationId,tenant_id:tenant,device_id:deviceId,actor_user_id:1,intake_request_id:requestId,category_id:'TR-01',hazard:'NONE',status:'OPEN'};
-function fixture({rows=[],plans=[],owner={},user={},audit=1,write=1}={}){
- const c={beginTransaction:vi.fn(),commit:vi.fn(),rollback:vi.fn(),release:vi.fn(),destroy:vi.fn(),
+function fixture({rows=[],plans=[],owner={},user={},audit=1,write=1,commitFails=false}={}){
+ const c={beginTransaction:vi.fn(),commit:vi.fn(async()=>{if(commitFails)throw Error('COMMIT_OUTCOME_UNKNOWN')}),rollback:vi.fn(),release:vi.fn(),destroy:vi.fn(),
  query:vi.fn(async sql=>{
   if(sql.includes('FROM devices'))return [[{id:deviceId,tenant_id:tenant,...owner}]];
   if(sql.includes('FROM users'))return [[{id:1,tenant_id:tenant,role:'SUPER_ADMIN',active:1,status:'ACTIVE',...user}]];
@@ -88,5 +88,34 @@ describe('scoped intake summary',()=>{
    [{reported:3,open_count:1,escalated_count:1,planned_incidents:1}]]){
    const f=fixture({rows});await expect(summary(f.pool,args)).rejects.toThrow('INCIDENT_SUMMARY_UNVERIFIED');
   }
+ });
+});
+
+describe('incident state and transaction integrity',()=>{
+ it('rejects coercible persisted actor IDs and malformed intake identity',async()=>{
+  const args={principal,installationId,deviceId,incidentId};
+  for(const patch of [{actor_user_id:true},{actor_user_id:'01'},{actor_user_id:'1\n'},{intake_request_id:null},{intake_request_id:'malformed'}]){
+   const f=fixture({rows:[{...row,...patch}]});
+   await expect(inspect(f.pool,args)).rejects.toThrow('INCIDENT_SCOPE_DENIED');
+   expect(f.c.commit).not.toHaveBeenCalled();
+  }
+  const f=fixture({user:{id:true}});
+  await expect(create(f.pool,input)).rejects.toThrow('INCIDENT_SCOPE_DENIED');
+ });
+ it('rejects noncanonical summary values and overflowing aggregate sums',async()=>{
+  const args={principal,installationId,deviceId};
+  for(const counts of [{reported:'1\n',open_count:1,escalated_count:0,planned_incidents:0},
+    {reported:'01',open_count:1,escalated_count:0,planned_incidents:0},
+    {reported:Number.MAX_SAFE_INTEGER,open_count:Number.MAX_SAFE_INTEGER,escalated_count:1,planned_incidents:0}]){
+   const f=fixture({rows:[counts]});
+   await expect(summary(f.pool,args)).rejects.toThrow('INCIDENT_SUMMARY_UNVERIFIED');
+  }
+ });
+ it('discards an uncertain commit session and never reports an incident as written',async()=>{
+  const f=fixture({commitFails:true});
+  await expect(create(f.pool,input)).rejects.toThrow('COMMIT_OUTCOME_UNKNOWN');
+  expect(f.c.rollback).toHaveBeenCalledOnce();
+  expect(f.c.destroy).toHaveBeenCalledOnce();
+  expect(f.c.release).not.toHaveBeenCalled();
  });
 });

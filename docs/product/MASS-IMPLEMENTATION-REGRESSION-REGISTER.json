@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "batch": "MASS-02",
+  "batch": "MASS-03",
   "date": "2026-11-26",
   "target": "20 implementation prompts planning target, 50–100 actual development tasks per batch aspirational; count only delivered functional work, not test cases",
   "base_commit": "26f6dd7ad116e85e9fd52235f681c3d57f8f7a23",
@@ -402,8 +402,14 @@
         "requires": [
           "TR-01-INTAKE"
         ],
-        "state": "PENDING",
-        "evidence": [],
+        "state": "PARTIAL_REFERENCE_ONLY",
+        "evidence": [
+          "troubleshooting-incident-review.js",
+          "troubleshooting-review-routes.js",
+          "database/migrations/022_troubleshooting_incident_reviews.sql",
+          "Enterprise/portal/troubleshooting-review.js",
+          "tests/unit/troubleshooting-incident-review.test.js"
+        ],
         "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
       },
       {
@@ -448,8 +454,14 @@
         "requires": [
           "TR-02-INTAKE"
         ],
-        "state": "PENDING",
-        "evidence": [],
+        "state": "PARTIAL_REFERENCE_ONLY",
+        "evidence": [
+          "troubleshooting-incident-review.js",
+          "troubleshooting-review-routes.js",
+          "database/migrations/022_troubleshooting_incident_reviews.sql",
+          "Enterprise/portal/troubleshooting-review.js",
+          "tests/unit/troubleshooting-incident-review.test.js"
+        ],
         "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
       },
       {
@@ -494,8 +506,14 @@
         "requires": [
           "TR-03-INTAKE"
         ],
-        "state": "PENDING",
-        "evidence": [],
+        "state": "PARTIAL_REFERENCE_ONLY",
+        "evidence": [
+          "troubleshooting-incident-review.js",
+          "troubleshooting-review-routes.js",
+          "database/migrations/022_troubleshooting_incident_reviews.sql",
+          "Enterprise/portal/troubleshooting-review.js",
+          "tests/unit/troubleshooting-incident-review.test.js"
+        ],
         "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
       },
       {
@@ -540,8 +558,14 @@
         "requires": [
           "TR-04-INTAKE"
         ],
-        "state": "PENDING",
-        "evidence": [],
+        "state": "PARTIAL_REFERENCE_ONLY",
+        "evidence": [
+          "troubleshooting-incident-review.js",
+          "troubleshooting-review-routes.js",
+          "database/migrations/022_troubleshooting_incident_reviews.sql",
+          "Enterprise/portal/troubleshooting-review.js",
+          "tests/unit/troubleshooting-incident-review.test.js"
+        ],
         "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
       },
       {
@@ -586,8 +610,14 @@
         "requires": [
           "TR-05-INTAKE"
         ],
-        "state": "PENDING",
-        "evidence": [],
+        "state": "PARTIAL_REFERENCE_ONLY",
+        "evidence": [
+          "troubleshooting-incident-review.js",
+          "troubleshooting-review-routes.js",
+          "database/migrations/022_troubleshooting_incident_reviews.sql",
+          "Enterprise/portal/troubleshooting-review.js",
+          "tests/unit/troubleshooting-incident-review.test.js"
+        ],
         "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
       },
       {
@@ -632,8 +662,14 @@
         "requires": [
           "TR-06-INTAKE"
         ],
-        "state": "PENDING",
-        "evidence": [],
+        "state": "PARTIAL_REFERENCE_ONLY",
+        "evidence": [
+          "troubleshooting-incident-review.js",
+          "troubleshooting-review-routes.js",
+          "database/migrations/022_troubleshooting_incident_reviews.sql",
+          "Enterprise/portal/troubleshooting-review.js",
+          "tests/unit/troubleshooting-incident-review.test.js"
+        ],
         "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
       },
       {
@@ -678,8 +714,14 @@
         "requires": [
           "TR-07-INTAKE"
         ],
-        "state": "PENDING",
-        "evidence": [],
+        "state": "PARTIAL_REFERENCE_ONLY",
+        "evidence": [
+          "troubleshooting-incident-review.js",
+          "troubleshooting-review-routes.js",
+          "database/migrations/022_troubleshooting_incident_reviews.sql",
+          "Enterprise/portal/troubleshooting-review.js",
+          "tests/unit/troubleshooting-incident-review.test.js"
+        ],
         "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
       },
       {
@@ -724,8 +766,14 @@
         "requires": [
           "TR-08-INTAKE"
         ],
-        "state": "PENDING",
-        "evidence": [],
+        "state": "PARTIAL_REFERENCE_ONLY",
+        "evidence": [
+          "troubleshooting-incident-review.js",
+          "troubleshooting-review-routes.js",
+          "database/migrations/022_troubleshooting_incident_reviews.sql",
+          "Enterprise/portal/troubleshooting-review.js",
+          "tests/unit/troubleshooting-incident-review.test.js"
+        ],
         "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
       },
       {
@@ -770,8 +818,14 @@
         "requires": [
           "TR-09-INTAKE"
         ],
-        "state": "PENDING",
-        "evidence": [],
+        "state": "PARTIAL_REFERENCE_ONLY",
+        "evidence": [
+          "troubleshooting-incident-review.js",
+          "troubleshooting-review-routes.js",
+          "database/migrations/022_troubleshooting_incident_reviews.sql",
+          "Enterprise/portal/troubleshooting-review.js",
+          "tests/unit/troubleshooting-incident-review.test.js"
+        ],
         "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
       },
       {
@@ -816,8 +870,14 @@
         "requires": [
           "TR-10-INTAKE"
         ],
-        "state": "PENDING",
-        "evidence": [],
+        "state": "PARTIAL_REFERENCE_ONLY",
+        "evidence": [
+          "troubleshooting-incident-review.js",
+          "troubleshooting-review-routes.js",
+          "database/migrations/022_troubleshooting_incident_reviews.sql",
+          "Enterprise/portal/troubleshooting-review.js",
+          "tests/unit/troubleshooting-incident-review.test.js"
+        ],
         "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
       },
       {
@@ -862,8 +922,14 @@
         "requires": [
           "TR-11-INTAKE"
         ],
-        "state": "PENDING",
-        "evidence": [],
+        "state": "PARTIAL_REFERENCE_ONLY",
+        "evidence": [
+          "troubleshooting-incident-review.js",
+          "troubleshooting-review-routes.js",
+          "database/migrations/022_troubleshooting_incident_reviews.sql",
+          "Enterprise/portal/troubleshooting-review.js",
+          "tests/unit/troubleshooting-incident-review.test.js"
+        ],
         "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
       },
       {
@@ -908,8 +974,14 @@
         "requires": [
           "TR-12-INTAKE"
         ],
-        "state": "PENDING",
-        "evidence": [],
+        "state": "PARTIAL_REFERENCE_ONLY",
+        "evidence": [
+          "troubleshooting-incident-review.js",
+          "troubleshooting-review-routes.js",
+          "database/migrations/022_troubleshooting_incident_reviews.sql",
+          "Enterprise/portal/troubleshooting-review.js",
+          "tests/unit/troubleshooting-incident-review.test.js"
+        ],
         "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
       },
       {
@@ -954,8 +1026,14 @@
         "requires": [
           "TR-13-INTAKE"
         ],
-        "state": "PENDING",
-        "evidence": [],
+        "state": "PARTIAL_REFERENCE_ONLY",
+        "evidence": [
+          "troubleshooting-incident-review.js",
+          "troubleshooting-review-routes.js",
+          "database/migrations/022_troubleshooting_incident_reviews.sql",
+          "Enterprise/portal/troubleshooting-review.js",
+          "tests/unit/troubleshooting-incident-review.test.js"
+        ],
         "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
       },
       {
@@ -1000,8 +1078,14 @@
         "requires": [
           "TR-14-INTAKE"
         ],
-        "state": "PENDING",
-        "evidence": [],
+        "state": "PARTIAL_REFERENCE_ONLY",
+        "evidence": [
+          "troubleshooting-incident-review.js",
+          "troubleshooting-review-routes.js",
+          "database/migrations/022_troubleshooting_incident_reviews.sql",
+          "Enterprise/portal/troubleshooting-review.js",
+          "tests/unit/troubleshooting-incident-review.test.js"
+        ],
         "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
       },
       {
@@ -1046,8 +1130,14 @@
         "requires": [
           "TR-15-INTAKE"
         ],
-        "state": "PENDING",
-        "evidence": [],
+        "state": "PARTIAL_REFERENCE_ONLY",
+        "evidence": [
+          "troubleshooting-incident-review.js",
+          "troubleshooting-review-routes.js",
+          "database/migrations/022_troubleshooting_incident_reviews.sql",
+          "Enterprise/portal/troubleshooting-review.js",
+          "tests/unit/troubleshooting-incident-review.test.js"
+        ],
         "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
       },
       {
@@ -1092,8 +1182,14 @@
         "requires": [
           "TR-16-INTAKE"
         ],
-        "state": "PENDING",
-        "evidence": [],
+        "state": "PARTIAL_REFERENCE_ONLY",
+        "evidence": [
+          "troubleshooting-incident-review.js",
+          "troubleshooting-review-routes.js",
+          "database/migrations/022_troubleshooting_incident_reviews.sql",
+          "Enterprise/portal/troubleshooting-review.js",
+          "tests/unit/troubleshooting-incident-review.test.js"
+        ],
         "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
       },
       {
@@ -1138,8 +1234,14 @@
         "requires": [
           "TR-17-INTAKE"
         ],
-        "state": "PENDING",
-        "evidence": [],
+        "state": "PARTIAL_REFERENCE_ONLY",
+        "evidence": [
+          "troubleshooting-incident-review.js",
+          "troubleshooting-review-routes.js",
+          "database/migrations/022_troubleshooting_incident_reviews.sql",
+          "Enterprise/portal/troubleshooting-review.js",
+          "tests/unit/troubleshooting-incident-review.test.js"
+        ],
         "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
       },
       {
@@ -1184,8 +1286,14 @@
         "requires": [
           "TR-18-INTAKE"
         ],
-        "state": "PENDING",
-        "evidence": [],
+        "state": "PARTIAL_REFERENCE_ONLY",
+        "evidence": [
+          "troubleshooting-incident-review.js",
+          "troubleshooting-review-routes.js",
+          "database/migrations/022_troubleshooting_incident_reviews.sql",
+          "Enterprise/portal/troubleshooting-review.js",
+          "tests/unit/troubleshooting-incident-review.test.js"
+        ],
         "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
       },
       {
@@ -1230,8 +1338,14 @@
         "requires": [
           "TR-19-INTAKE"
         ],
-        "state": "PENDING",
-        "evidence": [],
+        "state": "PARTIAL_REFERENCE_ONLY",
+        "evidence": [
+          "troubleshooting-incident-review.js",
+          "troubleshooting-review-routes.js",
+          "database/migrations/022_troubleshooting_incident_reviews.sql",
+          "Enterprise/portal/troubleshooting-review.js",
+          "tests/unit/troubleshooting-incident-review.test.js"
+        ],
         "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
       },
       {
@@ -1276,8 +1390,14 @@
         "requires": [
           "TR-20-INTAKE"
         ],
-        "state": "PENDING",
-        "evidence": [],
+        "state": "PARTIAL_REFERENCE_ONLY",
+        "evidence": [
+          "troubleshooting-incident-review.js",
+          "troubleshooting-review-routes.js",
+          "database/migrations/022_troubleshooting_incident_reviews.sql",
+          "Enterprise/portal/troubleshooting-review.js",
+          "tests/unit/troubleshooting-incident-review.test.js"
+        ],
         "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
       },
       {
@@ -1322,8 +1442,14 @@
         "requires": [
           "TR-21-INTAKE"
         ],
-        "state": "PENDING",
-        "evidence": [],
+        "state": "PARTIAL_REFERENCE_ONLY",
+        "evidence": [
+          "troubleshooting-incident-review.js",
+          "troubleshooting-review-routes.js",
+          "database/migrations/022_troubleshooting_incident_reviews.sql",
+          "Enterprise/portal/troubleshooting-review.js",
+          "tests/unit/troubleshooting-incident-review.test.js"
+        ],
         "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
       },
       {
@@ -1368,8 +1494,14 @@
         "requires": [
           "TR-22-INTAKE"
         ],
-        "state": "PENDING",
-        "evidence": [],
+        "state": "PARTIAL_REFERENCE_ONLY",
+        "evidence": [
+          "troubleshooting-incident-review.js",
+          "troubleshooting-review-routes.js",
+          "database/migrations/022_troubleshooting_incident_reviews.sql",
+          "Enterprise/portal/troubleshooting-review.js",
+          "tests/unit/troubleshooting-incident-review.test.js"
+        ],
         "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
       },
       {
@@ -1414,8 +1546,14 @@
         "requires": [
           "TR-23-INTAKE"
         ],
-        "state": "PENDING",
-        "evidence": [],
+        "state": "PARTIAL_REFERENCE_ONLY",
+        "evidence": [
+          "troubleshooting-incident-review.js",
+          "troubleshooting-review-routes.js",
+          "database/migrations/022_troubleshooting_incident_reviews.sql",
+          "Enterprise/portal/troubleshooting-review.js",
+          "tests/unit/troubleshooting-incident-review.test.js"
+        ],
         "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
       },
       {
@@ -1460,8 +1598,14 @@
         "requires": [
           "TR-24-INTAKE"
         ],
-        "state": "PENDING",
-        "evidence": [],
+        "state": "PARTIAL_REFERENCE_ONLY",
+        "evidence": [
+          "troubleshooting-incident-review.js",
+          "troubleshooting-review-routes.js",
+          "database/migrations/022_troubleshooting_incident_reviews.sql",
+          "Enterprise/portal/troubleshooting-review.js",
+          "tests/unit/troubleshooting-incident-review.test.js"
+        ],
         "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
       },
       {
@@ -1506,8 +1650,14 @@
         "requires": [
           "TR-25-INTAKE"
         ],
-        "state": "PENDING",
-        "evidence": [],
+        "state": "PARTIAL_REFERENCE_ONLY",
+        "evidence": [
+          "troubleshooting-incident-review.js",
+          "troubleshooting-review-routes.js",
+          "database/migrations/022_troubleshooting_incident_reviews.sql",
+          "Enterprise/portal/troubleshooting-review.js",
+          "tests/unit/troubleshooting-incident-review.test.js"
+        ],
         "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
       },
       {
@@ -1552,8 +1702,14 @@
         "requires": [
           "TR-26-INTAKE"
         ],
-        "state": "PENDING",
-        "evidence": [],
+        "state": "PARTIAL_REFERENCE_ONLY",
+        "evidence": [
+          "troubleshooting-incident-review.js",
+          "troubleshooting-review-routes.js",
+          "database/migrations/022_troubleshooting_incident_reviews.sql",
+          "Enterprise/portal/troubleshooting-review.js",
+          "tests/unit/troubleshooting-incident-review.test.js"
+        ],
         "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
       },
       {
@@ -2591,6 +2747,68 @@
         "node test-installation-database-identity-mysql.js in isolated CI",
         "CI offline Docker compatibility retained"
       ]
+    },
+    {
+      "id": "MASS-03-01",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Separate tenant-scoped review state, audited revision transitions and exact event retry, migration 022",
+      "dependencies": [
+        "MASS-02-01",
+        "MASS-02-02",
+        "M5"
+      ],
+      "paths": [
+        "troubleshooting-incident-review.js",
+        "troubleshooting-review-routes.js",
+        "database/migrations/022_troubleshooting_incident_reviews.sql",
+        "database/mysql/schema.sql"
+      ],
+      "regression": [
+        "tests/unit/troubleshooting-incident-review.test.js",
+        "test-migrations-runner.js",
+        "Real isolated MySQL transition concurrency, event replay, rollback, foreign tenant and corrupt row checks remain"
+      ]
+    },
+    {
+      "id": "MASS-03-02",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Technician queue and employee own active assignment history UI",
+      "dependencies": [
+        "MASS-03-01",
+        "MASS-02-03"
+      ],
+      "paths": [
+        "Enterprise/portal/troubleshooting.html",
+        "Enterprise/portal/troubleshooting-review.js",
+        "Enterprise/portal/troubleshooting-help.css"
+      ],
+      "regression": [
+        "Manual browser review/filter/page/retry/conflict/session/keyboard/employee revoked assignment and all 26 categories; real HTTP regression pending"
+      ]
+    },
+    {
+      "id": "MASS-03-03",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Workspace presentation edit/readback and read-only actual platform configuration status, completed setup rerun denial",
+      "dependencies": [
+        "M1",
+        "MASS-02-01",
+        "DEC-001"
+      ],
+      "paths": [
+        "server-configuration-routes.js",
+        "platform-settings-admin.js",
+        "server.js",
+        "Enterprise/portal/configuration.html",
+        "Enterprise/portal/configuration.js",
+        "Enterprise/portal/index.html"
+      ],
+      "regression": [
+        "tests/unit/server-configuration-routes.test.js",
+        "tests/unit/platform-settings-admin.test.js",
+        "test-auth-integration.js",
+        "Real browser and HTTP deployed-mode auth/setup regression, local host/TLS restart and installer acceptance pending"
+      ]
     }
   ],
   "unresolved": [
@@ -2612,7 +2830,7 @@
     },
     {
       "id": "BLOCK-EMPLOYEE",
-      "next": "Source APIs/UI added; verify real HTTP auth and role/tenant/device/consent/replay, owner-approved physical assignments, outcome lifecycle and approved installation/DB adoption. No production authorization."
+      "next": "Source report and human review APIs/UI implemented; real HTTP scope, consent, replay, review concurrency, physical assignments, diagnostic consent, independent postchecks and verified resolution still pending."
     },
     {
       "id": "BLOCK-DB-BINDING-FIELD",
@@ -2621,6 +2839,10 @@
     {
       "id": "BLOCK-CI-45688959892",
       "failure": "N70 lint rejected outdated governance contract; updated checker, fresh CI required. Docker identity mismatch remains separate."
+    },
+    {
+      "id": "BLOCK-SETUP-EXECUTION",
+      "next": "Approved graphical server installer and local editable runtime host/DB/TLS configuration, agent connectivity, restart/recovery and signed distribution; browser currently edits presentation only."
     }
   ],
   "regression": {
@@ -2650,6 +2872,15 @@
       "source_commits": [
         "b9c26ca0e756010d906547b0c00dfd7fcd3af2c8",
         "8a27f9f7e3f9e201ab5e9f4fd0a8d81af5bb0ff8"
+      ],
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI"
+    },
+    {
+      "id": "MASS-03",
+      "source_commits": [
+        "ebdce10ed6beffc0ca55d89242a7053e0ab2fdf5",
+        "ed7c9a10df64863f42f3b5aac021812cfa2389a7",
+        "0efd9c9457c37cda20b372549f550e882b1b702f"
       ],
       "status": "SOURCE_IMPLEMENTED_PENDING_CI"
     }

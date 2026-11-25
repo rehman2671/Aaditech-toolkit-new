@@ -2,7 +2,7 @@
 // services and prove TLS/DB continuity separately. Never invoke a service,
 // Docker daemon, shell, or browser-supplied activation.
 import {constants} from 'node:fs';
-import {open,lstat,realpath,link,unlink,rename} from 'node:fs/promises';
+import {open,lstat,realpath,link,unlink,rename,readdir} from 'node:fs/promises';
 import {resolve,dirname,basename,join,isAbsolute} from 'node:path';
 import {createHash,randomUUID} from 'node:crypto';
 import {withLocalSetupLock} from './local-setup-lock.mjs';
@@ -77,4 +77,42 @@ export async function switchRuntimeConfiguration(input){
   return {operation,active_sha256:expected,recovery_sha256:originalSha256,configuration_file_changed:true,
    services_quiescence_operator_asserted:true,service_restart_performed:false,tls_verified:false,database_continuity_verified:false,production_accepted:false};
  });
+}
+
+// Read-only reconciliation after an interrupted file switch. A cooperative
+// lock or staging file is never removed or taken over by this inspector.
+export async function inspectRuntimeConfigurationRecovery(input){
+ const keys=['confirmation','profile','activePath','lockRoot','originalSha256','candidateSha256','changes'];
+ if(process.platform!=='linux'||typeof process.geteuid!=='function'||!own(input,keys)||input.confirmation!=='INSPECT_RUNTIME_CONFIGURATION_RECOVERY_ONLY'||!pathOk(input.activePath)||basename(input.activePath)!=='.env'||!pathOk(input.lockRoot)||!digest(input.originalSha256)||!digest(input.candidateSha256)||input.originalSha256===input.candidateSha256)fail();
+ const {activePath,lockRoot,originalSha256,candidateSha256,profile,changes}=input,parent=dirname(activePath);
+ const dir=await privateDir(parent),lock=await privateDir(lockRoot);
+ const candidate=join(parent,'.env.candidate'),backup=join(parent,'.env.previous-'+originalSha256);
+ async function observe(path,pins){
+  try{await lstat(path)}catch(e){if(e.code==='ENOENT')return {state:'ABSENT'};throw e}
+  for(const [state,digest] of pins){try{const p=await pinned(path,digest);return {state,bytes:p.bytes,st:p.st}}catch{}}
+  return {state:'UNVERIFIED'};
+ }
+ const a=await observe(activePath,[['ORIGINAL',originalSha256],['CANDIDATE',candidateSha256]]);
+ const c=await observe(candidate,[['MATCHED',candidateSha256]]);
+ const b=await observe(backup,[['MATCHED',originalSha256]]);
+ const before=await readdir(parent),locks=await readdir(lockRoot);
+ if(before.length>10000||locks.length>100)fail();
+ const leftovers=before.filter(x=>x.startsWith('.env.switch-')||x.startsWith('.env.candidate-')).length;
+ let candidatePolicyVerified=false;
+ const original=a.state==='ORIGINAL'?a:b.state==='MATCHED'?b:null;
+ if(original&&c.state==='MATCHED')try{await validateCandidate(original.bytes,c.bytes,profile,changes);candidatePolicyVerified=true}catch{}
+ let state='MANUAL_RECONCILIATION_REQUIRED';
+ if(!locks.length&&!leftovers&&candidatePolicyVerified){
+  if(a.state==='ORIGINAL'&&b.state==='ABSENT')state='PREPARED_NOT_SWITCHED';
+  else if(a.state==='CANDIDATE'&&b.state==='MATCHED')state='CANDIDATE_ACTIVE_BACKUP_MATCHED';
+  else if(a.state==='ORIGINAL'&&b.state==='MATCHED')state='ORIGINAL_ACTIVE_BACKUP_MATCHED';
+ }
+ await privateDir(parent,dir);await privateDir(lockRoot,lock);
+ if(JSON.stringify((await readdir(parent)).sort())!==JSON.stringify(before.sort())||JSON.stringify((await readdir(lockRoot)).sort())!==JSON.stringify(locks.sort()))fail();
+ for(const [p,o] of [[activePath,a],[candidate,c],[backup,b]]){
+  if(o.st&&!same(o.st,await lstat(p)))fail();
+  if(o.state==='ABSENT'){try{await lstat(p);fail()}catch(e){if(e.code!=='ENOENT')throw e}}
+ }
+ return {state,active_state:a.state,candidate_state:c.state,backup_state:b.state,candidate_policy_verified:candidatePolicyVerified,lock_entries_present:locks.length>0,staging_files_present:leftovers>0,
+  files_changed:false,lock_removed:false,services_quiescence_verified:false,service_restart_authorized:false,production_accepted:false};
 }

@@ -28,7 +28,8 @@ const hex=x=>typeof x==='string'&&x.length===64&&/^[a-f0-9]{64}$/.test(x)&&!/^0+
 const dirFields=['dev','ino','uid','gid','mode'],fileFields=[...dirFields,'nlink','size','mtimeMs','ctimeMs'];
 const same=(a,b,keys)=>keys.every(k=>a[k]===b[k]);
 const dirKeys=['operationLockRoot','adapterLockRoot','journalDirectory','configDirectory','identityDirectory','runtimeIdentityParent','caDirectory','tlsDirectory'];
-export const guidedPrivateStackSteps=Object.freeze(['PREFLIGHT','IDENTITY','CONFIGURATION','TLS_MATERIAL','RESOURCES','STOPPED_CANDIDATES','PRIVATE_STACK']);
+export {guidedPrivateStackSteps} from './guided-operation-journal.mjs';
+import {guidedPrivateStackSteps,encodeGuidedOperationEvent,guidedStartedDigest} from './guided-operation-journal.mjs';
 export function validateGuidedPrivateStackPolicy(input){
  if(!exact(input,['confirmation','project','serverHost','release','directories','host','privateAddress'])||input.confirmation!=='INITIALIZE_GUIDED_EMPTY_PRIVATE_STACK_ONLY_EXCLUSIVE_HOST_DAEMON_AND_WRITER_CUSTODY'||!exact(input.directories,dirKeys)||!exact(input.host,['markerPaths','minCpu','minMemoryBytes','minFreeBytes'])||!exact(input.host.markerPaths,['database','credentials','service']))fail();
  const d=input.directories,h=input.host;
@@ -92,7 +93,7 @@ export async function initializeGuidedPrivateStack(input){
   async function record(step,event,evidenceSha256){
    await guard();
    const name='event-'+String(records.size+1).padStart(3,'0')+'.json';
-   const bytes=Buffer.from(JSON.stringify({schema_version:1,sequence:records.size+1,project:p.project,release_sha256:p.release.trustedManifestSha256,step,event,previous_sha256:previous,evidence_sha256:evidenceSha256})+'\n');
+   const bytes=encodeGuidedOperationEvent({schema_version:1,sequence:records.size+1,project:p.project,release_sha256:p.release.trustedManifestSha256,step,event,previous_sha256:previous,evidence_sha256:evidenceSha256});
    const path=join(d.journalDirectory,name),fd=await open(path,constants.O_WRONLY|constants.O_CREAT|constants.O_EXCL|constants.O_NOFOLLOW,0o600);
    let st;
    try{await fd.chmod(0o600);await fd.writeFile(bytes);await fd.sync();st=await fd.stat()}finally{await fd.close()}
@@ -102,7 +103,7 @@ export async function initializeGuidedPrivateStack(input){
   }
   async function step(name,action,verify){
    if(guidedPrivateStackSteps[stageIndex]!==name)fail();
-   await record(name,'STARTED',sha(Buffer.from(name+':'+p.release.trustedManifestSha256)));
+   await record(name,'STARTED',guidedStartedDigest(name,p.release.trustedManifestSha256));
    const receipt=await action();
    await guard();if(!verify(receipt)||receipt.production_accepted===true)fail();
    // Only digests of trusted adapter receipts; never serialize env, PEM,

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "batch": "MASS-04",
+  "batch": "MASS-05",
   "date": "2026-11-26",
   "target": "20 implementation prompts planning target, 50–100 actual development tasks per batch aspirational; count only delivered functional work, not test cases",
   "base_commit": "26f6dd7ad116e85e9fd52235f681c3d57f8f7a23",
@@ -2869,6 +2869,62 @@
         "tests/unit/prepare-runtime-configuration.test.js",
         "Manual real env compatibility, owner-only file, stale digest, existing candidate, activation/restart/rollback and TLS/DB continuity acceptance"
       ]
+    },
+    {
+      "id": "MASS-05-01",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Pinned local runtime config file activation/rollback with private recovery and secret preservation",
+      "dependencies": [
+        "MASS-04-03",
+        "M1",
+        "DEC-001"
+      ],
+      "paths": [
+        "scripts/switch-runtime-configuration.mjs",
+        "scripts/switch-runtime-configuration-cli.mjs",
+        ".gitignore"
+      ],
+      "regression": [
+        "tests/unit/switch-runtime-configuration.test.js",
+        "tests/unit/prepare-runtime-configuration.test.js",
+        "Real interrupted switch/reconciliation, quiescence, service restart, TLS and DB continuity pending"
+      ]
+    },
+    {
+      "id": "MASS-05-02",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Consent-bound diagnostic plan API, audit and portal controls",
+      "dependencies": [
+        "MASS-04-01",
+        "MASS-03-01",
+        "MASS-02-01",
+        "FE-16"
+      ],
+      "paths": [
+        "troubleshooting-diagnostic-consent.js",
+        "troubleshooting-consent-routes.js",
+        "Enterprise/portal/diagnostic-consent.html",
+        "Enterprise/portal/diagnostic-consent.js"
+      ],
+      "regression": [
+        "tests/unit/troubleshooting-diagnostic-consent.test.js",
+        "Real HTTP/SQL grant/revoke/expiry/plan idempotence, race and tenant isolation; no dispatch or collection authority"
+      ]
+    },
+    {
+      "id": "MASS-05-03",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Fixture-only Docker mismatch observation logging, unchanged assertion and release gate",
+      "dependencies": [
+        "MASS-01-04",
+        "M1"
+      ],
+      "paths": [
+        "tests/ci-offline-docker-load-rehearsal.mjs"
+      ],
+      "regression": [
+        "Disposable Docker runner: exact config IDs, ordered diff IDs, no tags and cleanup; investigate observed driver/version and returned IDs"
+      ]
     }
   ],
   "unresolved": [
@@ -2902,11 +2958,15 @@
     },
     {
       "id": "BLOCK-SETUP-EXECUTION",
-      "next": "Candidate staging and Windows health probe added; approve runtime topology, implement actual installer, activation/restart/rollback, private TLS and DB binding, signed agent enrollment."
+      "next": "Configuration candidate and local file switch/rollback plus Windows probe added; actual installer, independently verified service quiescence/restart, TLS/DB continuity and signed agent enrollment pending."
     },
     {
       "id": "BLOCK-DIAGNOSTIC-EXECUTION",
-      "next": "Review consent is not diagnostic collection consent. Approved collection policy, endpoint credential binding, signed attempt and evidence custody, physical postcheck and verified outcomes remain."
+      "next": "Review consent and bound review plan added; distinct collection consent, approved execution policy, endpoint credential binding, signed attempt/evidence custody and independent outcomes pending."
+    },
+    {
+      "id": "BLOCK-DOCKER-45691335891",
+      "next": "Exact fixture identity assertion remains failing; bounded diagnostic logging added for next CI. No production import or compatibility claim."
     }
   ],
   "regression": {
@@ -2955,6 +3015,15 @@
         "5c81a3fedd013ea0c8b0f3a83c96054bd5c18a43",
         "a17a6c457766fe40bf5109f45fe8ded47304c5f3",
         "5bc421d3a400f5dbb67e8a92a69d3cbcd575fe4b"
+      ],
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI"
+    },
+    {
+      "id": "MASS-05",
+      "source_commits": [
+        "274c0b222fe167a36f5b775554e0e16ce0016916",
+        "e3ecb69f84f5839bf7180530e73fe5419dbe6a20",
+        "64e5fc39f968d3d8ea750ddcbab6ad6e026ec357"
       ],
       "status": "SOURCE_IMPLEMENTED_PENDING_CI"
     }

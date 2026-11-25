@@ -11,6 +11,7 @@ import { classifyDeviceCredentialRecovery, isCredentialDeviceId, credentialDbCou
 import { appUsageCredentialCacheKey } from './telemetry-security.js';
 import { withSchemaMigrationLock } from './schema-migration-lock.js';
 import { planMigrationHistory } from './schema-migration-integrity.js';
+import { verifyBoundRuntimeHistory,probeBoundRuntimeIdentity } from './bound-runtime-schema.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -150,6 +151,10 @@ export async function attemptConnection() {
       connectTimeout: 8000
     });
 
+    // Own the candidate pool immediately so a failed first query is closed.
+    pool = newPool;
+    isConnected = false;
+
     // Handle unexpected pool errors to log and attempt reconnection instead of crashing
     newPool.on('error', (err) => {
       console.error('⚠️ MySQL pool runtime error:', err.message);
@@ -174,8 +179,6 @@ export async function attemptConnection() {
       }
     }
 
-    pool = newPool;
-    isConnected = false;
     // Keep the service unavailable until the locked migration history and
     // all pending migrations are verified. A TCP connection alone is not ready.
     await runDatabaseMigrationsOnPool(newPool);
@@ -207,7 +210,9 @@ export function startDbHealthCheck(intervalMs = 30000) {
       }
     } else if (pool) {
       try {
-        await pool.query('SELECT 1');
+        if(process.env.AADITECH_BOUND_REPORTS==='enabled'){
+          if(!await probeBoundRuntimeIdentity(pool,process.env))isConnected=false;
+        }else await pool.query('SELECT 1');
       } catch (pingErr) {
         console.warn('⚠️ DB health-check ping failed, marking disconnected:', pingErr.message);
         isConnected = false;
@@ -298,6 +303,14 @@ export async function runDatabaseMigrations() {
 
 async function runDatabaseMigrationsOnPool(activePool) {
   return withSchemaMigrationLock(activePool, async connection => {
+    // Bound deployments are provisioned by the exclusive signed initializer.
+    // No CREATE/ALTER, seed replay or partition pruning before identity and
+    // complete history verification. Explicit operator upgrades are required.
+    if(process.env.AADITECH_BOUND_REPORTS==='enabled'){
+      const migrationsDir=path.join(__dirname,'database','migrations');
+      const files=fs.readdirSync(migrationsDir).filter(f=>f.endsWith('.sql')&&!f.startsWith('.')).sort().map(name=>({name,sql:fs.readFileSync(path.join(migrationsDir,name),'utf8')}));
+      return verifyBoundRuntimeHistory(connection,files,process.env);
+    }
     const result = { applied: [], skipped: [] };
     // 2. Ensure schema_migrations tracking table exists
     await connection.query(`
@@ -462,7 +475,9 @@ export function isMysqlConnected() {
 export async function probeDbReadiness() {
   if (!isMysqlConnected()) return false;
   try {
-    await pool.query('SELECT 1');
+    if(process.env.AADITECH_BOUND_REPORTS==='enabled'){
+      if(!await probeBoundRuntimeIdentity(pool,process.env)){isConnected=false;return false;}
+    }else await pool.query('SELECT 1');
     return true;
   } catch (error) {
     isConnected = false;

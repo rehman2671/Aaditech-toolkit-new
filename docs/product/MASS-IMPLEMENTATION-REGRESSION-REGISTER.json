@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
-  "batch": "MASS-28",
+  "batch": "MASS-29",
   "date": "2026-11-26",
   "target": "20 implementation prompts planning target, 50–100 actual development tasks per batch aspirational; count only delivered functional work, not test cases",
-  "base_commit": "828258a8df858a7599ef963bf5cb1ae7ed932813",
+  "base_commit": "dfbaebc513f69f8d8e94230cb6f01b97bb3f6857",
   "source_of_truth": [
     "docs/product/DELIVERY-TRACKER.json",
     "docs/product/TROUBLESHOOTING-WORK-REGISTER.json",
@@ -4221,7 +4221,38 @@
       ],
       "regression": [
         "Nine negative N70 workflow mutations; no signing gate weakening"
-      ]
+      ],
+      "ci_evidence": {
+        "head": "dfbaebc513f69f8d8e94230cb6f01b97bb3f6857",
+        "run": 45712637371,
+        "jobs": [
+          {
+            "id": 139550664104,
+            "name": "PowerShell validation",
+            "status": "in_progress",
+            "conclusion": null
+          },
+          {
+            "id": 139550664555,
+            "name": "Node.js Unit & Integration Tests (Vitest + MySQL 8)",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 139550664558,
+            "name": "Offline Docker load compatibility (disposable runner)",
+            "status": "completed",
+            "conclusion": "failure"
+          },
+          {
+            "id": 139551238544,
+            "name": "API test suite (Node.js vs MySQL 8)",
+            "status": "in_progress",
+            "conclusion": null
+          }
+        ],
+        "scope": "Exact-head observation; Node and governance passed; real MySQL read-only admission failed at version matcher (line 166); no full batch promotion"
+      }
     },
     {
       "id": "MASS-28-02",
@@ -4237,7 +4268,38 @@
       ],
       "regression": [
         "Actual MySQL clean admission, occupied and mismatched history/marker refusal pending CI"
-      ]
+      ],
+      "ci_evidence": {
+        "head": "dfbaebc513f69f8d8e94230cb6f01b97bb3f6857",
+        "run": 45712637371,
+        "jobs": [
+          {
+            "id": 139550664104,
+            "name": "PowerShell validation",
+            "status": "in_progress",
+            "conclusion": null
+          },
+          {
+            "id": 139550664555,
+            "name": "Node.js Unit & Integration Tests (Vitest + MySQL 8)",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 139550664558,
+            "name": "Offline Docker load compatibility (disposable runner)",
+            "status": "completed",
+            "conclusion": "failure"
+          },
+          {
+            "id": 139551238544,
+            "name": "API test suite (Node.js vs MySQL 8)",
+            "status": "in_progress",
+            "conclusion": null
+          }
+        ],
+        "scope": "Exact-head observation; Node and governance passed; real MySQL read-only admission failed at version matcher (line 166); no full batch promotion"
+      }
     },
     {
       "id": "MASS-28-03",
@@ -4253,6 +4315,86 @@
       ],
       "regression": [
         "Actual disposable MySQL clean admission, marker/history drift refusal, retained lock, fixture restoration; signed end-to-end activation remains pending"
+      ],
+      "ci_evidence": {
+        "head": "dfbaebc513f69f8d8e94230cb6f01b97bb3f6857",
+        "run": 45712637371,
+        "jobs": [
+          {
+            "id": 139550664104,
+            "name": "PowerShell validation",
+            "status": "in_progress",
+            "conclusion": null
+          },
+          {
+            "id": 139550664555,
+            "name": "Node.js Unit & Integration Tests (Vitest + MySQL 8)",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 139550664558,
+            "name": "Offline Docker load compatibility (disposable runner)",
+            "status": "completed",
+            "conclusion": "failure"
+          },
+          {
+            "id": 139551238544,
+            "name": "API test suite (Node.js vs MySQL 8)",
+            "status": "in_progress",
+            "conclusion": null
+          }
+        ],
+        "scope": "Exact-head observation; Node and governance passed; real MySQL read-only admission failed at version matcher (line 166); no full batch promotion"
+      }
+    },
+    {
+      "id": "MASS-29-01",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Unify MySQL session validation and repair read-only admission version matcher",
+      "dependencies": [
+        "MASS-28-02"
+      ],
+      "paths": [
+        "scripts/initialize-fresh-mysql-schema.mjs",
+        "tests/unit/initialize-fresh-mysql-schema.test.js"
+      ],
+      "regression": [
+        "29 session input cases; actual MySQL admission rerun required"
+      ]
+    },
+    {
+      "id": "MASS-29-02",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Bound API runtime startup/reconnect requires identity and full migration history without automatic schema mutation",
+      "dependencies": [
+        "MASS-28-02",
+        "MASS-29-01"
+      ],
+      "paths": [
+        "db.js",
+        "bound-runtime-schema.js",
+        "tests/unit/bound-runtime-schema.test.js",
+        "tests/ci-fresh-database-bridge-rehearsal.mjs"
+      ],
+      "regression": [
+        "Unit history/binding refusals; actual MySQL runtime history component rehearsal; signed API container start pending"
+      ]
+    },
+    {
+      "id": "MASS-29-03",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Bound DB health identity probe and failed pool/session cleanup",
+      "dependencies": [
+        "MASS-29-02"
+      ],
+      "paths": [
+        "db.js",
+        "bound-runtime-schema.js",
+        "tests/unit/bound-runtime-schema.test.js"
+      ],
+      "regression": [
+        "Verified session release, failed acquisition and wrong identity discard; full API runtime CI pending"
       ]
     }
   ],
@@ -4738,6 +4880,51 @@
         "scripts/create-stopped-compose-candidates.mjs",
         "tests/ci-fresh-database-bridge-rehearsal.mjs",
         "docs/product/FRESH-VOLUME-OWNERSHIP-AND-IDENTITY-MOUNT.md"
+      ],
+      "exact_head_ci": {
+        "head": "dfbaebc513f69f8d8e94230cb6f01b97bb3f6857",
+        "run": 45712637371,
+        "jobs": [
+          {
+            "id": 139550664104,
+            "name": "PowerShell validation",
+            "status": "in_progress",
+            "conclusion": null
+          },
+          {
+            "id": 139550664555,
+            "name": "Node.js Unit & Integration Tests (Vitest + MySQL 8)",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 139550664558,
+            "name": "Offline Docker load compatibility (disposable runner)",
+            "status": "completed",
+            "conclusion": "failure"
+          },
+          {
+            "id": 139551238544,
+            "name": "API test suite (Node.js vs MySQL 8)",
+            "status": "in_progress",
+            "conclusion": null
+          }
+        ],
+        "scope": "Exact-head observation; Node and governance passed; real MySQL read-only admission failed at version matcher (line 166); no full batch promotion"
+      }
+    },
+    {
+      "id": "MASS-29",
+      "base_commit": "dfbaebc513f69f8d8e94230cb6f01b97bb3f6857",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "evidence": [
+        "scripts/initialize-fresh-mysql-schema.mjs",
+        "tests/unit/initialize-fresh-mysql-schema.test.js",
+        "db.js",
+        "tests/ci-fresh-database-bridge-rehearsal.mjs",
+        "docs/product/FRESH-VOLUME-OWNERSHIP-AND-IDENTITY-MOUNT.md",
+        "bound-runtime-schema.js",
+        "tests/unit/bound-runtime-schema.test.js"
       ]
     }
   ]

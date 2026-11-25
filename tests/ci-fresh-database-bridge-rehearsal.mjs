@@ -12,6 +12,7 @@ import {expectedFreshResources} from '../scripts/provision-fresh-compose-resourc
 import {initializeFreshMySqlSchema,verifyInitializedFreshMySqlSchema} from '../scripts/initialize-fresh-mysql-schema.mjs';
 import {initializeLocalInstallationIdentity} from '../scripts/installation-identity-store-posix.mjs';
 import {withLocalSetupLock} from '../scripts/local-setup-lock.mjs';
+import {verifyBoundRuntimeHistory} from '../bound-runtime-schema.js';
 import {staged} from './fixtures/signed-offline-oci-fixture.mjs';
 if(process.argv.length!==2||process.env.GITHUB_ACTIONS!=='true'||process.env.RUNNER_ENVIRONMENT!=='github-hosted'||process.platform!=='linux'||process.arch!=='x64')throw Error('DISPOSABLE_GITHUB_RUNNER_REQUIRED');
 const docker=(args,env={})=>{
@@ -66,6 +67,11 @@ try{
    assert.equal(result.migrations_applied,24);assert.equal(result.bootstrap_ready,true);assert.equal(result.database_binding_verified,true);
    const ready=await verifyInitializedFreshMySqlSchema(conn,readRequest,guard);
    assert.equal(ready.migrations_verified,24);assert.equal(ready.clean_bootstrap_verified,true);assert.equal(ready.read_only,true);assert.equal(ready.api_activation_authorized,false);assert.equal(ready.installation_id,identity.installation_id);
+   const runtimeFiles=Array.from(files,([name,bytes])=>({name:name.slice('database/migrations/'.length),sql:bytes.toString('utf8')}));
+   const runtimeEnv={AADITECH_BOUND_REPORTS:'enabled',AADITECH_IDENTITY_DIRECTORY:identityDirectory,AADITECH_INSTALLATION_ID:identity.installation_id,AADITECH_IDENTITY_SHA256:identity.identity_sha256};
+   const runtime=await verifyBoundRuntimeHistory(conn,runtimeFiles,runtimeEnv);
+   assert.equal(runtime.status,'BOUND_RUNTIME_HISTORY_VERIFIED');assert.equal(runtime.applied.length,0);assert.equal(runtime.skipped.length,24);
+   await assert.rejects(()=>verifyBoundRuntimeHistory(conn,runtimeFiles,{...runtimeEnv,AADITECH_IDENTITY_SHA256:'0'.repeat(64)}));
    const [[row]]=await conn.query('SELECT installation_id,identity_sha256 FROM installation_database_identity');
    assert.equal(row.installation_id,identity.installation_id);assert.equal(row.identity_sha256,identity.identity_sha256);
    const [[count]]=await conn.query('SELECT COUNT(*) AS n FROM schema_migrations');assert.equal(Number(count.n),24);

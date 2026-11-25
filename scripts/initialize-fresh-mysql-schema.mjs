@@ -75,6 +75,14 @@ export function verifyFactorySeedRows(table,rows){
  return expected.rows.length;
 }
 async function query(c,sql,args=[]){const [rows]=await c.query(sql,args);return rows}
+// One shared validation contract for initialization and read-only admission.
+// Use a literal prefix and digit check rather than two divergent regexes.
+export function validateFreshMySqlSession(rows,databaseName){
+ if(!Array.isArray(rows)||rows.length!==1||!rows[0])fail();
+ const r=rows[0],version=r.version;
+ if(r.db!==databaseName||typeof r.uuid!=='string'||!r.uuid||!['number','string'].includes(typeof r.connection_id)||!Number.isSafeInteger(Number(r.connection_id))||Number(r.connection_id)<1||typeof version!=='string'||!version.startsWith('8.')||!/^[0-9]/.test(version.slice(2))||/MariaDB/i.test(version))fail();
+ return Object.freeze({db:r.db,uuid:r.uuid,connection_id:Number(r.connection_id),version});
+}
 async function tableInventory(c){
  const rows=await query(c,"SELECT TABLE_NAME AS name,TABLE_TYPE AS kind,ENGINE AS engine FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() ORDER BY TABLE_NAME");
  if(!Array.isArray(rows)||rows.length>200||Array.from(rows).some(x=>!x||!id(x.name)||x.kind!=='BASE TABLE'||x.engine!=='InnoDB')||new Set(rows.map(x=>x.name)).size!==rows.length)fail();
@@ -88,7 +96,7 @@ export async function initializeFreshMySqlSchema(connection,input,assertHeld){
  let transaction=false,done=false;
  try{
  await assertHeld();const admitted=await admitSignedFreshMigrations(p.release),local=await inspectLocalInstallationIdentity(p.identity);
- const observe=async()=>{await assertHeld();const r=await query(connection,'SELECT DATABASE() AS db,@@server_uuid AS uuid,CONNECTION_ID() AS connection_id,@@version AS version');if(r?.length!==1||r[0].db!==p.databaseName||typeof r[0].uuid!=='string'||!r[0].uuid||!Number.isSafeInteger(Number(r[0].connection_id))||!/^8\./.test(r[0].version)||/MariaDB/i.test(r[0].version))fail();return r[0]};
+ const observe=async()=>{await assertHeld();return validateFreshMySqlSession(await query(connection,'SELECT DATABASE() AS db,@@server_uuid AS uuid,CONNECTION_ID() AS connection_id,@@version AS version'),p.databaseName)};
  const initial=await observe(),lockName='itk_schema_migrations_lock';
  const guard=async()=>{if(JSON.stringify(await observe())!==JSON.stringify(initial))fail();const r=await query(connection,'SELECT IS_USED_LOCK(?) AS owner',[lockName]);if(r?.length!==1||Number(r[0].owner)!==Number(initial.connection_id))fail();await assertHeld()};
   const acquired=await query(connection,'SELECT GET_LOCK(?,0) AS acquired',[lockName]);if(acquired?.length!==1||acquired[0].acquired!==1)fail();
@@ -163,8 +171,7 @@ export async function verifyInitializedFreshMySqlSchema(connection,input,assertH
   const observe=async()=>{
    await assertHeld();
    const r=await query(connection,'SELECT DATABASE() AS db,@@server_uuid AS uuid,CONNECTION_ID() AS connection_id,@@version AS version');
-   if(r?.length!==1||r[0].db!==p.databaseName||typeof r[0].uuid!=='string'||!r[0].uuid||!Number.isSafeInteger(Number(r[0].connection_id))||Number(r[0].connection_id)<1||typeof r[0].version!=='string'||!/^8\\./.test(r[0].version)||/MariaDB/i.test(r[0].version))fail();
-   return r[0];
+   return validateFreshMySqlSession(r,p.databaseName);
   };
   const initial=await observe(),lockName='itk_schema_migrations_lock';
   const acquired=await query(connection,'SELECT GET_LOCK(?,0) AS acquired',[lockName]);

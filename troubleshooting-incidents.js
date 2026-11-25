@@ -127,7 +127,13 @@ export async function recordDiagnosticPlan(pool,input){
 // Scope-limited reporting for the same currently active technician and device.
 // An absent execution/outcome integration is explicitly unmeasured, not zero.
 export async function summarizeTroubleshootingIntake(pool,input){
- const s=context(pool,input,['principal','installationId','deviceId']);
+ const s=context(pool,input,['principal','installationId','deviceId','from','until']);
+ const window=reportingWindow(input);
+ if(window){
+  const report=await summarizeTroubleshootingCategories(pool,{principal:{id:s.actor,tenant_id:s.tenant,role:'SUPER_ADMIN'},installationId:s.installationId,deviceId:s.deviceId,...window});
+  const {totals,period,clock_basis,plan_count_basis,diagnosed,executed_attempts,verified_resolved,resolution_rate,outcome_measurement,production_accepted}=report;
+  return Object.freeze({...totals,period,window,clock_basis,plan_count_basis,diagnosed,executed_attempts,verified_resolved,resolution_rate,outcome_measurement,production_accepted});
+ }
  return transaction(pool,async c=>{
   await lockScope(c,s);
   const [rows]=await c.query(
@@ -175,13 +181,31 @@ export async function inspectDiagnosticPlan(pool,input){
 // Scope-limited category breakdown. Only intake and distinct planned incident
 // counts are measured. A single grouped query, with explicit invalid-state
 // count, keeps denominators consistent. No external report exposure.
+// Database wall-clock DATETIME(3) bounds, not browser-local or UTC conversion.
+// Half-open cohorts; no plan created outside the cohort's observation cutoff.
+function reportingWindow(input){
+ if(!Object.hasOwn(input,'from')&&!Object.hasOwn(input,'until'))return null;
+ const parse=x=>{
+  if(typeof x!=='string'||x.length!==23||!/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}$/.test(x)||x.slice(0,4)<'1000')fail('INCIDENT_REPORT_WINDOW_INVALID');
+  const iso=x.replace(' ','T')+'Z',ms=Date.parse(iso);
+  if(!Number.isFinite(ms)||new Date(ms).toISOString()!==iso)fail('INCIDENT_REPORT_WINDOW_INVALID');
+  return ms;
+ };
+ const {from,until}=input,start=parse(from),end=parse(until);
+ if(end<=start||end-start>31*86400000)fail('INCIDENT_REPORT_WINDOW_INVALID');
+ return Object.freeze({from,until});
+}
 export async function summarizeTroubleshootingCategories(pool,input){
- const s=context(pool,input,['principal','installationId','deviceId']);
+ const s=context(pool,input,['principal','installationId','deviceId','from','until']);
+ const window=reportingWindow(input);
  return transaction(pool,async c=>{
   await lockScope(c,s);
+  const cutoff=window?' AND p.created_at>=i.opened_at AND p.created_at<?':'';
+  const cohort=window?' AND i.opened_at>=? AND i.opened_at<?':'';
+  const params=window?[window.until,s.installationId,s.tenant,s.deviceId,s.actor,window.from,window.until]:[s.installationId,s.tenant,s.deviceId,s.actor];
   const [rows]=await c.query(
-   "SELECT i.category_id, i.hazard, i.status, COUNT(*) AS reported, COALESCE(SUM(EXISTS(SELECT 1 FROM troubleshooting_diagnostic_plans p WHERE p.incident_id=i.incident_id AND p.installation_id=i.installation_id AND p.tenant_id=i.tenant_id AND p.device_id=i.device_id AND p.actor_user_id=i.actor_user_id)),0) AS planned_incidents FROM troubleshooting_incidents i WHERE i.installation_id=? AND i.tenant_id=? AND i.device_id=? AND i.actor_user_id=? GROUP BY i.category_id,i.hazard,i.status",
-   [s.installationId,s.tenant,s.deviceId,s.actor]);
+   "SELECT i.category_id, i.hazard, i.status, COUNT(*) AS reported, COALESCE(SUM(EXISTS(SELECT 1 FROM troubleshooting_diagnostic_plans p WHERE p.incident_id=i.incident_id AND p.installation_id=i.installation_id AND p.tenant_id=i.tenant_id AND p.device_id=i.device_id AND p.actor_user_id=i.actor_user_id"+cutoff+")),0) AS planned_incidents FROM troubleshooting_incidents i WHERE i.installation_id=? AND i.tenant_id=? AND i.device_id=? AND i.actor_user_id=?"+cohort+" GROUP BY i.category_id,i.hazard,i.status",
+   params);
   if(!Array.isArray(rows)||rows.length>156)fail('INCIDENT_CATEGORY_REPORT_UNVERIFIED');
   const buckets=new Map(troubleshootingCatalog.map(x=>[x.id,{category_id:x.id,reported:0,open:0,escalated:0,incidents_with_plans:0}]));
   const seen=new Set();
@@ -203,7 +227,8 @@ export async function summarizeTroubleshootingCategories(pool,input){
   }
   const categories=Object.freeze([...buckets.values()].map(x=>Object.freeze(x)));
   const totals=Object.freeze(Object.fromEntries(['reported','open','escalated','incidents_with_plans'].map(k=>[k,categories.reduce((n,x)=>add(n,x[k]),0)])));
-  return Object.freeze({categories,totals,scope:'CURRENT_TECHNICIAN_DEVICE',period:'ALL_RECORDED',
+  return Object.freeze({categories,totals,scope:'CURRENT_TECHNICIAN_DEVICE',period:window?'OPENED_IN_WINDOW':'ALL_RECORDED',
+   ...(window?{window,clock_basis:'DATABASE_WALL_CLOCK_DATETIME',plan_count_basis:'CREATED_AT_OR_AFTER_OPEN_AND_BEFORE_UNTIL'}:{}),
    diagnosed:null,executed_attempts:null,verified_resolved:null,resolution_rate:null,
    outcome_measurement:'NOT_IMPLEMENTED',production_accepted:false});
  });

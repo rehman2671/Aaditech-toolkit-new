@@ -175,7 +175,7 @@ try {
   const req=requests.find(x=>x.status==='fulfilled').value;
   const [clock]=await pool.query('SELECT CAST(UNIX_TIMESTAMP(NOW(3))*1000 AS UNSIGNED) AS now_ms');
   const now=Number(clock[0].now_ms), keys=crypto.generateKeyPairSync('ed25519');
-  const payload=Buffer.from(JSON.stringify({schema:'aaditech-device-recovery-evidence-v1',purpose:'REVIEW_ONLY_CREDENTIAL_RECOVERY',tenant_id:reviewTenant,device_id:reviewDevice,request_id:req.request_id,challenge_sha256:req.challenge_sha256,credential_fingerprint:req.credential_fingerprint,ownership_evidence_sha256:'c'.repeat(64),command_reconciliation_sha256:'d'.repeat(64),local_handoff_evidence_sha256:'e'.repeat(64),issued_at_ms:now-100,expires_at_ms:now+120000}));
+  const payload=Buffer.from(JSON.stringify({schema:'aaditech-device-recovery-evidence-v1',purpose:'REVIEW_ONLY_CREDENTIAL_RECOVERY',tenant_id:reviewTenant,device_id:reviewDevice,request_id:req.request_id,challenge_sha256:req.challenge_sha256,credential_fingerprint:req.credential_fingerprint,ownership_evidence_sha256:'c'.repeat(64),command_reconciliation_sha256:'d'.repeat(64),local_handoff_evidence_sha256:'e'.repeat(64),issued_at_ms:now,expires_at_ms:now+120000}));
   const options={principal:admins[1],deviceId:reviewDevice,requestId:req.request_id,
     evidence:{payload,signature:crypto.sign(null,payload,keys.privateKey)},
     trustedPins:{payloadSha256:sha(payload),reviewerSpkiSha256:sha(keys.publicKey.export({type:'spki',format:'der'})),reviewerPublicKeyPem:keys.publicKey.export({type:'spki',format:'pem'}),ownershipEvidenceSha256:'c'.repeat(64),commandReconciliationSha256:'d'.repeat(64),localHandoffEvidenceSha256:'e'.repeat(64)}};
@@ -184,6 +184,9 @@ try {
   await assert.rejects(()=>reserveRecoveryReview(pool,options),/RECOVERY_REVIEW_ACTOR_DENIED/);
   await pool.query('UPDATE users SET active=1 WHERE id=?',[admins[0].id]);
   await assert.rejects(()=>reserveRecoveryReview(pool,{...options,trustedPins:{...options.trustedPins,ownershipEvidenceSha256:'f'.repeat(64)}}),/RECOVERY_REVIEW_ARTIFACT_MISMATCH/);
+  const [createdRows]=await pool.query('SELECT created_at_ms FROM device_recovery_reviews WHERE request_id=?',[req.request_id]);
+  const predating=Buffer.from(JSON.stringify({...JSON.parse(payload.toString('utf8')),issued_at_ms:Number(createdRows[0].created_at_ms)-1}));
+  await assert.rejects(()=>reserveRecoveryReview(pool,{...options,evidence:{payload:predating,signature:crypto.sign(null,predating,keys.privateKey)},trustedPins:{...options.trustedPins,payloadSha256:sha(predating)}}),/RECOVERY_REVIEW_EVIDENCE_PREDATES_REQUEST/);
   const reviews=await Promise.allSettled(Array.from({length:4},()=>reserveRecoveryReview(pool,options)));
   assert.equal(reviews.filter(x=>x.status==='fulfilled').length,1);
   assert.equal(reviews.find(x=>x.status==='fulfilled').value.replacement_allowed,false);
@@ -244,6 +247,19 @@ try {
   assert.equal((await inspectDiagnosticPlan(pool,inspection)).status,'PLANNED_ONLY');
   await assert.rejects(()=>inspectDiagnosticPlan(pool,{...inspection,principal:admins[1]}),/INCIDENT_NOT_FOUND/);
   await assert.rejects(()=>inspectDiagnosticPlan(pool,{...inspection,planId:crypto.randomUUID()}),/DIAGNOSTIC_PLAN_NOT_FOUND/);
+  // Fixed disposable DB wall-clock dates, exact boundaries and plan cutoff.
+  await pool.query('UPDATE troubleshooting_incidents SET opened_at=? WHERE incident_id=?',['2026-11-01 00:00:00.000',openIncident.incident_id]);
+  await pool.query('UPDATE troubleshooting_incidents SET opened_at=? WHERE incident_id=?',['2026-12-01 00:00:00.000',incidents[0].incident_id]);
+  await pool.query('UPDATE troubleshooting_diagnostic_plans SET created_at=? WHERE plan_id=?',['2026-12-01 00:00:00.000',plans[0].plan_id]);
+  const windowArgs={...summaryArgs,from:'2026-11-01 00:00:00.000',until:'2026-12-01 00:00:00.000'};
+  const bounded=await summarizeTroubleshootingCategories(pool,windowArgs);
+  assert.deepEqual(bounded.totals,{reported:1,open:1,escalated:0,incidents_with_plans:0});
+  assert.equal((await summarizeTroubleshootingIntake(pool,windowArgs)).incidents_with_plans,0);
+  await pool.query('UPDATE troubleshooting_diagnostic_plans SET created_at=? WHERE plan_id=?',['2026-11-30 23:59:59.999',plans[0].plan_id]);
+  assert.equal((await summarizeTroubleshootingIntake(pool,windowArgs)).incidents_with_plans,1);
+  assert.equal((await summarizeTroubleshootingIntake(pool,{...windowArgs,principal:admins[1]})).reported,0);
+  assert.equal((await summarizeTroubleshootingIntake(pool,{...windowArgs,from:'2026-12-01 00:00:00.000',until:'2026-12-02 00:00:00.000'})).escalated,1);
+  console.log('[PASS] Bounded troubleshooting cohort, half-open boundaries, plan cutoff and scoped reporting.');
   console.log('[PASS] Scoped per-category report and persisted planned-only inspection, no invented outcomes.');
   // Real separate connections must serialize on the schema advisory lock.
   const order=[];

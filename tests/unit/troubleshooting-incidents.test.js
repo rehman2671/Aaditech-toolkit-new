@@ -204,3 +204,50 @@ describe('scoped per-category intake analytics',()=>{
    await expect(summarizeTroubleshootingCategories(fixture(opts).pool,args)).rejects.toThrow('INCIDENT_SCOPE_DENIED');
  });
 });
+
+describe('bounded troubleshooting cohort reporting',()=>{
+ const args={principal,installationId,deviceId,from:'2026-11-01 00:00:00.000',until:'2026-12-01 00:00:00.000'};
+ const human=new Set(['TR-05','TR-09','TR-11','TR-19','TR-24']);
+ const ids=Array.from({length:26},(_,i)=>'TR-'+String(i+1).padStart(2,'0'));
+ for(const category_id of ids){
+  it(category_id+' uses the same bounded cohort for category and total reports',async()=>{
+   const status=human.has(category_id)?'ESCALATED':'OPEN';
+   const rows=[{category_id,hazard:'NONE',status,reported:'2',planned_incidents:status==='OPEN'?'1':'0'}];
+   const f=fixture({rows}),g=fixture({rows});
+   const r=await summarizeTroubleshootingCategories(f.pool,args),s=await summary(g.pool,args);
+   expect(r.categories).toHaveLength(26);expect(r.totals.reported).toBe(2);
+   expect(s).toMatchObject({...r.totals,period:'OPENED_IN_WINDOW',window:{from:args.from,until:args.until},resolution_rate:null,verified_resolved:null});
+   expect(r.clock_basis).toBe('DATABASE_WALL_CLOCK_DATETIME');
+   for(const h of [f,g]){
+    const [sql,params]=h.c.query.mock.calls.at(-1);
+    expect(sql).toContain('p.created_at>=i.opened_at AND p.created_at<?');
+    expect(sql).toContain('i.opened_at>=? AND i.opened_at<?');
+    expect(params).toEqual([args.until,installationId,tenant,deviceId,1,args.from,args.until]);
+    expect(h.c.query.mock.calls.every(([q])=>q.startsWith('SELECT'))).toBe(true);
+   }
+  });
+  it(category_id+' rejects contradictory bounded hazard evidence',async()=>{
+   const f=fixture({rows:[{category_id,hazard:'PHYSICAL_HAZARD',status:'OPEN',reported:1,planned_incidents:0}]});
+   await expect(summary(f.pool,args)).rejects.toThrow('INCIDENT_CATEGORY_REPORT_UNVERIFIED');
+   expect(f.c.rollback).toHaveBeenCalledOnce();
+  });
+ }
+ for(const [i,patch] of [{from:null},{until:undefined},{from:'2026-11-01T00:00:00.000Z'},{from:'2026-11-31 00:00:00.000'},
+  {from:'2026-11-01 24:00:00.000'},{from:'2026-11-01 00:00:60.000'},{from:'2026-11-01 00:00:00.000\n'},
+  {from:'0999-11-01 00:00:00.000'},{from:1},{from:args.until},{from:'2026-10-30 00:00:00.000'},
+  {until:'2026-10-01 00:00:00.000'},{from:'2026-11-01 00:00:00.00'},{until:'2026-12-01 00:00:00.000 OR 1=1'}].entries())
+  it('refuses invalid report bounds '+i,async()=>{
+   for(const fn of [summary,summarizeTroubleshootingCategories]){
+    const f=fixture();await expect(fn(f.pool,{...args,...patch})).rejects.toThrow('INCIDENT_REPORT_WINDOW_INVALID');
+    expect(f.pool.getConnection).not.toHaveBeenCalled();
+   }
+  });
+ it('returns zero intake for an empty cohort without inventing outcomes',async()=>{
+  const r=await summary(fixture().pool,args);
+  expect(r).toMatchObject({reported:0,incidents_with_plans:0,executed_attempts:null,verified_resolved:null,resolution_rate:null,production_accepted:false});
+ });
+ it('still checks active technician and tenant authority',async()=>{
+  const f=fixture({user:{active:0}});
+  await expect(summary(f.pool,args)).rejects.toThrow('INCIDENT_SCOPE_DENIED');
+ });
+});

@@ -12,14 +12,14 @@ import {parseOfflineOciInput} from '../../scripts/inspect-offline-oci-runtime-cl
 const sha=b=>createHash('sha256').update(b).digest('hex'),id=c=>'sha256:'+c.repeat(64);
 const types={index:'application/vnd.oci.image.index.v1+json',manifest:'application/vnd.oci.image.manifest.v1+json',config:'application/vnd.oci.image.config.v1+json',layer:'application/vnd.oci.image.layer.v1.tar+gzip'};
 const roles=['api','database','ingress'];
-function graph(architecture='amd64'){
+function graph(architecture='amd64',layerOverride=null){
  const files=new Map(),docs=new Map(),configs=[],manifests=[];
  function put(path,doc){const bytes=Buffer.from(JSON.stringify(doc));files.set(path,bytes);docs.set(path,doc)}
  function blob(bytes,type){const digest='sha256:'+sha(bytes),path='runtime/blobs/sha256/'+digest.slice(7);files.set(path,bytes);return {mediaType:type,digest,size:bytes.length}}
  function jsonBlob(doc,type){const d=blob(Buffer.from(JSON.stringify(doc)),type);docs.set('runtime/blobs/sha256/'+d.digest.slice(7),doc);return d}
  const h=Buffer.alloc(512);h.write('fixture.txt',0,'ascii');h.write('0000644\0',100,'ascii');h.write('0000000\0',108,'ascii');h.write('0000000\0',116,'ascii');h.write('00000000001\0',124,'ascii');h.write('00000000000\0',136,'ascii');h.fill(32,148,156);h[156]=48;h.write('ustar\0',257,'ascii');h.write('00',263,'ascii');h.write(h.reduce((n,b)=>n+b,0).toString(8).padStart(6,'0')+'\0 ',148,'ascii');
  const data=Buffer.alloc(512);data[0]=65;
- const layerBytes=Buffer.concat([h,data,Buffer.alloc(1024)]),layer=blob(gzipSync(layerBytes),types.layer);
+ const layerBytes=layerOverride??Buffer.concat([h,data,Buffer.alloc(1024)]),layer=blob(gzipSync(layerBytes),types.layer);
  const index={schemaVersion:2,mediaType:types.index,manifests:[]};
  for(const role of roles){
   const config={architecture,os:'linux',config:{Env:['SECRET=fixture'],Labels:{role}},rootfs:{type:'layers',diff_ids:['sha256:'+sha(layerBytes)]}};
@@ -91,10 +91,10 @@ describe('strict signed OCI descriptor graph profile',()=>{
  for(const bad of ['latest','sha256:abcd',id('A'),id('a')+'\n',null,42])
   it('rejects descriptor digest '+JSON.stringify(bad),async()=>{const g=graph();g.index.manifests[0].digest=bad;await expect(verifyOfflineOciGraph(g.input)).rejects.toThrow()});
 });
-async function staged(fn){
+async function staged(fn,layerOverride=null){
  const dir=await mkdtemp(join(await realpath(tmpdir()),'oci-lan-'));
  try{
-  const g=graph(),root=join(dir,'source'),destinationParent=join(dir,'dest');
+  const g=graph('amd64',layerOverride),root=join(dir,'source'),destinationParent=join(dir,'dest');
   await mkdir(root);await mkdir(destinationParent,{mode:0o700});await chmod(destinationParent,0o700);
   for(const [name,bytes] of g.files){const path=join(root,name);await mkdir(dirname(path),{recursive:true});await writeFile(path,bytes)}
   const manifest=join(dir,'manifest.json'),signature=join(dir,'manifest.sig'),key=generateKeyPairSync('ed25519');
@@ -123,6 +123,12 @@ describe.skipIf(process.platform!=='linux')('real signed staged OCI release',()=
   const d=g.manifests[0].layers[0].digest;await writeFile(join(input.stagedDirectory,'payload/runtime/blobs/sha256',d.slice(7)),Buffer.from('tampered'));
   await expect(inspectOfflineOciRuntime(input)).rejects.toThrow();
  }));
+ it('refuses genuinely signed non-tar bytes even with matching compressed and uncompressed digests',()=>staged(async({input})=>{
+  await expect(inspectOfflineOciRuntime(input)).rejects.toThrow('OFFLINE_OCI_RUNTIME_UNVERIFIED');
+ },Buffer.alloc(1024)));
+ it('refuses genuinely signed malformed tar with a matching diff ID',()=>staged(async({input})=>{
+  await expect(inspectOfflineOciRuntime(input)).rejects.toThrow('OFFLINE_OCI_RUNTIME_UNVERIFIED');
+ },Buffer.concat([Buffer.alloc(512,65),Buffer.alloc(1024)])));
  it('refuses wrong release pin and wrong architecture',()=>staged(async({input})=>{
   await expect(inspectOfflineOciRuntime({...input,trustedManifestSha256:'a'.repeat(64)})).rejects.toThrow();
   await expect(inspectOfflineOciRuntime({...input,architecture:'arm64'})).rejects.toThrow();

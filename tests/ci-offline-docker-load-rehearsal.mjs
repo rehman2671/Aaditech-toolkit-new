@@ -3,7 +3,8 @@
 // Restricted to a disposable GitHub-hosted Linux x64 Actions runner.
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
-import {mkdir,chmod,readFile,lstat,readdir} from 'node:fs/promises';
+import {mkdir,chmod,readFile,lstat,readdir,writeFile,unlink} from 'node:fs/promises';
+import {initializeLocalInstallationIdentity} from '../scripts/installation-identity-store-posix.mjs';
 import {createStoppedComposeCandidates,inspectStoppedComposeCandidates} from '../scripts/create-stopped-compose-candidates.mjs';
 import {operateExistingComposeServices} from '../scripts/local-compose-service-lifecycle.mjs';
 import {initializeFreshComposeEnvironment,validateFreshEnvironmentText} from '../scripts/initialize-fresh-compose-environment.mjs';
@@ -20,6 +21,8 @@ import {inspectLocalDockerRuntime} from '../scripts/local-docker-runtime-preflig
 import {inspectBoundOfflineRuntime} from '../scripts/inspect-offline-oci-runtime.mjs';
 if(process.argv.length!==2||process.env.GITHUB_ACTIONS!=='true'||process.env.RUNNER_ENVIRONMENT!=='github-hosted'||
    process.platform!=='linux'||process.arch!=='x64')throw Error('DISPOSABLE_GITHUB_RUNNER_REQUIRED');
+// Root is required only on this disposable runner to verify real volume directories.
+if(process.geteuid()!==0){const r=spawnSync('/usr/bin/sudo',['--non-interactive','--','/usr/bin/env','-i','PATH=/usr/bin:/bin','HOME=/root','GITHUB_ACTIONS=true','RUNNER_ENVIRONMENT=github-hosted',process.execPath,process.argv[1]],{stdio:'inherit',timeout:480000});if(r.status!==0||r.error)throw Error('DISPOSABLE_ROOT_STORAGE_REHEARSAL_FAILED');process.exit(0)}
 const docker=(args)=>{const r=spawnSync('/usr/bin/docker',['--host','unix:///run/docker.sock',...args],
  {encoding:'utf8',timeout:120000,maxBuffer:1024*1024,env:{PATH:'/usr/bin:/bin',HOME:process.env.HOME||'/tmp'}});
  if(r.status!==0||r.error)throw Error('CI_DOCKER_REHEARSAL_COMMAND_FAILED');return r.stdout};
@@ -87,12 +90,28 @@ await staged(async({input,g})=>{
    assert.equal(receipt.resources_provisioned,true);assert.equal(receipt.containers_created,false);assert.deepEqual((await inventory()).collision_counts,{containers:0,networks:1,volumes:5});
    await assert.rejects(()=>provisionFreshComposeResources({...resourcePolicy,lockRoot:repeatLock}));
    assert.deepEqual((await inventory()).collision_counts,{containers:0,networks:1,volumes:5});
-   const createInput={...configInput,confirmation:'CREATE_STOPPED_COMPOSE_CANDIDATES_ONLY_EXCLUSIVE_DAEMON_CUSTODY',configurationSha256:config.configuration_sha256,networkId:receipt.network_id};
+   const identityDirectory=join(dirname(destinationParent),'identity'),runtimeIdentityParent=join(dirname(destinationParent),'runtime-identity-parent');
+   await mkdir(identityDirectory,{mode:0o700});await mkdir(runtimeIdentityParent,{mode:0o700});
+   const identity=await initializeLocalInstallationIdentity({confirmation:'INITIALIZE_EMPTY_IDENTITY_STORE_ONLY',directoryPath:identityDirectory,observed:{database:'absent',credentials:'absent',service:'absent'}});
+   const storage={identity:{confirmation:'INSPECT_PINNED_IDENTITY_STORE_ONLY',directoryPath:identityDirectory,expectedInstallationId:identity.installation_id,expectedIdentitySha256:identity.identity_sha256},runtimeIdentityParent};
+   const createInput={...configInput,confirmation:'CREATE_IDENTITY_BOUND_STOPPED_CANDIDATES_ONLY_EXCLUSIVE_DAEMON_CUSTODY',configurationSha256:config.configuration_sha256,networkId:receipt.network_id,storage};
    created=await createStoppedComposeCandidates(createInput);
+   assert.equal(created.api_volume_ownership_verified,true);assert.equal(created.identity_mount_verified,true);assert.equal(created.volume_contents_verified,true);
+   for(const role of ['api_data','agent_artifacts']){const st=await lstat('/var/lib/docker/volumes/'+project+'_'+role+'/_data');assert.equal(st.uid,1000);assert.equal(st.gid,1000);assert.equal(st.mode&0o777,0o700)}
    assert.equal(created.activation_blocked,true);assert.equal(created.services_started,false);assert.deepEqual((await inventory()).collision_counts,{containers:3,networks:1,volumes:5});
    for(const c of Object.values(created.containers))assert.equal(docker(['container','inspect','--format','{{.State.Status}}',c.containerId]).trim(),'created');
-   const observed=await inspectStoppedComposeCandidates({...createInput,confirmation:'INSPECT_PINNED_STOPPED_COMPOSE_CANDIDATES_ONLY',containers:created.containers});
-   assert.equal(observed.stopped_candidates_verified,true);assert.equal(observed.signed_migrations_verified,true);assert.equal(observed.containers_created,false);assert.equal(observed.installation_authorized,false);assert.deepEqual(observed.containers,created.containers);
+   const observed=await inspectStoppedComposeCandidates({...createInput,confirmation:'INSPECT_IDENTITY_BOUND_STOPPED_CANDIDATES_ONLY',containers:created.containers});
+   assert.equal(observed.identity_mount_verified,true);assert.equal(observed.api_volume_ownership_verified,true);assert.equal(observed.stopped_candidates_verified,true);assert.equal(observed.signed_migrations_verified,true);assert.equal(observed.containers_created,false);assert.equal(observed.installation_authorized,false);assert.deepEqual(observed.containers,created.containers);
+   const identityFile=join(runtimeIdentityParent,'runtime-identity','installation-identity.json');
+   assert.deepEqual(await readFile(identityFile),await readFile(join(identityDirectory,'installation-identity.json')));
+   const identityStat=await lstat(identityFile);assert.equal(identityStat.uid,1000);assert.equal(identityStat.gid,1000);assert.equal(identityStat.mode&0o777,0o600);
+   const occupiedLock=join(dirname(destinationParent),'occupied-storage-lock');await mkdir(occupiedLock,{mode:0o700});
+   const fixtureLeaf='/var/lib/docker/volumes/'+project+'_api_data/_data/occupied-fixture';
+   await writeFile(fixtureLeaf,'fixture',{flag:'wx',mode:0o600});
+   try{
+    await assert.rejects(()=>inspectStoppedComposeCandidates({...createInput,lockRoot:occupiedLock,confirmation:'INSPECT_IDENTITY_BOUND_STOPPED_CANDIDATES_ONLY',containers:created.containers}));
+    assert.deepEqual(await readdir(occupiedLock),['setup.lock']);assert.equal(await readFile(fixtureLeaf,'utf8'),'fixture');
+   }finally{await unlink(fixtureLeaf)}
    const blockedLock=join(dirname(destinationParent),'activation-blocked-lock');await mkdir(blockedLock,{mode:0o700});
    await assert.rejects(()=>operateExistingComposeServices({confirmation:'START_PINNED_EXISTING_COMPOSE_CONTAINERS_ONLY',operation:'start',project,lockRoot:blockedLock,containers:created.containers}));
    for(const c of Object.values(created.containers))assert.equal(docker(['container','inspect','--format','{{.State.Status}}',c.containerId]).trim(),'created');

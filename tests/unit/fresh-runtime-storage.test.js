@@ -1,0 +1,14 @@
+import {it,expect} from 'vitest';
+import {validateRuntimeStoragePolicy as validate,verifyRootfulStorageDaemon as daemon,expectedVolumeMountpoint as mount,runtimeIdentityEnvironment as env} from '../../scripts/fresh-runtime-storage.mjs';
+import {expectedFreshResources} from '../../scripts/provision-fresh-compose-resources.mjs';
+const sha='a'.repeat(64),identity={confirmation:'INSPECT_PINNED_IDENTITY_STORE_ONLY',directoryPath:'/private/identity',expectedInstallationId:'12345678-1234-4234-8234-123456789abc',expectedIdentitySha256:sha};
+const input={identity,runtimeIdentityParent:'/private/runtime-identity'},protectedPaths=['/private/config','/private/lock','/private/stage'];
+it('pins independent identity source and disjoint runtime directory',()=>expect(validate(input,protectedPaths)).toEqual(input));
+it.each([{runtimeIdentityParent:'/private'},{runtimeIdentityParent:'/private/config/identity'},{runtimeIdentityParent:'/var/lib/docker/volumes'},{runtimeIdentityParent:'/private/x,y'},{runtimeIdentityParent:'relative'},{identity:{...identity,expectedInstallationId:'bad'}},{identity:{...identity,expectedIdentitySha256:'0'.repeat(64)}},{extra:true}])('rejects unsafe storage policy %j',p=>expect(()=>validate({...input,...p},protectedPaths)).toThrow());
+const d={OSType:'linux',DockerRootDir:'/var/lib/docker',SecurityOptions:['name=seccomp,profile=builtin','name=cgroupns']};
+it('requires rootful local Docker default storage root',()=>expect(daemon(d)).toBe(true));
+it.each([{DockerRootDir:'/mnt/docker'},{SecurityOptions:['name=rootless']},{SecurityOptions:['name=userns']},{SecurityOptions:null},{OSType:'windows'}])('rejects unsupported daemon %j',p=>expect(()=>daemon({...d,...p})).toThrow());
+const v=expectedFreshResources('aaditech',sha).volumes[1],row={Name:v.name,Driver:'local',Scope:'local',Labels:v.labels,Options:null,Mountpoint:'/var/lib/docker/volumes/'+v.name+'/_data'};
+it('requires exact volume storage path, label and driver',()=>expect(mount(row,v)).toBe(row.Mountpoint));
+it.each([{Mountpoint:'/tmp/data'},{Mountpoint:row.Mountpoint+'/..'},{Driver:'remote'},{Options:{device:'/etc'}},{Labels:{}}])('rejects volume metadata drift %j',p=>expect(()=>mount({...row,...p},v)).toThrow());
+it('only supplies independent identity pins to the API',()=>expect(env(input)).toEqual({AADITECH_BOUND_REPORTS:'enabled',AADITECH_IDENTITY_DIRECTORY:'/run/aaditech-identity',AADITECH_INSTALLATION_ID:identity.expectedInstallationId,AADITECH_IDENTITY_SHA256:sha}));

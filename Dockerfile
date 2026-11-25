@@ -17,7 +17,7 @@ COPY . .
 RUN mkdir -p /data /artifacts /certs && \
     chown -R node:node /app /data /artifacts /certs
 
-USER node
+USER 1000:1000
 
 EXPOSE 3000
 

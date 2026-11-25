@@ -22,3 +22,20 @@ const pins=Object.fromEntries(['db','api','caddy'].map((r,i)=>[r,{containerId:St
 const observation={...input,confirmation:'INSPECT_PINNED_STOPPED_COMPOSE_CANDIDATES_ONLY',containers:pins};
 it('read-only admission binds independently supplied distinct IDs and freezes them',()=>{const p=observe(observation);expect(p.containers).toEqual(pins);expect(Object.isFrozen(p.containers.db)).toBe(true)});
 it.each([{confirmation:'START'},{containers:{...pins,api:pins.db}},{containers:{...pins,db:{...pins.db,extra:true}}},{containers:{...pins,db:{...pins.db,imageId:'latest'}}},{containers:{...pins,db:{...pins.db,containerId:'0'.repeat(64)}}},{containers:{db:pins.db,api:pins.api}}])('rejects unsafe admission pins %j',patch=>expect(()=>observe({...observation,...patch})).toThrow());
+
+it('explicit identity-bound creation validates storage pins and path separation',()=>{const storage={identity:{confirmation:'INSPECT_PINNED_IDENTITY_STORE_ONLY',directoryPath:'/private/id',expectedInstallationId:'12345678-1234-4234-8234-123456789abc',expectedIdentitySha256:sha},runtimeIdentityParent:'/private/runtime-id'};expect(policy({...input,confirmation:'CREATE_IDENTITY_BOUND_STOPPED_CANDIDATES_ONLY_EXCLUSIVE_DAEMON_CUSTODY',storage}).storage).toEqual(storage);expect(()=>policy({...input,storage})).toThrow();expect(()=>policy({...input,confirmation:'CREATE_IDENTITY_BOUND_STOPPED_CANDIDATES_ONLY_EXCLUSIVE_DAEMON_CUSTODY',storage:{...storage,runtimeIdentityParent:input.configDirectory}})).toThrow()});
+
+it('identity mount is accepted only for the API, pinned read-only and non-root',()=>{
+ const identityMount={source:'/private/runtime-identity',target:'/run/aaditech-identity'};
+ const apiLabels=labels(project,sha,sha,'api'),apiEnv={AADITECH_BOUND_REPORTS:'enabled'};
+ const expected={...e,role:'api',labels:apiLabels,environment:apiEnv,identityMount};
+ const doc={...row,Name:'/aaditech-api-1',Config:{User:'1000:1000',Labels:apiLabels,Env:['PATH=/usr/bin','AADITECH_BOUND_REPORTS=enabled'],Healthcheck:{Test:['CMD-SHELL',"node -e \"fetch('http://localhost:3000/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]}},
+ HostConfig:{...row.HostConfig,Mounts:[...row.HostConfig.Mounts,{Type:'bind',Source:identityMount.source,Target:identityMount.target,ReadOnly:true}]},
+ Mounts:[{Type:'volume',Name:'aaditech_api_data',Destination:'/data',RW:true,Driver:'local'},{Type:'volume',Name:'aaditech_agent_artifacts',Destination:'/artifacts',RW:true,Driver:'local'},{Type:'bind',Source:identityMount.source,Destination:identityMount.target,RW:false,Propagation:'rprivate'}],
+ NetworkSettings:{Networks:{aaditech_ittoolkit:{NetworkID:networkId,Aliases:['api']}}}};
+ expect(verify(doc,expected)).toEqual({containerId:id,imageId});
+ for(const patch of [{RW:true},{Source:'/foreign'},{Destination:'/data'},{Propagation:'rshared'}])expect(()=>verify({...doc,Mounts:[...doc.Mounts.slice(0,2),{...doc.Mounts[2],...patch}]},expected)).toThrow();
+ expect(()=>verify({...doc,Config:{...doc.Config,User:'root'}},expected)).toThrow();
+ expect(()=>verify({...doc,HostConfig:{...doc.HostConfig,Mounts:[...doc.HostConfig.Mounts.slice(0,2),{...doc.HostConfig.Mounts[2],ReadOnly:false}]}},expected)).toThrow();
+ expect(()=>verify(doc,{...expected,identityMount:null})).toThrow();
+});

@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
-  "batch": "MASS-23",
+  "batch": "MASS-24",
   "date": "2026-11-26",
   "target": "20 implementation prompts planning target, 50–100 actual development tasks per batch aspirational; count only delivered functional work, not test cases",
-  "base_commit": "a8cf03fc0933c07e4d6544895cd4f2484f27714a",
+  "base_commit": "d2103baee8b285af74e64faf43b5d273e56ff7b1",
   "source_of_truth": [
     "docs/product/DELIVERY-TRACKER.json",
     "docs/product/TROUBLESHOOTING-WORK-REGISTER.json",
@@ -3754,6 +3754,50 @@
         "MASS-22 CI 45708345245 API startup failure retained",
         "Actual signed stopped observation, fresh MySQL setup and recovery, ambiguous transaction denial pending"
       ]
+    },
+    {
+      "id": "MASS-24-01",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Rootful empty local volume custody and nonrecursive API volume ownership initialization, independently pinned private identity copy",
+      "dependencies": [
+        "MASS-18-02",
+        "MASS-22-01",
+        "MASS-23-02",
+        "M1",
+        "DEC-001"
+      ],
+      "paths": [
+        "scripts/fresh-runtime-storage.mjs",
+        "tests/unit/fresh-runtime-storage.test.js",
+        "Dockerfile",
+        "docs/product/FRESH-VOLUME-OWNERSHIP-AND-IDENTITY-MOUNT.md"
+      ],
+      "regression": [
+        "MASS-23 all applicable CI passed including fresh schema and clean bootstrap",
+        "New actual volume ownership and occupied refusal CI pending"
+      ]
+    },
+    {
+      "id": "MASS-24-02",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Explicit identity-bound stopped container creation and reobservation with read-only API identity mount and non-root numeric identity",
+      "dependencies": [
+        "MASS-24-01",
+        "MASS-20-02",
+        "MASS-23-02",
+        "MASS-22-02"
+      ],
+      "paths": [
+        "scripts/create-stopped-compose-candidates.mjs",
+        "tests/unit/create-stopped-compose-candidates.test.js",
+        "tests/ci-offline-docker-load-rehearsal.mjs",
+        "tests/fixtures/signed-offline-oci-fixture.mjs",
+        "docs/product/FRESH-VOLUME-OWNERSHIP-AND-IDENTITY-MOUNT.md"
+      ],
+      "regression": [
+        "Actual rootful disposable Docker fixture mount and empty storage observation pending",
+        "No actual service start or container-side identity proof"
+      ]
     }
   ],
   "unresolved": [
@@ -4047,6 +4091,17 @@
         "tests/unit/prepare-unsigned-lan-release.test.js",
         "tests/ci-offline-docker-load-rehearsal.mjs",
         "test-fresh-mysql-schema-ci.js"
+      ]
+    },
+    {
+      "id": "MASS-24",
+      "base_commit": "d2103baee8b285af74e64faf43b5d273e56ff7b1",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "evidence": [
+        "docs/product/FRESH-VOLUME-OWNERSHIP-AND-IDENTITY-MOUNT.md",
+        "docs/product/DEPENDENCY-ADVISORY-REGISTER-20261126.json",
+        "tests/unit/fresh-runtime-storage.test.js",
+        "tests/ci-offline-docker-load-rehearsal.mjs"
       ]
     }
   ]

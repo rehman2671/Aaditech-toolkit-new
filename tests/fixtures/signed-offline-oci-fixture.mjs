@@ -19,7 +19,7 @@ function graph(architecture='amd64',layerOverride=null){
  const layers=layerBytes.map(b=>blob(gzipSync(b),types.layer));
  const index={schemaVersion:2,mediaType:types.index,manifests:[]};
  for(const role of roles){
-  const config={architecture,os:'linux',config:{Env:['SECRET=fixture'],Cmd:['/fixture-not-executed'],Labels:{role,fixture:randomUUID()}},rootfs:{type:'layers',diff_ids:layerBytes.map(b=>'sha256:'+sha(b))}};
+  const config={architecture,os:'linux',config:{...(role==='api'?{User:'1000:1000'}:{}),Env:['SECRET=fixture'],Cmd:['/fixture-not-executed'],Labels:{role,fixture:randomUUID()}},rootfs:{type:'layers',diff_ids:layerBytes.map(b=>'sha256:'+sha(b))}};
   const c=jsonBlob(config,types.config),manifest={schemaVersion:2,mediaType:types.manifest,config:c,layers:layers.map(l=>({...l}))};
   const m=jsonBlob(manifest,types.manifest);configs.push(config);manifests.push(manifest);
   index.manifests.push({...m,platform:{architecture,os:'linux'},annotations:{'org.aaditech.role':role}});

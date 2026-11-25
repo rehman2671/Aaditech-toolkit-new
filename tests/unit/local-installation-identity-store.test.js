@@ -5,7 +5,7 @@ import {join} from 'node:path';
 import {randomUUID,createHash} from 'node:crypto';
 import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
-import {initializeLocalInstallationIdentity as initialize,inspectLocalInstallationIdentity as inspect} from '../../scripts/local-installation-identity-store.mjs';
+import {initializeLocalInstallationIdentity as initialize,inspectLocalInstallationIdentity as inspect} from '../../scripts/installation-identity-store-posix.mjs';
 import {withLocalSetupLock} from '../../scripts/local-setup-lock.mjs';
 import {runLocalIdentityCli} from '../../scripts/local-installation-identity-cli.mjs';
 const sha=b=>createHash('sha256').update(b).digest('hex');
@@ -61,7 +61,7 @@ describe.skipIf(process.platform!=='linux')('private installation identity and c
  for(const [label,alter] of [
   ['missing confirmation',p=>({...p,confirmation:undefined})],['wrong confirmation',p=>({...p,confirmation:start})],
   ['missing digest',p=>({...p,expectedIdentitySha256:undefined})],['zero digest',p=>({...p,expectedIdentitySha256:'0'.repeat(64)})],
-  ['uppercase digest',p=>({...p,expectedIdentitySha256:p.expectedIdentitySha256.toUpperCase()})],
+  ['uppercase digest',p=>({...p,expectedIdentitySha256:'A'.repeat(64)})],
   ['wrong digest',p=>({...p,expectedIdentitySha256:'a'.repeat(64)})],['wrong identity',p=>({...p,expectedInstallationId:randomUUID()})],
   ['missing identity',p=>({...p,expectedInstallationId:undefined})],['non-v4 identity',p=>({...p,expectedInstallationId:'00000000-0000-0000-0000-000000000000'})]
  ])it('refuses pinned read '+label,()=>fixture(async x=>{
@@ -141,4 +141,17 @@ describe.skipIf(process.platform!=='linux')('private installation identity and c
   await expect(runLocalIdentityCli(...build(x))).rejects.toThrow('LOCAL_IDENTITY_INPUT_INVALID');
   expect(await readdir(x.directoryPath)).toEqual([]);expect(await readdir(x.lockRoot)).toEqual([]);
  }));
+});
+
+describe.skipIf(process.platform!=='linux')('fresh identity CLI observation matrix',()=>{
+ const states=['absent','present','unknown'];
+ for(const database of states)for(const credentials of states)for(const service of states){
+  if(database==='absent'&&credentials==='absent'&&service==='absent')continue;
+  it('refuses '+[database,credentials,service].join('/')+' before lock or identity creation',()=>fixture(async x=>{
+   const observed={database,credentials,service};
+   const bytes=Buffer.from(JSON.stringify({directoryPath:x.directoryPath,lockRoot:x.lockRoot,observed}));
+   await expect(runLocalIdentityCli(bytes,['--initialize-empty-store'])).rejects.toThrow('LOCAL_IDENTITY_INPUT_INVALID');
+   expect(await readdir(x.directoryPath)).toEqual([]);expect(await readdir(x.lockRoot)).toEqual([]);
+  }));
+ }
 });

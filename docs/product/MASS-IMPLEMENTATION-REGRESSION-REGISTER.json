@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
-  "batch": "MASS-13",
+  "batch": "MASS-14",
   "date": "2026-11-26",
   "target": "20 implementation prompts planning target, 50–100 actual development tasks per batch aspirational; count only delivered functional work, not test cases",
-  "base_commit": "7754502d46d3ecfb45d5f5037970561b32451635",
+  "base_commit": "902e0c6f7296d12c2011e1032f23780d784d1bdb",
   "source_of_truth": [
     "docs/product/DELIVERY-TRACKER.json",
     "docs/product/TROUBLESHOOTING-WORK-REGISTER.json",
@@ -3319,6 +3319,45 @@
         "GitHub-hosted offline Docker compatibility job",
         "API MySQL temporary-table job; persistent restart/restore pending"
       ]
+    },
+    {
+      "id": "MASS-14-01",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Mandatory offline lifecycle governance contract and negative regressions",
+      "dependencies": [
+        "MASS-13-02"
+      ],
+      "paths": [
+        "scripts/check-phase-n70-workflow-safety.cjs",
+        "tests/unit/stage70-workflow-safety.test.cjs",
+        "docs/product/STORE-BOUND-RUNTIME-AND-CI-GOVERNANCE.md"
+      ],
+      "regression": [
+        "npm run lint",
+        "Exact-head CI 45700539368 failure retained; new CI required"
+      ]
+    },
+    {
+      "id": "MASS-14-02",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Signed release store-specific image identity and import lock custody",
+      "dependencies": [
+        "MASS-09-02",
+        "MASS-12-01",
+        "M1",
+        "DEC-001"
+      ],
+      "paths": [
+        "scripts/import-native-oci-archive.mjs",
+        "scripts/inspect-offline-oci-runtime.mjs",
+        "tests/ci-offline-docker-load-rehearsal.mjs",
+        "tests/unit/offline-oci-runtime.test.js",
+        "docs/product/STORE-BOUND-RUNTIME-AND-CI-GOVERNANCE.md"
+      ],
+      "regression": [
+        "tests/unit/offline-oci-runtime.test.js",
+        "Disposable offline Docker load job before/after signed-stage observation"
+      ]
     }
   ],
   "unresolved": [
@@ -3365,6 +3404,15 @@
     {
       "id": "BLOCK-CI-45693682569",
       "next": "Batch 08 exact Node/Vitest passed on CI 45694682997; dependent API/MSI verification tracked separately."
+    },
+    {
+      "id": "BLOCK-CI-45700539368",
+      "failure": "N70 exact step count mismatch after mandatory lifecycle step",
+      "next": "MASS-14 strengthens contract; fresh CI required"
+    },
+    {
+      "id": "BLOCK-DEPENDENCY-AUDIT-45700539368",
+      "next": "Review engine mismatch and audit advisories individually; no forced dependency upgrade or production claim"
     }
   ],
   "regression": {
@@ -3498,6 +3546,16 @@
         "docs/product/QUIESCENT-COMPOSE-CONFIGURATION-AND-LIFECYCLE-REHEARSAL.md",
         "tests/ci-existing-compose-lifecycle-rehearsal.mjs",
         "test-installation-database-identity-mysql.js"
+      ]
+    },
+    {
+      "id": "MASS-14",
+      "base_commit": "902e0c6f7296d12c2011e1032f23780d784d1bdb",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "evidence": [
+        "docs/product/STORE-BOUND-RUNTIME-AND-CI-GOVERNANCE.md",
+        "tests/unit/stage70-workflow-safety.test.cjs",
+        "tests/unit/offline-oci-runtime.test.js"
       ]
     }
   ]

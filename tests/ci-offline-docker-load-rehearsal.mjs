@@ -11,6 +11,7 @@ import {importNativeOciArchive} from '../scripts/import-native-oci-archive.mjs';
 import {prepareOfflineDockerArchive} from '../scripts/prepare-offline-docker-archive.mjs';
 import {verifyPreparedDockerArchive} from '../scripts/verify-prepared-docker-archive.mjs';
 import {inspectLocalDockerRuntime} from '../scripts/local-docker-runtime-preflight.mjs';
+import {inspectBoundOfflineRuntime} from '../scripts/inspect-offline-oci-runtime.mjs';
 if(process.argv.length!==2||process.env.GITHUB_ACTIONS!=='true'||process.env.RUNNER_ENVIRONMENT!=='github-hosted'||
    process.platform!=='linux'||process.arch!=='x64')throw Error('DISPOSABLE_GITHUB_RUNNER_REQUIRED');
 const docker=(args)=>{const r=spawnSync('/usr/bin/docker',['--host','unix:///run/docker.sock',...args],
@@ -34,6 +35,7 @@ await staged(async({input,g})=>{
  const before=await inspectLocalDockerRuntime(policy);
  assert.equal(before.runtime_state,'LOCAL_LINUX_DAEMON_OBSERVED');
  assert.deepEqual(before.images.map(x=>x.state),['NOT_FOUND','NOT_FOUND','NOT_FOUND']);
+ const boundBefore=await inspectBoundOfflineRuntime(input);assert.equal(boundBefore.store_profile,containerd?'NATIVE_CONTAINERD':'CLASSIC_OVERLAY2');assert.equal(boundBefore.runtime.all_expected_image_ids_observed,false);
  try{
   let loaded='';
   if(native){
@@ -53,6 +55,7 @@ await staged(async({input,g})=>{
     expected_image_ids:selected.expected_image_ids,reported_load_ids:reported,observations:after.images}));
   }
   assert.equal(after.all_expected_image_ids_observed,true);
+  const boundAfter=await inspectBoundOfflineRuntime(input);assert.equal(boundAfter.store_profile,boundBefore.store_profile);assert.equal(boundAfter.runtime.all_expected_image_ids_observed,true);assert.equal(boundAfter.installation_authorized,false);
   for(const [i,id] of Object.values(selected.expected_image_ids).entries()){
    const [image]=JSON.parse(docker(['image','inspect',id]));
    assert.equal(image.Id,id);assert.equal(image.Os,'linux');assert.equal(image.Architecture,'amd64');

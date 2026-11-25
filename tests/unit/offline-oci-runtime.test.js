@@ -6,7 +6,7 @@ import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {tmpdir} from 'node:os';
 import {join,dirname} from 'node:path';
-import {verifyOfflineOciGraph,inspectOfflineOciRuntime,verifyGzipLayerFile} from '../../scripts/inspect-offline-oci-runtime.mjs';
+import {verifyOfflineOciGraph,inspectOfflineOciRuntime,verifyGzipLayerFile,selectReleaseStoreIdentity} from '../../scripts/inspect-offline-oci-runtime.mjs';
 import {stageOfflineLanBundle} from '../../scripts/stage-offline-lan-bundle.mjs';
 import {parseOfflineOciInput} from '../../scripts/inspect-offline-oci-runtime-cli.mjs';
 const sha=b=>createHash('sha256').update(b).digest('hex'),id=c=>'sha256:'+c.repeat(64);
@@ -185,3 +185,12 @@ it.skipIf(process.platform!=='linux')('checks the restricted tar profile of a re
  const run=spawnSync(process.execPath,[script,'--inspect-restricted-tar'],{input:JSON.stringify(doc),encoding:'utf8',timeout:15000});
  expect(run.status).toBe(0);expect(JSON.parse(run.stdout).restricted_tar_profile_verified).toBe(true);
 }));
+
+describe('signed release daemon store-specific identity mapping',()=>{
+ const images=roles.map((role,i)=>({role,image_config_id:id(String(i+1)),manifest_digest:id(String(i+4))}));
+ const info={missing:false,value:{OSType:'linux',Architecture:'x86_64',ID:'fixture',Driver:'overlay2',DriverStatus:[]}};
+ it('selects original config digests only for classic overlay2',()=>expect(selectReleaseStoreIdentity(info,'amd64',images)).toEqual({store:'CLASSIC_OVERLAY2',imageIds:Object.fromEntries(images.map(x=>[x.role,x.image_config_id]))}));
+ it('selects original manifest digests for native containerd',()=>expect(selectReleaseStoreIdentity({...info,value:{...info.value,Driver:'overlayfs',DriverStatus:[['driver-type','io.containerd.snapshotter.v1']]}},'amd64',images)).toEqual({store:'NATIVE_CONTAINERD',imageIds:Object.fromEntries(images.map(x=>[x.role,x.manifest_digest]))}));
+ it.each([{Driver:'unknown'},{DriverStatus:[['driver-type','unknown']]},{DriverStatus:null},{ID:''},{OSType:'windows'},{Architecture:'aarch64'}])('refuses ambiguous daemon identity %j',patch=>expect(()=>selectReleaseStoreIdentity({...info,value:{...info.value,...patch}},'amd64',images)).toThrow());
+ it('refuses missing, reordered or duplicate release identities',()=>{for(const rows of [[],[...images].reverse(),[images[0],images[1],{...images[2],image_config_id:images[0].image_config_id}]])expect(()=>selectReleaseStoreIdentity(info,'amd64',rows)).toThrow()});
+});

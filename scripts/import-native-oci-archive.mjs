@@ -53,9 +53,10 @@ async function loadArchive(fd,size,expected){
 export async function importNativeOciArchive(input){
  if(!exact(input,['confirmation','lockRoot','admission'])||input.confirmation!=='IMPORT_PINNED_NATIVE_OCI_IMAGES_ONLY_EXCLUSIVE_DAEMON_CUSTODY')fail();
  const p=structuredClone(input.admission),lockRoot=input.lockRoot;
- return withLocalSetupLock({confirmation:'ACQUIRE_LOCAL_SETUP_LOCK_ONLY',lockRoot},async()=>{
+ return withLocalSetupLock({confirmation:'ACQUIRE_LOCAL_SETUP_LOCK_ONLY',lockRoot},async({assertHeld})=>{
+  await assertHeld();
   const verified=await verifyNativeOciArchive(p),identity=await socketIdentity();
-  const get=async route=>{const r=await requestLocalDockerJson(socket,route);if(JSON.stringify(await socketIdentity())!==JSON.stringify(identity))fail();return r};
+  const get=async route=>{await assertHeld();if(JSON.stringify(await socketIdentity())!==JSON.stringify(identity))fail();const r=await requestLocalDockerJson(socket,route);if(JSON.stringify(await socketIdentity())!==JSON.stringify(identity))fail();await assertHeld();return r};
   const daemon=validateNativeStore(await get('/info'),p.architecture);
   const policy={confirmation:'OBSERVE_LOCAL_DOCKER_ONLY',architecture:p.architecture,imageIds:verified.expected_manifest_ids};
   const before=await inspectLocalDockerRuntime(policy);
@@ -67,7 +68,9 @@ export async function importNativeOciArchive(input){
    const again=await verifyNativeOciArchive(p);if(JSON.stringify(again)!==JSON.stringify(verified)||!same(st,await fd.stat())||!same(st,await lstat(p.archivePath)))fail();
    if(validateNativeStore(await get('/info'),p.architecture)!==daemon)fail();
    for(const image of verified.images)if((await get('/images/'+image.manifest_id+'/json')).missing!==true)fail();
+   await assertHeld();
    await loadArchive(fd,p.archiveBytes,p.archiveSha256);
+   await assertHeld();
    if(!same(st,await fd.stat())||!same(st,await lstat(p.archivePath)))fail();
    for(const image of verified.images)verifyImportedNativeImage(await get('/images/'+image.manifest_id+'/json'),image,p.architecture);
    if(validateNativeStore(await get('/info'),p.architecture)!==daemon)fail();

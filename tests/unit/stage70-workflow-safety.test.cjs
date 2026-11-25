@@ -111,3 +111,9 @@ deny('Phase O diagnostic cannot replace actual lifecycle execution with a commen
 // Independent compatibility remains mandatory and unprivileged.
 deny('offline compatibility cannot skip rehearsal',ci,s=>s.replace('run: node tests/ci-offline-docker-load-rehearsal.mjs','run: echo skipped'));
 deny('offline compatibility cannot use a floating action',ci,s=>s.replace('actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020','actions/setup-node@v4'));
+
+deny('offline lifecycle rehearsal cannot be skipped',ci,s=>s.replace('run: node tests/ci-existing-compose-lifecycle-rehearsal.mjs','run: echo skipped'));
+deny('offline lifecycle rehearsal cannot be conditional',ci,s=>s.replace('run: node tests/ci-existing-compose-lifecycle-rehearsal.mjs',"if: false\n        run: node tests/ci-existing-compose-lifecycle-rehearsal.mjs"));
+deny('offline lifecycle rehearsal cannot ignore failure',ci,s=>s.replace('run: node tests/ci-existing-compose-lifecycle-rehearsal.mjs','continue-on-error: true\n        run: node tests/ci-existing-compose-lifecycle-rehearsal.mjs'));
+deny('offline lifecycle rehearsal retains bounded timeout',ci,s=>s.replace('timeout-minutes: 10\n        run: node tests/ci-existing-compose-lifecycle-rehearsal.mjs','timeout-minutes: 1\n        run: node tests/ci-existing-compose-lifecycle-rehearsal.mjs'));
+deny('offline lifecycle rehearsal cannot change interpreter',ci,s=>s.replace('run: node tests/ci-existing-compose-lifecycle-rehearsal.mjs','shell: python\n        run: node tests/ci-existing-compose-lifecycle-rehearsal.mjs'));

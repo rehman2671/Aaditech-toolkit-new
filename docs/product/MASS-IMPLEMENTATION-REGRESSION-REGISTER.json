@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
-  "batch": "MASS-24",
+  "batch": "MASS-25",
   "date": "2026-11-26",
   "target": "20 implementation prompts planning target, 50–100 actual development tasks per batch aspirational; count only delivered functional work, not test cases",
-  "base_commit": "d2103baee8b285af74e64faf43b5d273e56ff7b1",
+  "base_commit": "d21c220c58045a6ae6a7c1d0e42bd47388e22f87",
   "source_of_truth": [
     "docs/product/DELIVERY-TRACKER.json",
     "docs/product/TROUBLESHOOTING-WORK-REGISTER.json",
@@ -3757,7 +3757,7 @@
     },
     {
       "id": "MASS-24-01",
-      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "status": "CI_VERIFIED",
       "work": "Rootful empty local volume custody and nonrecursive API volume ownership initialization, independently pinned private identity copy",
       "dependencies": [
         "MASS-18-02",
@@ -3775,11 +3775,27 @@
       "regression": [
         "MASS-23 all applicable CI passed including fresh schema and clean bootstrap",
         "New actual volume ownership and occupied refusal CI pending"
-      ]
+      ],
+      "ci_evidence": {
+        "head": "d21c220c58045a6ae6a7c1d0e42bd47388e22f87",
+        "run": 45710305105,
+        "conclusion": "success",
+        "passed_jobs": [
+          139542689945,
+          139542690448,
+          139542690460,
+          139543314845
+        ],
+        "skipped_jobs": [
+          139544385470,
+          139544386000
+        ],
+        "scope": "applicable PR CI only; no MSI, activation, field or production acceptance"
+      }
     },
     {
       "id": "MASS-24-02",
-      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "status": "CI_VERIFIED",
       "work": "Explicit identity-bound stopped container creation and reobservation with read-only API identity mount and non-root numeric identity",
       "dependencies": [
         "MASS-24-01",
@@ -3797,6 +3813,59 @@
       "regression": [
         "Actual rootful disposable Docker fixture mount and empty storage observation pending",
         "No actual service start or container-side identity proof"
+      ],
+      "ci_evidence": {
+        "head": "d21c220c58045a6ae6a7c1d0e42bd47388e22f87",
+        "run": 45710305105,
+        "conclusion": "success",
+        "passed_jobs": [
+          139542689945,
+          139542690448,
+          139542690460,
+          139543314845
+        ],
+        "skipped_jobs": [
+          139544385470,
+          139544386000
+        ],
+        "scope": "applicable PR CI only; no MSI, activation, field or production acceptance"
+      }
+    },
+    {
+      "id": "MASS-25-01",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Pin stopped candidate startup process and reserved labels to signed image and independently pinned candidate metadata",
+      "dependencies": [
+        "MASS-24-02",
+        "MASS-23-02"
+      ],
+      "paths": [
+        "scripts/create-stopped-compose-candidates.mjs",
+        "tests/unit/create-stopped-compose-candidates.test.js",
+        "docs/product/FRESH-VOLUME-OWNERSHIP-AND-IDENTITY-MOUNT.md"
+      ],
+      "regression": [
+        "tests/unit/create-stopped-compose-candidates.test.js",
+        "Actual disposable Docker stopped creation/reobservation; fresh exact-head CI pending"
+      ]
+    },
+    {
+      "id": "MASS-25-02",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Refuse extra security options, alternate host namespace/grant/lookup settings and mismatched host volume mount configuration",
+      "dependencies": [
+        "MASS-24-01",
+        "MASS-24-02",
+        "MASS-25-01"
+      ],
+      "paths": [
+        "scripts/create-stopped-compose-candidates.mjs",
+        "tests/unit/create-stopped-compose-candidates.test.js",
+        "docs/product/FRESH-VOLUME-OWNERSHIP-AND-IDENTITY-MOUNT.md"
+      ],
+      "regression": [
+        "tests/unit/create-stopped-compose-candidates.test.js",
+        "Disposable Docker rootful fixture and legacy stopped profile; no activation approval"
       ]
     }
   ],
@@ -4096,12 +4165,38 @@
     {
       "id": "MASS-24",
       "base_commit": "d2103baee8b285af74e64faf43b5d273e56ff7b1",
-      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "status": "CI_VERIFIED",
       "evidence": [
         "docs/product/FRESH-VOLUME-OWNERSHIP-AND-IDENTITY-MOUNT.md",
         "docs/product/DEPENDENCY-ADVISORY-REGISTER-20261126.json",
         "tests/unit/fresh-runtime-storage.test.js",
         "tests/ci-offline-docker-load-rehearsal.mjs"
+      ],
+      "exact_head_ci": {
+        "head": "d21c220c58045a6ae6a7c1d0e42bd47388e22f87",
+        "run": 45710305105,
+        "conclusion": "success",
+        "passed_jobs": [
+          139542689945,
+          139542690448,
+          139542690460,
+          139543314845
+        ],
+        "skipped_jobs": [
+          139544385470,
+          139544386000
+        ],
+        "scope": "applicable PR CI only; no MSI, activation, field or production acceptance"
+      }
+    },
+    {
+      "id": "MASS-25",
+      "base_commit": "d21c220c58045a6ae6a7c1d0e42bd47388e22f87",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "evidence": [
+        "scripts/create-stopped-compose-candidates.mjs",
+        "tests/unit/create-stopped-compose-candidates.test.js",
+        "docs/product/FRESH-VOLUME-OWNERSHIP-AND-IDENTITY-MOUNT.md"
       ]
     }
   ]

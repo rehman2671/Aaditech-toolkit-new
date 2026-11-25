@@ -1,5 +1,5 @@
-import {it,expect} from 'vitest';
-import {validateStoppedCandidatePolicy as policy,deriveCandidateRoleEnvironment as derive,verifyCandidateImage as image,candidateLabels as labels,verifyStoppedCandidate as verify,validateStoppedObservationPolicy as observe} from '../../scripts/create-stopped-compose-candidates.mjs';
+import {describe,it,expect} from 'vitest';
+import {validateStoppedCandidatePolicy as policy,deriveCandidateRoleEnvironment as derive,verifyCandidateImage as image,candidateProcessSpec as processSpec,candidateLabels as labels,verifyStoppedCandidate as verify,validateStoppedObservationPolicy as observe} from '../../scripts/create-stopped-compose-candidates.mjs';
 const sha='a'.repeat(64),networkId='c'.repeat(64),imageId='sha256:'+'d'.repeat(64),id='e'.repeat(64),project='aaditech',host='server.example.com';
 const release={confirmation:'INSPECT_SIGNED_OCI_RUNTIME_ONLY',stagedDirectory:'/private/stage',trustedManifestSha256:sha,trustedSignerSpkiSha256:'b'.repeat(64),trustedPublicKeyPem:'fixture',architecture:'amd64'};
 const input={confirmation:'CREATE_STOPPED_COMPOSE_CANDIDATES_ONLY_EXCLUSIVE_DAEMON_CUSTODY',project,lockRoot:'/private/lock',configDirectory:'/private/config',serverHost:host,release,configurationSha256:sha,networkId};
@@ -12,8 +12,8 @@ it('separates database root, API and ingress secrets',()=>{expect(env.db.MYSQL_R
 const img={Id:imageId,Os:'linux',Architecture:'amd64',RootFS:{Layers:['sha256:'+sha]},RepoTags:[],Config:{Env:['PATH=/usr/bin'],Cmd:['fixture'],Volumes:{'/var/lib/mysql':{}},Labels:{vendor:'fixture'}}};
 it('allows only signed role-specific image volume paths and no embedded runtime secrets',()=>expect(image(img,imageId,'amd64',img.RootFS.Layers,'db').PATH).toBe('/usr/bin'));
 it.each([{Env:['MYSQL_ROOT_PASSWORD=bad']},{Volumes:{'/host':{}}},{Labels:{'org.aaditech.activation-blocked':'false'}},{Cmd:[]}])('rejects unsafe image metadata %j',patch=>expect(()=>image({...img,Config:{...img.Config,...patch}},imageId,'amd64',img.RootFS.Layers,'db')).toThrow());
-const role='caddy',l=labels(project,sha,sha,role),e={id,imageId,project,role,networkId,labels:l,environment:env.caddy,imageEnvironment:{PATH:'/usr/bin'}};
-const row={Id:id,Image:imageId,Name:'/aaditech-caddy-1',State:{Status:'created',Running:false,Paused:false,Restarting:false,Dead:false},Config:{Labels:l,Env:['PATH=/usr/bin','CADDY_HOST='+host],Healthcheck:{Test:['NONE']}},HostConfig:{Privileged:false,PublishAllPorts:false,PortBindings:{},RestartPolicy:{Name:'no'},SecurityOpt:['no-new-privileges=true'],NetworkMode:networkId,Mounts:[{Type:'volume',VolumeOptions:{NoCopy:true}},{Type:'volume',VolumeOptions:{NoCopy:true}}]},Mounts:[{Type:'volume',Name:'aaditech_caddy_data',Destination:'/data',RW:true,Driver:'local'},{Type:'volume',Name:'aaditech_caddy_config',Destination:'/config',RW:true,Driver:'local'}],NetworkSettings:{Networks:{aaditech_ittoolkit:{NetworkID:networkId,Aliases:['caddy']}}}};
+const role='caddy',l=labels(project,sha,sha,role),e={id,imageId,project,role,networkId,labels:l,environment:env.caddy,imageEnvironment:{PATH:'/usr/bin'},imageProcess:processSpec(img.Config)};
+const row={Id:id,Image:imageId,Name:'/aaditech-caddy-1',State:{Status:'created',Running:false,Paused:false,Restarting:false,Dead:false},Config:{Cmd:['fixture'],Labels:l,Env:['PATH=/usr/bin','CADDY_HOST='+host],Healthcheck:{Test:['NONE']}},HostConfig:{Privileged:false,PublishAllPorts:false,PortBindings:{},RestartPolicy:{Name:'no'},SecurityOpt:['no-new-privileges=true'],NetworkMode:networkId,Mounts:[{Type:'volume',Source:'aaditech_caddy_data',Target:'/data',VolumeOptions:{NoCopy:true}},{Type:'volume',Source:'aaditech_caddy_config',Target:'/config',VolumeOptions:{NoCopy:true}}]},Mounts:[{Type:'volume',Name:'aaditech_caddy_data',Destination:'/data',RW:true,Driver:'local'},{Type:'volume',Name:'aaditech_caddy_config',Destination:'/config',RW:true,Driver:'local'}],NetworkSettings:{Networks:{aaditech_ittoolkit:{NetworkID:networkId,Aliases:['caddy']}}}};
 it('verifies stopped candidate and returns only pinned IDs',()=>expect(verify(row,e)).toEqual({containerId:id,imageId}));
 it.each([{Privileged:true},{PublishAllPorts:true},{PortBindings:{'443/tcp':[{HostPort:'443'}]}},{Binds:['/host:/data']},{CapAdd:['ALL']},{RestartPolicy:{Name:'always'}},{SecurityOpt:[]},{NetworkMode:'host'},{Mounts:[{Type:'bind'}]}])('rejects host-config drift %j',patch=>expect(()=>verify({...row,HostConfig:{...row.HostConfig,...patch}},e)).toThrow());
 it('rejects activation, extra secrets, mount and network drift',()=>{for(const patch of [{State:{...row.State,Status:'running',Running:true}},{Config:{...row.Config,Env:[...row.Config.Env,'MYSQL_ROOT_PASSWORD=bad']}},{Config:{...row.Config,Labels:{...l,'org.aaditech.activation-blocked':'false'}}},{Mounts:[]},{NetworkSettings:{Networks:{foreign:{}}}},{Name:'/foreign'}])expect(()=>verify({...row,...patch},e)).toThrow()});
@@ -28,9 +28,9 @@ it('explicit identity-bound creation validates storage pins and path separation'
 it('identity mount is accepted only for the API, pinned read-only and non-root',()=>{
  const identityMount={source:'/private/runtime-identity',target:'/run/aaditech-identity'};
  const apiLabels=labels(project,sha,sha,'api'),apiEnv={AADITECH_BOUND_REPORTS:'enabled'};
- const expected={...e,role:'api',labels:apiLabels,environment:apiEnv,identityMount};
- const doc={...row,Name:'/aaditech-api-1',Config:{User:'1000:1000',Labels:apiLabels,Env:['PATH=/usr/bin','AADITECH_BOUND_REPORTS=enabled'],Healthcheck:{Test:['CMD-SHELL',"node -e \"fetch('http://localhost:3000/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]}},
- HostConfig:{...row.HostConfig,Mounts:[...row.HostConfig.Mounts,{Type:'bind',Source:identityMount.source,Target:identityMount.target,ReadOnly:true}]},
+ const expected={...e,role:'api',labels:apiLabels,environment:apiEnv,imageProcess:processSpec({Cmd:['fixture'],User:'1000:1000'}),identityMount};
+ const doc={...row,Name:'/aaditech-api-1',Config:{Cmd:['fixture'],User:'1000:1000',Labels:apiLabels,Env:['PATH=/usr/bin','AADITECH_BOUND_REPORTS=enabled'],Healthcheck:{Test:['CMD-SHELL',"node -e \"fetch('http://localhost:3000/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]}},
+ HostConfig:{...row.HostConfig,Mounts:[{Type:'volume',Source:'aaditech_api_data',Target:'/data',VolumeOptions:{NoCopy:true}},{Type:'volume',Source:'aaditech_agent_artifacts',Target:'/artifacts',VolumeOptions:{NoCopy:true}},{Type:'bind',Source:identityMount.source,Target:identityMount.target,ReadOnly:true}]},
  Mounts:[{Type:'volume',Name:'aaditech_api_data',Destination:'/data',RW:true,Driver:'local'},{Type:'volume',Name:'aaditech_agent_artifacts',Destination:'/artifacts',RW:true,Driver:'local'},{Type:'bind',Source:identityMount.source,Destination:identityMount.target,RW:false,Propagation:'rprivate'}],
  NetworkSettings:{Networks:{aaditech_ittoolkit:{NetworkID:networkId,Aliases:['api']}}}};
  expect(verify(doc,expected)).toEqual({containerId:id,imageId});
@@ -38,4 +38,38 @@ it('identity mount is accepted only for the API, pinned read-only and non-root',
  expect(()=>verify({...doc,Config:{...doc.Config,User:'root'}},expected)).toThrow();
  expect(()=>verify({...doc,HostConfig:{...doc.HostConfig,Mounts:[...doc.HostConfig.Mounts.slice(0,2),{...doc.HostConfig.Mounts[2],ReadOnly:false}]}},expected)).toThrow();
  expect(()=>verify(doc,{...expected,identityMount:null})).toThrow();
+});
+
+describe('signed image startup and stopped container host custody',()=>{
+ it('normalizes only unset command arrays and the default working directory',()=>{
+  expect(processSpec({Cmd:['fixture',''],Entrypoint:null,User:'',WorkingDir:''})).toEqual(processSpec({Cmd:['fixture',''],Entrypoint:[],WorkingDir:'/'}));
+ });
+ it.each([{Cmd:['alternate']},{Entrypoint:['/other']},{Cmd:['fixture','unexpected']},{User:'root'},{WorkingDir:'/other'},{Cmd:[]},{Cmd:['fixture',null]},{Cmd:['fixture','x\x00y']}])('rejects unpinned startup drift %j',patch=>{
+  expect(()=>verify({...row,Config:{...row.Config,...patch}},e)).toThrow();
+ });
+ it('rejects missing image process pins and extra reserved ownership labels',()=>{
+  expect(()=>verify(row,{...e,imageProcess:undefined})).toThrow();
+  for(const key of ['com.docker.compose.unexpected','org.aaditech.identity-sha256']){
+   expect(()=>verify({...row,Config:{...row.Config,Labels:{...l,[key]:'other'}}},e)).toThrow();
+  }
+  expect(verify({...row,Config:{...row.Config,Labels:{...l,vendor:'fixture'}}},e)).toEqual({containerId:id,imageId});
+ });
+ it.each([
+  {SecurityOpt:['no-new-privileges=true','seccomp=unconfined']},
+  {SecurityOpt:['no-new-privileges=true','no-new-privileges=true']},
+  {SecurityOpt:['no-new-privileges=true','apparmor=unconfined']},
+  {PidMode:'host'},{IpcMode:'host'},{UTSMode:'host'},{UsernsMode:'host'},
+  {CgroupParent:'/foreign'},{AutoRemove:true},{GroupAdd:['0']},{Links:['other']},
+  {VolumesFrom:['foreign']},{ExtraHosts:['db:1.2.3.4']},{Dns:['1.2.3.4']},
+  {DnsOptions:['ndots:1']},{DnsSearch:['foreign']},{Sysctls:{'net.ipv4.ip_forward':'1'}}
+ ])('rejects unsafe host options %j',patch=>expect(()=>verify({...row,HostConfig:{...row.HostConfig,...patch}},e)).toThrow());
+ it.each([
+  {Source:'foreign'},{Target:'/foreign'},{ReadOnly:true},{VolumeOptions:{NoCopy:false}},
+  {VolumeOptions:{NoCopy:true,DriverConfig:{Name:'other'}}},
+  {VolumeOptions:{NoCopy:true,Labels:{unexpected:'x'}}},
+  {VolumeOptions:{NoCopy:true,Subpath:'foreign'}}
+ ])('rejects host mount drift %j',patch=>{
+  const mounts=[{...row.HostConfig.Mounts[0],...patch},row.HostConfig.Mounts[1]];
+  expect(()=>verify({...row,HostConfig:{...row.HostConfig,Mounts:mounts}},e)).toThrow();
+ });
 });

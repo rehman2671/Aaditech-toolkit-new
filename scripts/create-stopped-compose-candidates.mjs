@@ -49,6 +49,25 @@ function envMap(rows){
  for(const s of rows){if(typeof s!=='string'||s.length>8192||!s.includes('='))fail();const i=s.indexOf('='),k=s.slice(0,i);if(!/^[A-Za-z_][A-Za-z0-9_]*$/.test(k)||Object.hasOwn(out,k))fail();out[k]=s.slice(i+1)}
  return out;
 }
+// Pin the effective startup contract to the independently verified image. Docker
+// represents unset command arrays as null or empty; both have the same meaning.
+export function candidateProcessSpec(config){
+ if(!config||typeof config!=='object'||Array.isArray(config))fail();
+ function argv(value){
+  if(value===null||value===undefined)return [];
+  if(!Array.isArray(value)||value.length>256||Array.from(value).some(v=>typeof v!=='string'||v.length>8192||v.includes('\x00')))fail();
+  if(value.length&&value[0]==='')fail();
+  return [...value];
+ }
+ function scalar(value){
+  if(value===null||value===undefined)return '';
+  if(typeof value!=='string'||value.length>4096||/[\x00-\x1f\x7f]/.test(value))fail();
+  return value;
+ }
+ const entrypoint=argv(config.Entrypoint),cmd=argv(config.Cmd);
+ if(!entrypoint.length&&!cmd.length)fail();
+ return {entrypoint,cmd,user:scalar(config.User),workingDir:scalar(config.WorkingDir)||'/'};
+}
 export function verifyCandidateImage(doc,expectedId,architecture,layers,role){
  if(!roles.includes(role)||!doc||doc.Id!==expectedId||doc.Os!=='linux'||doc.Architecture!==architecture||JSON.stringify(doc.RootFS?.Layers)!==JSON.stringify(layers)||!empty(doc.RepoTags))fail();
  const c=doc.Config;if(!c||!Array.isArray(c.Env??[]))fail();
@@ -56,7 +75,7 @@ export function verifyCandidateImage(doc,expectedId,architecture,layers,role){
  if(secretKeys.some(k=>Object.hasOwn(env,k))||Object.keys(env).some(k=>k.startsWith('AADITECH_IDENTITY_')||k==='AADITECH_BOUND_REPORTS'||k==='AADITECH_INSTALLATION_ID'))fail();
  if(Object.keys(c.Labels??{}).some(k=>k.startsWith('com.docker.compose.')||k.startsWith('org.aaditech.')))fail();
  if(Object.keys(c.Volumes??{}).some(k=>!Object.values(targets[role]).includes(k)))fail();
- if(![c.Entrypoint,c.Cmd].some(x=>Array.isArray(x)&&x.length&&x.every(v=>typeof v==='string'&&v.length)))fail();
+ candidateProcessSpec(c);
  return env;
 }
 export function candidateLabels(project,releaseSha,configSha,role){
@@ -64,11 +83,16 @@ export function candidateLabels(project,releaseSha,configSha,role){
  return {'com.docker.compose.project':project,'com.docker.compose.service':role,'com.docker.compose.oneoff':'False','org.aaditech.release-sha256':releaseSha,'org.aaditech.configuration-sha256':configSha,'org.aaditech.activation-blocked':'true'};
 }
 export function verifyStoppedCandidate(doc,expected){
- const {id,imageId,project,role,networkId,labels,environment,imageEnvironment,identityMount}=expected;
+ const {id,imageId,project,role,networkId,labels,environment,imageEnvironment,imageProcess,identityMount}=expected;
  if(identityMount&&(role!=='api'||doc?.Config?.User!=='1000:1000'))fail();
  const state=doc?.State,c=doc?.Config,h=doc?.HostConfig;
  if(doc?.Id!==id||doc.Image!==imageId||doc.Name!=='/'+project+'-'+role+'-1'||state?.Status!=='created'||state.Running!==false||state.Paused!==false||state.Restarting!==false||state.Dead!==false||!c||!h||Object.entries(labels).some(([k,v])=>c.Labels?.[k]!==v))fail();
- if(h.Privileged!==false||h.PublishAllPorts!==false||!empty(h.PortBindings)||!empty(h.Binds)||!empty(h.CapAdd)||!empty(h.Devices)||!empty(h.DeviceRequests)||h.RestartPolicy?.Name!=='no'||!Array.isArray(h.SecurityOpt)||!h.SecurityOpt.some(v=>['no-new-privileges','no-new-privileges:true','no-new-privileges=true'].includes(v)))fail();
+ if(!imageProcess||JSON.stringify(candidateProcessSpec(c))!==JSON.stringify(imageProcess))fail();
+ if(Object.keys(c.Labels??{}).some(k=>(k.startsWith('com.docker.compose.')||k.startsWith('org.aaditech.'))&&!Object.hasOwn(labels,k)))fail();
+ if(h.Privileged!==false||h.PublishAllPorts!==false||!empty(h.PortBindings)||!empty(h.Binds)||!empty(h.CapAdd)||!empty(h.Devices)||!empty(h.DeviceRequests)||h.RestartPolicy?.Name!=='no'||!Array.isArray(h.SecurityOpt)||h.SecurityOpt.length!==1||!['no-new-privileges','no-new-privileges:true','no-new-privileges=true'].includes(h.SecurityOpt[0]))fail();
+ // The creator supplies no alternate namespaces, group grants, host lookup,
+ // external volume inheritance or kernel tuning. Do not admit such drift.
+ if((h.AutoRemove!==undefined&&h.AutoRemove!==false)||[h.PidMode,h.UTSMode,h.UsernsMode,h.CgroupParent].some(v=>v!==undefined&&v!==null&&v!=='')||(h.IpcMode!==undefined&&h.IpcMode!==null&&!['','private'].includes(h.IpcMode))||[h.GroupAdd,h.Links,h.VolumesFrom,h.ExtraHosts,h.Dns,h.DnsOptions,h.DnsSearch,h.Sysctls].some(v=>!empty(v)))fail();
  const actual=envMap(c.Env??[]),wanted={...imageEnvironment,...environment};
  if(Object.entries(wanted).some(([k,v])=>actual[k]!==v)||Object.keys(actual).some(k=>!Object.hasOwn(wanted,k)&&k!=='PATH')||secretKeys.some(k=>Object.hasOwn(actual,k)&&!Object.hasOwn(environment,k)))fail();
  const mounts=doc.Mounts;if(!Array.isArray(mounts)||mounts.length!==Object.keys(targets[role]).length+(identityMount?1:0))fail();
@@ -77,7 +101,13 @@ export function verifyStoppedCandidate(doc,expected){
   if(matches.length!==1)fail();
  }
  if(!Array.isArray(h.Mounts)||h.Mounts.length!==mounts.length)fail();
- const hostVolumes=h.Mounts.filter(x=>x.Type==='volume');if(hostVolumes.length!==Object.keys(targets[role]).length||hostVolumes.some(x=>x.VolumeOptions?.NoCopy!==true||x.ReadOnly===true))fail();
+ const hostVolumes=h.Mounts.filter(x=>x.Type==='volume');if(hostVolumes.length!==Object.keys(targets[role]).length)fail();
+ for(const [name,dest] of Object.entries(targets[role])){
+  const matches=hostVolumes.filter(x=>x.Source===project+'_'+name&&x.Target===dest);
+  if(matches.length!==1)fail();
+  const mount=matches[0],options=mount.VolumeOptions;
+  if(options?.NoCopy!==true||(mount.ReadOnly!==undefined&&mount.ReadOnly!==false)||!empty(options.DriverConfig)||!empty(options.Labels)||(options.Subpath!==undefined&&options.Subpath!==null&&options.Subpath!==''))fail();
+ }
  if(identityMount){
   const binds=mounts.filter(x=>x.Type==='bind'),options=h.Mounts.filter(x=>x.Type==='bind');
   if(binds.length!==1||options.length!==1||binds[0].Source!==identityMount.source||binds[0].Destination!==identityMount.target||binds[0].RW!==false||binds[0].Propagation!=='rprivate'||options[0].Source!==identityMount.source||options[0].Target!==identityMount.target||options[0].ReadOnly!==true)fail();
@@ -138,7 +168,7 @@ async function stoppedCandidates(input,observeOnly){
    if(await readPinnedConfig(p,dir)!==config)fail();
    await continuity();
   }
-  const imageEnvironment={};
+  const imageEnvironment={},imageProcesses={};
   async function verifyImages(){
    if(JSON.stringify(selectReleaseStoreIdentity(await continuity(),p.release.architecture,bound.release.images))!==JSON.stringify(store))fail();
    for(const role of roles){
@@ -146,7 +176,9 @@ async function stoppedCandidates(input,observeOnly){
     const doc=await inspect('image',store.imageIds[rr]);if(p.storage&&role==='api'&&doc.Config?.User!=='1000:1000')fail();
     const e=verifyCandidateImage(doc,store.imageIds[rr],p.release.architecture,release.layers.map(x=>x.diff_id),role);
     if(imageEnvironment[role]&&JSON.stringify(e)!==JSON.stringify(imageEnvironment[role]))fail();
-    imageEnvironment[role]=e;
+    const processSpec=candidateProcessSpec(doc.Config);
+    if(imageProcesses[role]&&JSON.stringify(imageProcesses[role])!==JSON.stringify(processSpec))fail();
+    imageEnvironment[role]=e;imageProcesses[role]=processSpec;
    }
   }
   const migrationPins={confirmation:'ADMIT_SIGNED_FRESH_MYSQL_MIGRATIONS_ONLY',stagedDirectory:p.release.stagedDirectory,trustedManifestSha256:p.release.trustedManifestSha256,trustedPublicKeyPem:p.release.trustedPublicKeyPem,trustedSignerSpkiSha256:p.release.trustedSignerSpkiSha256};
@@ -163,7 +195,7 @@ async function stoppedCandidates(input,observeOnly){
    const identityMount=storage&&role==='api'?{source:storage.source,target:storage.target}:null;
    if(observeOnly){
     const pin=p.containers[role];if(pin.imageId!==imageId)fail();
-    expected[role]={id:pin.containerId,imageId,project:p.project,role,networkId:p.networkId,labels,environment,imageEnvironment:imageEnvironment[role],identityMount};
+    expected[role]={id:pin.containerId,imageId,project:p.project,role,networkId:p.networkId,labels,environment,imageEnvironment:imageEnvironment[role],imageProcess:imageProcesses[role],identityMount};
     result[role]=verifyStoppedCandidate(await inspect('container',pin.containerId),expected[role]);continue;
    }
    const args=['container','create','--pull','never','--name',p.project+'-'+role+'-1','--network',p.networkId,'--network-alias',role,'--restart','no','--security-opt','no-new-privileges=true'];
@@ -177,7 +209,7 @@ async function stoppedCandidates(input,observeOnly){
    if(role==='caddy')args.push('--no-healthcheck');else args.push('--health-cmd',health[role],'--health-interval','10s','--health-timeout','5s','--health-retries','5');
    args.push(imageId);
    const id=(await run(args,environment)).trim();if(!hex(id))fail();
-   expected[role]={id,imageId,project:p.project,role,networkId:p.networkId,labels,environment,imageEnvironment:imageEnvironment[role],identityMount};
+   expected[role]={id,imageId,project:p.project,role,networkId:p.networkId,labels,environment,imageEnvironment:imageEnvironment[role],imageProcess:imageProcesses[role],identityMount};
    result[role]=verifyStoppedCandidate(await inspect('container',id),expected[role]);
   }
   await inventory(3);

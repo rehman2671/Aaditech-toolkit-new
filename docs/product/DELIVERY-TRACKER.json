@@ -114,9 +114,10 @@
         "2026-11-26 MASS-17: docs/product/CONSENT-RENEWAL-AND-FRESH-RESOURCE-INVENTORY.md; source implemented, CI and parent acceptance pending.",
         "2026-11-26 MASS-18: docs/product/FRESH-RESOURCE-PROVISIONING-AND-AUDIT-CONFIG-CORRECTION.md; fresh resource provisioning candidate and audit startup correction; exact-head CI and parent acceptance pending.",
         "2026-11-26 MASS-19: docs/product/FRESH-ENVIRONMENT-AND-COMPATIBLE-DEPENDENCY-CANDIDATE.md; exact verified 17 dependency findings at docs/product/DEPENDENCY-ADVISORY-REGISTER-20261126.json; fresh private configuration and compatible upgrade resolver source pending CI.",
-        "2026-11-26 MASS-20: docs/product/STOPPED-CONTAINER-CANDIDATES-AND-DEPENDENCY-UPGRADE.md; digest-verified candidate lock applied, stopped creation source and activation denial implemented; exact-head CI/parent acceptance pending."
+        "2026-11-26 MASS-20: docs/product/STOPPED-CONTAINER-CANDIDATES-AND-DEPENDENCY-UPGRADE.md; digest-verified candidate lock applied, stopped creation source and activation denial implemented; exact-head CI/parent acceptance pending.",
+        "2026-11-26 MASS-21: docs/product/RECOVERY-CONFIGURATION-AND-PRODUCTION-DEPENDENCY-REMEDIATION.md; verified second lock candidate applied, recovery env isolation and CI harness correction pending exact-head verification."
       ],
-      "next": "Verify installed dependency delta and remaining moderates, actual stopped candidates, DB initialization/volume ownership, private TLS and authorized service activation/recreation, persistent restore approval, DEC-001.",
+      "next": "Verify exact-head production zero and remaining development advisories; execute real persistent recovery CI; implement fresh schema/identity and volume ownership initialization, private TLS, authorized activation/recreation and independent restore approval, DEC-001.",
       "blocked": true,
       "issue_url": "https://github.com/rehman2671/Aaditech-toolkit-new/issues/80"
     },

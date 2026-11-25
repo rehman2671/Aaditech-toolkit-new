@@ -20,7 +20,9 @@ BACKUP_DIR="$HERE/deploy/backups"
 
 log() { printf '[restore] %s\n' "$*"; }
 die() { printf '[restore][ERROR] %s\n' "$*" >&2; exit 1; }
-compose() { docker compose -f "$COMPOSE_FILE" "$@"; }
+source "$HERE/deploy/recovery-compose-env.sh"
+compose() { recovery_compose "$@"; }
+trap recovery_cleanup EXIT
 
 CONFIRMED=0
 DB_ONLY=0
@@ -44,12 +46,7 @@ done
 grep -Eq '^[[:space:]]*image:[[:space:]]*mysql:' "$COMPOSE_FILE" || die "This script only supports MySQL Docker Compose."
 command -v docker >/dev/null 2>&1 || die "Docker is required."
 
-# shellcheck disable=SC1090
-set -a; source "$ENV_FILE"; set +a
-DB_NAME="${MYSQL_DATABASE:-it_toolkit}"
-DB_USER="${MYSQL_USER:-itk_user}"
-[[ "$DB_NAME" =~ ^[A-Za-z0-9_]+$ ]] || die "Invalid MYSQL_DATABASE."
-[ -n "$DB_USER" ] && [ -n "${MYSQL_PASSWORD:-}" ] || die "MYSQL_USER/MYSQL_PASSWORD must be configured."
+prepare_recovery_env "$ENV_FILE" "${AADITECH_RECOVERY_EXPECTED_ENV_SHA:-}" || die "Recovery environment refused."
 
 if [ -z "$FILE" ]; then
   shopt -s nullglob
@@ -64,7 +61,7 @@ fi
 SOURCE_FILE="$FILE"
 STAGE_DIR="$(mktemp -d)"
 chmod 700 "$STAGE_DIR"
-trap 'rm -rf -- "$STAGE_DIR"' EXIT
+trap 'rm -rf -- "$STAGE_DIR"; recovery_cleanup' EXIT
 FILE="$STAGE_DIR/$(basename "$SOURCE_FILE")"
 cp -- "$SOURCE_FILE" "$FILE"
 chmod 600 "$FILE"
@@ -107,6 +104,7 @@ on_exit() {
     compose stop caddy api >/dev/null 2>&1 || true
     printf '%s\n' '[restore][ERROR] Restore did not complete. API/Caddy are stopped to protect the database. Inspect logs and recover from the safety backup before restarting.' >&2
   fi
+  recovery_cleanup
 }
 trap on_exit EXIT
 compose stop caddy api
@@ -115,7 +113,7 @@ STOPPED=1
 log "Creating a separate safety backup of current data before replacement."
 # CI checkouts and zip deployments do not reliably preserve executable bits.
 # Invoke via bash rather than relying on chmod +x from git mode metadata.
-BACKUP_KEEP=0 bash "$HERE/deploy/backup.sh"
+AADITECH_RECOVERY_EXPECTED_ENV_SHA="$RECOVERY_ENV_SHA" BACKUP_KEEP=0 bash "$HERE/deploy/backup.sh"
 
 log "Replacing database $DB_NAME (previous contents will be removed)."
 # The standard MySQL image grants its MYSQL_USER full rights on MYSQL_DATABASE.

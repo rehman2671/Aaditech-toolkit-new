@@ -9,7 +9,11 @@ function check({pkg,lock,docker,version,workflow}){
   const setup=steps.filter(s=>String(s.uses||'').startsWith('actions/setup-node@'));
   if(setup.length!==1||setup[0].with?.['node-version']!=='24'||setup[0].if!==undefined||setup[0]['continue-on-error']!==undefined)fail();
  }
+ const live=wf.jobs['api-tests'].steps.filter(s=>s.run==='bash Enterprise/tests/Run-Disposable-MySQL-Recovery-CI.sh');
+ if(live.length!==1||live[0].if!==undefined||live[0].env!==undefined||live[0].shell!==undefined||live[0]['working-directory']!==undefined||live[0]['continue-on-error']!==undefined||live[0]['timeout-minutes']!==10)fail();
  const steps=wf.jobs['node-tests'].steps;
+ const recovery=steps.filter(s=>s.run==='bash -n Enterprise/tests/Test-MySQL-Live-Rehearsal.sh && bash Enterprise/tests/Test-MySQL-Backup-Restore.sh');
+ if(recovery.length!==1||recovery[0].if!==undefined||recovery[0].env!==undefined||recovery[0].shell!==undefined||recovery[0]['working-directory']!==undefined||recovery[0]['continue-on-error']!==undefined||recovery[0]['timeout-minutes']!==3)fail();
  const report=steps.filter(s=>s.run==='node scripts/dependency-audit-policy.cjs --report');
  const release=steps.filter(s=>s.run==='node scripts/dependency-audit-policy.cjs --release');
  const candidate=steps.filter(s=>s.run==='node scripts/prepare-dependency-upgrade-candidate.cjs');

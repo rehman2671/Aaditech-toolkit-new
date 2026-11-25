@@ -430,6 +430,10 @@ jobs:
           console.log('PASS: actual local Docker socket observation and missing image refusal.');
           NODE
 
+      - name: Run offline database recovery safety regression
+        timeout-minutes: 3
+        run: bash -n Enterprise/tests/Test-MySQL-Live-Rehearsal.sh && bash Enterprise/tests/Test-MySQL-Backup-Restore.sh
+
       - name: Report production and development dependency audit
         timeout-minutes: 3
         run: node scripts/dependency-audit-policy.cjs --report
@@ -678,6 +682,10 @@ jobs:
           NODE_ENV: test
           AADITECH_IDENTITY_MIGRATION: isolated-ci
         run: node test-device-identity-index-migration.js
+
+      - name: Rehearse persistent MySQL identity backup and restore in separate disposable Compose project
+        timeout-minutes: 10
+        run: bash Enterprise/tests/Run-Disposable-MySQL-Recovery-CI.sh
 
       - name: Start Background Server for API verification
         env:

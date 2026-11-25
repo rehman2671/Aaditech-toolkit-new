@@ -29,10 +29,10 @@
       "via_packages": [],
       "locked_version": "2.0.7",
       "scope": "production",
-      "status": "CANDIDATE_AUDIT_NOT_REPORTED_PENDING_EXACT_HEAD_CI",
+      "status": "NOT_REPORTED_IN_VERIFIED_MASS20_INSTALLED_AUDIT",
       "fix_available_reported": true,
       "fix_version_verified": true,
-      "next": "Verify installed graph and exact-head audit, no production closure yet"
+      "next": "Monitor exact-head audit and regression; no production acceptance"
     },
     {
       "package": "basic-ftp",
@@ -46,10 +46,10 @@
       "via_packages": [],
       "locked_version": "5.3.1",
       "scope": "production",
-      "status": "CANDIDATE_AUDIT_NOT_REPORTED_PENDING_EXACT_HEAD_CI",
+      "status": "NOT_REPORTED_IN_VERIFIED_MASS20_INSTALLED_AUDIT",
       "fix_available_reported": true,
       "fix_version_verified": true,
-      "next": "Verify installed graph and exact-head audit, no production closure yet"
+      "next": "Monitor exact-head audit and regression; no production acceptance"
     },
     {
       "package": "body-parser",
@@ -61,10 +61,10 @@
       "via_packages": [],
       "locked_version": "1.20.6",
       "scope": "production",
-      "status": "CANDIDATE_AUDIT_NOT_REPORTED_PENDING_EXACT_HEAD_CI",
+      "status": "NOT_REPORTED_IN_VERIFIED_MASS20_INSTALLED_AUDIT",
       "fix_available_reported": true,
       "fix_version_verified": true,
-      "next": "Verify installed graph and exact-head audit, no production closure yet"
+      "next": "Monitor exact-head audit and regression; no production acceptance"
     },
     {
       "package": "follow-redirects",
@@ -78,10 +78,10 @@
       "via_packages": [],
       "locked_version": "1.16.0",
       "scope": "production",
-      "status": "CANDIDATE_AUDIT_NOT_REPORTED_PENDING_EXACT_HEAD_CI",
+      "status": "NOT_REPORTED_IN_VERIFIED_MASS20_INSTALLED_AUDIT",
       "fix_available_reported": true,
       "fix_version_verified": true,
-      "next": "Verify installed graph and exact-head audit, no production closure yet"
+      "next": "Monitor exact-head audit and regression; no production acceptance"
     },
     {
       "package": "get-uri",
@@ -93,10 +93,10 @@
       ],
       "locked_version": "6.0.5",
       "scope": "production",
-      "status": "CANDIDATE_AUDIT_NOT_REPORTED_PENDING_EXACT_HEAD_CI",
+      "status": "NOT_REPORTED_IN_VERIFIED_MASS20_INSTALLED_AUDIT",
       "fix_available_reported": true,
       "fix_version_verified": true,
-      "next": "Verify installed graph and exact-head audit, no production closure yet"
+      "next": "Monitor exact-head audit and regression; no production acceptance"
     },
     {
       "package": "js-yaml",
@@ -108,10 +108,10 @@
       "via_packages": [],
       "locked_version": "4.3.1",
       "scope": "production",
-      "status": "CANDIDATE_AUDIT_NOT_REPORTED_PENDING_EXACT_HEAD_CI",
+      "status": "NOT_REPORTED_IN_VERIFIED_MASS20_INSTALLED_AUDIT",
       "fix_available_reported": true,
       "fix_version_verified": true,
-      "next": "Verify installed graph and exact-head audit, no production closure yet"
+      "next": "Monitor exact-head audit and regression; no production acceptance"
     },
     {
       "package": "pac-proxy-agent",
@@ -123,10 +123,10 @@
       ],
       "locked_version": "7.2.0",
       "scope": "production",
-      "status": "CANDIDATE_AUDIT_NOT_REPORTED_PENDING_EXACT_HEAD_CI",
+      "status": "NOT_REPORTED_IN_VERIFIED_MASS20_INSTALLED_AUDIT",
       "fix_available_reported": true,
       "fix_version_verified": true,
-      "next": "Verify installed graph and exact-head audit, no production closure yet"
+      "next": "Monitor exact-head audit and regression; no production acceptance"
     },
     {
       "package": "pm2",
@@ -139,10 +139,10 @@
       ],
       "locked_version": "7.0.4",
       "scope": "production",
-      "status": "CANDIDATE_AUDIT_NOT_REPORTED_PENDING_EXACT_HEAD_CI",
+      "status": "NOT_REPORTED_IN_VERIFIED_MASS20_INSTALLED_AUDIT",
       "fix_available_reported": true,
       "fix_version_verified": true,
-      "next": "Verify installed graph and exact-head audit, no production closure yet"
+      "next": "Monitor exact-head audit and regression; no production acceptance"
     },
     {
       "package": "proxy-agent",
@@ -154,10 +154,10 @@
       ],
       "locked_version": "6.5.0",
       "scope": "production",
-      "status": "CANDIDATE_AUDIT_NOT_REPORTED_PENDING_EXACT_HEAD_CI",
+      "status": "NOT_REPORTED_IN_VERIFIED_MASS20_INSTALLED_AUDIT",
       "fix_available_reported": true,
       "fix_version_verified": true,
-      "next": "Verify installed graph and exact-head audit, no production closure yet"
+      "next": "Monitor exact-head audit and regression; no production acceptance"
     },
     {
       "package": "zod",
@@ -169,10 +169,10 @@
       "via_packages": [],
       "locked_version": "4.6.5",
       "scope": "production",
-      "status": "CANDIDATE_AUDIT_NOT_REPORTED_PENDING_EXACT_HEAD_CI",
+      "status": "NOT_REPORTED_IN_VERIFIED_MASS20_INSTALLED_AUDIT",
       "fix_available_reported": true,
       "fix_version_verified": true,
-      "next": "Verify installed graph and exact-head audit, no production closure yet"
+      "next": "Monitor exact-head audit and regression; no production acceptance"
     },
     {
       "package": "ip-address",
@@ -184,10 +184,10 @@
       "via_packages": [],
       "locked_version": "10.7.2",
       "scope": "production",
-      "status": "CANDIDATE_AUDIT_NOT_REPORTED_PENDING_EXACT_HEAD_CI",
+      "status": "NOT_REPORTED_IN_VERIFIED_MASS20_INSTALLED_AUDIT",
       "fix_available_reported": true,
       "fix_version_verified": true,
-      "next": "Verify installed graph and exact-head audit, no production closure yet"
+      "next": "Monitor exact-head audit and regression; no production acceptance"
     },
     {
       "package": "qs",
@@ -201,10 +201,10 @@
       "via_packages": [],
       "locked_version": "6.15.3",
       "scope": "production",
-      "status": "OPEN_CANDIDATE_AUDIT",
+      "status": "CANDIDATE_AUDIT_NOT_REPORTED_PENDING_EXACT_HEAD_CI",
       "fix_available_reported": true,
       "fix_version_verified": false,
-      "next": "Resolve remaining compatible moderate advisory and verify exact head"
+      "next": "Verify installed MASS-21 graph and audit"
     },
     {
       "package": "source-map-js",
@@ -216,10 +216,10 @@
       "via_packages": [],
       "locked_version": "1.2.1",
       "scope": "development",
-      "status": "CANDIDATE_AUDIT_NOT_REPORTED_PENDING_EXACT_HEAD_CI",
+      "status": "NOT_REPORTED_IN_VERIFIED_MASS20_INSTALLED_AUDIT",
       "fix_available_reported": true,
       "fix_version_verified": true,
-      "next": "Verify installed graph and exact-head audit, no production closure yet"
+      "next": "Monitor exact-head audit and regression; no production acceptance"
     },
     {
       "package": "vite",
@@ -236,10 +236,10 @@
       "via_packages": [],
       "locked_version": "8.3.0",
       "scope": "development",
-      "status": "CANDIDATE_AUDIT_NOT_REPORTED_PENDING_EXACT_HEAD_CI",
+      "status": "NOT_REPORTED_IN_VERIFIED_MASS20_INSTALLED_AUDIT",
       "fix_available_reported": true,
       "fix_version_verified": true,
-      "next": "Verify installed graph and exact-head audit, no production closure yet"
+      "next": "Monitor exact-head audit and regression; no production acceptance"
     },
     {
       "package": "@vitest/coverage-v8",
@@ -254,7 +254,7 @@
       "status": "OPEN_CANDIDATE_AUDIT",
       "fix_available_reported": true,
       "fix_version_verified": false,
-      "next": "Resolve remaining compatible moderate advisory and verify exact head"
+      "next": "Resolve remaining development moderate advisory; exact-head CI pending"
     },
     {
       "package": "@vitest/mocker",
@@ -270,7 +270,7 @@
       "status": "OPEN_CANDIDATE_AUDIT",
       "fix_available_reported": true,
       "fix_version_verified": false,
-      "next": "Resolve remaining compatible moderate advisory and verify exact head"
+      "next": "Resolve remaining development moderate advisory; exact-head CI pending"
     },
     {
       "package": "vitest",
@@ -286,7 +286,7 @@
       "status": "OPEN_CANDIDATE_AUDIT",
       "fix_available_reported": true,
       "fix_version_verified": false,
-      "next": "Resolve remaining compatible moderate advisory and verify exact head"
+      "next": "Resolve remaining development moderate advisory; exact-head CI pending"
     },
     {
       "package": "express",
@@ -298,9 +298,9 @@
       ],
       "scope": "production",
       "locked_version": "4.22.2",
-      "status": "OPEN_CANDIDATE_AUDIT",
+      "status": "CANDIDATE_AUDIT_NOT_REPORTED_PENDING_EXACT_HEAD_CI",
       "fix_version_verified": false,
-      "next": "Resolve remaining moderate advisory and verify exact head"
+      "next": "Verify installed MASS-21 graph and audit"
     }
   ],
   "release_authorized": false,
@@ -402,6 +402,93 @@
           "advisory_ids": [
             1158507,
             1243687
+          ],
+          "via_packages": [],
+          "fix_available": true,
+          "fix_candidate": null
+        },
+        {
+          "package": "vitest",
+          "severity": "moderate",
+          "direct": true,
+          "advisory_ids": [],
+          "via_packages": [
+            "@vitest/coverage-v8",
+            "@vitest/mocker"
+          ],
+          "fix_available": true,
+          "fix_candidate": null
+        }
+      ]
+    },
+    "exact_head_verification_pending": true
+  },
+  "installed_mass20": {
+    "head": "7bbd3893098b75f58934e26582091f944c540020",
+    "run_id": 45706670223,
+    "job_id": 139530327281,
+    "production": {
+      "critical": 0,
+      "high": 0,
+      "moderate": 2,
+      "total": 2
+    },
+    "full": {
+      "critical": 0,
+      "high": 0,
+      "moderate": 5,
+      "total": 5
+    },
+    "node_tests_passed": 2815
+  },
+  "candidate_mass21": {
+    "source_head": "7bbd3893098b75f58934e26582091f944c540020",
+    "run_id": 45706670223,
+    "job_id": 139530327281,
+    "canonical_sha256": "5223244ab03346163711c2c2eb95269f0d49fde40f4086bb3854a7719ecbbe23",
+    "applied_lock_sha256": "2c2163f026bccd844ae09872690adf7465098d79c630f081be41cc0cf2272744",
+    "changed_entries": 3,
+    "production": {
+      "status": "VERIFIED_REPORT",
+      "counts": {
+        "info": 0,
+        "low": 0,
+        "moderate": 0,
+        "high": 0,
+        "critical": 0,
+        "total": 0
+      },
+      "packages": []
+    },
+    "all": {
+      "status": "VERIFIED_REPORT",
+      "counts": {
+        "info": 0,
+        "low": 0,
+        "moderate": 3,
+        "high": 0,
+        "critical": 0,
+        "total": 3
+      },
+      "packages": [
+        {
+          "package": "@vitest/coverage-v8",
+          "severity": "moderate",
+          "direct": true,
+          "advisory_ids": [],
+          "via_packages": [
+            "vitest"
+          ],
+          "fix_available": true,
+          "fix_candidate": null
+        },
+        {
+          "package": "@vitest/mocker",
+          "severity": "moderate",
+          "direct": false,
+          "advisory_ids": [
+            1242766,
+            1242768
           ],
           "via_packages": [],
           "fix_available": true,

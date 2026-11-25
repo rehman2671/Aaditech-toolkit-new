@@ -16,3 +16,6 @@ for(const [label,patch] of [
 
 test('Docker runtime check cannot be removed',()=>assert.throws(()=>check({...base,docker:base.docker.replace(/^RUN node -e .*\n/m,'')})));
 test('Docker locked install cannot be replaced',()=>assert.throws(()=>check({...base,docker:base.docker.replace('RUN npm ci --omit=dev --no-audit --no-fund','RUN npm install')})));
+
+test('offline recovery regression cannot be skipped',()=>assert.throws(()=>check({...base,workflow:base.workflow.replace('run: bash -n Enterprise/tests/Test-MySQL-Live-Rehearsal.sh && bash Enterprise/tests/Test-MySQL-Backup-Restore.sh','run: echo skipped')})));
+test('persistent recovery rehearsal cannot be skipped',()=>assert.throws(()=>check({...base,workflow:base.workflow.replace('run: bash Enterprise/tests/Run-Disposable-MySQL-Recovery-CI.sh','run: echo skipped')})));

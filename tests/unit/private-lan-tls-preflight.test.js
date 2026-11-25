@@ -1,6 +1,8 @@
 import {describe,it,expect} from 'vitest';
 import {createHash,X509Certificate} from 'node:crypto';
 import {createServer} from 'node:tls';
+import {createServer as createHttpsServer} from 'node:https';
+import {probePrivateLanHealth,verifyHealthBody} from '../../scripts/private-lan-health.mjs';
 import {execFileSync} from 'node:child_process';
 import {mkdtemp,writeFile,readFile,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
@@ -128,9 +130,28 @@ describe('private LAN TLS handshake reference',()=>{
       await expect(probePrivateTls(await start('noeku'))).rejects.toThrow('PRIVATE_TLS_CHAIN_OR_SAN_INVALID');
       await expect(probePrivateTls(await start('client'))).rejects.toThrow('PRIVATE_TLS_CHAIN_OR_SAN_INVALID');
       expect(()=>validatePrivateTlsInputs({...good,rootPem:pem+'\n\n'})).toThrow('EXPLICIT_ROOT_PIN_REQUIRED');
+      await new Promise(resolve=>server.close(resolve));
+      let responseMode='ok';
+      server=createHttpsServer({key:await readFile(join(dir,'good.key')),cert:await readFile(join(dir,'good.crt'))},(req,res)=>{
+       if(req.url!=='/healthz'||req.headers.authorization||req.headers.cookie){res.writeHead(400);res.end();return}
+       if(responseMode==='redirect'){res.writeHead(302,{Location:'https://127.0.0.1:1/'});res.end();return}
+       res.writeHead(200,{'Content-Type':'application/json'});
+       res.end(JSON.stringify({status:'ok',components:{database:responseMode==='ok'?'HEALTHY':'DEGRADED'}}));
+      });
+      server.on('tlsClientError',()=>{});await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(0,'127.0.0.1',resolve)});
+      const health={...good,port:server.address().port,confirmation:'PROBE_PINNED_PRIVATE_LAN_HEALTH_ONLY',trustedLeafSha256:pin(await readFile(join(dir,'good.crt'),'utf8'))};
+      expect(await probePrivateLanHealth(health)).toMatchObject({api_health_observed:true,database_health_reported:true,database_identity_verified:false,production_accepted:false});
+      await expect(probePrivateLanHealth({...health,trustedLeafSha256:'f'.repeat(64)})).rejects.toThrow();
+      responseMode='degraded';await expect(probePrivateLanHealth(health)).rejects.toThrow();
+      responseMode='redirect';await expect(probePrivateLanHealth(health)).rejects.toThrow();
+
     }finally{
       if(server)await new Promise(resolve=>server.close(resolve));
       await rm(dir,{recursive:true,force:true});
     }
   },30000);
+});
+
+it('rejects missing database health, duplicate JSON keys and oversized body',()=>{
+ for(const v of ['{"status":"ok","components":{}}','{"status":"ok","status":"ok","components":{"database":"HEALTHY"}}','x'.repeat(16385)])expect(()=>verifyHealthBody(Buffer.from(v))).toThrow();
 });

@@ -1,5 +1,5 @@
 import {describe,it,expect} from 'vitest';
-import {validateStoppedCandidatePolicy as policy,deriveCandidateRoleEnvironment as derive,verifyCandidateImage as image,candidateProcessSpec as processSpec,verifyRunningFreshDatabase as verifyDb,validateFreshDatabaseActivationPolicy as dbPolicy,candidateLabels as labels,verifyStoppedCandidate as verify,validateStoppedObservationPolicy as observe} from '../../scripts/create-stopped-compose-candidates.mjs';
+import {validateStoppedCandidatePolicy as policy,deriveCandidateRoleEnvironment as derive,verifyCandidateImage as image,candidateProcessSpec as processSpec,freshDatabaseHealthCommand,openPinnedFreshDatabaseConnection as connectDb,verifyRunningFreshDatabase as verifyDb,validateFreshDatabaseActivationPolicy as dbPolicy,candidateLabels as labels,verifyStoppedCandidate as verify,validateStoppedObservationPolicy as observe} from '../../scripts/create-stopped-compose-candidates.mjs';
 const sha='a'.repeat(64),networkId='c'.repeat(64),imageId='sha256:'+'d'.repeat(64),id='e'.repeat(64),project='aaditech',host='server.example.com';
 const release={confirmation:'INSPECT_SIGNED_OCI_RUNTIME_ONLY',stagedDirectory:'/private/stage',trustedManifestSha256:sha,trustedSignerSpkiSha256:'b'.repeat(64),trustedPublicKeyPem:'fixture',architecture:'amd64'};
 const input={confirmation:'CREATE_STOPPED_COMPOSE_CANDIDATES_ONLY_EXCLUSIVE_DAEMON_CUSTODY',project,lockRoot:'/private/lock',configDirectory:'/private/config',serverHost:host,release,configurationSha256:sha,networkId};
@@ -77,19 +77,48 @@ describe('signed image startup and stopped container host custody',()=>{
 describe('explicit fresh database-only admission',()=>{
  const identity={confirmation:'INSPECT_PINNED_IDENTITY_STORE_ONLY',directoryPath:'/private/id',expectedInstallationId:'12345678-1234-4234-8234-123456789abc',expectedIdentitySha256:sha};
  const activation={...observation,confirmation:'INITIALIZE_PINNED_FRESH_DATABASE_ONLY_EXCLUSIVE_DAEMON_AND_WRITER_CUSTODY',storage:{identity,runtimeIdentityParent:'/private/runtime-id'}};
- it('requires independent container, release, configuration and identity pins',()=>{expect(dbPolicy(activation).storage.identity).toEqual(identity);expect(()=>dbPolicy(observation)).toThrow();const {storage,...without}=activation;expect(()=>dbPolicy(without)).toThrow()});
- const dbLabels=labels(project,sha,sha,'db'),dbExpected={...e,role:'db',labels:dbLabels,environment:env.db};
- const dbDoc={...row,Name:'/aaditech-db-1',RestartCount:0,State:{...row.State,Status:'running',Running:true,Pid:123,StartedAt:'2026-11-26T00:00:00Z',Health:{Status:'healthy'}},Config:{Cmd:['fixture'],Labels:dbLabels,Env:['PATH=/usr/bin',...Object.entries(env.db).map(([k,v])=>k+'='+v)],Healthcheck:{Test:['CMD-SHELL','MYSQL_PWD="$MYSQL_PASSWORD" mysql --host=localhost --user="$MYSQL_USER" --database="$MYSQL_DATABASE" --batch --skip-column-names --execute="SELECT 1"']}},
- HostConfig:{...row.HostConfig,Mounts:[{Type:'volume',Source:'aaditech_mysqldata',Target:'/var/lib/mysql',VolumeOptions:{NoCopy:true}}]},
- Mounts:[{Type:'volume',Name:'aaditech_mysqldata',Destination:'/var/lib/mysql',RW:true,Driver:'local'}],
- NetworkSettings:{Networks:{aaditech_ittoolkit:{NetworkID:networkId,Aliases:['db'],EndpointID:'f'.repeat(64),IPAddress:'172.20.0.2',IPPrefixLen:16,GlobalIPv6Address:''}}}};
- const network={Id:networkId,Name:'aaditech_ittoolkit',Driver:'bridge',Scope:'local',Internal:true,Attachable:false,Ingress:false,Labels:{'com.docker.compose.project':project,'org.aaditech.release-sha256':sha,'com.docker.compose.network':'ittoolkit'},Containers:{[id]:{Name:'aaditech-db-1',EndpointID:'f'.repeat(64),IPv4Address:'172.20.0.2/16',IPv6Address:''}}};
- it('admits only the pinned DB endpoint on the internal network; legacy stopped check still refuses it',()=>{expect(verifyDb(dbDoc,dbExpected,network)).toMatchObject({ip:'172.20.0.2',pid:123,health:'healthy'});expect(()=>verify(dbDoc,dbExpected)).toThrow()});
- it.each([{RestartCount:1},{State:{...dbDoc.State,Pid:0}},{State:{...dbDoc.State,Health:{Status:'unhealthy'}}},{State:{...dbDoc.State,StartedAt:'invalid'}}},{HostConfig:{...dbDoc.HostConfig,PublishAllPorts:true}}])('rejects running state or host drift %j',patch=>expect(()=>verifyDb({...dbDoc,...patch},dbExpected,network)).toThrow());
- it.each([{Internal:false},{Attachable:true},{Id:'0'.repeat(64)},{Containers:{}},{Containers:{...network.Containers,foreign:{}}},{Containers:{[id]:{...network.Containers[id],IPv4Address:'172.20.0.9/16'}}},{Containers:{[id]:{...network.Containers[id],EndpointID:'c'.repeat(64)}}}])('rejects network membership drift %j',patch=>expect(()=>verifyDb(dbDoc,dbExpected,{...network,...patch})).toThrow());
- it.each(['127.0.0.1','169.254.1.2','8.8.8.8','172.32.0.2','192.169.0.2','::1','db','172.020.0.2'])('rejects nonprivate or nonliteral address %s',ip=>{
-  const d={...dbDoc,NetworkSettings:{Networks:{aaditech_ittoolkit:{...dbDoc.NetworkSettings.Networks.aaditech_ittoolkit,IPAddress:ip}}}};
-  const n={...network,Containers:{[id]:{...network.Containers[id],IPv4Address:ip+'/16'}}};
+ it('requires independent container, release, configuration and identity pins',()=>{
+  expect(dbPolicy(activation).storage.identity).toEqual(identity);
+  expect(()=>dbPolicy(observation)).toThrow();
+  const {storage,...without}=activation;
+  expect(()=>dbPolicy(without)).toThrow();
+ });
+ const dbLabels=labels(project,sha,sha,'db');
+ const dbExpected={...e,role:'db',labels:dbLabels,environment:env.db};
+ const endpoint={NetworkID:networkId,Aliases:['db'],EndpointID:'f'.repeat(64),IPAddress:'172.20.0.2',IPPrefixLen:16,GlobalIPv6Address:''};
+ const member={Name:'aaditech-db-1',EndpointID:endpoint.EndpointID,IPv4Address:'172.20.0.2/16',IPv6Address:''};
+ const dbDoc={
+  ...row,Name:'/aaditech-db-1',RestartCount:0,
+  State:{...row.State,Status:'running',Running:true,Pid:123,StartedAt:'2026-11-26T00:00:00Z',Health:{Status:'healthy'}},
+  Config:{Cmd:['fixture'],Labels:dbLabels,Env:['PATH=/usr/bin',...Object.entries(env.db).map(([k,v])=>k+'='+v)],Healthcheck:{Test:['CMD-SHELL',freshDatabaseHealthCommand]}},
+  HostConfig:{...row.HostConfig,Mounts:[{Type:'volume',Source:'aaditech_mysqldata',Target:'/var/lib/mysql',VolumeOptions:{NoCopy:true}}]},
+  Mounts:[{Type:'volume',Name:'aaditech_mysqldata',Destination:'/var/lib/mysql',RW:true,Driver:'local'}],
+  NetworkSettings:{Networks:{aaditech_ittoolkit:endpoint}}
+ };
+ const network={Id:networkId,Name:'aaditech_ittoolkit',Driver:'bridge',Scope:'local',Internal:true,Attachable:false,Ingress:false,Labels:{'com.docker.compose.project':project,'org.aaditech.release-sha256':sha,'com.docker.compose.network':'ittoolkit'},Containers:{[id]:member}};
+ it('admits only the pinned DB endpoint and rejects it in the stopped verifier',()=>{
+  expect(verifyDb(dbDoc,dbExpected,network)).toMatchObject({ip:endpoint.IPAddress,pid:123,health:'healthy'});
+  expect(()=>verify(dbDoc,dbExpected)).toThrow();
+ });
+ it.each([
+  {RestartCount:1},{State:{...dbDoc.State,Pid:0}},
+  {State:{...dbDoc.State,Health:{Status:'unhealthy'}}},
+  {State:{...dbDoc.State,StartedAt:'invalid'}},
+  {HostConfig:{...dbDoc.HostConfig,PublishAllPorts:true}}
+ ])('rejects running state or host drift %j',patch=>expect(()=>verifyDb({...dbDoc,...patch},dbExpected,network)).toThrow());
+ it.each([
+  {Internal:false},{Attachable:true},{Id:'0'.repeat(64)},{Containers:{}},
+  {Containers:{...network.Containers,foreign:{}}},
+  {Containers:{[id]:{...member,IPv4Address:'172.20.0.9/16'}}},
+  {Containers:{[id]:{...member,EndpointID:'c'.repeat(64)}}}
+ ])('rejects network membership drift %j',patch=>expect(()=>verifyDb(dbDoc,dbExpected,{...network,...patch})).toThrow());
+ it.each(['127.0.0.1','169.254.1.2','8.8.8.8','172.32.0.2','192.169.0.2','::1','db','172.020.0.2'])('rejects nonprivate or nonliteral address %s',async ip=>{
+  const d={...dbDoc,NetworkSettings:{Networks:{aaditech_ittoolkit:{...endpoint,IPAddress:ip}}}};
+  const n={...network,Containers:{[id]:{...member,IPv4Address:ip+'/16'}}};
   expect(()=>verifyDb(d,dbExpected,n)).toThrow();
+  await expect(connectDb(ip,env.db)).rejects.toThrow();
+ });
+ it.each([{MYSQL_USER:'root'},{MYSQL_DATABASE:'other'},{MYSQL_PASSWORD:'short'},{MYSQL_PASSWORD:env.db.MYSQL_ROOT_PASSWORD},{extra:true}])('rejects unsafe database connection parameters %j',async patch=>{
+  await expect(connectDb('172.20.0.2',{...env.db,...patch})).rejects.toThrow();
  });
 });

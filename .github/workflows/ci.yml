@@ -476,6 +476,11 @@ jobs:
       - name: Rehearse existing service lifecycle and quiescent configuration on disposable runner
         timeout-minutes: 10
         run: node tests/ci-existing-compose-lifecycle-rehearsal.mjs
+      - name: Install locked runtime dependencies for real MySQL bridge rehearsal
+        run: npm ci --omit=dev --ignore-scripts
+      - name: Rehearse real MySQL container private bridge and signed fresh schema
+        timeout-minutes: 10
+        run: node tests/ci-fresh-database-bridge-rehearsal.mjs
 
   api-tests:
     name: API test suite (Node.js vs MySQL 8)

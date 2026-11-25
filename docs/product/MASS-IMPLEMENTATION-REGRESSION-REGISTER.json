@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
-  "batch": "MASS-26",
+  "batch": "MASS-27",
   "date": "2026-11-26",
   "target": "20 implementation prompts planning target, 50–100 actual development tasks per batch aspirational; count only delivered functional work, not test cases",
-  "base_commit": "9d47da3d67d177c06746bb4f609e9937e95de8bf",
+  "base_commit": "40cae1ed1adaf707c1885747ebabd27df3a4cbc2",
   "source_of_truth": [
     "docs/product/DELIVERY-TRACKER.json",
     "docs/product/TROUBLESHOOTING-WORK-REGISTER.json",
@@ -3887,7 +3887,50 @@
       "regression": [
         "tests/unit/create-stopped-compose-candidates.test.js",
         "Actual isolated signed MySQL container start and private bridge connectivity pending"
-      ]
+      ],
+      "ci_evidence": {
+        "head": "40cae1ed1adaf707c1885747ebabd27df3a4cbc2",
+        "run": 45711670555,
+        "jobs": [
+          {
+            "id": 139547500169,
+            "name": "PowerShell validation",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 139547500564,
+            "name": "Offline Docker load compatibility (disposable runner)",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 139547500574,
+            "name": "Node.js Unit & Integration Tests (Vitest + MySQL 8)",
+            "status": "completed",
+            "conclusion": "failure"
+          },
+          {
+            "id": 139548079709,
+            "name": "API test suite (Node.js vs MySQL 8)",
+            "status": "completed",
+            "conclusion": "skipped"
+          },
+          {
+            "id": 139548980789,
+            "name": "Phase O unsigned Windows MSI integration rehearsal",
+            "status": "completed",
+            "conclusion": "skipped"
+          },
+          {
+            "id": 139548981819,
+            "name": "Build agent exe + MSI",
+            "status": "completed",
+            "conclusion": "skipped"
+          }
+        ],
+        "scope": "Exact-head CI only; no production acceptance"
+      }
     },
     {
       "id": "MASS-26-02",
@@ -3909,7 +3952,50 @@
         "tests/unit/create-stopped-compose-candidates.test.js",
         "test-fresh-mysql-schema-ci.js",
         "Actual Docker MySQL volume, scoped account, schema initialization and failure lock rehearsal pending"
-      ]
+      ],
+      "ci_evidence": {
+        "head": "40cae1ed1adaf707c1885747ebabd27df3a4cbc2",
+        "run": 45711670555,
+        "jobs": [
+          {
+            "id": 139547500169,
+            "name": "PowerShell validation",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 139547500564,
+            "name": "Offline Docker load compatibility (disposable runner)",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 139547500574,
+            "name": "Node.js Unit & Integration Tests (Vitest + MySQL 8)",
+            "status": "completed",
+            "conclusion": "failure"
+          },
+          {
+            "id": 139548079709,
+            "name": "API test suite (Node.js vs MySQL 8)",
+            "status": "completed",
+            "conclusion": "skipped"
+          },
+          {
+            "id": 139548980789,
+            "name": "Phase O unsigned Windows MSI integration rehearsal",
+            "status": "completed",
+            "conclusion": "skipped"
+          },
+          {
+            "id": 139548981819,
+            "name": "Build agent exe + MSI",
+            "status": "completed",
+            "conclusion": "skipped"
+          }
+        ],
+        "scope": "Exact-head CI only; no production acceptance"
+      }
     },
     {
       "id": "MASS-26-03",
@@ -3927,6 +4013,105 @@
       ],
       "regression": [
         "Manual CLI malformed/duplicate JSON and partial-state refusal; isolated real Docker MySQL integration pending"
+      ],
+      "ci_evidence": {
+        "head": "40cae1ed1adaf707c1885747ebabd27df3a4cbc2",
+        "run": 45711670555,
+        "jobs": [
+          {
+            "id": 139547500169,
+            "name": "PowerShell validation",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 139547500564,
+            "name": "Offline Docker load compatibility (disposable runner)",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 139547500574,
+            "name": "Node.js Unit & Integration Tests (Vitest + MySQL 8)",
+            "status": "completed",
+            "conclusion": "failure"
+          },
+          {
+            "id": 139548079709,
+            "name": "API test suite (Node.js vs MySQL 8)",
+            "status": "completed",
+            "conclusion": "skipped"
+          },
+          {
+            "id": 139548980789,
+            "name": "Phase O unsigned Windows MSI integration rehearsal",
+            "status": "completed",
+            "conclusion": "skipped"
+          },
+          {
+            "id": 139548981819,
+            "name": "Build agent exe + MSI",
+            "status": "completed",
+            "conclusion": "skipped"
+          }
+        ],
+        "scope": "Exact-head CI only; no production acceptance"
+      }
+    },
+    {
+      "id": "MASS-27-01",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Correct malformed database test suite and preserve prior admission regressions",
+      "dependencies": [
+        "MASS-26-01"
+      ],
+      "paths": [
+        "scripts/create-stopped-compose-candidates.mjs",
+        "tests/unit/create-stopped-compose-candidates.test.js",
+        ".github/workflows/ci.yml",
+        "docs/product/FRESH-VOLUME-OWNERSHIP-AND-IDENTITY-MOUNT.md",
+        "tests/ci-fresh-database-bridge-rehearsal.mjs"
+      ],
+      "regression": [
+        "Vitest suite parses and executes; exact-head CI pending"
+      ]
+    },
+    {
+      "id": "MASS-27-02",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "TCP-only database readiness, private scoped connection account/version checks, storage continuity and final setup guard",
+      "dependencies": [
+        "MASS-26-01",
+        "MASS-26-02"
+      ],
+      "paths": [
+        "scripts/create-stopped-compose-candidates.mjs",
+        "tests/unit/create-stopped-compose-candidates.test.js",
+        ".github/workflows/ci.yml",
+        "docs/product/FRESH-VOLUME-OWNERSHIP-AND-IDENTITY-MOUNT.md",
+        "tests/ci-fresh-database-bridge-rehearsal.mjs"
+      ],
+      "regression": [
+        "Invalid connection policies rejected before connect; actual MySQL component rehearsal pending"
+      ]
+    },
+    {
+      "id": "MASS-27-03",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Real disposable MySQL internal bridge component rehearsal with signed migrations and occupied-schema retained lock",
+      "dependencies": [
+        "MASS-27-02",
+        "MASS-26-02"
+      ],
+      "paths": [
+        "scripts/create-stopped-compose-candidates.mjs",
+        "tests/unit/create-stopped-compose-candidates.test.js",
+        ".github/workflows/ci.yml",
+        "docs/product/FRESH-VOLUME-OWNERSHIP-AND-IDENTITY-MOUNT.md",
+        "tests/ci-fresh-database-bridge-rehearsal.mjs"
+      ],
+      "regression": [
+        "CI disposable runner actual MySQL 8; publisher-signed end-to-end activation not tested"
       ]
     }
   ],
@@ -4272,8 +4457,8 @@
           {
             "id": 139546255717,
             "name": "PowerShell validation",
-            "status": "in_progress",
-            "conclusion": null
+            "status": "completed",
+            "conclusion": "cancelled"
           },
           {
             "id": 139546255747,
@@ -4284,11 +4469,23 @@
           {
             "id": 139546891050,
             "name": "API test suite (Node.js vs MySQL 8)",
-            "status": "in_progress",
-            "conclusion": null
+            "status": "completed",
+            "conclusion": "cancelled"
+          },
+          {
+            "id": 139547491889,
+            "name": "Phase O unsigned Windows MSI integration rehearsal",
+            "status": "completed",
+            "conclusion": "cancelled"
+          },
+          {
+            "id": 139547492109,
+            "name": "Build agent exe + MSI",
+            "status": "completed",
+            "conclusion": "cancelled"
           }
         ],
-        "scope": "exact-head observation; no main merge or field acceptance"
+        "scope": "Exact-head CI only; no production acceptance"
       }
     },
     {
@@ -4301,6 +4498,61 @@
         "tests/unit/create-stopped-compose-candidates.test.js",
         "docs/product/FRESH-VOLUME-OWNERSHIP-AND-IDENTITY-MOUNT.md",
         "scripts/initialize-stopped-candidate-database-cli.mjs"
+      ],
+      "exact_head_ci": {
+        "head": "40cae1ed1adaf707c1885747ebabd27df3a4cbc2",
+        "run": 45711670555,
+        "jobs": [
+          {
+            "id": 139547500169,
+            "name": "PowerShell validation",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 139547500564,
+            "name": "Offline Docker load compatibility (disposable runner)",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 139547500574,
+            "name": "Node.js Unit & Integration Tests (Vitest + MySQL 8)",
+            "status": "completed",
+            "conclusion": "failure"
+          },
+          {
+            "id": 139548079709,
+            "name": "API test suite (Node.js vs MySQL 8)",
+            "status": "completed",
+            "conclusion": "skipped"
+          },
+          {
+            "id": 139548980789,
+            "name": "Phase O unsigned Windows MSI integration rehearsal",
+            "status": "completed",
+            "conclusion": "skipped"
+          },
+          {
+            "id": 139548981819,
+            "name": "Build agent exe + MSI",
+            "status": "completed",
+            "conclusion": "skipped"
+          }
+        ],
+        "scope": "Exact-head CI only; no production acceptance"
+      }
+    },
+    {
+      "id": "MASS-27",
+      "base_commit": "40cae1ed1adaf707c1885747ebabd27df3a4cbc2",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "evidence": [
+        "scripts/create-stopped-compose-candidates.mjs",
+        "tests/unit/create-stopped-compose-candidates.test.js",
+        ".github/workflows/ci.yml",
+        "docs/product/FRESH-VOLUME-OWNERSHIP-AND-IDENTITY-MOUNT.md",
+        "tests/ci-fresh-database-bridge-rehearsal.mjs"
       ]
     }
   ]

@@ -25,7 +25,8 @@ const hex=x=>typeof x==='string'&&x.length===64&&/^[a-f0-9]{64}$/.test(x)&&!/^0+
 const exact=(x,ks)=>x&&Object.getPrototypeOf(x)===Object.prototype&&Reflect.ownKeys(x).length===ks.length&&ks.every(k=>Object.hasOwn(Object.getOwnPropertyDescriptor(x,k)??{},'value'));
 const roles=['db','api','caddy'],releaseRoles={db:'database',api:'api',caddy:'ingress'};
 const targets={db:{mysqldata:'/var/lib/mysql'},api:{api_data:'/data',agent_artifacts:'/artifacts'},caddy:{caddy_data:'/data',caddy_config:'/config'}};
-const health={db:'MYSQL_PWD="$MYSQL_PASSWORD" mysql --host=localhost --user="$MYSQL_USER" --database="$MYSQL_DATABASE" --batch --skip-column-names --execute="SELECT 1"',api:"node -e \"fetch('http://localhost:3000/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""};
+export const freshDatabaseHealthCommand='MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host=127.0.0.1 --user="$MYSQL_USER" --database="$MYSQL_DATABASE" --batch --skip-column-names --execute="SELECT 1"';
+const health={db:freshDatabaseHealthCommand,api:"node -e \"fetch('http://localhost:3000/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""};
 const secretKeys=['MYSQL_PASSWORD','MYSQL_ROOT_PASSWORD','API_TOKEN','JWT_SECRET','BOOTSTRAP_SECRET','HMAC_SECRET','COMMAND_SIGNING_KEY','SETUP_TOKEN','SESSION_SECRET','DB_PASSWORD'];
 const empty=x=>x===null||x===undefined||(Array.isArray(x)?x.length===0:typeof x==='object'&&Object.keys(x).length===0);
 const fields=['dev','ino','uid','mode','nlink','size','mtimeMs','ctimeMs'],dirFields=fields.slice(0,4);
@@ -144,6 +145,20 @@ export function verifyRunningFreshDatabase(doc,expected,network){
  if(!Number.isInteger(prefix)||prefix<8||prefix>30||member.IPv4Address!==ip+'/'+prefix)fail();
  return Object.freeze({ip,endpointId:endpoint.EndpointID,pid:s.Pid,startedAt:s.StartedAt,health:s.Health.Status});
 }
+// Called after local daemon/network/process admission under exclusive setup custody.
+export async function openPinnedFreshDatabaseConnection(ip,environment){
+ privateIPv4(ip);
+ if(!exact(environment,['MYSQL_DATABASE','MYSQL_USER','MYSQL_PASSWORD','MYSQL_ROOT_PASSWORD'])||environment.MYSQL_DATABASE!=='it_toolkit'||environment.MYSQL_USER!=='itk_user'||!hex(environment.MYSQL_PASSWORD)||!hex(environment.MYSQL_ROOT_PASSWORD)||environment.MYSQL_PASSWORD===environment.MYSQL_ROOT_PASSWORD)fail();
+ let conn;
+ try{
+  const {createConnection}=await import('mysql2/promise');
+  conn=await createConnection({host:ip,port:3306,user:environment.MYSQL_USER,password:environment.MYSQL_PASSWORD,database:environment.MYSQL_DATABASE,connectTimeout:10000,multipleStatements:true});
+  if(conn.connection?.stream?.remoteAddress!==ip||conn.connection?.stream?.remotePort!==3306)fail();
+  const [rows]=await conn.query('SELECT DATABASE() AS db,CURRENT_USER() AS account,@@version AS version');
+  if(rows?.length!==1||rows[0].db!==environment.MYSQL_DATABASE||typeof rows[0].account!=='string'||!rows[0].account.startsWith(environment.MYSQL_USER+'@')||typeof rows[0].version!=='string'||!/^8\./.test(rows[0].version)||/MariaDB/i.test(rows[0].version))fail();
+  return conn;
+ }catch{if(conn)try{conn.destroy()}catch{}fail()}
+}
 async function binaryIdentity(){const s=await lstat(binary);if(!s.isFile()||s.uid!==0||(s.mode&0o022)!==0||(s.mode&0o111)===0||await realpath(binary)!==binary)fail();return [s.dev,s.ino,s.uid,s.mode,s.size,s.mtimeMs,s.ctimeMs]}
 async function privateDir(path,expected){const s=await lstat(path);if(!s.isDirectory()||s.uid!==process.geteuid()||(s.mode&0o7777)!==0o700||await realpath(path)!==path||expected&&!same(s,expected,dirFields))fail();return s}
 async function readPinnedConfig(p,dir){
@@ -173,7 +188,7 @@ export function validateFreshDatabaseActivationPolicy(input){
  return validateStoppedObservationPolicy({...input,confirmation:'INSPECT_IDENTITY_BOUND_STOPPED_CANDIDATES_ONLY'});
 }
 export async function initializeStoppedCandidateDatabase(input){
- const p=validateFreshDatabaseActivationPolicy(input);
+ validateFreshDatabaseActivationPolicy(input);
  // Rebuild the exact accepted observation request; the internal branch is not
  // exposed as a generic callback or arbitrary Docker command adapter.
  return stoppedCandidates({...input,confirmation:'INSPECT_IDENTITY_BOUND_STOPPED_CANDIDATES_ONLY'},true,true);
@@ -252,7 +267,7 @@ async function stoppedCandidates(input,observeOnly,initializeDatabase=false){
   for(const role of roles)verifyStoppedCandidate(await inspect('container',result[role].containerId),expected[role]);
   await verifyImages();const final=await inspectBoundOfflineRuntime(p.release);if(JSON.stringify(final)!==JSON.stringify(bound))fail();
   if(migrations&&JSON.stringify(await admitSignedFreshMigrations(migrationPins))!==JSON.stringify(migrations))fail();
-  if(storage)await checkStorage(false);
+  if(storage&&JSON.stringify(await checkStorage(false))!==JSON.stringify(storage))fail();
   await inventory(3);for(const role of roles)verifyStoppedCandidate(await inspect('container',result[role].containerId),expected[role]);await continuity();
   if(initializeDatabase){
    if(!observeOnly||!p.storage||!migrations||!storage?.databaseVolumeIdentity)fail();
@@ -288,17 +303,16 @@ async function stoppedCandidates(input,observeOnly,initializeDatabase=false){
    // writer custody. No TLS claim. A host unable to reach this bridge fails
    // closed; no port publication, DNS fallback or new network is attempted.
    await guard();
-   const {createConnection}=await import('mysql2/promise');
    let conn;
    try{
-    conn=await createConnection({host:started.ip,port:3306,user:environments.db.MYSQL_USER,password:environments.db.MYSQL_PASSWORD,database:environments.db.MYSQL_DATABASE,connectTimeout:10000,multipleStatements:true});
-    if(conn.connection?.stream?.remoteAddress!==started.ip||conn.connection?.stream?.remotePort!==3306)fail();
+    conn=await openPinnedFreshDatabaseConnection(started.ip,environments.db);
     await guard();
     const schema=await initializeFreshMySqlSchema(conn,{confirmation:'INITIALIZE_EMPTY_MYSQL_SCHEMA_ONLY_EXCLUSIVE_WRITER_CUSTODY',databaseName:environments.db.MYSQL_DATABASE,release:migrationPins,identity:p.storage.identity},guard);
     await guard();await verifyImages();
     if(JSON.stringify(await inspectBoundOfflineRuntime(p.release))!==JSON.stringify(bound)||JSON.stringify(await admitSignedFreshMigrations(migrationPins))!==JSON.stringify(migrations))fail();
     await guard();
     await conn.end();conn=undefined;
+    await guard();
     return Object.freeze({schema_version:1,project:p.project,release_sha256:p.release.trustedManifestSha256,configuration_sha256:p.configurationSha256,network_id:p.networkId,containers:result,database_started:true,database_initialized:true,signed_migrations_verified:true,migrations_applied:schema.migrations_applied,installation_id:schema.installation_id,identity_sha256:schema.identity_sha256,database_binding_verified:schema.database_binding_verified,bootstrap_ready:schema.bootstrap_ready,api_started:false,ingress_started:false,activation_blocked:true,tls_verified:false,installation_authorized:false,production_accepted:false});
    }catch{fail()}finally{if(conn)try{conn.destroy()}catch{}}
   }

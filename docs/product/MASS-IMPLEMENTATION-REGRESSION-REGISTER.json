@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
-  "batch": "MASS-12",
+  "batch": "MASS-13",
   "date": "2026-11-26",
   "target": "20 implementation prompts planning target, 50–100 actual development tasks per batch aspirational; count only delivered functional work, not test cases",
-  "base_commit": "3d1710d5debbd1359364a834e0d4a9885ca78310",
+  "base_commit": "7754502d46d3ecfb45d5f5037970561b32451635",
   "source_of_truth": [
     "docs/product/DELIVERY-TRACKER.json",
     "docs/product/TROUBLESHOOTING-WORK-REGISTER.json",
@@ -3276,6 +3276,49 @@
         "tests/unit/installation-database-identity.test.js",
         "Real persistent MySQL restart/restore and ambiguous commit injection pending"
       ]
+    },
+    {
+      "id": "MASS-13-01",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Pinned quiescent existing Compose configuration activation and rollback, bounded candidate custody",
+      "dependencies": [
+        "MASS-10-03",
+        "MASS-12-01",
+        "M1",
+        "DEC-001"
+      ],
+      "paths": [
+        "scripts/local-compose-service-lifecycle.mjs",
+        "scripts/switch-runtime-configuration.mjs",
+        "scripts/prepare-runtime-configuration.mjs",
+        "scripts/switch-quiescent-compose-configuration-cli.mjs",
+        "docs/product/QUIESCENT-COMPOSE-CONFIGURATION-AND-LIFECYCLE-REHEARSAL.md"
+      ],
+      "regression": [
+        "tests/unit/switch-runtime-configuration.test.js",
+        "tests/unit/prepare-runtime-configuration.test.js",
+        "tests/ci-existing-compose-lifecycle-rehearsal.mjs"
+      ]
+    },
+    {
+      "id": "MASS-13-02",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Disposable actual existing container lifecycle and configuration recovery rehearsal plus real bound MySQL transaction commit/rollback rehearsal",
+      "dependencies": [
+        "MASS-12-01",
+        "MASS-12-02",
+        "M1"
+      ],
+      "paths": [
+        "tests/ci-existing-compose-lifecycle-rehearsal.mjs",
+        ".github/workflows/ci.yml",
+        "test-installation-database-identity-mysql.js",
+        "docs/product/QUIESCENT-COMPOSE-CONFIGURATION-AND-LIFECYCLE-REHEARSAL.md"
+      ],
+      "regression": [
+        "GitHub-hosted offline Docker compatibility job",
+        "API MySQL temporary-table job; persistent restart/restore pending"
+      ]
     }
   ],
   "unresolved": [
@@ -3445,6 +3488,16 @@
         "tests/unit/local-compose-service-lifecycle.test.js",
         "tests/unit/installation-database-identity.test.js",
         "tests/unit/local-setup-lock-continuity.test.js"
+      ]
+    },
+    {
+      "id": "MASS-13",
+      "base_commit": "7754502d46d3ecfb45d5f5037970561b32451635",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "evidence": [
+        "docs/product/QUIESCENT-COMPOSE-CONFIGURATION-AND-LIFECYCLE-REHEARSAL.md",
+        "tests/ci-existing-compose-lifecycle-rehearsal.mjs",
+        "test-installation-database-identity-mysql.js"
       ]
     }
   ]

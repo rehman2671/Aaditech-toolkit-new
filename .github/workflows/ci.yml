@@ -454,6 +454,9 @@ jobs:
           node-version: "20"
       - name: Rehearse signed fixture Docker archive load on disposable runner
         run: node tests/ci-offline-docker-load-rehearsal.mjs
+      - name: Rehearse existing service lifecycle and quiescent configuration on disposable runner
+        timeout-minutes: 10
+        run: node tests/ci-existing-compose-lifecycle-rehearsal.mjs
 
   api-tests:
     name: API test suite (Node.js vs MySQL 8)

@@ -115,3 +115,18 @@ export async function inspectExistingComposeRecovery(input){
  if(JSON.stringify(a)!==JSON.stringify(b))fail();await assertUnchanged();
  return classifyLifecycleRecovery(a,first.names.length>0);
 }
+
+/** Trusted local caller only; caller must hold the same setup lock during
+ * both observations and file publication. No Docker mutation. */
+export async function openQuiescentComposeGuard(input,assertHeld){
+ if(typeof assertHeld!=='function'||!exact(input,['confirmation','project','lockRoot','containers'])||input.confirmation!=='VERIFY_PINNED_COMPOSE_QUIESCENCE_ONLY')fail();
+ const policy=validateLifecyclePolicy({...input,confirmation:'START_PINNED_EXISTING_COMPOSE_CONTAINERS_ONLY',operation:'start'});
+ const {inspect}=await openLifecycleObservation(policy,assertHeld);
+ const check=async()=>{
+  await assertHeld();
+  const a=[],b=[];for(const role of roles)a.push(await inspect(role));for(const role of roles)b.push(await inspect(role));
+  if(JSON.stringify(a)!==JSON.stringify(b)||!a.every(x=>['created','exited'].includes(x.state)&&x.health==='NOT_RUNNING'))fail();
+  await assertHeld();
+ };
+ await check();return check;
+}

@@ -3,7 +3,7 @@ import {mkdtemp,mkdir,writeFile,readFile,rm,realpath,stat} from 'node:fs/promise
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {createHash} from 'node:crypto';
-import {switchRuntimeConfiguration} from '../../scripts/switch-runtime-configuration.mjs';
+import {switchRuntimeConfiguration,switchQuiescentComposeConfiguration} from '../../scripts/switch-runtime-configuration.mjs';
 const sha=s=>createHash('sha256').update(s).digest('hex');
 const old='SERVER_HOST=old.example.com\nCADDY_HOST=old.example.com\nDB_PASSWORD=private-value\n';
 const next=old.replaceAll('old.example.com','new.example.com');
@@ -25,4 +25,8 @@ describe.skipIf(process.platform!=='linux')('local atomic configuration file swi
  it('rejects stale pin',async()=>fixture(async({input,activePath})=>{await expect(switchRuntimeConfiguration({...input,originalSha256:'f'.repeat(64)})).rejects.toThrow();expect(await readFile(activePath,'utf8')).toBe(old)}));
  it('rejects existing recovery copy without overwriting it',async()=>fixture(async({input,root,activePath})=>{const p=join(root,'.env.previous-'+sha(old));await writeFile(p,'existing',{mode:0o600});await expect(switchRuntimeConfiguration(input)).rejects.toThrow();expect(await readFile(p,'utf8')).toBe('existing');expect(await readFile(activePath,'utf8')).toBe(old)}));
  it('rejects rollback without matching active candidate',async()=>fixture(async({input,activePath})=>{await expect(switchRuntimeConfiguration({...input,operation:'rollback',confirmation:'RESTORE_CONFIGURATION_FILE_ONLY_SERVICES_QUIESCED'})).rejects.toThrow();expect(await readFile(activePath,'utf8')).toBe(old)}));
+});
+
+it('guarded Compose switch refuses non-compose or incomplete policy before touching files',async()=>{
+ for(const input of [null,{}, {confirmation:'SWITCH_PINNED_QUIESCENT_COMPOSE_FILE_ONLY',configuration:{profile:'node'},project:'x',containers:{}},{confirmation:'SWITCH_PINNED_QUIESCENT_COMPOSE_FILE_ONLY',configuration:{profile:'compose'},project:'x',containers:{}}])await expect(switchQuiescentComposeConfiguration(input)).rejects.toThrow();
 });

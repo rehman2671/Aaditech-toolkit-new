@@ -25,3 +25,8 @@ describe('local runtime configuration candidate',()=>{
   }finally{await rm(root,{recursive:true,force:true})}
  });
 });
+
+it('rejects invalid active pin and noncanonical paths before touching files',async()=>{
+ const x={confirmation:'PREPARE_RUNTIME_CONFIGURATION_CANDIDATE_ONLY',profile:'compose',activePath:'/private/.env',expectedActiveSha256:'a'.repeat(64),lockRoot:'/private/lock',changes};
+ for(const patch of [{expectedActiveSha256:'0'.repeat(64)},{expectedActiveSha256:'a'.repeat(64)+'\n'},{expectedActiveSha256:['a'.repeat(64)]},{activePath:'/private/../.env'},{lockRoot:'/private/lock\n'},{changes:null}])await expect(prepareRuntimeConfiguration({...x,...patch})).rejects.toThrow();
+});

@@ -6,7 +6,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import mysql from 'mysql2/promise';
 import {initializeLocalInstallationIdentity} from './scripts/installation-identity-store-posix.mjs';
-import {bindFreshDatabaseIdentity,assertDatabaseIdentity} from './installation-database-identity.js';
+import {bindFreshDatabaseIdentity,assertDatabaseIdentity,boundReportPool} from './installation-database-identity.js';
 const env=process.env;
 if(env.GITHUB_ACTIONS!=='true'||env.RUNNER_ENVIRONMENT!=='github-hosted'||env.AADITECH_BOUND_DB_REHEARSAL!=='isolated-ci'||
  env.NODE_ENV!=='test'||env.DB_HOST!=='127.0.0.1'||env.DB_NAME!=='it_toolkit')throw Error('ISOLATED_CI_REQUIRED');
@@ -29,6 +29,11 @@ try{
  assert.equal(await assertDatabaseIdentity(c,policy),identity.installation_id);
  assert.equal((await bindFreshDatabaseIdentity(c,policy,confirmation)).created,false);
  await assert.rejects(()=>assertDatabaseIdentity(c,{...policy,expectedIdentitySha256:'f'.repeat(64)}));
+ const bound=boundReportPool({getConnection:async()=>({beginTransaction:()=>c.beginTransaction(),query:(...a)=>c.query(...a),commit:()=>c.commit(),rollback:()=>c.rollback(),release:()=>{},destroy:()=>c.destroy()})},policy,identity.installation_id);
+ const w=await bound.getConnection();await assert.rejects(async()=>w.query('SELECT 1'));await w.beginTransaction();await w.query('INSERT INTO devices VALUES (2)');await w.commit();w.release();
+ const [[committed]]=await c.query('SELECT COUNT(*) AS n FROM devices WHERE id=2');assert.equal(Number(committed.n),1);
+ const rollback=await bound.getConnection();await rollback.beginTransaction();await rollback.query('INSERT INTO devices VALUES (3)');await rollback.rollback();rollback.release();
+ const [[rolledBack]]=await c.query('SELECT COUNT(*) AS n FROM devices WHERE id=3');assert.equal(Number(rolledBack.n),0);
  await c.query('UPDATE installation_database_identity SET identity_sha256=? WHERE singleton_id=1',['e'.repeat(64)]);
  await assert.rejects(()=>assertDatabaseIdentity(c,policy));
  await assert.rejects(()=>bindFreshDatabaseIdentity(c,policy,confirmation));

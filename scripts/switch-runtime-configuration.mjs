@@ -7,6 +7,7 @@ import {resolve,dirname,basename,join,isAbsolute} from 'node:path';
 import {createHash,randomUUID} from 'node:crypto';
 import {withLocalSetupLock} from './local-setup-lock.mjs';
 import {patchRuntimeEnvironment} from './prepare-runtime-configuration.mjs';
+import {openQuiescentComposeGuard,validateLifecyclePolicy} from './local-compose-service-lifecycle.mjs';
 const fail=()=>{throw Error('RUNTIME_CONFIGURATION_SWITCH_REFUSED')};
 const sha=b=>createHash('sha256').update(b).digest('hex');
 const digest=x=>typeof x==='string'&&/^[a-f0-9]{64}$/.test(x)&&!/^0+$/.test(x);
@@ -44,21 +45,39 @@ async function publishCopy(parent,dest,bytes,st){
  }finally{if(created)await unlink(tmp)}
  await syncDir(parent,st);
 }
+function snapshotChanges(profile,changes){
+ const keys=profile==='compose'?['serverHost']:profile==='node'?['serverHost','port','dbHost','dbPort','dbName']:[];
+ if(!keys.length||!own(changes,keys)||keys.some(k=>!['string','number'].includes(typeof changes[k])))fail();
+ return Object.freeze({...changes});
+}
 async function validateCandidate(old,next,profile,changes){
  let text;try{text=new TextDecoder('utf-8',{fatal:true}).decode(old)}catch{fail()}
  if(!Buffer.from(text).equals(old)||!Buffer.from(patchRuntimeEnvironment(text,profile,changes).text).equals(next))fail();
 }
-export async function switchRuntimeConfiguration(input){
+export async function switchRuntimeConfiguration(input){return switchFile(input,null)}
+export async function switchQuiescentComposeConfiguration(input){
+ if(!own(input,['confirmation','configuration','containers','project'])||input.confirmation!=='SWITCH_PINNED_QUIESCENT_COMPOSE_FILE_ONLY'||input.configuration?.profile!=='compose')fail();
+ const config=input.configuration;
+ if(!own(config,['confirmation','operation','profile','activePath','lockRoot','originalSha256','candidateSha256','changes']))fail();
+ const policy=validateLifecyclePolicy({confirmation:'START_PINNED_EXISTING_COMPOSE_CONTAINERS_ONLY',operation:'start',lockRoot:config.lockRoot,project:input.project,containers:input.containers});
+ const guard={confirmation:'VERIFY_PINNED_COMPOSE_QUIESCENCE_ONLY',lockRoot:policy.lockRoot,project:policy.project,containers:policy.containers};
+ return switchFile(config,guard);
+}
+async function switchFile(input,guard){
  const common=['confirmation','operation','profile','activePath','lockRoot','originalSha256','candidateSha256','changes'];
  if(process.platform!=='linux'||typeof process.geteuid!=='function'||!own(input,common)||!['activate','rollback'].includes(input.operation)||input.confirmation!==(input.operation==='activate'?'SWITCH_CONFIGURATION_FILE_ONLY_SERVICES_QUIESCED':'RESTORE_CONFIGURATION_FILE_ONLY_SERVICES_QUIESCED')||!pathOk(input.activePath)||basename(input.activePath)!=='.env'||!pathOk(input.lockRoot)||!digest(input.originalSha256)||!digest(input.candidateSha256)||input.originalSha256===input.candidateSha256)fail();
- const {operation,profile,activePath,lockRoot,originalSha256,candidateSha256,changes}=input,parent=dirname(activePath);
+ const {operation,profile,activePath,lockRoot,originalSha256,candidateSha256}=input,parent=dirname(activePath);
+ const changes=snapshotChanges(profile,input.changes);
+ if(parent===lockRoot)fail();
  const candidate=join(parent,'.env.candidate'),backup=join(parent,'.env.previous-'+originalSha256),replacement=join(parent,'.env.switch-ready-'+randomUUID());
- return withLocalSetupLock({confirmation:'ACQUIRE_LOCAL_SETUP_LOCK_ONLY',lockRoot},async()=>{
+ return withLocalSetupLock({confirmation:'ACQUIRE_LOCAL_SETUP_LOCK_ONLY',lockRoot},async({assertHeld})=>{
+  const verifyQuiescence=guard?await openQuiescentComposeGuard(guard,assertHeld):assertHeld;
   const dir=await privateDir(parent);
   const current=await pinned(activePath,operation==='activate'?originalSha256:candidateSha256);
   const original=operation==='activate'?current:await pinned(backup,originalSha256);
   const next=await pinned(candidate,candidateSha256);
   await validateCandidate(original.bytes,next.bytes,profile,changes);
+  await verifyQuiescence();
   if(operation==='activate'){
    // Durable no-overwrite recovery copy before active name changes.
    await publishCopy(parent,backup,original.bytes,dir);
@@ -70,12 +89,16 @@ export async function switchRuntimeConfiguration(input){
   await privateDir(parent,dir);
   if(!same(current.st,await lstat(activePath)))fail();
   // Atomic same-directory replacement under exclusive cooperative custody.
+  await verifyQuiescence();
+  await privateDir(parent,dir);
+  if(!same(current.st,await lstat(activePath)))fail();
   await rename(replacement,activePath);
   await syncDir(parent,dir);
   await pinned(activePath,expected);
   await pinned(backup,originalSha256);
+  await verifyQuiescence();
   return {operation,active_sha256:expected,recovery_sha256:originalSha256,configuration_file_changed:true,
-   services_quiescence_operator_asserted:true,service_restart_performed:false,tls_verified:false,database_continuity_verified:false,production_accepted:false};
+   services_quiescence_operator_asserted:true,existing_container_quiescence_observed:!!guard,service_restart_performed:false,tls_verified:false,database_continuity_verified:false,production_accepted:false};
  });
 }
 
@@ -84,7 +107,8 @@ export async function switchRuntimeConfiguration(input){
 export async function inspectRuntimeConfigurationRecovery(input){
  const keys=['confirmation','profile','activePath','lockRoot','originalSha256','candidateSha256','changes'];
  if(process.platform!=='linux'||typeof process.geteuid!=='function'||!own(input,keys)||input.confirmation!=='INSPECT_RUNTIME_CONFIGURATION_RECOVERY_ONLY'||!pathOk(input.activePath)||basename(input.activePath)!=='.env'||!pathOk(input.lockRoot)||!digest(input.originalSha256)||!digest(input.candidateSha256)||input.originalSha256===input.candidateSha256)fail();
- const {activePath,lockRoot,originalSha256,candidateSha256,profile,changes}=input,parent=dirname(activePath);
+ const {activePath,lockRoot,originalSha256,candidateSha256,profile}=input,parent=dirname(activePath);
+ const changes=snapshotChanges(profile,input.changes);if(parent===lockRoot)fail();
  const dir=await privateDir(parent),lock=await privateDir(lockRoot);
  const candidate=join(parent,'.env.candidate'),backup=join(parent,'.env.previous-'+originalSha256);
  async function observe(path,pins){

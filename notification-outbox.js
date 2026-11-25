@@ -63,7 +63,7 @@ export async function runNotificationOutboxBatch(adapters = {}) {
   // Five concurrent messages per group; DB claim lease is 300 seconds.
   // External delivery remains at-least-once if a crash occurs before the ACK.
   for (let i = 0; i < rows.length; i += 5) {
-    await Promise.all(rows.slice(i, i + 5).map(async row => {
+    const settled=await Promise.allSettled(rows.slice(i, i + 5).map(async row => {
       let outcome;
       try {
         outcome = await deliverOutboxEntry(row, adapters);
@@ -82,16 +82,17 @@ export async function runNotificationOutboxBatch(adapters = {}) {
       }
       counts.processed += 1;
     }));
+    if(settled.some(x=>x.status==='rejected'))throw Error('OUTBOX_BATCH_UNCONFIRMED');
   }
   return counts;
 }
 
 export function startNotificationOutboxWorker(intervalMs = 5000) {
   if (process.env.NODE_ENV !== 'production') return () => {};
-  let running = false;
+  let running = false,stopped=false,active=null;
   let ticks = 0;
   const run = async () => {
-    if (running || !db.isMysqlConnected()) return;
+    if (stopped || running || !db.isMysqlConnected()) return;
     running = true;
     try {
       await runNotificationOutboxBatch();
@@ -103,8 +104,8 @@ export function startNotificationOutboxWorker(intervalMs = 5000) {
       running = false;
     }
   };
-  const timer = setInterval(() => { void run(); }, Math.max(1000, intervalMs));
-  timer.unref?.();
-  void run();
-  return () => clearInterval(timer);
+  const tick=()=>{if(!stopped&&!running)active=run()};
+  const timer=setInterval(tick,Math.max(1000,intervalMs));
+  timer.unref?.();tick();
+  return async()=>{stopped=true;clearInterval(timer);await active};
 }

@@ -16,6 +16,9 @@ import { verifyBoundRuntimeHistory,probeBoundRuntimeIdentity } from './bound-run
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+import {createTaskTracker} from './runtime-shutdown.js';
+const databaseTasks=createTaskTracker();
+let databaseStopping=false;
 let pool = null;
 let isConnected = false;
 let redisClient = null;
@@ -100,7 +103,11 @@ export async function cacheDelPattern(pattern) {
 let isConnecting = false;
 let dbHealthCheckTimer = null;
 
-export async function attemptConnection() {
+export function attemptConnection(){
+  if(databaseStopping)return Promise.resolve(false);
+  return databaseTasks.track(connectDatabase());
+}
+async function connectDatabase() {
   if (isConnecting) return isConnected;
   // Read/validate configuration BEFORE setting isConnecting. A validation
   // failure must not poison all future health-check/reconnect attempts.
@@ -198,8 +205,10 @@ export async function attemptConnection() {
 }
 
 export function startDbHealthCheck(intervalMs = 30000) {
+  if(databaseStopping)return null;
   if (dbHealthCheckTimer) return dbHealthCheckTimer;
-  dbHealthCheckTimer = setInterval(async () => {
+  const tick=async()=>{
+    if(databaseStopping)return;
     if (!isConnected) {
       console.log('🔄 Periodic DB health-check: retrying MySQL connection...');
       try {
@@ -218,7 +227,8 @@ export function startDbHealthCheck(intervalMs = 30000) {
         isConnected = false;
       }
     }
-  }, intervalMs);
+  };
+  dbHealthCheckTimer=setInterval(()=>{if(!databaseStopping)databaseTasks.track(tick())},intervalMs);
   if (dbHealthCheckTimer.unref) dbHealthCheckTimer.unref();
   return dbHealthCheckTimer;
 }
@@ -231,6 +241,7 @@ export function stopDbHealthCheck() {
 }
 
 export async function initDbPool(options = {}) {
+  if(databaseStopping)return false;
   // Initialize Redis in background
   initRedisClient();
 
@@ -252,6 +263,7 @@ export async function initDbPool(options = {}) {
   const attempts = options.maxAttempts || (delays.length + 1);
 
   for (let attempt = 1; attempt <= attempts; attempt++) {
+    if(databaseStopping)return false;
     try {
       console.log(`[DB Boot] Connection attempt ${attempt}/${attempts}...`);
       if (await attemptConnection()) return true;
@@ -2069,8 +2081,17 @@ function normalizeMetricPoint(deviceId, m = {}) {
   };
 }
 
-export async function flushTelemetryQueue() {
+let flushInFlight=null;
+export function flushTelemetryQueue(){
+  if(flushInFlight)return flushInFlight;
+  const work=databaseTasks.track(flushTelemetryBatch());
+  flushInFlight=work;
+  void work.then(()=>{if(flushInFlight===work)flushInFlight=null},()=>{if(flushInFlight===work)flushInFlight=null});
+  return work;
+}
+async function flushTelemetryBatch() {
   if (telemetryQueue.length === 0) return 0;
+  if(process.env.NODE_ENV!=='test'&&!isMysqlConnected())throw Error('TELEMETRY_DATABASE_UNAVAILABLE');
   const batch = telemetryQueue.splice(0, telemetryQueue.length);
   if (batch.length === 0) return 0;
 
@@ -2104,6 +2125,7 @@ export async function flushTelemetryQueue() {
 }
 
 export function startTelemetryFlushWorker(intervalMs = TELEMETRY_FLUSH_INTERVAL_MS) {
+  if(databaseStopping)return null;
   if (telemetryFlushTimer) return telemetryFlushTimer;
   telemetryFlushTimer = setInterval(() => {
     flushTelemetryQueue().catch(err => console.error('Telemetry batch flush error:', err.message));
@@ -3576,6 +3598,7 @@ export async function updateRetentionSettings(updates) {
 // ---------------- DATA RETENTION ENGINE ----------------
 let lastRetentionRun = null;
 let retentionSchedulerTimer = null;
+let retentionInitialTimer=null;
 
 export function getLastRetentionRun() {
   return lastRetentionRun;
@@ -3751,17 +3774,40 @@ export async function runDataRetentionPurge() {
 }
 
 export function initRetentionScheduler(intervalMs = 3600000) {
-  if (retentionSchedulerTimer) clearInterval(retentionSchedulerTimer);
-
-  setTimeout(() => {
-    runDataRetentionPurge().catch(e => console.error('Retention initial run notice:', e.message));
-  }, 4000);
-
-  retentionSchedulerTimer = setInterval(() => {
-    runDataRetentionPurge().catch(e => console.error('Scheduled retention purge error:', e.message));
-  }, intervalMs);
-
+  if(databaseStopping)return null;
+  if(retentionSchedulerTimer)clearInterval(retentionSchedulerTimer);
+  if(retentionInitialTimer)clearTimeout(retentionInitialTimer);
+  let running=false;
+  const tick=()=>{
+    if(databaseStopping||running)return;
+    running=true;
+    databaseTasks.track(runDataRetentionPurge()).catch(e=>console.error('Retention purge failed:',e.code||'UNAVAILABLE')).finally(()=>{running=false});
+  };
+  retentionInitialTimer=setTimeout(tick,4000);
+  retentionSchedulerTimer=setInterval(tick,intervalMs);
   return retentionSchedulerTimer;
+}
+export async function stopDatabaseBackgroundWork(){
+ databaseStopping=true;stopDbHealthCheck();
+ clearInterval(telemetryFlushTimer);telemetryFlushTimer=null;
+ clearTimeout(retentionInitialTimer);retentionInitialTimer=null;
+ clearInterval(retentionSchedulerTimer);retentionSchedulerTimer=null;
+ await databaseTasks.drain();
+}
+export async function drainDatabaseWork(){
+ if(!databaseStopping)throw Error('DATABASE_SHUTDOWN_NOT_STARTED');
+ await databaseTasks.drain();
+ while(telemetryQueue.length){
+  if(!isMysqlConnected()||!await flushTelemetryQueue())throw Error('TELEMETRY_DRAIN_UNCONFIRMED');
+ }
+ await databaseTasks.drain();
+}
+export async function closeDatabaseResources(){
+ if(!databaseStopping||telemetryQueue.length||flushInFlight)throw Error('DATABASE_DRAIN_UNCONFIRMED');
+ await databaseTasks.drain();
+ const active=pool;pool=null;isConnected=false;
+ const cache=redisClient;redisClient=null;isRedisConnected=false;
+ try{if(active)await active.end()}finally{if(cache)cache.disconnect()}
 }
 
 // Tenant-specific integration settings must never inherit another tenant's

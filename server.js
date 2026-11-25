@@ -1,6 +1,7 @@
 import { scopedAlertRules, isApprovedWebhookUrl, deliverTenantWebhook } from './tenant-alert-safety.js';
 import { smtpTransportConfig, isApprovedEmailRecipient, deliverTenantEmail } from './smtp-alerts.js';
 import { startNotificationOutboxWorker } from './notification-outbox.js';
+import {createRuntimeShutdown,createTaskTracker} from './runtime-shutdown.js';
 import { destinationFingerprint } from './notification-destination.js';
 import { approvedGithubBuildConfig, readApprovedBuildStatus, dispatchApprovedBuild } from './github-build-release.js';
 /**
@@ -154,6 +155,12 @@ if (REQUIRE_SECURE_SETUP && INITIAL_SETUP_TOKEN.length < 32) {
 const revokedTokens = new Set();
 
 const app = express();
+const auditTasks=createTaskTracker();
+let shutdownController;
+app.use((req,res,next)=>{
+ if(!shutdownController?.stopping)return next();
+ res.set('Connection','close');return res.status(503).json({error:'SERVER_DRAINING'});
+});
 const PORT = process.env.PORT || 3000;
 
 // Trust front-end reverse proxies (Nginx / Cloud Run) for rate limiting & IP resolution
@@ -305,7 +312,7 @@ function logAudit(actor, action, targetResource, details, req) {
     client_ip: req?.ip || req?.headers?.['x-forwarded-for'] || '127.0.0.1',
     created_at: new Date().toISOString()
   };
-  logAuditToDb(logEntry).catch(err => console.error('logAudit error:', err.message));
+  auditTasks.track(logAuditToDb(logEntry)).catch(err => console.error('logAudit error:', err.message));
   return logEntry;
 }
 
@@ -3637,7 +3644,19 @@ if (!runningUnderVitest) {
   // Initialize scheduled hourly data retention & partition cleanup engine
   db.initRetentionScheduler(3600000);
   // Each PM2 worker may poll; DB-atomic leases enforce one owner per job.
-  if (isProduction) startNotificationOutboxWorker();
+  const stopOutbox=isProduction?startNotificationOutboxWorker():async()=>{};
+  shutdownController=createRuntimeShutdown({
+    stopAccepting:()=>new Promise((resolve,reject)=>{serverInstance.close(err=>err?reject(err):resolve());serverInstance.closeIdleConnections?.()}),
+    stopBackground:async()=>{await Promise.all([stopOutbox(),db.stopDatabaseBackgroundWork()])},
+    drain:async()=>{await auditTasks.drain();await db.drainDatabaseWork()},
+    closeResources:()=>db.closeDatabaseResources()
+  });
+  let shutdownRequested=false;
+  const shutdown=()=>{
+    if(shutdownRequested)return;shutdownRequested=true;
+    shutdownController.shutdown().then(()=>{console.log('Runtime shutdown drained.');process.exit(0)},()=>{console.error('Runtime shutdown unconfirmed.');serverInstance.closeAllConnections?.();process.exit(1)});
+  };
+  process.on('SIGTERM',shutdown);process.on('SIGINT',shutdown);
 }
 
 export { app, serverInstance };

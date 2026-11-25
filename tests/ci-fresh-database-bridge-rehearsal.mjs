@@ -183,14 +183,14 @@ try{
    const apiExpected={id:apiId,imageId:apiImage.Id,project,role:'api',networkId,labels:apiLabels,environment:apiEnv,imageEnvironment:apiImageEnvironment,imageProcess:candidateProcessSpec(apiImage.Config),identityMount};
    verifyStoppedCandidate(inspect('container',apiId),apiExpected);
    await assertHeld();docker(['container','start',apiId]);
-   let pairPin;
+   let pairPin,caddyPreviouslyStarted=false;
    async function observePair(){
     await assertHeld();
     const pair=verifyRunningFreshPair(inspect('container',id),inspect('container',apiId),{db:expected,api:apiExpected},inspect('network',networkId));
     const {health:dbHealth,...dbPin}=pair.db,{health:apiHealth,...apiPin}=pair.api;
     assert.equal(dbHealth,'healthy');assert.equal(dbPin.ip,endpoint.ip);assert.equal(dbPin.pid,endpoint.pid);assert.equal(dbPin.endpointId,endpoint.endpointId);
     const current={db:dbPin,api:apiPin};if(pairPin)assert.deepEqual(current,pairPin);else pairPin=current;
-    await storageCheck(assertHeld,false,storage.databaseVolumeIdentity,storage.apiVolumeIdentities);
+    await storageCheck(assertHeld,false,storage.databaseVolumeIdentity,storage.apiVolumeIdentities,caddyPreviouslyStarted?storage.caddyVolumeIdentities:undefined);
     return apiHealth;
    }
    const deadline=performance.now()+90000;
@@ -215,7 +215,7 @@ try{
    const caddyExpected={id:caddyId,imageId:caddyImage.Id,project,role:'caddy',networkId,labels:caddyLabels,environment:caddyEnv,imageEnvironment:caddyImageEnvironment,imageProcess:privateCaddyProcessSpec(caddyImage.Config),identityMount:null,tlsMount};
    verifyStoppedCandidate(inspect('container',caddyId),caddyExpected);
    assert.equal(await observePair(),'healthy');await assertHeld();
-   docker(['container','start',caddyId]);
+   docker(['container','start',caddyId]);caddyPreviouslyStarted=true;
    let triplePin;
    async function observeTriple(){
     await assertHeld();
@@ -242,8 +242,20 @@ try{
    console.log('PASS: real Caddy private HTTPS, pinned direct leaf and root, clean API readiness, private route denial and wrong hostname/root/leaf refusal; no published host port or signed runtime activation.');
    await rehearsePrivateLanForwarder({target:httpsInput,identity:pins,stopBackend:async()=>{docker(['container','stop','--time','3',caddyId]);await assertHeld()}});
    docker(['container','rm','--force',caddyId]);caddyId=undefined;
-   // Scoped cleanup before the independent occupied-schema denial check.
-   docker(['container','rm','--force',apiId]);apiId=undefined;
+   // Verify actual graceful API SIGTERM and same-container restart.
+   docker(['container','stop','--time','30',apiId]);
+   const exited=inspect('container',apiId).State;
+   assert.equal(exited.Status,'exited');assert.equal(exited.ExitCode,0);assert.equal(exited.OOMKilled,false);
+   assert.match(docker(['container','logs',apiId]),/Runtime shutdown drained\./);
+   await storageCheck(assertHeld,false,storage.databaseVolumeIdentity,storage.apiVolumeIdentities,storage.caddyVolumeIdentities);
+   docker(['container','start',apiId]);pairPin=undefined;
+   const restartDeadline=performance.now()+90000;
+   while(await observePair()!=='healthy'){if(performance.now()>restartDeadline)throw Error('API_RESTART_TIMEOUT');await sleep(2000)}
+   const restarted=JSON.parse(docker(['container','exec','--user','1000:1000',apiId,'node','/app/scripts/probe-fresh-api-runtime.mjs',endpoint.ip],{},30000));
+   assert.equal(verifyFreshApiProbeReceipt(restarted),true);
+   docker(['container','stop','--time','30',apiId]);assert.equal(inspect('container',apiId).State.ExitCode,0);
+   docker(['container','rm',apiId]);apiId=undefined;
+   console.log('PASS: real API graceful SIGTERM, same-container restart, preserved database identity/history and clean setup.');
    await assertHeld();
   });
   console.log('PASS: actual source-built non-root API container, wrong identity startup refusal, exact DB/API private pair, read-only identity, in-container history/HTTP/clean setup probe; not signed end-to-end activation.');

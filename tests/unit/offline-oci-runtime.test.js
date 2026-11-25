@@ -2,6 +2,8 @@ import {describe,it,expect} from 'vitest';
 import {createHash,generateKeyPairSync,sign} from 'node:crypto';
 import {gzipSync} from 'node:zlib';
 import {mkdtemp,mkdir,chmod,writeFile,rm,realpath} from 'node:fs/promises';
+import {spawnSync} from 'node:child_process';
+import {fileURLToPath} from 'node:url';
 import {tmpdir} from 'node:os';
 import {join,dirname} from 'node:path';
 import {verifyOfflineOciGraph,inspectOfflineOciRuntime} from '../../scripts/inspect-offline-oci-runtime.mjs';
@@ -107,6 +109,13 @@ describe.skipIf(process.platform!=='linux')('real signed staged OCI release',()=
   const r=await inspectOfflineOciRuntime(input);
   expect(r.images.map(x=>x.image_config_id)).toEqual(g.manifests.map(x=>x.config.digest));
   expect(r).toMatchObject({release_signature_verified:true,compressed_blob_integrity_verified:true,oci_descriptor_graph_verified:true,uncompressed_diff_ids_verified:false,image_imported:false,installation_authorized:false,production_accepted:false});
+ }));
+ it('inspects signed staged release through actual CLI',()=>staged(async({input})=>{
+  const doc={...input};delete doc.confirmation;
+  const script=fileURLToPath(new URL('../../scripts/inspect-offline-oci-runtime-cli.mjs',import.meta.url));
+  const run=spawnSync(process.execPath,[script,'--inspect-signed-oci'],{input:JSON.stringify(doc),encoding:'utf8',timeout:15000});
+  expect(run.status).toBe(0);expect(run.stderr).toBe('');
+  expect(JSON.parse(run.stdout)).toMatchObject({oci_descriptor_graph_verified:true,installation_authorized:false});
  }));
  it('refuses modified layer bytes after staging',()=>staged(async({g,input})=>{
   const d=g.manifests[0].layers[0].digest;await writeFile(join(input.stagedDirectory,'payload/runtime/blobs/sha256',d.slice(7)),Buffer.from('tampered'));

@@ -429,6 +429,12 @@ jobs:
           console.log('PASS: actual local Docker socket observation and missing image refusal.');
           NODE
 
+      - name: Rehearse exact signed offline archive load on disposable hosted Docker
+        timeout-minutes: 4
+        env:
+          AADITECH_OFFLINE_DOCKER_REHEARSAL: isolated-hosted-ci
+        run: node tests/fixtures/rehearse-offline-docker-load.mjs
+
       - name: Run Vitest unit & integration test suite (enforcing 70%+ coverage)
         env:
           DB_HOST: 127.0.0.1

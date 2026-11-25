@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "batch": "MASS-03",
+  "batch": "MASS-04",
   "date": "2026-11-26",
   "target": "20 implementation prompts planning target, 50–100 actual development tasks per batch aspirational; count only delivered functional work, not test cases",
   "base_commit": "26f6dd7ad116e85e9fd52235f681c3d57f8f7a23",
@@ -2809,6 +2809,66 @@
         "test-auth-integration.js",
         "Real browser and HTTP deployed-mode auth/setup regression, local host/TLS restart and installer acceptance pending"
       ]
+    },
+    {
+      "id": "MASS-04-01",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Distinct diagnostic review consent request/grant/deny/revoke, 24h expiry, migration 023, audited replay and portal",
+      "dependencies": [
+        "MASS-02-01",
+        "MASS-02-02",
+        "MASS-03-01",
+        "FE-16"
+      ],
+      "paths": [
+        "troubleshooting-diagnostic-consent.js",
+        "troubleshooting-consent-routes.js",
+        "database/migrations/023_troubleshooting_diagnostic_consent.sql",
+        "Enterprise/portal/diagnostic-consent.html",
+        "Enterprise/portal/diagnostic-consent.js",
+        "Enterprise/portal/troubleshooting-review.js"
+      ],
+      "regression": [
+        "tests/unit/troubleshooting-diagnostic-consent.test.js",
+        "test-migrations-runner.js",
+        "Real MySQL concurrency, authenticated HTTP and browser consent, expiry, revocation, active assignment, all catalog diagnostic types and D3 denial; no collection authority"
+      ]
+    },
+    {
+      "id": "MASS-04-02",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Windows token-free connection-only probe and GUI button using same HTTPS health validation",
+      "dependencies": [
+        "M2",
+        "M1"
+      ],
+      "paths": [
+        "Enterprise/agent/Configure-Agent.ps1",
+        "Enterprise/agent/Configure-Agent-GUI.ps1"
+      ],
+      "regression": [
+        "Enterprise/tests/Test-ConfigureAgent.ps1 under Windows PowerShell 5.1 and 7",
+        "Physical TLS root, wrong cert, redirect, unreachable server, DB unhealthy, no token/config mutation, actual enrollment and signed installer acceptance"
+      ]
+    },
+    {
+      "id": "MASS-04-03",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Local POSIX Node/Compose runtime configuration candidate with pin, lock and private no-overwrite output",
+      "dependencies": [
+        "M1",
+        "DEC-001",
+        "MASS-03-03"
+      ],
+      "paths": [
+        "scripts/prepare-runtime-configuration.mjs",
+        "scripts/prepare-runtime-configuration-cli.mjs",
+        ".gitignore"
+      ],
+      "regression": [
+        "tests/unit/prepare-runtime-configuration.test.js",
+        "Manual real env compatibility, owner-only file, stale digest, existing candidate, activation/restart/rollback and TLS/DB continuity acceptance"
+      ]
     }
   ],
   "unresolved": [
@@ -2842,7 +2902,11 @@
     },
     {
       "id": "BLOCK-SETUP-EXECUTION",
-      "next": "Approved graphical server installer and local editable runtime host/DB/TLS configuration, agent connectivity, restart/recovery and signed distribution; browser currently edits presentation only."
+      "next": "Candidate staging and Windows health probe added; approve runtime topology, implement actual installer, activation/restart/rollback, private TLS and DB binding, signed agent enrollment."
+    },
+    {
+      "id": "BLOCK-DIAGNOSTIC-EXECUTION",
+      "next": "Review consent is not diagnostic collection consent. Approved collection policy, endpoint credential binding, signed attempt and evidence custody, physical postcheck and verified outcomes remain."
     }
   ],
   "regression": {
@@ -2881,6 +2945,16 @@
         "ebdce10ed6beffc0ca55d89242a7053e0ab2fdf5",
         "ed7c9a10df64863f42f3b5aac021812cfa2389a7",
         "0efd9c9457c37cda20b372549f550e882b1b702f"
+      ],
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI"
+    },
+    {
+      "id": "MASS-04",
+      "source_commits": [
+        "60f8735d970fd92778e62cec69503f9e3070c579",
+        "5c81a3fedd013ea0c8b0f3a83c96054bd5c18a43",
+        "a17a6c457766fe40bf5109f45fe8ded47304c5f3",
+        "5bc421d3a400f5dbb67e8a92a69d3cbcd575fe4b"
       ],
       "status": "SOURCE_IMPLEMENTED_PENDING_CI"
     }

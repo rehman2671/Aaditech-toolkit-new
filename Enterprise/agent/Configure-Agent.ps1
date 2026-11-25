@@ -19,10 +19,38 @@ param(
     [string]$ConfigPath = (Join-Path $env:ProgramData 'ITToolkit-Agent\agent.json'),
     [switch]$NonInteractive,
     [switch]$TestConnection,
+    [switch]$ProbeOnly,
     [switch]$ClearRegistryOverride
 )
 
 $ErrorActionPreference = 'Stop'
+
+function Get-ValidatedAgentOrigin([string]$Value) {
+    $candidate = $Value.Trim().TrimEnd('/')
+    $parsed = $null
+    if (-not [uri]::TryCreate($candidate, [UriKind]::Absolute, [ref]$parsed) -or
+        $parsed.Scheme -ne 'https' -or [string]::IsNullOrWhiteSpace($parsed.Host) -or
+        $parsed.UserInfo -or $parsed.AbsolutePath -ne '/' -or $parsed.Query -or $parsed.Fragment) {
+        throw 'Provide an HTTPS origin only (https://host[:port]); no credentials, path, query or fragment.'
+    }
+    return $parsed.GetLeftPart([UriPartial]::Authority)
+}
+function Test-AgentServerHealth([string]$Origin) {
+    # No token, redirect, certificate bypass or configuration write.
+    try {
+        $response = Invoke-RestMethod -Uri "$Origin/healthz" -TimeoutSec 10 -MaximumRedirection 0 -ErrorAction Stop
+        if ($response.status -ne 'ok' -or $response.components.database -ne 'HEALTHY') { throw 'Unhealthy' }
+    } catch { throw 'Server health check failed: trusted HTTPS and healthy MySQL are required.' }
+}
+if ($ProbeOnly) {
+    if ([string]::IsNullOrWhiteSpace($ServerUrl) -or $TokenFile -or $EnrollmentToken -or $ClearRegistryOverride) {
+        throw 'ProbeOnly requires an explicit server origin and accepts no enrollment or override inputs.'
+    }
+    $probeOrigin = Get-ValidatedAgentOrigin $ServerUrl
+    Test-AgentServerHealth $probeOrigin
+    [pscustomobject]@{ origin = $probeOrigin; https_health_verified = $true; database_healthy = $true; enrollment_verified = $false; configuration_changed = $false }
+    return
+}
 # Writing ProgramData and the machine-wide configuration is an elevated
 # operation. Reject before reading a secret or creating any files.
 if ($env:OS -eq 'Windows_NT') {
@@ -49,18 +77,7 @@ if ([string]::IsNullOrWhiteSpace($ServerUrl)) {
     $ServerUrl = Read-Host "HTTPS server URL (e.g. https://toolkit.example.com) [$previous]"
     if (-not $ServerUrl) { $ServerUrl = $previous }
 }
-$ServerUrl = $ServerUrl.Trim().TrimEnd('/')
-$uri = $null
-if (-not [uri]::TryCreate($ServerUrl, [UriKind]::Absolute, [ref]$uri) -or
-    $uri.Scheme -ne 'https' -or
-    [string]::IsNullOrWhiteSpace($uri.Host) -or
-    -not [string]::IsNullOrEmpty($uri.UserInfo) -or
-    $uri.AbsolutePath -ne '/' -or
-    -not [string]::IsNullOrEmpty($uri.Query) -or
-    -not [string]::IsNullOrEmpty($uri.Fragment)) {
-    throw 'Provide an HTTPS origin only (https://host[:port]); no credentials, path, query or fragment.'
-}
-$base = $uri.GetLeftPart([UriPartial]::Authority)
+$base = Get-ValidatedAgentOrigin $ServerUrl
 
 $token = ''
 if ($TokenFile -and $EnrollmentToken) {
@@ -107,11 +124,7 @@ if (Test-Path $reg) {
     }
 }
 if ($TestConnection) {
-    # No -SkipCertificateCheck: a real trusted HTTPS server is mandatory.
-    $response = Invoke-RestMethod -Uri "$base/healthz" -TimeoutSec 10
-    if ($response.status -ne 'ok' -or $response.components.database -ne 'HEALTHY') {
-        throw "Server health check failed: HTTPS must be valid and MySQL must report HEALTHY at $base"
-    }
+    Test-AgentServerHealth $base
 }
 
 $newEndpoint = "$base/api/v1/ingest/telemetry"

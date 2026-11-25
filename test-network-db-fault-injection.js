@@ -274,6 +274,25 @@ try {
   const batchRetry = await agentPost(peerPort,'/api/v1/ingest/telemetry',telemetry);
   assert.equal(batchRetry.status,200);
   assert.equal(batchRetry.body.duplicate,true);
+  // Real process crash after a durable acknowledgement. Retry the exact
+  // same request through a surviving peer, then a newly started worker.
+  // Never execute an endpoint command or use customer data.
+  const mainExit=once(main,'exit');
+  assert.equal(main.kill('SIGKILL'),true);
+  const [exitCode,exitSignal]=await mainExit;
+  assert.equal(exitCode,null);assert.equal(exitSignal,'SIGKILL');
+  const afterCrash=await agentPost(peerPort,'/api/v1/ingest/telemetry',telemetry);
+  assert.equal(afterCrash.status,200);assert.equal(afterCrash.body.duplicate,true);
+  assert.equal(afterCrash.body.recorded_at,batch.body.recorded_at);
+  const replacement=startWorker(mainPort,proxyPort);
+  await waitFor(mainPort,200,35);
+  assert.equal(replacement.exitCode,null);
+  const afterRestart=await agentPost(mainPort,'/api/v1/ingest/telemetry',telemetry);
+  assert.equal(afterRestart.status,200);assert.equal(afterRestart.body.duplicate,true);
+  assert.equal(afterRestart.body.recorded_at,batch.body.recorded_at);
+  const conflicting=await agentPost(mainPort,'/api/v1/ingest/telemetry',{...telemetry,metrics:{cpu:{utilization_pct:17}}});
+  assert.equal(conflicting.status,409);assert.equal(conflicting.body.error,'TELEMETRY_BATCH_ID_CONFLICT');
+  console.log('[PASS] Real API SIGKILL, surviving peer and replacement worker preserve one durable telemetry receipt.');
   const [before] = await pool.execute('SELECT last_seen_at FROM devices WHERE id = ?', [deviceId]);
   for (const port of [mainPort,peerPort]) {
     for (const path of ['/api/v1/ingest/telemetry','/api/ingest']) {

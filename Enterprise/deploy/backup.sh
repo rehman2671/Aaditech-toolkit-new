@@ -16,7 +16,9 @@ BACKUP_KEEP="${BACKUP_KEEP:-0}"
 
 log() { printf '[backup] %s\n' "$*"; }
 die() { printf '[backup][ERROR] %s\n' "$*" >&2; exit 1; }
-compose() { docker compose -f "$COMPOSE_FILE" "$@"; }
+source "$HERE/deploy/recovery-compose-env.sh"
+compose() { recovery_compose "$@"; }
+trap recovery_cleanup EXIT
 
 [ -f "$ENV_FILE" ] || die "Missing $ENV_FILE. Configure the deployment first."
 [ -f "$COMPOSE_FILE" ] || die "Missing $COMPOSE_FILE."
@@ -25,12 +27,7 @@ command -v docker >/dev/null 2>&1 || die "Docker is required."
 command -v sha256sum >/dev/null 2>&1 || die "sha256sum is required for backup integrity."
 [[ "$BACKUP_KEEP" =~ ^(0|[1-9][0-9]{0,5})$ ]] || die "BACKUP_KEEP must be a canonical integer from 0 to 999999."
 
-# shellcheck disable=SC1090
-set -a; source "$ENV_FILE"; set +a
-DB_NAME="${MYSQL_DATABASE:-it_toolkit}"
-DB_USER="${MYSQL_USER:-itk_user}"
-[[ "$DB_NAME" =~ ^[A-Za-z0-9_]+$ ]] || die "Invalid MYSQL_DATABASE name."
-[ -n "$DB_USER" ] && [ -n "${MYSQL_PASSWORD:-}" ] || die "MYSQL_USER/MYSQL_PASSWORD must be configured."
+prepare_recovery_env "$ENV_FILE" "${AADITECH_RECOVERY_EXPECTED_ENV_SHA:-}" || die "Recovery environment refused."
 
 mkdir -p "$BACKUP_DIR"
 chmod 700 "$BACKUP_DIR"
@@ -38,7 +35,7 @@ STAMP="$(date +%Y%m%d-%H%M%S)-$$"
 FILE="$BACKUP_DIR/ittoolkit-$STAMP.sql"
 TEMP_FILE="$(mktemp "$BACKUP_DIR/.ittoolkit-XXXXXXXX.tmp")"
 TEMP_HASH="$(mktemp "$BACKUP_DIR/.ittoolkit-sha256-XXXXXXXX.tmp")"
-trap 'rm -f "$TEMP_FILE" "$TEMP_HASH"' EXIT
+trap 'rm -f "$TEMP_FILE" "$TEMP_HASH"; recovery_cleanup' EXIT
 
 log "Waiting for MySQL database readiness."
 compose up -d --wait --wait-timeout 120 db >&2

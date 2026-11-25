@@ -19,7 +19,12 @@ describe('Global production settings operator authorization', () => {
       tenant_id: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb' }, env)).toBe(false);
     expect(isPlatformSettingsAdmin({ ...admin, role: 'MONITORING' }, env)).toBe(false);
   });
-  it('retains disposable nonproduction workflow compatibility', () => {
+  it('retains explicit test workflow compatibility', () => {
     expect(isPlatformSettingsAdmin(admin, { NODE_ENV: 'test' })).toBe(true);
   });
+});
+
+for(const mode of [undefined,'development','staging','production'])it('requires pinned platform owner in '+mode,()=>{
+ expect(isPlatformSettingsAdmin(admin,{NODE_ENV:mode})).toBe(false);
+ expect(isPlatformSettingsAdmin(admin,{NODE_ENV:mode,PLATFORM_ADMIN_USER_ID:'7',PLATFORM_OWNER_TENANT_ID:admin.tenant_id})).toBe(true);
 });

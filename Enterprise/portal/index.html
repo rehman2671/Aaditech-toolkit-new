@@ -245,6 +245,9 @@
           <div class="u-role" id="whoRole"></div>
         </div>
       </div>
+      <a href="/troubleshooting.html" class="logout-btn" style="text-decoration:none">Troubleshooting help</a>
+      <a href="/configuration.html" class="logout-btn" style="text-decoration:none">Configuration</a>
+      <a href="/device-observations.html" class="logout-btn" style="text-decoration:none">Device observations</a>
       <button class="logout-btn" onclick="logout()"><svg class="ic" aria-hidden="true"><use href="#ic-logout"/></svg>Log out</button>
     </div>
   </aside>
@@ -392,7 +395,11 @@ function applyBranding(b) {
 // ---------------------------------------------------------------- flow
 
 async function start() {
-  const status = await fetch('/api/setup/status').then(r => r.json()).catch(() => ({ setup_complete: false }));
+  let status;
+  try { const r=await fetch('/api/setup/status',{cache:'no-store'}); if(!r.ok)throw Error(); status=await r.json(); if(typeof status.setup_complete!=='boolean')throw Error(); }
+  catch { app.replaceChildren(); const p=document.createElement('p');p.textContent='Server setup status unavailable. Check server and database health before continuing.';const b=document.createElement('button');b.textContent='Retry';b.addEventListener('click',start);app.append(p,b);return; }
+  window.__setupHost=status.server_host;
+  window.__setupProfile=status.bootstrap_profile==='clean_install_v1'?'clean_install_v1':null;
   window.__defaultBuildMode = status.default_build_mode || 'manual';
   if (!status.setup_complete) return renderSetup();
   let boot;
@@ -576,7 +583,7 @@ function setupNav() {
 // ---------------------------------------------------------------- setup wizard
 
 function renderSetup() {
-  const host = window.location.hostname || 'localhost';
+  const host = window.__setupHost || window.location.hostname || 'localhost';
   app.innerHTML = `
     <div class="center card">
       <h2>IT-Toolkit Enterprise setup</h2>
@@ -585,11 +592,12 @@ function renderSetup() {
       <input id="initial_setup_token" type="password" autocomplete="off" placeholder="Enter operator-held setup key" />
       <p class="muted">Keep this key private. It is never stored in the browser or sent as a URL parameter.</p>
       <label>Company name</label><input id="company_name" placeholder="Acme Inc." />
-      <label>Server address (used for agent connections)</label><input id="server_host" value="${esc(host)}" />
+      <label>Operator-configured server address (used for agent connections)</label><input id="server_host" value="${esc(host)}" readonly />
       <div class="row">
         <div style="flex:1"><label>Admin username</label><input id="admin_username" value="admin" /></div>
         <div style="flex:1"><label>Brand color</label><input id="branding_color" type="color" value="#38bdf8" style="padding:2px;height:38px" /></div>
       </div>
+      ${window.__setupProfile==='clean_install_v1'?'<label>Administrator email</label><input id="admin_email" type="email" maxlength="128" autocomplete="email" required />':''}
       <label>Admin password (min 12 chars)</label><input id="admin_password" type="password" />
       <label>Repeat password</label><input id="admin_password2" type="password" />
 
@@ -635,24 +643,28 @@ async function doSetup() {
   const err = document.getElementById('setup_err');
   const p1 = document.getElementById('admin_password')?.value || '';
   const p2 = document.getElementById('admin_password2')?.value || '';
-  if (p1.length < 12) { if (err) err.textContent = 'Password must be at least 12 characters.'; return; }
+  if (p1.length < 12 || new TextEncoder().encode(p1).length > 72) { if (err) err.textContent = 'Password must be at least 12 characters and at most 72 UTF-8 bytes.'; return; }
   if (p1 !== p2) { if (err) err.textContent = 'Passwords do not match.'; return; }
   const body = {
     company_name: (document.getElementById('company_name')?.value || '').trim(),
     server_host: (document.getElementById('server_host')?.value || '').trim(),
     admin_username: (document.getElementById('admin_username')?.value || '').trim(),
     admin_password: p1,
+    ...(window.__setupProfile==='clean_install_v1'?{admin_email:(document.getElementById('admin_email')?.value||'').trim()}:{}) ,
     branding: { color: document.getElementById('branding_color')?.value || '#38bdf8', logo_text: (document.getElementById('company_name')?.value || '').trim() },
     build_mode: document.getElementById('build_mode')?.value || 'manual',
   };
   const setupKey = document.getElementById('initial_setup_token')?.value || '';
   const setupHeaders = { 'Content-Type': 'application/json' };
   if (setupKey) setupHeaders['X-Setup-Token'] = setupKey;
-  const res = await fetch('/api/setup', { method: 'POST', headers: setupHeaders, body: JSON.stringify(body) });
-  if (!res.ok) { if (err) err.textContent = (await res.json()).detail || 'Setup failed'; return; }
-  const data = await res.json();
-  if (data.session_secret) return renderSecretBackup(data.session_secret);
-  start();
+  try {
+    const res = await fetch('/api/setup', { method: 'POST', headers: setupHeaders, body: JSON.stringify(body) });
+    if (!res.ok) { if (err) err.textContent = (await res.json()).detail || 'Setup failed'; return; }
+    const data=await res.json();if(typeof data.token!=='string')throw Error();
+    localStorage.setItem('auth_token',data.token);
+    document.getElementById('initial_setup_token').value='';document.getElementById('admin_password').value='';document.getElementById('admin_password2').value='';
+    await start();
+  } catch { if(err)err.textContent='Setup not confirmed. Refresh setup status before retrying.'; }
 }
 
 function renderSecretBackup(secret) {

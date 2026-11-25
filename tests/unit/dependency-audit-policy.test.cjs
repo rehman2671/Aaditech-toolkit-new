@@ -1,0 +1,21 @@
+'use strict';
+const test=require('node:test'),assert=require('node:assert/strict');
+const {summarizeAudit,releaseAllowed,withIsolatedNpmConfig}=require('../../scripts/dependency-audit-policy.cjs');
+const row={name:'fixture',severity:'high',isDirect:true,via:[{source:123,title:'PRIVATE-ADVISORY',url:'https://example.invalid/private'},'another'],nodes:['node_modules/fixture'],fixAvailable:{name:'fixture',version:'2.0.0',isSemVerMajor:true}};
+const doc={auditReportVersion:2,vulnerabilities:{fixture:row},metadata:{vulnerabilities:{info:0,low:0,moderate:0,high:1,critical:0,total:1}}};
+const summary=(d=doc,s=1)=>summarizeAudit(JSON.stringify(d),s);
+const clear=()=>summary({...doc,vulnerabilities:{},metadata:{vulnerabilities:{info:0,low:0,moderate:0,high:0,critical:0,total:0}}},0);
+test('projects only advisory identifiers, package names, severity and fix candidate',()=>{const r=summary();assert.equal(r.counts.high,1);assert.deepEqual(r.packages[0].advisory_ids,[123]);assert.equal(r.packages[0].fix_candidate.major_change,true);assert.doesNotMatch(JSON.stringify(r),/PRIVATE|example.invalid|node_modules/)});
+test('clean production and verified full report required, high production rejected',()=>{assert.equal(releaseAllowed(clear(),summary()),true);assert.equal(releaseAllowed(summary(),summary()),false);assert.equal(releaseAllowed(clear(),{status:'UNVERIFIED'}),false)});
+for(const [name,mutate] of [['invalid version',d=>d.auditReportVersion=1],['registry error',d=>d.error={}],['missing count',d=>delete d.metadata.vulnerabilities.high],['false total',d=>d.metadata.vulnerabilities.total=0],['bad severity',d=>d.vulnerabilities.fixture.severity='unknown'],['bad package',d=>d.vulnerabilities.fixture.name='other'],['bad advisory',d=>d.vulnerabilities.fixture.via=[{source:'fake'}]],['missing direct',d=>delete d.vulnerabilities.fixture.isDirect],['bad fix',d=>d.vulnerabilities.fixture.fixAvailable={name:'fixture',version:'latest',isSemVerMajor:true}],['no nodes',d=>d.vulnerabilities.fixture.nodes=[]]])test(name,()=>{const d=structuredClone(doc);mutate(d);assert.throws(()=>summary(d))});
+test('rejects inconsistent exit code and malformed output',()=>{assert.throws(()=>summary(doc,0));assert.throws(()=>summary(doc,2));assert.throws(()=>summarizeAudit('not json',1))});
+
+test('uses two distinct private npm configs, isolates cache, cleans after callback',()=>{
+ const fs=require('node:fs');let root;
+ withIsolatedNpmConfig(env=>{root=env.HOME;assert.notEqual(env.NPM_CONFIG_USERCONFIG,env.NPM_CONFIG_GLOBALCONFIG);assert.equal(fs.statSync(root).mode&0o777,0o700);for(const f of [env.NPM_CONFIG_USERCONFIG,env.NPM_CONFIG_GLOBALCONFIG]){assert.equal(fs.statSync(f).mode&0o777,0o600);assert.equal(fs.readFileSync(f,'utf8'),'')}assert.equal(env.NPM_TOKEN,undefined)});
+ assert.equal(fs.existsSync(root),false);
+});
+test('actual npm accepts isolated config without registry access', {skip:process.platform!=='linux'},()=>{
+ const {spawnSync}=require('node:child_process');withIsolatedNpmConfig(env=>{const r=spawnSync('npm',['--version'],{env,encoding:'utf8',timeout:10000});assert.equal(r.status,0);assert.match(r.stdout,/^\d+\.\d+\.\d+/)});
+});
+test('removes isolated configuration after failure',()=>{let root;assert.throws(()=>withIsolatedNpmConfig(env=>{root=env.HOME;throw Error('fixture')}));assert.equal(require('node:fs').existsSync(root),false)});

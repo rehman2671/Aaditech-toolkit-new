@@ -1,5 +1,5 @@
 # Multi-stage / Production Dockerfile for IT-Toolkit Enterprise Node.js Backend
-FROM node:20-alpine AS base
+FROM node:24-alpine AS base
 
 WORKDIR /app
 
@@ -7,6 +7,7 @@ WORKDIR /app
 # to a different dependency graph after npm ci fails. The offline LAN
 # deliverable still needs pinned image digests and an attested offline bundle.
 COPY package.json package-lock.json ./
+RUN node -e "if (Number(process.versions.node.split('.')[0]) !== 24) process.exit(1)"
 RUN npm ci --omit=dev --no-audit --no-fund
 
 # Copy application source code
@@ -16,7 +17,7 @@ COPY . .
 RUN mkdir -p /data /artifacts /certs && \
     chown -R node:node /app /data /artifacts /certs
 
-USER node
+USER 1000:1000
 
 EXPOSE 3000
 

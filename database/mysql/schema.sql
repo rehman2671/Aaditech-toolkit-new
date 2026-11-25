@@ -618,3 +618,92 @@ CREATE TABLE IF NOT EXISTS troubleshooting_employee_bindings (
   UNIQUE KEY uq_employee_device_binding (installation_id,tenant_id,device_id,employee_user_id),
   KEY idx_employee_binding_scope (tenant_id,employee_user_id,state)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Explicit local operator binding; no auto-population or adoption.
+CREATE TABLE IF NOT EXISTS installation_database_identity (
+  singleton_id TINYINT UNSIGNED NOT NULL,
+  installation_id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  identity_sha256 CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  bound_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (singleton_id),
+  CONSTRAINT ck_installation_database_singleton CHECK (singleton_id=1)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Separate human review lifecycle; never overwrite intake status or assert resolution.
+CREATE TABLE IF NOT EXISTS troubleshooting_incident_reviews (
+  incident_id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  installation_id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  tenant_id VARCHAR(36) NOT NULL,
+  device_id VARCHAR(64) NOT NULL,
+  review_state ENUM('IN_REVIEW','AWAITING_USER','REFERRED','REOPENED') NOT NULL,
+  revision INT UNSIGNED NOT NULL,
+  reviewer_id INT NOT NULL,
+  updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (incident_id),
+  KEY idx_incident_review_scope (installation_id,tenant_id,device_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS troubleshooting_incident_review_events (
+  event_id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  incident_id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  installation_id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  tenant_id VARCHAR(36) NOT NULL,
+  device_id VARCHAR(64) NOT NULL,
+  actor_user_id INT NOT NULL,
+  request_id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  previous_state ENUM('UNREVIEWED','IN_REVIEW','AWAITING_USER','REFERRED','REOPENED') NOT NULL,
+  next_state ENUM('IN_REVIEW','AWAITING_USER','REFERRED','REOPENED') NOT NULL,
+  revision INT UNSIGNED NOT NULL,
+  created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (event_id),
+  UNIQUE KEY uq_incident_review_request (incident_id,request_id),
+  UNIQUE KEY uq_incident_review_revision (incident_id,revision)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Employee diagnostic review consent, separate from intake and execution.
+CREATE TABLE IF NOT EXISTS troubleshooting_diagnostic_consent (
+ consent_id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+ installation_id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+ tenant_id VARCHAR(36) NOT NULL,
+ device_id VARCHAR(64) NOT NULL,
+ incident_id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+ employee_user_id INT NOT NULL,
+ requester_id INT NOT NULL,
+ diagnostic_id VARCHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+ state ENUM('REQUESTED','GRANTED','DENIED','REVOKED') NOT NULL,
+ revision INT UNSIGNED NOT NULL,
+ created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+ expires_at DATETIME(3) NOT NULL,
+ PRIMARY KEY (consent_id),
+ UNIQUE KEY uq_diagnostic_consent_incident (incident_id),
+ KEY idx_diagnostic_consent_scope (installation_id,tenant_id,employee_user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+CREATE TABLE IF NOT EXISTS troubleshooting_diagnostic_consent_events (
+ event_id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+ consent_id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+ actor_user_id INT NOT NULL,
+ request_id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+ action ENUM('REQUEST','GRANT','DENY','REVOKE') NOT NULL,
+ revision INT UNSIGNED NOT NULL,
+ created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+ PRIMARY KEY (event_id),
+ UNIQUE KEY uq_consent_request (consent_id,request_id),
+ UNIQUE KEY uq_consent_revision (consent_id,revision)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Immutable technician assessment of previously unknown intake hazards.
+-- No alteration of intake, execution permission or verification of safety.
+CREATE TABLE IF NOT EXISTS troubleshooting_hazard_assessments (
+ incident_id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+ assessment_id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+ installation_id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+ tenant_id VARCHAR(36) NOT NULL,
+ device_id VARCHAR(64) NOT NULL,
+ actor_user_id INT NOT NULL,
+ request_id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+ assessment ENUM('NONE','PHYSICAL_HAZARD','SUSPECTED_COMPROMISE','DATA_LOSS_RISK','BOOT_OR_ENCRYPTION_DAMAGE') NOT NULL,
+ created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+ PRIMARY KEY (incident_id),
+ UNIQUE KEY uq_hazard_assessment_id (assessment_id),
+ UNIQUE KEY uq_hazard_assessment_request (installation_id,tenant_id,actor_user_id,request_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

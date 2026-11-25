@@ -11,7 +11,7 @@ import {createOciTarSafetyInspector} from './oci-tar-safety.mjs';
 import {createRestrictedRootfsIndex} from './oci-rootfs-index.mjs';
 import {inspectStagedLanBundle} from './inspect-staged-lan-bundle.mjs';
 import {rejectDuplicateJsonKeys} from './verify-lan-bundle.mjs';
-import {inspectLocalDockerRuntime} from './local-docker-runtime-preflight.mjs';
+import {inspectLocalDockerRuntime,socketIdentity,requestLocalDockerJson} from './local-docker-runtime-preflight.mjs';
 
 const roles=['api','database','ingress'];
 const types=Object.freeze({index:'application/vnd.oci.image.index.v1+json',
@@ -165,15 +165,40 @@ export async function inspectOfflineOciRuntime(input={}){
    uncompressed_diff_ids_verified:true,strict_ustar_profile_verified:true,restricted_tar_profile_verified:true,cross_layer_path_profile_verified:true,merged_rootfs_verified:false,archive_extraction_verified:false,image_imported:false,
    runtime_compatibility_verified:false,installation_authorized:false,production_accepted:false});
 }
+// Resolve image identity from a known store type, never from image lookup
+// fallback or a returned image ID. This is read-only, not an execution gate.
+export function selectReleaseStoreIdentity(info,architecture,images){
+ const i=info?.value;
+ if(info?.missing!==false||i?.OSType!=='linux'||!arch(architecture)||
+    !(architecture==='amd64'?['x86_64','amd64']:['aarch64','arm64']).includes(i.Architecture)||
+    typeof i.ID!=='string'||!i.ID.length||i.ID.length>256||
+    !Array.isArray(i.DriverStatus)||!Array.isArray(images)||images.length!==3||
+    images.some((x,n)=>x?.role!==roles[n]||!digest(x.image_config_id)||!digest(x.manifest_digest)))fail();
+ const native=i.DriverStatus.some(x=>Array.isArray(x)&&x[0]==='driver-type'&&x[1]==='io.containerd.snapshotter.v1');
+ const unknownType=i.DriverStatus.some(x=>Array.isArray(x)&&x[0]==='driver-type'&&x[1]!=='io.containerd.snapshotter.v1');
+ if(unknownType||(!native&&i.Driver!=='overlay2'))fail();
+ const store=native?'NATIVE_CONTAINERD':'CLASSIC_OVERLAY2',key=native?'manifest_digest':'image_config_id';
+ const imageIds=Object.fromEntries(images.map(x=>[x.role,x[key]]));
+ if(new Set(Object.values(imageIds)).size!==3)fail();
+ return Object.freeze({store,imageIds:Object.freeze(imageIds)});
+}
 // Only derive the daemon observation pins from the authenticated release.
-// Recheck the release after observing the daemon; this is not an execution lock.
+// Recheck the release, store and local socket after observing the daemon.
 export async function inspectBoundOfflineRuntime(input={}){
  const snapshot={...input};
- const release=await inspectOfflineOciRuntime(snapshot);
- const runtime=await inspectLocalDockerRuntime({confirmation:'OBSERVE_LOCAL_DOCKER_ONLY',architecture:release.architecture,
-   imageIds:Object.fromEntries(release.images.map(x=>[x.role,x.image_config_id]))});
+ const release=await inspectOfflineOciRuntime(snapshot),socket=await socketIdentity();
+ const observeInfo=async()=>{
+  if(JSON.stringify(await socketIdentity())!==JSON.stringify(socket))fail();
+  const info=await requestLocalDockerJson('/run/docker.sock','/info');
+  if(JSON.stringify(await socketIdentity())!==JSON.stringify(socket))fail();
+  return {daemon:info.value?.ID,policy:selectReleaseStoreIdentity(info,release.architecture,release.images)};
+ };
+ const before=await observeInfo();
+ const runtime=await inspectLocalDockerRuntime({confirmation:'OBSERVE_LOCAL_DOCKER_ONLY',architecture:release.architecture,imageIds:before.policy.imageIds});
+ const after=await observeInfo();
+ if(JSON.stringify(before)!==JSON.stringify(after))fail();
  const final=await inspectOfflineOciRuntime(snapshot);
- if(JSON.stringify(release)!==JSON.stringify(final))fail();
- return Object.freeze({schema_version:1,decision:runtime.decision,release,runtime,
+ if(JSON.stringify(release)!==JSON.stringify(final)||JSON.stringify(before)!==JSON.stringify(await observeInfo()))fail();
+ return Object.freeze({schema_version:1,decision:runtime.decision,release,runtime,store_profile:before.policy.store,
   image_imported:false,installation_authorized:false,production_accepted:false});
 }

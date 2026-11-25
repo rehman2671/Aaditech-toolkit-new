@@ -8,7 +8,7 @@ bash -n "$ROOT/Enterprise/deploy/restore.sh"
 TEMP="$(mktemp -d)"
 trap 'rm -rf "$TEMP"' EXIT
 mkdir -p "$TEMP/Enterprise/deploy" "$TEMP/bin"
-cp "$ROOT/Enterprise/deploy/backup.sh" "$ROOT/Enterprise/deploy/restore.sh" "$TEMP/Enterprise/deploy/"
+cp "$ROOT/Enterprise/deploy/backup.sh" "$ROOT/Enterprise/deploy/restore.sh" "$ROOT/Enterprise/deploy/recovery-compose-env.sh" "$TEMP/Enterprise/deploy/"
 cat > "$TEMP/Enterprise/docker-compose.yml" <<'EOF'
 services:
   db:
@@ -19,12 +19,15 @@ MYSQL_DATABASE=it_toolkit
 MYSQL_USER=itk_user
 MYSQL_PASSWORD=only-a-fake-test-secret
 EOF
+chmod 600 "$TEMP/Enterprise/.env"
 export FAKE_DOCKER_LOG="$TEMP/docker.log"
 : > "$FAKE_DOCKER_LOG"
 cat > "$TEMP/bin/docker" <<'FAKE'
 #!/usr/bin/env bash
 set -euo pipefail
 printf '%s\n' "$*" >> "$FAKE_DOCKER_LOG"
+[ -z "${MYSQL_DATABASE+x}" ] && [ -z "${COMPOSE_PROJECT_NAME+x}" ] && [ -z "${DOCKER_HOST+x}" ] || exit 55
+[[ "$*" == *'--host unix:///run/docker.sock compose --project-directory '* && "$*" == *'--project-name enterprise --env-file '* ]] || exit 56
 command_text="$*"
 if [[ "$command_text" == *mysqldump* ]]; then
   if [ "${FAKE_DUMP_FAIL:-0}" = 1 ]; then exit 18; fi
@@ -61,7 +64,20 @@ for keep in not-a-number 08 000 1000000; do
 done
 [ ! -s "$FAKE_DOCKER_LOG" ] || { echo "Invalid retention touched Docker" >&2; exit 1; }
 
-bash "$BACKUP"
+# Reject hostile file syntax, duplicate keys, selectors and unsafe permissions before Docker.
+cp "$TEMP/Enterprise/.env" "$TEMP/original-env"
+for line in 'MYSQL_PASSWORD=$(printf injected)' 'MYSQL_PASSWORD=duplicate' 'DOCKER_HOST=tcp://other:2375' 'COMPOSE_FILE=/tmp/foreign.yml' 'export MYSQL_PASSWORD=bad' 'SMTP_PASSWORD="quoted"' 'UNKNOWN_KEY=bad'; do
+  cp "$TEMP/original-env" "$TEMP/Enterprise/.env"; printf '%s\n' "$line" >> "$TEMP/Enterprise/.env"
+  if bash "$BACKUP" > "$TEMP/out" 2>&1; then echo 'Unsafe recovery environment accepted' >&2; exit 1; fi
+  if bash "$RESTORE" --yes "$TEMP/nonexistent.sql" > "$TEMP/out" 2>&1; then echo 'Unsafe restore environment accepted' >&2; exit 1; fi
+  [ ! -s "$FAKE_DOCKER_LOG" ] || { echo 'Unsafe environment touched Docker' >&2; exit 1; }
+done
+cp "$TEMP/original-env" "$TEMP/Enterprise/.env"; chmod 644 "$TEMP/Enterprise/.env"
+if bash "$BACKUP" > "$TEMP/out" 2>&1; then exit 1; fi
+chmod 600 "$TEMP/Enterprise/.env"
+if AADITECH_RECOVERY_EXPECTED_ENV_SHA="$(printf '%064d' 0)" bash "$BACKUP" > "$TEMP/out" 2>&1; then exit 1; fi
+[ ! -s "$FAKE_DOCKER_LOG" ] || exit 1
+MYSQL_DATABASE=foreign COMPOSE_PROJECT_NAME=foreign DOCKER_HOST=tcp://foreign:2375 bash "$BACKUP"
 shopt -s nullglob
 files=("$BACKUP_DIR"/ittoolkit-*.sql)
 shopt -u nullglob

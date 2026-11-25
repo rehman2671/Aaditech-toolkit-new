@@ -34,10 +34,11 @@ describe('concurrent device identity ownership locks', () => {
   it('acquires and releases two hashed MySQL session locks on success', async () => {
     const query = vi.fn(async sql => {
       if (sql.includes('GET_LOCK')) return [[{ acquired: 1 }]];
-      return [[]];
+      return [[{ released: 1 }]];
     });
     const release = vi.fn();
-    const getConnection = vi.fn(async () => ({ query, release }));
+    const destroy = vi.fn();
+    const getConnection = vi.fn(async () => ({ query, release, destroy }));
     db.setConnectionStateForTesting(true, { getConnection });
     const result = await db.withDeviceIdentityLock('MY-CI-HOST', 'my-device-uid', async () => 42);
     expect(result).toBe(42);
@@ -48,6 +49,7 @@ describe('concurrent device identity ownership locks', () => {
       expect(args[0].length).toBeLessThanOrEqual(64);
     }
     expect(release).toHaveBeenCalledTimes(1);
+    expect(destroy).not.toHaveBeenCalled();
   });
 
   it('releases any acquired MySQL lock and connection after a timeout', async () => {
@@ -57,17 +59,19 @@ describe('concurrent device identity ownership locks', () => {
         acquisitions++;
         return [[{ acquired: acquisitions === 1 ? 1 : 0 }]];
       }
-      return [[]];
+      return [[{ released: 1 }]];
     });
     const release = vi.fn();
+    const destroy = vi.fn();
     db.setConnectionStateForTesting(true, {
-      getConnection: vi.fn(async () => ({ query, release }))
+      getConnection: vi.fn(async () => ({ query, release, destroy }))
     });
     await expect(db.withDeviceIdentityLock('lock-timeout', 'different-uid', async () => {
       throw new Error('callback must not run');
     })).rejects.toThrow('timed out');
     expect(query.mock.calls.filter(([sql]) => sql.includes('RELEASE_LOCK'))).toHaveLength(1);
     expect(release).toHaveBeenCalledTimes(1);
+    expect(destroy).not.toHaveBeenCalled();
   });
 
   it('rejects invalid input and never runs an untrusted callback', async () => {

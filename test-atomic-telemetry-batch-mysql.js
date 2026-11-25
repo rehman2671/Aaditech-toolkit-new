@@ -132,6 +132,39 @@ try {
   // Explicit credential argument exercises the deployed write boundary even
   // in this isolated test-mode fixture.
   const bound = { tokenHash };
+  // Disposable MySQL: inject COMMIT acknowledgement loss, with and without
+  // executing COMMIT. No mutation may be replayed by the recovery read.
+  const originalPool=db.getPool();
+  for(const committedBeforeFailure of [true,false]){
+    const faultKey=key+(committedBeforeFailure?'-commit-ack-lost':'-commit-not-sent');
+    const faultBatch={...base,batch_id:faultKey,request_hash:sha(faultKey),events:[],alerts:[]};
+    const before=await countHistory();
+    let acquisition=0;
+    const faultPool={getConnection:async()=>{
+      const c=await originalPool.getConnection();
+      if(++acquisition!==1)return c;
+      return {
+        beginTransaction:c.beginTransaction.bind(c),query:c.query.bind(c),rollback:c.rollback.bind(c),
+        release:c.release.bind(c),destroy:c.destroy.bind(c),
+        commit:async()=>{if(committedBeforeFailure)await c.commit();throw Error('CI_INJECTED_COMMIT_ACK_LOSS')}
+      };
+    }};
+    db.setConnectionStateForTesting(true,faultPool);
+    try{
+      if(committedBeforeFailure){
+        const receipt=await db.ingestTelemetryBatchOnce(faultBatch,bound);
+        assert.equal(receipt.duplicate,true);
+        assert.equal(receipt.batch_id,faultKey);
+      }else await assert.rejects(()=>db.ingestTelemetryBatchOnce(faultBatch,bound),/TELEMETRY_COMMIT_UNCONFIRMED/);
+    }finally{db.setConnectionStateForTesting(true,originalPool)}
+    assert.equal(await countReceipt(faultKey),committedBeforeFailure?1:0);
+    assert.equal(await countHistory(),before+(committedBeforeFailure?1:0));
+    const retried=await db.ingestTelemetryBatchOnce(faultBatch,bound);
+    assert.equal(retried.duplicate,committedBeforeFailure);
+    assert.equal(await countReceipt(faultKey),1);
+    assert.equal(await countHistory(),before+1);
+  }
+  console.log('[PASS] Injected commit ACK loss and unsent COMMIT reconcile without replaying writes.');
   const prior = await db.ingestTelemetryBatchOnce(base, bound);
   assert.equal(prior.duplicate,true);
   const usageKey=key+'-usage', emptyKey=key+'-empty';

@@ -11,85 +11,63 @@ import { classifyDeviceCredentialRecovery, isCredentialDeviceId, credentialDbCou
 import { appUsageCredentialCacheKey } from './telemetry-security.js';
 import { withSchemaMigrationLock } from './schema-migration-lock.js';
 import { planMigrationHistory } from './schema-migration-integrity.js';
+import { verifyBoundRuntimeHistory,probeBoundRuntimeIdentity } from './bound-runtime-schema.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+import {createTaskTracker} from './runtime-shutdown.js';
+import {createCacheLifecycle} from './cache-runtime-lifecycle.js';
+import {guardTransactionConnection} from './transaction-connection-custody.js';
+import {withDeviceAdvisoryLocks,observeMysqlPool} from './database-pool-custody.js';
+import {outboxLeaseParameters,confirmedLeaseRenewal,requireLegacyTelemetryTestProfile,requireConfirmedTelemetryInsert} from './durable-delivery-boundary.js';
+import {recoverCommittedTelemetryReceipt} from './telemetry-commit-recovery.js';
+const databaseTasks=createTaskTracker();
+let databaseStopping=false;
 let pool = null;
 let isConnected = false;
-let redisClient = null;
-let isRedisConnected = false;
+const cacheLifecycle=createCacheLifecycle();
 
 // ---------------- REDIS CACHE INITIALIZATION ----------------
 export function initRedisClient() {
-  const redisUrl = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
-  try {
-    redisClient = new Redis(redisUrl, {
-      maxRetriesPerRequest: 1,
-      connectTimeout: 2000,
-      retryStrategy: (times) => (times <= 3 ? 1000 : null),
-      lazyConnect: true
+  if(databaseStopping||cacheLifecycle.current)return;
+  const redisUrl=process.env.REDIS_URL||'redis://127.0.0.1:6379';
+  let client;
+  try{
+    client=new Redis(redisUrl,{
+      maxRetriesPerRequest:1,connectTimeout:2000,
+      enableOfflineQueue:false,autoResendUnfulfilledCommands:false,
+      retryStrategy:times=>times<=3?1000:null,lazyConnect:true
     });
-
-    redisClient.on('connect', () => {
-      isRedisConnected = true;
-      console.log('✅ Redis Cache connected successfully!');
-    });
-
-    redisClient.on('error', (err) => {
-      isRedisConnected = false;
-      // Silent warning for graceful degradation
-    });
-
-    redisClient.connect().catch(() => {
-      isRedisConnected = false;
-    });
-  } catch (err) {
-    isRedisConnected = false;
-  }
-}
-
-export async function cacheGet(key) {
-  if (!isRedisConnected || !redisClient) return null;
-  try {
-    const val = await redisClient.get(key);
-    return val ? JSON.parse(val) : null;
-  } catch (e) {
-    return null;
-  }
-}
-
-export async function cacheSet(key, value, ttlSec = 30) {
-  if (!isRedisConnected || !redisClient) return false;
-  try {
-    await redisClient.set(key, JSON.stringify(value), 'EX', ttlSec);
-    return true;
-  } catch (e) {
-    return false;
-  }
-}
-
-export async function cacheDel(key) {
-  if (!isRedisConnected || !redisClient) return false;
-  try {
-    await redisClient.del(key);
-    return true;
-  } catch (e) {
-    return false;
-  }
-}
-
-export async function cacheDelPattern(pattern) {
-  if (!isRedisConnected || !redisClient) return false;
-  try {
-    const keys = await redisClient.keys(pattern);
-    if (keys.length > 0) {
-      await redisClient.del(...keys);
+    cacheLifecycle.install(client);
+    client.on('ready',()=>cacheLifecycle.markReady(client));
+    for(const event of ['error','close','end','reconnecting']){
+      client.on(event,()=>cacheLifecycle.markUnavailable(client));
     }
-    return true;
-  } catch (e) {
-    return false;
+    void client.connect().catch(()=>cacheLifecycle.markUnavailable(client));
+  }catch{
+    if(client)cacheLifecycle.markUnavailable(client);
   }
+}
+export function cacheGet(key){
+  return cacheLifecycle.run(null,async client=>{
+    const value=await client.get(key);return value?JSON.parse(value):null;
+  });
+}
+export function cacheSet(key,value,ttlSec=30){
+  return cacheLifecycle.run(false,async client=>
+    (await client.set(key,JSON.stringify(value),'EX',ttlSec))==='OK');
+}
+export function cacheDel(key){
+  return cacheLifecycle.run(false,async client=>{await client.del(key);return true});
+}
+export function cacheDelPattern(pattern){
+  return cacheLifecycle.run(false,async(client,valid)=>{
+    const keys=await client.keys(pattern);
+    if(!valid())return false;
+    if(keys.length)await client.del(...keys);
+    return true;
+  });
 }
 
 // All real deployments must use persistent MySQL. Only an explicitly
@@ -97,10 +75,15 @@ export async function cacheDelPattern(pattern) {
 // Unset/development/staging NODE_ENV is never proof of a safe test harness.
 // ---------------- MYSQL INITIALIZATION & RESILIENCE ----------------
 let isConnecting = false;
+let activeIdentitySessions=0;
 let dbHealthCheckTimer = null;
 
-export async function attemptConnection() {
-  if (isConnecting) return isConnected;
+export function attemptConnection(){
+  if(databaseStopping)return Promise.resolve(false);
+  return databaseTasks.track(connectDatabase());
+}
+async function connectDatabase() {
+  if (isConnecting||activeIdentitySessions>0) return false;
   // Read/validate configuration BEFORE setting isConnecting. A validation
   // failure must not poison all future health-check/reconnect attempts.
   if (process.env.NODE_ENV !== 'test') {
@@ -128,16 +111,19 @@ export async function attemptConnection() {
     }
   }
   isConnecting = true;
-
-  if (pool) {
-    try {
-      await pool.end();
-    } catch (_) {}
-    pool = null;
-  }
-
+  isConnected=false;
+  let newPool=null;
   try {
-    const newPool = mysql.createPool({
+    const oldPool=pool;
+    if(oldPool){
+      // Fail closed on an unconfirmed retirement; never install a new pool
+      // on top of an old pool whose close failed.
+      await oldPool.end();
+      if(pool!==oldPool)throw Error('DATABASE_POOL_CHANGED');
+      pool=null;
+    }
+    if(databaseStopping)return false;
+    newPool = mysql.createPool({
       host,
       port,
       user,
@@ -150,11 +136,18 @@ export async function attemptConnection() {
       connectTimeout: 8000
     });
 
+    // Own the candidate pool immediately so a failed first query is closed.
+    pool = newPool;
+    isConnected = false;
+
     // Handle unexpected pool errors to log and attempt reconnection instead of crashing
+    let candidateFailed=false;
     newPool.on('error', (err) => {
-      console.error('⚠️ MySQL pool runtime error:', err.message);
+      if(pool!==newPool)return;
+      candidateFailed=true;
+      console.error('⚠️ MySQL pool runtime error:', err.code || 'DATABASE_UNAVAILABLE');
       isConnected = false;
-      attemptConnection().catch(e => console.error('Reconnection after pool error failed:', e.message));
+      if(!isConnecting&&!databaseStopping)attemptConnection().catch(e => console.error('Reconnection after pool error failed:', e.code || 'DATABASE_UNAVAILABLE'));
     });
 
     try {
@@ -174,46 +167,45 @@ export async function attemptConnection() {
       }
     }
 
-    pool = newPool;
-    isConnected = false;
     // Keep the service unavailable until the locked migration history and
     // all pending migrations are verified. A TCP connection alone is not ready.
     await runDatabaseMigrationsOnPool(newPool);
+    if(pool!==newPool||candidateFailed||databaseStopping)throw Error('DATABASE_CANDIDATE_UNCONFIRMED');
     isConnected = true;
-    isConnecting = false;
     console.log(`✅ Connected successfully to MySQL Database (${host}:${port}/${database}) [Pool size: ${poolSize}]!`);
     return true;
   } catch (err) {
-    isConnected = false;
-    isConnecting = false;
-    if (pool) {
-      try { await pool.end(); } catch (_) {}
-      pool = null;
+    if(newPool&&pool===newPool){
+      isConnected=false;
+      try{await newPool.end();if(pool===newPool)pool=null}
+      catch{console.error('DATABASE_POOL_RETIREMENT_UNCONFIRMED')}
     }
     throw err;
-  }
+  }finally{isConnecting=false}
 }
 
 export function startDbHealthCheck(intervalMs = 30000) {
+  if(databaseStopping)return null;
   if (dbHealthCheckTimer) return dbHealthCheckTimer;
-  dbHealthCheckTimer = setInterval(async () => {
+  let tickActive=false;
+  const tick=async()=>{
+    if(databaseStopping)return;
     if (!isConnected) {
       console.log('🔄 Periodic DB health-check: retrying MySQL connection...');
       try {
-        await attemptConnection();
-        console.log('✅ DB recovered! Connected to MySQL Database.');
+        if(await attemptConnection())console.log('✅ DB recovered! Connected to MySQL Database.');
       } catch (err) {
         // Still down; will retry on next interval
       }
     } else if (pool) {
-      try {
-        await pool.query('SELECT 1');
-      } catch (pingErr) {
-        console.warn('⚠️ DB health-check ping failed, marking disconnected:', pingErr.message);
-        isConnected = false;
-      }
+      await probeDbReadiness();
     }
-  }, intervalMs);
+  };
+  dbHealthCheckTimer=setInterval(()=>{
+    if(databaseStopping||tickActive)return;
+    tickActive=true;
+    databaseTasks.track(tick()).catch(()=>console.error('DATABASE_HEALTH_CHECK_FAILED')).finally(()=>{tickActive=false});
+  },intervalMs);
   if (dbHealthCheckTimer.unref) dbHealthCheckTimer.unref();
   return dbHealthCheckTimer;
 }
@@ -226,6 +218,7 @@ export function stopDbHealthCheck() {
 }
 
 export async function initDbPool(options = {}) {
+  if(databaseStopping)return false;
   // Initialize Redis in background
   initRedisClient();
 
@@ -247,6 +240,7 @@ export async function initDbPool(options = {}) {
   const attempts = options.maxAttempts || (delays.length + 1);
 
   for (let attempt = 1; attempt <= attempts; attempt++) {
+    if(databaseStopping)return false;
     try {
       console.log(`[DB Boot] Connection attempt ${attempt}/${attempts}...`);
       if (await attemptConnection()) return true;
@@ -290,7 +284,7 @@ export async function runDatabaseMigrations() {
       memAppliedMigrations.add('019');
       memAppliedMigrations.add('020');
     }
-    return { applied: [], skipped: ['001_init_schema.sql', '002_partitioning.sql', '003_rbac_and_audit.sql', '004_workspace_memberships.sql', '005_remediation_tenant_logs.sql', '006_notification_outbox.sql', '007_scrub_legacy_github_pat.sql', '008_scrub_legacy_ticket_keys.sql', '009_notification_destination_binding.sql', '010_events_tenant_device_identity.sql', '011_security_posture_provenance.sql', '012_measured_device_telemetry.sql', '013_events_idempotency.sql', '014_telemetry_batches.sql', '015_batch_receipt_retention_index.sql', '016_app_usage_snapshot.sql', '017_device_recovery_reviews.sql', '018_troubleshooting_incidents.sql', '019_troubleshooting_diagnostic_plans.sql', '020_troubleshooting_employee_bindings.sql'], status: 'FALLBACK_MODE' };
+    return { applied: [], skipped: ['001_init_schema.sql', '002_partitioning.sql', '003_rbac_and_audit.sql', '004_workspace_memberships.sql', '005_remediation_tenant_logs.sql', '006_notification_outbox.sql', '007_scrub_legacy_github_pat.sql', '008_scrub_legacy_ticket_keys.sql', '009_notification_destination_binding.sql', '010_events_tenant_device_identity.sql', '011_security_posture_provenance.sql', '012_measured_device_telemetry.sql', '013_events_idempotency.sql', '014_telemetry_batches.sql', '015_batch_receipt_retention_index.sql', '016_app_usage_snapshot.sql', '017_device_recovery_reviews.sql', '018_troubleshooting_incidents.sql', '019_troubleshooting_diagnostic_plans.sql', '020_troubleshooting_employee_bindings.sql', '021_installation_database_identity.sql', '022_troubleshooting_incident_reviews.sql', '023_troubleshooting_diagnostic_consent.sql', '024_troubleshooting_hazard_assessments.sql'], status: 'FALLBACK_MODE' };
   }
 
   return runDatabaseMigrationsOnPool(pool);
@@ -298,6 +292,14 @@ export async function runDatabaseMigrations() {
 
 async function runDatabaseMigrationsOnPool(activePool) {
   return withSchemaMigrationLock(activePool, async connection => {
+    // Bound deployments are provisioned by the exclusive signed initializer.
+    // No CREATE/ALTER, seed replay or partition pruning before identity and
+    // complete history verification. Explicit operator upgrades are required.
+    if(process.env.AADITECH_BOUND_REPORTS==='enabled'){
+      const migrationsDir=path.join(__dirname,'database','migrations');
+      const files=fs.readdirSync(migrationsDir).filter(f=>f.endsWith('.sql')&&!f.startsWith('.')).sort().map(name=>({name,sql:fs.readFileSync(path.join(migrationsDir,name),'utf8')}));
+      return verifyBoundRuntimeHistory(connection,files,process.env);
+    }
     const result = { applied: [], skipped: [] };
     // 2. Ensure schema_migrations tracking table exists
     await connection.query(`
@@ -460,15 +462,16 @@ export function isMysqlConnected() {
 // background health flag. Fail closed immediately after a network partition.
 // The periodic worker owns reconnect attempts; never query demo state here.
 export async function probeDbReadiness() {
-  if (!isMysqlConnected()) return false;
-  try {
-    await pool.query('SELECT 1');
-    return true;
-  } catch (error) {
-    isConnected = false;
-    console.warn('[DB Readiness] MySQL probe failed:', error.code || error.message);
-    return false;
-  }
+  if(databaseStopping)return false;
+  return observeMysqlPool(pool,{
+    isCurrent:candidate=>pool===candidate,
+    isReady:()=>isMysqlConnected()&&!databaseStopping,
+    probe:async candidate=>{
+      if(process.env.AADITECH_BOUND_REPORTS==='enabled')return probeBoundRuntimeIdentity(candidate,process.env);
+      await candidate.query('SELECT 1');return true;
+    },
+    onFailure:()=>{isConnected=false;console.warn('[DB Readiness] MySQL probe failed')}
+  });
 }
 
 export function getPool() {
@@ -546,14 +549,15 @@ let monotonicInsertId = Date.now() * 1000;
 
 export async function executeQuery(sql, params = []) {
   if (isMysqlConnected()) {
+    const observedPool=pool;
     try {
-      const [results] = await pool.query(sql, params);
+      const [results] = await observedPool.query(sql, params);
       return results;
     } catch (err) {
       if (process.env.NODE_ENV !== 'test') {
         console.error("MySQL query execution error in production:", err.message);
         if (err.fatal || ['ECONNRESET', 'ECONNREFUSED', 'EPIPE', 'ETIMEDOUT', 'PROTOCOL_CONNECTION_LOST'].includes(err.code)) {
-          isConnected = false;
+          if(pool===observedPool)isConnected = false;
         }
         throw err;
       }
@@ -1348,26 +1352,16 @@ export async function withDeviceIdentityLock(hostname, deviceUid, fn) {
   ])].sort();
 
   if (isMysqlConnected() && pool && typeof pool.getConnection === 'function') {
-    return withMysqlIdentityAdmission(async () => {
-    const connection = await pool.getConnection();
-    const held = [];
-    try {
-      for (const key of keys) {
-        const [rows] = await connection.query('SELECT GET_LOCK(?, 10) AS acquired', [key]);
-        if (Number(rows?.[0]?.acquired) !== 1) {
-          throw new Error('Device identity lock acquisition timed out');
-        }
-        held.push(key);
-      }
-      return await fn();
-    } finally {
-      for (const key of held.reverse()) {
-        try { await connection.query('SELECT RELEASE_LOCK(?)', [key]); }
-        catch (error) { console.error('Failed to release MySQL device lock:', error.message); }
-      }
-      connection.release();
-    }
-    });
+    const admittedPool=pool;
+    return databaseTasks.track(withMysqlIdentityAdmission(async () => {
+      const current=()=>pool===admittedPool&&isMysqlConnected()&&!isConnecting;
+      if(databaseStopping||!current())throw Error('DEVICE_LOCK_POOL_CHANGED');
+      activeIdentitySessions++;
+      try{
+        const connection=await admittedPool.getConnection();
+        return await withDeviceAdvisoryLocks(connection,keys,fn,current);
+      }finally{activeIdentitySessions--}
+    }));
   }
   if (process.env.NODE_ENV !== 'test') {
     throw new Error('Refusing device identity operation without MySQL advisory locks');
@@ -1647,7 +1641,7 @@ export async function revokeDeviceCredential({ principal, deviceId, reasonCode, 
     throw new Error('DEVICE_REVOCATION_INVALID');
   }
   if (!isMysqlConnected() || !pool?.getConnection) throw new Error('DEVICE_REVOCATION_MYSQL_REQUIRED');
-  const conn = await pool.getConnection();
+  const conn = guardTransactionConnection(await pool.getConnection());
   let committed = false;
   let discard = false;
   try {
@@ -1711,7 +1705,7 @@ export async function reconcileRevokedDevicePendingCommands({principal,deviceId,
       !isCredentialDeviceId(deviceId) ||
       action !== 'CANCEL_NEVER_CLAIMED_PENDING') throw new Error('DEVICE_RECONCILIATION_INVALID');
   if (!isMysqlConnected() || !pool?.getConnection) throw new Error('DEVICE_RECONCILIATION_MYSQL_REQUIRED');
-  const conn=await pool.getConnection();
+  const conn=guardTransactionConnection(await pool.getConnection());
   let settled=false,discard=false;
   try {
     await conn.beginTransaction();
@@ -1803,7 +1797,9 @@ export async function ingestTelemetryBatchOnce(batch, credential = undefined) {
       !/^[A-Za-z0-9][A-Za-z0-9:._-]{0,63}$/.test(String(batchId || '')) ||
       !/^[0-9a-f]{64}$/.test(String(hash || ''))) throw new Error('TELEMETRY_BATCH_INVALID');
   if (!isMysqlConnected() || !pool?.getConnection) throw new Error('TELEMETRY_BATCH_MYSQL_REQUIRED');
-  const conn = await pool.getConnection();
+  const observedPool=pool;
+  const conn = guardTransactionConnection(await observedPool.getConnection());
+  let commitAttempted=false;
   let committed = false;
   let discard = false;
   try {
@@ -1840,7 +1836,7 @@ export async function ingestTelemetryBatchOnce(batch, credential = undefined) {
     if (claims.length !== 1 || claim.request_hash !== hash ||
         Number(claim.accepted_count) !== events.length) throw new Error('TELEMETRY_BATCH_ID_CONFLICT');
     if (claim.insert_nonce !== nonce) {
-      await conn.commit();
+      commitAttempted=true;await conn.commit();
       committed = true;
       return { duplicate: true, accepted: Number(claim.accepted_count),
         recorded_at: claim.recorded_at, batch_id: batchId };
@@ -1953,13 +1949,25 @@ export async function ingestTelemetryBatchOnce(batch, credential = undefined) {
         );
       }
     }
-    await conn.commit();
+    commitAttempted=true;await conn.commit();
     committed = true;
     invalidateDeviceCache(deviceId);
     await cacheDel('cache:devices:list');
     return { duplicate: false, accepted: events.length,
       recorded_at: claim.recorded_at, batch_id: batchId };
   } catch (err) {
+    if(commitAttempted&&!committed){
+      // Destroy the uncertain session before a fresh locking read; no write retry.
+      discard=true;
+      try{conn.destroy()}catch{throw Error('TELEMETRY_COMMIT_UNCONFIRMED')}
+      const receipt=await recoverCommittedTelemetryReceipt({
+        expected:{tenantId,deviceId,batchId,hash,accepted:events.length,tokenHash:credential?.tokenHash},
+        acquire:async()=>guardTransactionConnection(await observedPool.getConnection()),
+        isCurrent:()=>pool===observedPool&&isMysqlConnected()&&!databaseStopping
+      });
+      if(receipt){invalidateDeviceCache(deviceId);await cacheDel('cache:devices:list');return receipt}
+      throw Error('TELEMETRY_COMMIT_UNCONFIRMED');
+    }
     if (!committed) {
       try { await conn.rollback(); }
       catch (_) { discard = true; if (typeof conn.destroy === 'function') conn.destroy(); }
@@ -2054,8 +2062,17 @@ function normalizeMetricPoint(deviceId, m = {}) {
   };
 }
 
-export async function flushTelemetryQueue() {
+let flushInFlight=null;
+export function flushTelemetryQueue(){
+  if(flushInFlight)return flushInFlight;
+  const work=databaseTasks.track(flushTelemetryBatch());
+  flushInFlight=work;
+  void work.then(()=>{if(flushInFlight===work)flushInFlight=null},()=>{if(flushInFlight===work)flushInFlight=null});
+  return work;
+}
+async function flushTelemetryBatch() {
   if (telemetryQueue.length === 0) return 0;
+  requireLegacyTelemetryTestProfile(process.env.NODE_ENV);
   const batch = telemetryQueue.splice(0, telemetryQueue.length);
   if (batch.length === 0) return 0;
 
@@ -2089,6 +2106,7 @@ export async function flushTelemetryQueue() {
 }
 
 export function startTelemetryFlushWorker(intervalMs = TELEMETRY_FLUSH_INTERVAL_MS) {
+  if(databaseStopping)return null;
   if (telemetryFlushTimer) return telemetryFlushTimer;
   telemetryFlushTimer = setInterval(() => {
     flushTelemetryQueue().catch(err => console.error('Telemetry batch flush error:', err.message));
@@ -2099,11 +2117,12 @@ export function startTelemetryFlushWorker(intervalMs = TELEMETRY_FLUSH_INTERVAL_
 
 export async function insertTelemetryBatch(records) {
   if (!Array.isArray(records) || records.length === 0) return 0;
+  if(process.env.NODE_ENV!=='test'&&!isMysqlConnected())throw Error('TELEMETRY_DATABASE_UNAVAILABLE');
   const normalized = [];
   for (const item of records) {
     const pt = normalizeMetricPoint(item.device_id || item.deviceId, item.metrics || item);
     normalized.push(pt);
-    memTelemetry.push(pt);
+    if(process.env.NODE_ENV==='test')memTelemetry.push(pt);
   }
 
   if (isMysqlConnected() && pool) {
@@ -2121,10 +2140,11 @@ export async function insertTelemetryBatch(records) {
           device_id, cpu_pct, ram_pct, disk_free_gb, net_latency_ms, recorded_at
         ) VALUES ?
       `;
-      await pool.query(sql, [rows]);
+      const [result]=await pool.query(sql, [rows]);
+      if(process.env.NODE_ENV!=='test')requireConfirmedTelemetryInsert(result,normalized.length);
     } catch (err) {
       if (process.env.NODE_ENV !== 'test') {
-        console.error('insertTelemetryBatch error in production:', err.message);
+        console.error('insertTelemetryBatch error in production:', err.code || 'TELEMETRY_INSERT_UNCONFIRMED');
         throw err;
       }
       console.error('insertTelemetryBatch error:', err.message);
@@ -2135,6 +2155,7 @@ export async function insertTelemetryBatch(records) {
 }
 
 export async function insertTelemetryRecord(deviceId, metrics) {
+  requireLegacyTelemetryTestProfile(process.env.NODE_ENV);
   if (!metrics) return false;
 
   // Support direct array batch insertion
@@ -2197,7 +2218,7 @@ export async function syncDeviceProcesses(deviceId, processes) {
   if (isMysqlConnected() && pool) {
     let conn = null;
     try {
-      conn = await pool.getConnection();
+      conn = guardTransactionConnection(await pool.getConnection());
       await conn.beginTransaction();
 
       await conn.query('DELETE FROM device_processes WHERE device_id = ?', [devIdStr]);
@@ -2433,7 +2454,7 @@ async function executeCredentialBoundCommandWrite(owner, credential, sql, params
     throw new Error('COMMAND_CREDENTIAL_CHANGED');
   }
   if (!isMysqlConnected() || !pool?.getConnection) throw new Error('COMMAND_CREDENTIAL_DATABASE_UNAVAILABLE');
-  const conn = await pool.getConnection();
+  const conn = guardTransactionConnection(await pool.getConnection());
   let committed = false;
   let discard = false;
   try {
@@ -2617,7 +2638,7 @@ export async function createAlert(alt, notifications = []) {
   let res;
   if (process.env.NODE_ENV !== 'test' && jobs.length) {
     if (!isMysqlConnected() || !pool?.getConnection) throw new Error('OUTBOX_DATABASE_UNAVAILABLE');
-    const conn = await pool.getConnection();
+    const conn = guardTransactionConnection(await pool.getConnection());
     try {
       await conn.beginTransaction();
       [res] = await conn.query(sql, values);
@@ -2680,9 +2701,20 @@ export async function claimNotificationOutbox(batchSize = 20) {
   );
   if (!claimed?.affectedRows) return [];
   return executeQuery(
-    "SELECT * FROM notification_outbox WHERE lease_token = ? AND status = 'PROCESSING' ORDER BY id ASC",
+    "SELECT * FROM notification_outbox WHERE lease_token = ? AND status = 'PROCESSING' AND lease_expires_at > UTC_TIMESTAMP(3) ORDER BY id ASC",
     [lease]
   );
+}
+
+// Renew only the exact current, unexpired claim immediately before delivery.
+export async function renewNotificationOutboxLease(row) {
+  const params=outboxLeaseParameters(row);
+  if(!isMysqlConnected())throw Error('OUTBOX_DATABASE_UNAVAILABLE');
+  const result=await executeQuery(
+    "UPDATE notification_outbox SET lease_expires_at = DATE_ADD(UTC_TIMESTAMP(3), INTERVAL 300 SECOND) " +
+    "WHERE id = ? AND tenant_id = ? AND lease_token = ? AND attempts = ? AND channel = ? " +
+    "AND status = 'PROCESSING' AND lease_expires_at > UTC_TIMESTAMP(3)",params);
+  return confirmedLeaseRenewal(result);
 }
 
 export async function finishNotificationOutbox(id, lease, status) {
@@ -3561,6 +3593,7 @@ export async function updateRetentionSettings(updates) {
 // ---------------- DATA RETENTION ENGINE ----------------
 let lastRetentionRun = null;
 let retentionSchedulerTimer = null;
+let retentionInitialTimer=null;
 
 export function getLastRetentionRun() {
   return lastRetentionRun;
@@ -3736,17 +3769,39 @@ export async function runDataRetentionPurge() {
 }
 
 export function initRetentionScheduler(intervalMs = 3600000) {
-  if (retentionSchedulerTimer) clearInterval(retentionSchedulerTimer);
-
-  setTimeout(() => {
-    runDataRetentionPurge().catch(e => console.error('Retention initial run notice:', e.message));
-  }, 4000);
-
-  retentionSchedulerTimer = setInterval(() => {
-    runDataRetentionPurge().catch(e => console.error('Scheduled retention purge error:', e.message));
-  }, intervalMs);
-
+  if(databaseStopping)return null;
+  if(retentionSchedulerTimer)clearInterval(retentionSchedulerTimer);
+  if(retentionInitialTimer)clearTimeout(retentionInitialTimer);
+  let running=false;
+  const tick=()=>{
+    if(databaseStopping||running)return;
+    running=true;
+    databaseTasks.track(runDataRetentionPurge()).catch(e=>console.error('Retention purge failed:',e.code||'UNAVAILABLE')).finally(()=>{running=false});
+  };
+  retentionInitialTimer=setTimeout(tick,4000);
+  retentionSchedulerTimer=setInterval(tick,intervalMs);
   return retentionSchedulerTimer;
+}
+export async function stopDatabaseBackgroundWork(){
+ databaseStopping=true;stopDbHealthCheck();
+ clearInterval(telemetryFlushTimer);telemetryFlushTimer=null;
+ clearTimeout(retentionInitialTimer);retentionInitialTimer=null;
+ clearInterval(retentionSchedulerTimer);retentionSchedulerTimer=null;
+ await databaseTasks.drain();
+}
+export async function drainDatabaseWork(){
+ if(!databaseStopping)throw Error('DATABASE_SHUTDOWN_NOT_STARTED');
+ await databaseTasks.drain();
+ while(telemetryQueue.length){
+  if(!isMysqlConnected()||!await flushTelemetryQueue())throw Error('TELEMETRY_DRAIN_UNCONFIRMED');
+ }
+ await databaseTasks.drain();
+}
+export async function closeDatabaseResources(){
+ if(!databaseStopping||telemetryQueue.length||flushInFlight)throw Error('DATABASE_DRAIN_UNCONFIRMED');
+ await databaseTasks.drain();
+ const active=pool;pool=null;isConnected=false;
+ try{if(active)await active.end()}finally{cacheLifecycle.stop()}
 }
 
 // Tenant-specific integration settings must never inherit another tenant's

@@ -46,7 +46,7 @@ describe('Stage N17 durable tenant notification worker', () => {
       { ...emailRow, id: 9, tenant_id: 'tenant-B', lease_token: 'lease-C' }
     ];
     const result = await runNotificationOutboxBatch({
-      claim: async () => rows, complete, retry,
+      claim: async () => rows, complete, retry, renewLease: async () => true,
       getEmailConfig: async t => ({ enabled: t === 'tenant-A', recipient: 'alerts@example.com' }),
       getWebhookConfig: async () => ({ enabled: true, url: 'https://hooks.slack.com/x' }),
       sendEmail: async () => ({ accepted: true }),

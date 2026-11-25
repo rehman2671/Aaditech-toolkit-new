@@ -1,7 +1,10 @@
 import { scopedAlertRules, isApprovedWebhookUrl, deliverTenantWebhook } from './tenant-alert-safety.js';
 import { smtpTransportConfig, isApprovedEmailRecipient, deliverTenantEmail } from './smtp-alerts.js';
 import { startNotificationOutboxWorker } from './notification-outbox.js';
+import {createRuntimeShutdown,createTaskTracker} from './runtime-shutdown.js';
+import {createHttpWorkTracker,installHttpRouteTracking} from './http-work-tracker.js';
 import { destinationFingerprint } from './notification-destination.js';
+import {csvRow,deviceEventsFilename} from './safe-csv-export.js';
 import { approvedGithubBuildConfig, readApprovedBuildStatus, dispatchApprovedBuild } from './github-build-release.js';
 /**
  * ARCHITECTURAL HARD PREREQUISITE: STATELESSNESS FOR MULTI-INSTANCE / CLUSTER DEPLOYMENTS
@@ -29,6 +32,14 @@ import helmet from 'helmet';
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 import * as db from './db.js';
+import {readPersistentSetupStatus,completeInitialSetup} from './initial-setup-transaction.js';
+import {identityPolicy as cleanSetupIdentityPolicy} from './installation-database-identity.js';
+import {registerTroubleshootingHelpRoutes} from './troubleshooting-help-routes.js';
+import {registerBoundEmployeeRoutes} from './troubleshooting-employee-routes.js';
+import {registerIncidentReviewRoutes} from './troubleshooting-review-routes.js';
+import {registerDiagnosticConsentRoutes} from './troubleshooting-consent-routes.js';
+import {registerServerConfigurationRoutes} from './server-configuration-routes.js';
+import {registerDeviceObservationRoutes} from './device-observation-routes.js';
 import { isValidSetupKey, isSeededDemoPasswordHash } from './setup-security.js';
 import { validateEnrollmentIdentity, validateFreshEnrollment, matchesEnrolledDeviceIdentifier, extractEnrolledDeviceHeaderToken, validateDeviceRevocationRequest, validatePendingCommandReconciliation } from './enrollment-security.js';
 import { resolveAgentOrigin } from './agent-origin.js';
@@ -146,6 +157,14 @@ if (REQUIRE_SECURE_SETUP && INITIAL_SETUP_TOKEN.length < 32) {
 const revokedTokens = new Set();
 
 const app = express();
+const httpWork=createHttpWorkTracker();
+installHttpRouteTracking(app,httpWork);
+const auditTasks=createTaskTracker();
+let shutdownController;
+app.use((req,res,next)=>{
+ if(!shutdownController?.stopping)return next();
+ res.set('Connection','close');return res.status(503).json({error:'SERVER_DRAINING'});
+});
 const PORT = process.env.PORT || 3000;
 
 // Trust front-end reverse proxies (Nginx / Cloud Run) for rate limiting & IP resolution
@@ -297,7 +316,7 @@ function logAudit(actor, action, targetResource, details, req) {
     client_ip: req?.ip || req?.headers?.['x-forwarded-for'] || '127.0.0.1',
     created_at: new Date().toISOString()
   };
-  logAuditToDb(logEntry).catch(err => console.error('logAudit error:', err.message));
+  auditTasks.track(logAuditToDb(logEntry)).catch(err => console.error('logAudit error:', err.message));
   return logEntry;
 }
 
@@ -835,7 +854,7 @@ app.use((req, res, next) => {
 app.use(['/api', '/api/v1'], apiLimiter);
 
 // ---------------- UNIVERSAL API SECURITY GATEWAY ----------------
-app.use(async (req, res, next) => {
+app.use(httpWork.wrap(async (req, res, next) => {
   const p = req.path;
 
   // 1. Static and non-API files are completely open
@@ -877,7 +896,9 @@ app.use(async (req, res, next) => {
 
   // Initial setup is allowed only before setup is marked complete
   if (p === '/api/setup' || p === '/api/v1/setup') {
-    const branding = await db.getBranding();
+    let branding;
+    try { branding = REQUIRE_SECURE_SETUP ? await readPersistentSetupStatus(db) : await db.getBranding(); }
+    catch { return res.status(503).json({error:'SETUP_UNAVAILABLE'}); }
     if (!branding.setup_complete) {
       return next();
     }
@@ -900,7 +921,7 @@ app.use(async (req, res, next) => {
 
   // 4. All other API endpoints strictly require user authentication
   return authenticateUserToken(req, res, next);
-});
+}));
 
 // Real Bcrypt Login Handler for both /api/v1/auth/login and /api/login
 async function handleLogin(req, res) {
@@ -915,7 +936,9 @@ async function handleLogin(req, res) {
   }
 
   if (REQUIRE_SECURE_SETUP) {
-    const branding = await db.getBranding();
+    let branding;
+    try { branding = await readPersistentSetupStatus(db); }
+    catch { return res.status(503).json({error:'SETUP_UNAVAILABLE'}); }
     if (!branding.setup_complete) {
       return res.status(403).json({ error: 'SETUP_REQUIRED', detail: 'Complete authorized first-run setup before logging in.' });
     }
@@ -1005,6 +1028,13 @@ app.get(['/api/v1/auth/me', '/api/me'], async (req, res) => {
     role: current.role, tenant_id: current.tenant_id
   });
 });
+
+registerTroubleshootingHelpRoutes(app);
+registerBoundEmployeeRoutes(app,db);
+registerIncidentReviewRoutes(app,db);
+registerDiagnosticConsentRoutes(app,db);
+registerServerConfigurationRoutes(app,db);
+registerDeviceObservationRoutes(app,db);
 
 // Devices (Canonical v1 + Legacy aliases /api/devices and /api/agents)
 app.get(['/api/v1/devices', '/api/devices', '/api/agents'], async (req, res) => {
@@ -1543,6 +1573,9 @@ app.post(['/api/v1/ingest/telemetry', '/api/ingest'], agentLimiter, validateBody
       if (err.message === 'TELEMETRY_APP_USAGE_INVALID') return res.status(400).json({error:err.message});
       if (['TELEMETRY_CREDENTIAL_CHANGED', 'TELEMETRY_DEVICE_OWNER_MISMATCH'].includes(err.message)) {
         return res.status(401).json({ error: 'DEVICE_CREDENTIAL_CHANGED' });
+      }
+      if (err.message === 'TELEMETRY_COMMIT_UNCONFIRMED') {
+        return res.status(503).set('Retry-After','5').json({error:'TELEMETRY_COMMIT_UNCONFIRMED',detail:'Retry the identical persisted batch ID and payload; no acknowledgement is confirmed.'});
       }
       if (err.message === 'TELEMETRY_BATCH_MYSQL_REQUIRED') {
         return res.status(503).json({ error: 'DATABASE_UNAVAILABLE',
@@ -2387,6 +2420,8 @@ app.post('/api/v1/settings/retention/batch-receipts',
 
 // Setup status (Canonical v1 + Legacy alias)
 app.get(['/api/v1/setup/status', '/api/setup/status'], async (req, res) => {
+  res.set('Cache-Control','no-store');
+  if(REQUIRE_SECURE_SETUP){try{return res.json({...await readPersistentSetupStatus(db),server_host:resolveAgentOrigin(req)?.host??null})}catch{return res.status(503).json({error:'SETUP_UNAVAILABLE'})}}
   const branding = await db.getBranding();
   res.json({
     setup_complete: branding.setup_complete,
@@ -2401,7 +2436,9 @@ app.get(['/api/v1/setup/status', '/api/setup/status'], async (req, res) => {
 
 // Run setup (Canonical v1 + Legacy alias)
 app.post(['/api/v1/setup', '/api/setup'], async (req, res, next) => {
-  const branding = await db.getBranding();
+  let branding;
+  try { branding = REQUIRE_SECURE_SETUP ? await readPersistentSetupStatus(db) : await db.getBranding(); }
+  catch { return res.status(503).json({error:'SETUP_UNAVAILABLE'}); }
   req.isInitialSetup = !branding.setup_complete;
   if (branding.setup_complete) {
     // Never let an ordinary authenticated user reset the administrator via
@@ -2410,6 +2447,9 @@ app.post(['/api/v1/setup', '/api/setup'], async (req, res, next) => {
     if (!isPlatformSettingsAdmin(req.user)) {
       return res.status(403).json({ error: 'PLATFORM_ADMIN_REQUIRED',
         detail: 'Only the designated platform operator can change completed server setup.' });
+    }
+    if (process.env.NODE_ENV !== 'test') {
+      return res.status(409).json({ error: 'SETUP_ALREADY_COMPLETED', detail: 'Use workspace settings for branding and the local deployment operator for runtime changes. First-run credentials cannot be reset through setup.' });
     }
   } else if (REQUIRE_SECURE_SETUP &&
              !isValidSetupKey(req.headers['x-setup-token'], INITIAL_SETUP_TOKEN)) {
@@ -2422,6 +2462,20 @@ app.post(['/api/v1/setup', '/api/setup'], async (req, res, next) => {
       (typeof admin_password !== 'string' || admin_password.length < 12 ||
        ['Admin123!', 'Operator123!', 'Monitor123!'].includes(admin_password))) {
     return res.status(400).json({ error: 'WEAK_INITIAL_PASSWORD', detail: 'Choose a new administrator password of at least 12 characters, not a shipped demo password.' });
+  }
+  if(REQUIRE_SECURE_SETUP){
+    if(!req.isInitialSetup||!isValidSetupKey(req.headers['x-setup-token'],INITIAL_SETUP_TOKEN))return res.status(403).json({error:'FORBIDDEN'});
+    if(Buffer.byteLength(admin_password,'utf8')>72)return res.status(400).json({error:'WEAK_INITIAL_PASSWORD',detail:'Password must not exceed 72 UTF-8 bytes.'});
+    const origin=resolveAgentOrigin(req);
+    if(!origin||server_host!==origin.host)return res.status(400).json({error:'SETUP_INVALID',detail:'Use the operator-configured HTTPS server hostname.'});
+    try{
+      const freshIdentityPolicy=process.env.AADITECH_BOUND_REPORTS==='enabled'?cleanSetupIdentityPolicy(process.env):null;
+      const result=await completeInitialSetup(db,{body:req.body,configuredHost:origin.host,passwordHash:await bcrypt.hash(admin_password,10),freshIdentityPolicy});
+      const token=issueUserToken(result.admin);
+      res.cookie('auth_token',token,{httpOnly:true,secure:true,sameSite:'lax',maxAge:8*3600*1000});
+      res.cookie('itk_session',token,{httpOnly:true,secure:true,sameSite:'lax',maxAge:8*3600*1000});
+      return res.json({...result,token});
+    }catch(e){const code=e?.message;return res.status(code==='SETUP_INVALID'?400:code==='SETUP_ALREADY_COMPLETED'||code==='SETUP_RECOVERY_REQUIRED'?409:503).json({error:['SETUP_INVALID','SETUP_ALREADY_COMPLETED','SETUP_RECOVERY_REQUIRED'].includes(code)?code:'SETUP_UNAVAILABLE',detail:'Setup not confirmed. Refresh status; contact the local operator if recovery is required.'})}
   }
   const updates = { setup_complete: true };
   if (company_name) updates.company_name = company_name;
@@ -2743,7 +2797,7 @@ app.get(['/api/v1/software/export', '/api/software/export'], async (req, res) =>
   for (const a of agents) {
     const procs = await db.getDeviceProcesses(a.id);
     for (const p of procs) {
-      csv += `"${a.hostname}","${(p.name || '').replace(/"/g, '""')}","1.0.0","Local System"\n`;
+      csv += csvRow([a.hostname,p.name||'','1.0.0','Local System']);
     }
   }
   res.setHeader('Content-Type', 'text/csv');
@@ -2775,7 +2829,7 @@ app.get(['/api/v1/license/export', '/api/license/export'], async (req, res) => {
   const agents = await db.getDevices({ tenant_id: tenantId });
   let csv = 'Hostname,WindowsStatus,OfficeStatus,Compliant\n';
   for (const a of agents) {
-    csv += `"${a.hostname}","UNKNOWN","NOT_CONFIGURED","UNKNOWN"\n`;
+    csv += csvRow([a.hostname,'UNKNOWN','NOT_CONFIGURED','UNKNOWN']);
   }
   res.setHeader('Content-Type', 'text/csv');
   res.setHeader('Content-Disposition', 'attachment; filename="license_compliance.csv"');
@@ -2790,7 +2844,7 @@ app.get(['/api/v1/reports/fleet', '/api/report/fleet'], async (req, res) => {
   const agents = await db.getDevices({ tenant_id: tenantId });
   let csv = 'Hostname,OS,IP,AgentVersion,Status,LastSeen\n';
   for (const a of agents) {
-    csv += `"${a.hostname}","${a.os_version || a.os || ''}","${a.ip_address || a.ip || ''}","${a.agent_version || version}","${a.status || 'offline'}","${a.last_seen || ''}"\n`;
+    csv += csvRow([a.hostname,a.os_version||a.os||'',a.ip_address||a.ip||'',a.agent_version||version,a.status||'offline',a.last_seen||'']);
   }
   res.setHeader('Content-Type', 'text/csv');
   res.setHeader('Content-Disposition', 'attachment; filename="fleet_report.csv"');
@@ -2806,10 +2860,10 @@ app.get(['/api/v1/reports/device/:id', '/api/report/agent/:id'], async (req, res
     const events = await db.getEvents(agent.hostname, 100, null, req.user.tenant_id, agent.id);
     let csv = 'Hostname,Kind,CapturedAt\n';
     for (const ev of events) {
-      csv += `"${agent.hostname}","${ev.kind || 'telemetry'}","${ev.created_at || ev.recorded_at || ''}"\n`;
+      csv += csvRow([agent.hostname,ev.kind||'telemetry',ev.created_at||ev.recorded_at||'']);
     }
     res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', `attachment; filename="${agent.hostname}_events.csv"`);
+    res.setHeader('Content-Disposition', `attachment; filename="${deviceEventsFilename(agent.hostname)}"`);
     return res.send(csv);
   }
   const events = await db.getEvents(agent.hostname, 100, null, req.user.tenant_id, agent.id);
@@ -3597,7 +3651,19 @@ if (!runningUnderVitest) {
   // Initialize scheduled hourly data retention & partition cleanup engine
   db.initRetentionScheduler(3600000);
   // Each PM2 worker may poll; DB-atomic leases enforce one owner per job.
-  if (isProduction) startNotificationOutboxWorker();
+  const stopOutbox=isProduction?startNotificationOutboxWorker():async()=>{};
+  shutdownController=createRuntimeShutdown({
+    stopAccepting:()=>new Promise((resolve,reject)=>{serverInstance.close(err=>err?reject(err):resolve());serverInstance.closeIdleConnections?.()}),
+    stopBackground:async()=>{await Promise.all([stopOutbox(),db.stopDatabaseBackgroundWork()])},
+    drain:async()=>{await httpWork.sealAndDrain();await auditTasks.drain();await db.drainDatabaseWork()},
+    closeResources:()=>db.closeDatabaseResources()
+  });
+  let shutdownRequested=false;
+  const shutdown=()=>{
+    if(shutdownRequested)return;shutdownRequested=true;
+    shutdownController.shutdown().then(()=>{console.log('Runtime shutdown drained.');process.exit(0)},()=>{console.error('Runtime shutdown unconfirmed.');serverInstance.closeAllConnections?.();process.exit(1)});
+  };
+  process.on('SIGTERM',shutdown);process.on('SIGINT',shutdown);
 }
 
 export { app, serverInstance };

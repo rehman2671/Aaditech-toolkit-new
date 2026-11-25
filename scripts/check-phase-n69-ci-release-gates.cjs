@@ -30,9 +30,9 @@ function auditN69CIWorkflow(raw) {
     fail('Windows signing/security validation is not unconditional and complete');
   }
   if (!Array.isArray(agent.needs) ||
-      agent.needs.length !== 3 ||
-      ['powershell-validation', 'node-tests', 'api-tests'].some(n => !agent.needs.includes(n))) {
-    fail('signing job must depend on ALL three real security/data test jobs');
+      agent.needs.length !== 4 ||
+      ['powershell-validation', 'node-tests', 'api-tests', 'offline-docker-load-rehearsal'].some(n => !agent.needs.includes(n))) {
+    fail('signing job must depend on ALL four security/data/compatibility test jobs');
   }
   if (agent.if !== "github.event_name == 'workflow_dispatch' || github.event_name == 'push'") {
     fail('agent build event restriction changed');
@@ -78,7 +78,7 @@ function auditN69CIWorkflow(raw) {
 if (require.main === module) {
   try {
     auditN69CIWorkflow(fs.readFileSync(WORKFLOW, 'utf8'));
-    console.log('N69 PASS: signing requires Windows+Node+API jobs and both installs are strict npm ci.');
+    console.log('N69 PASS: signing requires Windows+Node+API+offline compatibility jobs and both installs are strict npm ci.');
   } catch (_) {
     console.error('N69 CI release gate blocked.');
     process.exitCode = 1;

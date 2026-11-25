@@ -77,6 +77,11 @@ jobs:
       - name: Read-only LAN Windows host preflight (Windows PowerShell 5.1)
         run: powershell.exe -NoProfile -ExecutionPolicy Bypass -File ./Enterprise/tests/Test-LanWindowsHostPreflight.ps1
 
+      - name: Private LAN independently pinned root trust policy (PowerShell 7)
+        run: pwsh -NoProfile -File ./Enterprise/tests/Test-PrivateWindowsRootTrust.ps1
+      - name: Private LAN independently pinned root trust policy (Windows PowerShell 5.1)
+        run: powershell.exe -NoProfile -ExecutionPolicy Bypass -File ./Enterprise/tests/Test-PrivateWindowsRootTrust.ps1
+
       - name: Retired legacy Windows SYSTEM installer must fail closed
         run: pwsh -NoProfile -File ./Enterprise/tests/Test-LegacyAgentInstallerDisabled.ps1
 
@@ -370,7 +375,7 @@ jobs:
 
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
-          node-version: "20"
+          node-version: "24"
           cache: 'npm'
 
       - name: Install dependencies
@@ -394,6 +399,7 @@ jobs:
           for (const name of names) {
             const value = crypto.randomBytes(32).toString('hex');
 
+            console.log('::add-mask::' + value);
             fs.appendFileSync(
               process.env.GITHUB_ENV,
               `${name}=${value}\n`
@@ -429,8 +435,13 @@ jobs:
           console.log('PASS: actual local Docker socket observation and missing image refusal.');
           NODE
 
-      - name: Rehearse signed fixture Docker archive load on disposable runner
-        run: node tests/ci-offline-docker-load-rehearsal.mjs
+      - name: Run offline database recovery safety regression
+        timeout-minutes: 3
+        run: bash -n Enterprise/tests/Test-MySQL-Live-Rehearsal.sh && bash Enterprise/tests/Test-MySQL-Backup-Restore.sh
+
+      - name: Report production and development dependency audit
+        timeout-minutes: 3
+        run: node scripts/dependency-audit-policy.cjs --report
 
       - name: Run Vitest unit & integration test suite (enforcing 70%+ coverage)
         env:
@@ -442,6 +453,39 @@ jobs:
           NODE_ENV: test
           VITEST: "true"
         run: npm run test:coverage
+
+      - name: Prepare compatible dependency upgrade candidate without modifying checkout
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        timeout-minutes: 6
+        run: node scripts/prepare-dependency-upgrade-candidate.cjs
+
+      - name: Require verified production dependency audit before protected manual build
+        if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+        timeout-minutes: 3
+        run: node scripts/dependency-audit-policy.cjs --release
+
+  offline-docker-load-rehearsal:
+    name: Offline Docker load compatibility (disposable runner)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "24"
+      - name: Rehearse signed fixture Docker archive load on disposable runner
+        run: node tests/ci-offline-docker-load-rehearsal.mjs
+      - name: Rehearse existing service lifecycle and quiescent configuration on disposable runner
+        timeout-minutes: 10
+        run: node tests/ci-existing-compose-lifecycle-rehearsal.mjs
+      - name: Install locked runtime dependencies for real MySQL bridge rehearsal
+        run: npm ci --omit=dev --ignore-scripts
+      - name: Rehearse real MySQL container private bridge and signed fresh schema
+        timeout-minutes: 10
+        run: node tests/ci-fresh-database-bridge-rehearsal.mjs
 
   api-tests:
     name: API test suite (Node.js vs MySQL 8)
@@ -467,7 +511,7 @@ jobs:
 
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
-          node-version: "20"
+          node-version: "24"
           cache: 'npm'
 
       - name: Install dependencies
@@ -491,6 +535,7 @@ jobs:
           for (const name of names) {
             const value = crypto.randomBytes(32).toString('hex');
 
+            console.log('::add-mask::' + value);
             fs.appendFileSync(
               process.env.GITHUB_ENV,
               `${name}=${value}\n`
@@ -513,6 +558,18 @@ jobs:
           DB_NAME: it_toolkit
           NODE_ENV: test
         run: node test-migrations-runner.js
+
+      - name: Rehearse installation database identity against isolated MySQL
+        timeout-minutes: 2
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_USER: itk_user
+          DB_PASSWORD: itk_password_ci
+          DB_NAME: it_toolkit
+          NODE_ENV: test
+          AADITECH_BOUND_DB_REHEARSAL: isolated-ci
+        run: node test-installation-database-identity-mysql.js
 
       - name: Rehearse durable event idempotency on real MySQL (N28)
         env:
@@ -636,6 +693,20 @@ jobs:
           AADITECH_IDENTITY_MIGRATION: isolated-ci
         run: node test-device-identity-index-migration.js
 
+      - name: Rehearse signed fresh MySQL schema and installation identity in isolated database
+        timeout-minutes: 3
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_ROOT_PASSWORD: ci_root_password
+          NODE_ENV: test
+          AADITECH_FRESH_SCHEMA_REHEARSAL: isolated-ci
+        run: node test-fresh-mysql-schema-ci.js
+
+      - name: Rehearse persistent MySQL identity backup and restore in separate disposable Compose project
+        timeout-minutes: 10
+        run: bash Enterprise/tests/Run-Disposable-MySQL-Recovery-CI.sh
+
       - name: Start Background Server for API verification
         env:
           DB_HOST: 127.0.0.1
@@ -688,7 +759,7 @@ jobs:
     # N69: both diagnostic MSI and protected manually signed MSI require
     # successful Windows security/Pester validation and both DB suites.
     # A failed/pending PowerShell signing policy suite must block the signer.
-    needs: [powershell-validation, node-tests, api-tests]
+    needs: [powershell-validation, node-tests, api-tests, offline-docker-load-rehearsal]
     runs-on: windows-latest
     # Only manually dispatched signing builds use the human-reviewed,
     # branch-restricted production-installer environment. Normal push CI
@@ -942,7 +1013,7 @@ jobs:
   phase-o-msi-diagnostic:
     name: Phase O unsigned Windows MSI integration rehearsal
     if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.base_ref == 'main' && startsWith(github.head_ref, 'integration/')
-    needs: [powershell-validation, node-tests, api-tests]
+    needs: [powershell-validation, node-tests, api-tests, offline-docker-load-rehearsal]
     runs-on: windows-latest
     permissions:
       contents: read

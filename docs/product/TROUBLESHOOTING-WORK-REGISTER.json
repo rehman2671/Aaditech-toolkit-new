@@ -7,8 +7,8 @@
   "note": "Planning/implementation register, not verified delivery. Guidance and review formats are source-level only; existing reference collectors are partial, not platform acceptance. Parent tracker remains authoritative. No task is marked accepted. Combined review reconciliation preserves all 158 original IDs; partial entries identify local reference source/test files; no platform verification or acceptance inferred. 2026-11-25: PR #117 CI identified two Windows capability mapping mismatches (Bluetooth/power) against existing partial reference tasks; catalog corrected, no state promoted pending fresh CI.",
   "counts": {
     "IMPLEMENTED_PENDING_COMBINED_CI": 42,
-    "PARTIAL_REFERENCE_ONLY": 43,
-    "PENDING": 73
+    "PARTIAL_REFERENCE_ONLY": 69,
+    "PENDING": 47
   },
   "tasks": [
     {
@@ -18,7 +18,11 @@
       "state": "IMPLEMENTED_PENDING_COMBINED_CI",
       "evidence": [
         "troubleshooting-guidance.js",
-        "tests/unit/troubleshooting-guidance.test.js"
+        "tests/unit/troubleshooting-guidance.test.js",
+        "troubleshooting-help-routes.js",
+        "Enterprise/portal/troubleshooting.html",
+        "Enterprise/portal/troubleshooting-help.js",
+        "tests/unit/troubleshooting-help-routes.test.js"
       ]
     },
     {
@@ -34,18 +38,31 @@
         "troubleshooting-incidents.js",
         "database/migrations/020_troubleshooting_employee_bindings.sql",
         "tests/unit/employee-troubleshooting.test.js",
-        "test-atomic-telemetry-batch-mysql.js"
+        "test-atomic-telemetry-batch-mysql.js",
+        "installation-database-identity.js",
+        "troubleshooting-employee-routes.js",
+        "database/migrations/021_installation_database_identity.sql",
+        "tests/unit/installation-database-identity.test.js",
+        "Enterprise/portal/troubleshooting-report.js",
+        "test-installation-database-identity-mysql.js"
       ]
     },
     {
       "id": "TR-01-OUTCOME",
       "parent": "M5",
       "title": "Independent outcome verification and reopen lifecycle",
-      "state": "PENDING",
+      "state": "PARTIAL_REFERENCE_ONLY",
       "requires": [
         "TR-01-INTAKE"
       ],
-      "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
+      "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution.",
+      "evidence": [
+        "troubleshooting-incident-review.js",
+        "troubleshooting-review-routes.js",
+        "database/migrations/022_troubleshooting_incident_reviews.sql",
+        "Enterprise/portal/troubleshooting-review.js",
+        "tests/unit/troubleshooting-incident-review.test.js"
+      ]
     },
     {
       "id": "TR-02-GUIDE",
@@ -54,7 +71,11 @@
       "state": "IMPLEMENTED_PENDING_COMBINED_CI",
       "evidence": [
         "troubleshooting-guidance.js",
-        "tests/unit/troubleshooting-guidance.test.js"
+        "tests/unit/troubleshooting-guidance.test.js",
+        "troubleshooting-help-routes.js",
+        "Enterprise/portal/troubleshooting.html",
+        "Enterprise/portal/troubleshooting-help.js",
+        "tests/unit/troubleshooting-help-routes.test.js"
       ]
     },
     {
@@ -70,18 +91,31 @@
         "troubleshooting-incidents.js",
         "database/migrations/020_troubleshooting_employee_bindings.sql",
         "tests/unit/employee-troubleshooting.test.js",
-        "test-atomic-telemetry-batch-mysql.js"
+        "test-atomic-telemetry-batch-mysql.js",
+        "installation-database-identity.js",
+        "troubleshooting-employee-routes.js",
+        "database/migrations/021_installation_database_identity.sql",
+        "tests/unit/installation-database-identity.test.js",
+        "Enterprise/portal/troubleshooting-report.js",
+        "test-installation-database-identity-mysql.js"
       ]
     },
     {
       "id": "TR-02-OUTCOME",
       "parent": "M5",
       "title": "Independent outcome verification and reopen lifecycle",
-      "state": "PENDING",
+      "state": "PARTIAL_REFERENCE_ONLY",
       "requires": [
         "TR-02-INTAKE"
       ],
-      "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
+      "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution.",
+      "evidence": [
+        "troubleshooting-incident-review.js",
+        "troubleshooting-review-routes.js",
+        "database/migrations/022_troubleshooting_incident_reviews.sql",
+        "Enterprise/portal/troubleshooting-review.js",
+        "tests/unit/troubleshooting-incident-review.test.js"
+      ]
     },
     {
       "id": "TR-03-GUIDE",
@@ -90,7 +124,11 @@
       "state": "IMPLEMENTED_PENDING_COMBINED_CI",
       "evidence": [
         "troubleshooting-guidance.js",
-        "tests/unit/troubleshooting-guidance.test.js"
+        "tests/unit/troubleshooting-guidance.test.js",
+        "troubleshooting-help-routes.js",
+        "Enterprise/portal/troubleshooting.html",
+        "Enterprise/portal/troubleshooting-help.js",
+        "tests/unit/troubleshooting-help-routes.test.js"
       ]
     },
     {
@@ -106,18 +144,31 @@
         "troubleshooting-incidents.js",
         "database/migrations/020_troubleshooting_employee_bindings.sql",
         "tests/unit/employee-troubleshooting.test.js",
-        "test-atomic-telemetry-batch-mysql.js"
+        "test-atomic-telemetry-batch-mysql.js",
+        "installation-database-identity.js",
+        "troubleshooting-employee-routes.js",
+        "database/migrations/021_installation_database_identity.sql",
+        "tests/unit/installation-database-identity.test.js",
+        "Enterprise/portal/troubleshooting-report.js",
+        "test-installation-database-identity-mysql.js"
       ]
     },
     {
       "id": "TR-03-OUTCOME",
       "parent": "M5",
       "title": "Independent outcome verification and reopen lifecycle",
-      "state": "PENDING",
+      "state": "PARTIAL_REFERENCE_ONLY",
       "requires": [
         "TR-03-INTAKE"
       ],
-      "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
+      "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution.",
+      "evidence": [
+        "troubleshooting-incident-review.js",
+        "troubleshooting-review-routes.js",
+        "database/migrations/022_troubleshooting_incident_reviews.sql",
+        "Enterprise/portal/troubleshooting-review.js",
+        "tests/unit/troubleshooting-incident-review.test.js"
+      ]
     },
     {
       "id": "TR-04-GUIDE",
@@ -126,7 +177,11 @@
       "state": "IMPLEMENTED_PENDING_COMBINED_CI",
       "evidence": [
         "troubleshooting-guidance.js",
-        "tests/unit/troubleshooting-guidance.test.js"
+        "tests/unit/troubleshooting-guidance.test.js",
+        "troubleshooting-help-routes.js",
+        "Enterprise/portal/troubleshooting.html",
+        "Enterprise/portal/troubleshooting-help.js",
+        "tests/unit/troubleshooting-help-routes.test.js"
       ]
     },
     {
@@ -142,18 +197,31 @@
         "troubleshooting-incidents.js",
         "database/migrations/020_troubleshooting_employee_bindings.sql",
         "tests/unit/employee-troubleshooting.test.js",
-        "test-atomic-telemetry-batch-mysql.js"
+        "test-atomic-telemetry-batch-mysql.js",
+        "installation-database-identity.js",
+        "troubleshooting-employee-routes.js",
+        "database/migrations/021_installation_database_identity.sql",
+        "tests/unit/installation-database-identity.test.js",
+        "Enterprise/portal/troubleshooting-report.js",
+        "test-installation-database-identity-mysql.js"
       ]
     },
     {
       "id": "TR-04-OUTCOME",
       "parent": "M5",
       "title": "Independent outcome verification and reopen lifecycle",
-      "state": "PENDING",
+      "state": "PARTIAL_REFERENCE_ONLY",
       "requires": [
         "TR-04-INTAKE"
       ],
-      "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
+      "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution.",
+      "evidence": [
+        "troubleshooting-incident-review.js",
+        "troubleshooting-review-routes.js",
+        "database/migrations/022_troubleshooting_incident_reviews.sql",
+        "Enterprise/portal/troubleshooting-review.js",
+        "tests/unit/troubleshooting-incident-review.test.js"
+      ]
     },
     {
       "id": "TR-05-GUIDE",
@@ -162,7 +230,11 @@
       "state": "IMPLEMENTED_PENDING_COMBINED_CI",
       "evidence": [
         "troubleshooting-guidance.js",
-        "tests/unit/troubleshooting-guidance.test.js"
+        "tests/unit/troubleshooting-guidance.test.js",
+        "troubleshooting-help-routes.js",
+        "Enterprise/portal/troubleshooting.html",
+        "Enterprise/portal/troubleshooting-help.js",
+        "tests/unit/troubleshooting-help-routes.test.js"
       ]
     },
     {
@@ -178,18 +250,31 @@
         "troubleshooting-incidents.js",
         "database/migrations/020_troubleshooting_employee_bindings.sql",
         "tests/unit/employee-troubleshooting.test.js",
-        "test-atomic-telemetry-batch-mysql.js"
+        "test-atomic-telemetry-batch-mysql.js",
+        "installation-database-identity.js",
+        "troubleshooting-employee-routes.js",
+        "database/migrations/021_installation_database_identity.sql",
+        "tests/unit/installation-database-identity.test.js",
+        "Enterprise/portal/troubleshooting-report.js",
+        "test-installation-database-identity-mysql.js"
       ]
     },
     {
       "id": "TR-05-OUTCOME",
       "parent": "M5",
       "title": "Qualified human escalation and independently cleared hazard",
-      "state": "PENDING",
+      "state": "PARTIAL_REFERENCE_ONLY",
       "requires": [
         "TR-05-INTAKE"
       ],
-      "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
+      "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution.",
+      "evidence": [
+        "troubleshooting-incident-review.js",
+        "troubleshooting-review-routes.js",
+        "database/migrations/022_troubleshooting_incident_reviews.sql",
+        "Enterprise/portal/troubleshooting-review.js",
+        "tests/unit/troubleshooting-incident-review.test.js"
+      ]
     },
     {
       "id": "TR-06-GUIDE",
@@ -198,7 +283,11 @@
       "state": "IMPLEMENTED_PENDING_COMBINED_CI",
       "evidence": [
         "troubleshooting-guidance.js",
-        "tests/unit/troubleshooting-guidance.test.js"
+        "tests/unit/troubleshooting-guidance.test.js",
+        "troubleshooting-help-routes.js",
+        "Enterprise/portal/troubleshooting.html",
+        "Enterprise/portal/troubleshooting-help.js",
+        "tests/unit/troubleshooting-help-routes.test.js"
       ]
     },
     {
@@ -214,18 +303,31 @@
         "troubleshooting-incidents.js",
         "database/migrations/020_troubleshooting_employee_bindings.sql",
         "tests/unit/employee-troubleshooting.test.js",
-        "test-atomic-telemetry-batch-mysql.js"
+        "test-atomic-telemetry-batch-mysql.js",
+        "installation-database-identity.js",
+        "troubleshooting-employee-routes.js",
+        "database/migrations/021_installation_database_identity.sql",
+        "tests/unit/installation-database-identity.test.js",
+        "Enterprise/portal/troubleshooting-report.js",
+        "test-installation-database-identity-mysql.js"
       ]
     },
     {
       "id": "TR-06-OUTCOME",
       "parent": "M5",
       "title": "Independent outcome verification and reopen lifecycle",
-      "state": "PENDING",
+      "state": "PARTIAL_REFERENCE_ONLY",
       "requires": [
         "TR-06-INTAKE"
       ],
-      "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
+      "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution.",
+      "evidence": [
+        "troubleshooting-incident-review.js",
+        "troubleshooting-review-routes.js",
+        "database/migrations/022_troubleshooting_incident_reviews.sql",
+        "Enterprise/portal/troubleshooting-review.js",
+        "tests/unit/troubleshooting-incident-review.test.js"
+      ]
     },
     {
       "id": "TR-07-GUIDE",
@@ -234,7 +336,11 @@
       "state": "IMPLEMENTED_PENDING_COMBINED_CI",
       "evidence": [
         "troubleshooting-guidance.js",
-        "tests/unit/troubleshooting-guidance.test.js"
+        "tests/unit/troubleshooting-guidance.test.js",
+        "troubleshooting-help-routes.js",
+        "Enterprise/portal/troubleshooting.html",
+        "Enterprise/portal/troubleshooting-help.js",
+        "tests/unit/troubleshooting-help-routes.test.js"
       ]
     },
     {
@@ -250,18 +356,31 @@
         "troubleshooting-incidents.js",
         "database/migrations/020_troubleshooting_employee_bindings.sql",
         "tests/unit/employee-troubleshooting.test.js",
-        "test-atomic-telemetry-batch-mysql.js"
+        "test-atomic-telemetry-batch-mysql.js",
+        "installation-database-identity.js",
+        "troubleshooting-employee-routes.js",
+        "database/migrations/021_installation_database_identity.sql",
+        "tests/unit/installation-database-identity.test.js",
+        "Enterprise/portal/troubleshooting-report.js",
+        "test-installation-database-identity-mysql.js"
       ]
     },
     {
       "id": "TR-07-OUTCOME",
       "parent": "M5",
       "title": "Independent outcome verification and reopen lifecycle",
-      "state": "PENDING",
+      "state": "PARTIAL_REFERENCE_ONLY",
       "requires": [
         "TR-07-INTAKE"
       ],
-      "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
+      "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution.",
+      "evidence": [
+        "troubleshooting-incident-review.js",
+        "troubleshooting-review-routes.js",
+        "database/migrations/022_troubleshooting_incident_reviews.sql",
+        "Enterprise/portal/troubleshooting-review.js",
+        "tests/unit/troubleshooting-incident-review.test.js"
+      ]
     },
     {
       "id": "TR-08-GUIDE",
@@ -270,7 +389,11 @@
       "state": "IMPLEMENTED_PENDING_COMBINED_CI",
       "evidence": [
         "troubleshooting-guidance.js",
-        "tests/unit/troubleshooting-guidance.test.js"
+        "tests/unit/troubleshooting-guidance.test.js",
+        "troubleshooting-help-routes.js",
+        "Enterprise/portal/troubleshooting.html",
+        "Enterprise/portal/troubleshooting-help.js",
+        "tests/unit/troubleshooting-help-routes.test.js"
       ]
     },
     {
@@ -286,18 +409,31 @@
         "troubleshooting-incidents.js",
         "database/migrations/020_troubleshooting_employee_bindings.sql",
         "tests/unit/employee-troubleshooting.test.js",
-        "test-atomic-telemetry-batch-mysql.js"
+        "test-atomic-telemetry-batch-mysql.js",
+        "installation-database-identity.js",
+        "troubleshooting-employee-routes.js",
+        "database/migrations/021_installation_database_identity.sql",
+        "tests/unit/installation-database-identity.test.js",
+        "Enterprise/portal/troubleshooting-report.js",
+        "test-installation-database-identity-mysql.js"
       ]
     },
     {
       "id": "TR-08-OUTCOME",
       "parent": "M5",
       "title": "Independent outcome verification and reopen lifecycle",
-      "state": "PENDING",
+      "state": "PARTIAL_REFERENCE_ONLY",
       "requires": [
         "TR-08-INTAKE"
       ],
-      "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
+      "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution.",
+      "evidence": [
+        "troubleshooting-incident-review.js",
+        "troubleshooting-review-routes.js",
+        "database/migrations/022_troubleshooting_incident_reviews.sql",
+        "Enterprise/portal/troubleshooting-review.js",
+        "tests/unit/troubleshooting-incident-review.test.js"
+      ]
     },
     {
       "id": "TR-09-GUIDE",
@@ -306,7 +442,11 @@
       "state": "IMPLEMENTED_PENDING_COMBINED_CI",
       "evidence": [
         "troubleshooting-guidance.js",
-        "tests/unit/troubleshooting-guidance.test.js"
+        "tests/unit/troubleshooting-guidance.test.js",
+        "troubleshooting-help-routes.js",
+        "Enterprise/portal/troubleshooting.html",
+        "Enterprise/portal/troubleshooting-help.js",
+        "tests/unit/troubleshooting-help-routes.test.js"
       ]
     },
     {
@@ -322,18 +462,31 @@
         "troubleshooting-incidents.js",
         "database/migrations/020_troubleshooting_employee_bindings.sql",
         "tests/unit/employee-troubleshooting.test.js",
-        "test-atomic-telemetry-batch-mysql.js"
+        "test-atomic-telemetry-batch-mysql.js",
+        "installation-database-identity.js",
+        "troubleshooting-employee-routes.js",
+        "database/migrations/021_installation_database_identity.sql",
+        "tests/unit/installation-database-identity.test.js",
+        "Enterprise/portal/troubleshooting-report.js",
+        "test-installation-database-identity-mysql.js"
       ]
     },
     {
       "id": "TR-09-OUTCOME",
       "parent": "M5",
       "title": "Qualified human escalation and independently cleared hazard",
-      "state": "PENDING",
+      "state": "PARTIAL_REFERENCE_ONLY",
       "requires": [
         "TR-09-INTAKE"
       ],
-      "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
+      "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution.",
+      "evidence": [
+        "troubleshooting-incident-review.js",
+        "troubleshooting-review-routes.js",
+        "database/migrations/022_troubleshooting_incident_reviews.sql",
+        "Enterprise/portal/troubleshooting-review.js",
+        "tests/unit/troubleshooting-incident-review.test.js"
+      ]
     },
     {
       "id": "TR-10-GUIDE",
@@ -342,7 +495,11 @@
       "state": "IMPLEMENTED_PENDING_COMBINED_CI",
       "evidence": [
         "troubleshooting-guidance.js",
-        "tests/unit/troubleshooting-guidance.test.js"
+        "tests/unit/troubleshooting-guidance.test.js",
+        "troubleshooting-help-routes.js",
+        "Enterprise/portal/troubleshooting.html",
+        "Enterprise/portal/troubleshooting-help.js",
+        "tests/unit/troubleshooting-help-routes.test.js"
       ]
     },
     {
@@ -358,18 +515,31 @@
         "troubleshooting-incidents.js",
         "database/migrations/020_troubleshooting_employee_bindings.sql",
         "tests/unit/employee-troubleshooting.test.js",
-        "test-atomic-telemetry-batch-mysql.js"
+        "test-atomic-telemetry-batch-mysql.js",
+        "installation-database-identity.js",
+        "troubleshooting-employee-routes.js",
+        "database/migrations/021_installation_database_identity.sql",
+        "tests/unit/installation-database-identity.test.js",
+        "Enterprise/portal/troubleshooting-report.js",
+        "test-installation-database-identity-mysql.js"
       ]
     },
     {
       "id": "TR-10-OUTCOME",
       "parent": "M5",
       "title": "Independent outcome verification and reopen lifecycle",
-      "state": "PENDING",
+      "state": "PARTIAL_REFERENCE_ONLY",
       "requires": [
         "TR-10-INTAKE"
       ],
-      "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
+      "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution.",
+      "evidence": [
+        "troubleshooting-incident-review.js",
+        "troubleshooting-review-routes.js",
+        "database/migrations/022_troubleshooting_incident_reviews.sql",
+        "Enterprise/portal/troubleshooting-review.js",
+        "tests/unit/troubleshooting-incident-review.test.js"
+      ]
     },
     {
       "id": "TR-11-GUIDE",
@@ -378,7 +548,11 @@
       "state": "IMPLEMENTED_PENDING_COMBINED_CI",
       "evidence": [
         "troubleshooting-guidance.js",
-        "tests/unit/troubleshooting-guidance.test.js"
+        "tests/unit/troubleshooting-guidance.test.js",
+        "troubleshooting-help-routes.js",
+        "Enterprise/portal/troubleshooting.html",
+        "Enterprise/portal/troubleshooting-help.js",
+        "tests/unit/troubleshooting-help-routes.test.js"
       ]
     },
     {
@@ -394,18 +568,31 @@
         "troubleshooting-incidents.js",
         "database/migrations/020_troubleshooting_employee_bindings.sql",
         "tests/unit/employee-troubleshooting.test.js",
-        "test-atomic-telemetry-batch-mysql.js"
+        "test-atomic-telemetry-batch-mysql.js",
+        "installation-database-identity.js",
+        "troubleshooting-employee-routes.js",
+        "database/migrations/021_installation_database_identity.sql",
+        "tests/unit/installation-database-identity.test.js",
+        "Enterprise/portal/troubleshooting-report.js",
+        "test-installation-database-identity-mysql.js"
       ]
     },
     {
       "id": "TR-11-OUTCOME",
       "parent": "M5",
       "title": "Qualified human escalation and independently cleared hazard",
-      "state": "PENDING",
+      "state": "PARTIAL_REFERENCE_ONLY",
       "requires": [
         "TR-11-INTAKE"
       ],
-      "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
+      "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution.",
+      "evidence": [
+        "troubleshooting-incident-review.js",
+        "troubleshooting-review-routes.js",
+        "database/migrations/022_troubleshooting_incident_reviews.sql",
+        "Enterprise/portal/troubleshooting-review.js",
+        "tests/unit/troubleshooting-incident-review.test.js"
+      ]
     },
     {
       "id": "TR-12-GUIDE",
@@ -414,7 +601,11 @@
       "state": "IMPLEMENTED_PENDING_COMBINED_CI",
       "evidence": [
         "troubleshooting-guidance.js",
-        "tests/unit/troubleshooting-guidance.test.js"
+        "tests/unit/troubleshooting-guidance.test.js",
+        "troubleshooting-help-routes.js",
+        "Enterprise/portal/troubleshooting.html",
+        "Enterprise/portal/troubleshooting-help.js",
+        "tests/unit/troubleshooting-help-routes.test.js"
       ]
     },
     {
@@ -430,18 +621,31 @@
         "troubleshooting-incidents.js",
         "database/migrations/020_troubleshooting_employee_bindings.sql",
         "tests/unit/employee-troubleshooting.test.js",
-        "test-atomic-telemetry-batch-mysql.js"
+        "test-atomic-telemetry-batch-mysql.js",
+        "installation-database-identity.js",
+        "troubleshooting-employee-routes.js",
+        "database/migrations/021_installation_database_identity.sql",
+        "tests/unit/installation-database-identity.test.js",
+        "Enterprise/portal/troubleshooting-report.js",
+        "test-installation-database-identity-mysql.js"
       ]
     },
     {
       "id": "TR-12-OUTCOME",
       "parent": "M5",
       "title": "Independent outcome verification and reopen lifecycle",
-      "state": "PENDING",
+      "state": "PARTIAL_REFERENCE_ONLY",
       "requires": [
         "TR-12-INTAKE"
       ],
-      "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
+      "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution.",
+      "evidence": [
+        "troubleshooting-incident-review.js",
+        "troubleshooting-review-routes.js",
+        "database/migrations/022_troubleshooting_incident_reviews.sql",
+        "Enterprise/portal/troubleshooting-review.js",
+        "tests/unit/troubleshooting-incident-review.test.js"
+      ]
     },
     {
       "id": "TR-13-GUIDE",
@@ -450,7 +654,11 @@
       "state": "IMPLEMENTED_PENDING_COMBINED_CI",
       "evidence": [
         "troubleshooting-guidance.js",
-        "tests/unit/troubleshooting-guidance.test.js"
+        "tests/unit/troubleshooting-guidance.test.js",
+        "troubleshooting-help-routes.js",
+        "Enterprise/portal/troubleshooting.html",
+        "Enterprise/portal/troubleshooting-help.js",
+        "tests/unit/troubleshooting-help-routes.test.js"
       ]
     },
     {
@@ -466,18 +674,31 @@
         "troubleshooting-incidents.js",
         "database/migrations/020_troubleshooting_employee_bindings.sql",
         "tests/unit/employee-troubleshooting.test.js",
-        "test-atomic-telemetry-batch-mysql.js"
+        "test-atomic-telemetry-batch-mysql.js",
+        "installation-database-identity.js",
+        "troubleshooting-employee-routes.js",
+        "database/migrations/021_installation_database_identity.sql",
+        "tests/unit/installation-database-identity.test.js",
+        "Enterprise/portal/troubleshooting-report.js",
+        "test-installation-database-identity-mysql.js"
       ]
     },
     {
       "id": "TR-13-OUTCOME",
       "parent": "M5",
       "title": "Independent outcome verification and reopen lifecycle",
-      "state": "PENDING",
+      "state": "PARTIAL_REFERENCE_ONLY",
       "requires": [
         "TR-13-INTAKE"
       ],
-      "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
+      "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution.",
+      "evidence": [
+        "troubleshooting-incident-review.js",
+        "troubleshooting-review-routes.js",
+        "database/migrations/022_troubleshooting_incident_reviews.sql",
+        "Enterprise/portal/troubleshooting-review.js",
+        "tests/unit/troubleshooting-incident-review.test.js"
+      ]
     },
     {
       "id": "TR-14-GUIDE",
@@ -486,7 +707,11 @@
       "state": "IMPLEMENTED_PENDING_COMBINED_CI",
       "evidence": [
         "troubleshooting-guidance.js",
-        "tests/unit/troubleshooting-guidance.test.js"
+        "tests/unit/troubleshooting-guidance.test.js",
+        "troubleshooting-help-routes.js",
+        "Enterprise/portal/troubleshooting.html",
+        "Enterprise/portal/troubleshooting-help.js",
+        "tests/unit/troubleshooting-help-routes.test.js"
       ]
     },
     {
@@ -502,18 +727,31 @@
         "troubleshooting-incidents.js",
         "database/migrations/020_troubleshooting_employee_bindings.sql",
         "tests/unit/employee-troubleshooting.test.js",
-        "test-atomic-telemetry-batch-mysql.js"
+        "test-atomic-telemetry-batch-mysql.js",
+        "installation-database-identity.js",
+        "troubleshooting-employee-routes.js",
+        "database/migrations/021_installation_database_identity.sql",
+        "tests/unit/installation-database-identity.test.js",
+        "Enterprise/portal/troubleshooting-report.js",
+        "test-installation-database-identity-mysql.js"
       ]
     },
     {
       "id": "TR-14-OUTCOME",
       "parent": "M5",
       "title": "Independent outcome verification and reopen lifecycle",
-      "state": "PENDING",
+      "state": "PARTIAL_REFERENCE_ONLY",
       "requires": [
         "TR-14-INTAKE"
       ],
-      "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
+      "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution.",
+      "evidence": [
+        "troubleshooting-incident-review.js",
+        "troubleshooting-review-routes.js",
+        "database/migrations/022_troubleshooting_incident_reviews.sql",
+        "Enterprise/portal/troubleshooting-review.js",
+        "tests/unit/troubleshooting-incident-review.test.js"
+      ]
     },
     {
       "id": "TR-15-GUIDE",
@@ -522,7 +760,11 @@
       "state": "IMPLEMENTED_PENDING_COMBINED_CI",
       "evidence": [
         "troubleshooting-guidance.js",
-        "tests/unit/troubleshooting-guidance.test.js"
+        "tests/unit/troubleshooting-guidance.test.js",
+        "troubleshooting-help-routes.js",
+        "Enterprise/portal/troubleshooting.html",
+        "Enterprise/portal/troubleshooting-help.js",
+        "tests/unit/troubleshooting-help-routes.test.js"
       ]
     },
     {
@@ -538,18 +780,31 @@
         "troubleshooting-incidents.js",
         "database/migrations/020_troubleshooting_employee_bindings.sql",
         "tests/unit/employee-troubleshooting.test.js",
-        "test-atomic-telemetry-batch-mysql.js"
+        "test-atomic-telemetry-batch-mysql.js",
+        "installation-database-identity.js",
+        "troubleshooting-employee-routes.js",
+        "database/migrations/021_installation_database_identity.sql",
+        "tests/unit/installation-database-identity.test.js",
+        "Enterprise/portal/troubleshooting-report.js",
+        "test-installation-database-identity-mysql.js"
       ]
     },
     {
       "id": "TR-15-OUTCOME",
       "parent": "M5",
       "title": "Independent outcome verification and reopen lifecycle",
-      "state": "PENDING",
+      "state": "PARTIAL_REFERENCE_ONLY",
       "requires": [
         "TR-15-INTAKE"
       ],
-      "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
+      "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution.",
+      "evidence": [
+        "troubleshooting-incident-review.js",
+        "troubleshooting-review-routes.js",
+        "database/migrations/022_troubleshooting_incident_reviews.sql",
+        "Enterprise/portal/troubleshooting-review.js",
+        "tests/unit/troubleshooting-incident-review.test.js"
+      ]
     },
     {
       "id": "TR-16-GUIDE",
@@ -558,7 +813,11 @@
       "state": "IMPLEMENTED_PENDING_COMBINED_CI",
       "evidence": [
         "troubleshooting-guidance.js",
-        "tests/unit/troubleshooting-guidance.test.js"
+        "tests/unit/troubleshooting-guidance.test.js",
+        "troubleshooting-help-routes.js",
+        "Enterprise/portal/troubleshooting.html",
+        "Enterprise/portal/troubleshooting-help.js",
+        "tests/unit/troubleshooting-help-routes.test.js"
       ]
     },
     {
@@ -574,18 +833,31 @@
         "troubleshooting-incidents.js",
         "database/migrations/020_troubleshooting_employee_bindings.sql",
         "tests/unit/employee-troubleshooting.test.js",
-        "test-atomic-telemetry-batch-mysql.js"
+        "test-atomic-telemetry-batch-mysql.js",
+        "installation-database-identity.js",
+        "troubleshooting-employee-routes.js",
+        "database/migrations/021_installation_database_identity.sql",
+        "tests/unit/installation-database-identity.test.js",
+        "Enterprise/portal/troubleshooting-report.js",
+        "test-installation-database-identity-mysql.js"
       ]
     },
     {
       "id": "TR-16-OUTCOME",
       "parent": "M5",
       "title": "Independent outcome verification and reopen lifecycle",
-      "state": "PENDING",
+      "state": "PARTIAL_REFERENCE_ONLY",
       "requires": [
         "TR-16-INTAKE"
       ],
-      "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
+      "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution.",
+      "evidence": [
+        "troubleshooting-incident-review.js",
+        "troubleshooting-review-routes.js",
+        "database/migrations/022_troubleshooting_incident_reviews.sql",
+        "Enterprise/portal/troubleshooting-review.js",
+        "tests/unit/troubleshooting-incident-review.test.js"
+      ]
     },
     {
       "id": "TR-17-GUIDE",
@@ -594,7 +866,11 @@
       "state": "IMPLEMENTED_PENDING_COMBINED_CI",
       "evidence": [
         "troubleshooting-guidance.js",
-        "tests/unit/troubleshooting-guidance.test.js"
+        "tests/unit/troubleshooting-guidance.test.js",
+        "troubleshooting-help-routes.js",
+        "Enterprise/portal/troubleshooting.html",
+        "Enterprise/portal/troubleshooting-help.js",
+        "tests/unit/troubleshooting-help-routes.test.js"
       ]
     },
     {
@@ -610,18 +886,31 @@
         "troubleshooting-incidents.js",
         "database/migrations/020_troubleshooting_employee_bindings.sql",
         "tests/unit/employee-troubleshooting.test.js",
-        "test-atomic-telemetry-batch-mysql.js"
+        "test-atomic-telemetry-batch-mysql.js",
+        "installation-database-identity.js",
+        "troubleshooting-employee-routes.js",
+        "database/migrations/021_installation_database_identity.sql",
+        "tests/unit/installation-database-identity.test.js",
+        "Enterprise/portal/troubleshooting-report.js",
+        "test-installation-database-identity-mysql.js"
       ]
     },
     {
       "id": "TR-17-OUTCOME",
       "parent": "M5",
       "title": "Independent outcome verification and reopen lifecycle",
-      "state": "PENDING",
+      "state": "PARTIAL_REFERENCE_ONLY",
       "requires": [
         "TR-17-INTAKE"
       ],
-      "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
+      "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution.",
+      "evidence": [
+        "troubleshooting-incident-review.js",
+        "troubleshooting-review-routes.js",
+        "database/migrations/022_troubleshooting_incident_reviews.sql",
+        "Enterprise/portal/troubleshooting-review.js",
+        "tests/unit/troubleshooting-incident-review.test.js"
+      ]
     },
     {
       "id": "TR-18-GUIDE",
@@ -630,7 +919,11 @@
       "state": "IMPLEMENTED_PENDING_COMBINED_CI",
       "evidence": [
         "troubleshooting-guidance.js",
-        "tests/unit/troubleshooting-guidance.test.js"
+        "tests/unit/troubleshooting-guidance.test.js",
+        "troubleshooting-help-routes.js",
+        "Enterprise/portal/troubleshooting.html",
+        "Enterprise/portal/troubleshooting-help.js",
+        "tests/unit/troubleshooting-help-routes.test.js"
       ]
     },
     {
@@ -646,18 +939,31 @@
         "troubleshooting-incidents.js",
         "database/migrations/020_troubleshooting_employee_bindings.sql",
         "tests/unit/employee-troubleshooting.test.js",
-        "test-atomic-telemetry-batch-mysql.js"
+        "test-atomic-telemetry-batch-mysql.js",
+        "installation-database-identity.js",
+        "troubleshooting-employee-routes.js",
+        "database/migrations/021_installation_database_identity.sql",
+        "tests/unit/installation-database-identity.test.js",
+        "Enterprise/portal/troubleshooting-report.js",
+        "test-installation-database-identity-mysql.js"
       ]
     },
     {
       "id": "TR-18-OUTCOME",
       "parent": "M5",
       "title": "Independent outcome verification and reopen lifecycle",
-      "state": "PENDING",
+      "state": "PARTIAL_REFERENCE_ONLY",
       "requires": [
         "TR-18-INTAKE"
       ],
-      "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
+      "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution.",
+      "evidence": [
+        "troubleshooting-incident-review.js",
+        "troubleshooting-review-routes.js",
+        "database/migrations/022_troubleshooting_incident_reviews.sql",
+        "Enterprise/portal/troubleshooting-review.js",
+        "tests/unit/troubleshooting-incident-review.test.js"
+      ]
     },
     {
       "id": "TR-19-GUIDE",
@@ -666,7 +972,11 @@
       "state": "IMPLEMENTED_PENDING_COMBINED_CI",
       "evidence": [
         "troubleshooting-guidance.js",
-        "tests/unit/troubleshooting-guidance.test.js"
+        "tests/unit/troubleshooting-guidance.test.js",
+        "troubleshooting-help-routes.js",
+        "Enterprise/portal/troubleshooting.html",
+        "Enterprise/portal/troubleshooting-help.js",
+        "tests/unit/troubleshooting-help-routes.test.js"
       ]
     },
     {
@@ -682,18 +992,31 @@
         "troubleshooting-incidents.js",
         "database/migrations/020_troubleshooting_employee_bindings.sql",
         "tests/unit/employee-troubleshooting.test.js",
-        "test-atomic-telemetry-batch-mysql.js"
+        "test-atomic-telemetry-batch-mysql.js",
+        "installation-database-identity.js",
+        "troubleshooting-employee-routes.js",
+        "database/migrations/021_installation_database_identity.sql",
+        "tests/unit/installation-database-identity.test.js",
+        "Enterprise/portal/troubleshooting-report.js",
+        "test-installation-database-identity-mysql.js"
       ]
     },
     {
       "id": "TR-19-OUTCOME",
       "parent": "M5",
       "title": "Qualified human escalation and independently cleared hazard",
-      "state": "PENDING",
+      "state": "PARTIAL_REFERENCE_ONLY",
       "requires": [
         "TR-19-INTAKE"
       ],
-      "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
+      "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution.",
+      "evidence": [
+        "troubleshooting-incident-review.js",
+        "troubleshooting-review-routes.js",
+        "database/migrations/022_troubleshooting_incident_reviews.sql",
+        "Enterprise/portal/troubleshooting-review.js",
+        "tests/unit/troubleshooting-incident-review.test.js"
+      ]
     },
     {
       "id": "TR-20-GUIDE",
@@ -702,7 +1025,11 @@
       "state": "IMPLEMENTED_PENDING_COMBINED_CI",
       "evidence": [
         "troubleshooting-guidance.js",
-        "tests/unit/troubleshooting-guidance.test.js"
+        "tests/unit/troubleshooting-guidance.test.js",
+        "troubleshooting-help-routes.js",
+        "Enterprise/portal/troubleshooting.html",
+        "Enterprise/portal/troubleshooting-help.js",
+        "tests/unit/troubleshooting-help-routes.test.js"
       ]
     },
     {
@@ -718,18 +1045,31 @@
         "troubleshooting-incidents.js",
         "database/migrations/020_troubleshooting_employee_bindings.sql",
         "tests/unit/employee-troubleshooting.test.js",
-        "test-atomic-telemetry-batch-mysql.js"
+        "test-atomic-telemetry-batch-mysql.js",
+        "installation-database-identity.js",
+        "troubleshooting-employee-routes.js",
+        "database/migrations/021_installation_database_identity.sql",
+        "tests/unit/installation-database-identity.test.js",
+        "Enterprise/portal/troubleshooting-report.js",
+        "test-installation-database-identity-mysql.js"
       ]
     },
     {
       "id": "TR-20-OUTCOME",
       "parent": "M5",
       "title": "Independent outcome verification and reopen lifecycle",
-      "state": "PENDING",
+      "state": "PARTIAL_REFERENCE_ONLY",
       "requires": [
         "TR-20-INTAKE"
       ],
-      "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
+      "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution.",
+      "evidence": [
+        "troubleshooting-incident-review.js",
+        "troubleshooting-review-routes.js",
+        "database/migrations/022_troubleshooting_incident_reviews.sql",
+        "Enterprise/portal/troubleshooting-review.js",
+        "tests/unit/troubleshooting-incident-review.test.js"
+      ]
     },
     {
       "id": "TR-21-GUIDE",
@@ -738,7 +1078,11 @@
       "state": "IMPLEMENTED_PENDING_COMBINED_CI",
       "evidence": [
         "troubleshooting-guidance.js",
-        "tests/unit/troubleshooting-guidance.test.js"
+        "tests/unit/troubleshooting-guidance.test.js",
+        "troubleshooting-help-routes.js",
+        "Enterprise/portal/troubleshooting.html",
+        "Enterprise/portal/troubleshooting-help.js",
+        "tests/unit/troubleshooting-help-routes.test.js"
       ]
     },
     {
@@ -754,18 +1098,31 @@
         "troubleshooting-incidents.js",
         "database/migrations/020_troubleshooting_employee_bindings.sql",
         "tests/unit/employee-troubleshooting.test.js",
-        "test-atomic-telemetry-batch-mysql.js"
+        "test-atomic-telemetry-batch-mysql.js",
+        "installation-database-identity.js",
+        "troubleshooting-employee-routes.js",
+        "database/migrations/021_installation_database_identity.sql",
+        "tests/unit/installation-database-identity.test.js",
+        "Enterprise/portal/troubleshooting-report.js",
+        "test-installation-database-identity-mysql.js"
       ]
     },
     {
       "id": "TR-21-OUTCOME",
       "parent": "M5",
       "title": "Independent outcome verification and reopen lifecycle",
-      "state": "PENDING",
+      "state": "PARTIAL_REFERENCE_ONLY",
       "requires": [
         "TR-21-INTAKE"
       ],
-      "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
+      "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution.",
+      "evidence": [
+        "troubleshooting-incident-review.js",
+        "troubleshooting-review-routes.js",
+        "database/migrations/022_troubleshooting_incident_reviews.sql",
+        "Enterprise/portal/troubleshooting-review.js",
+        "tests/unit/troubleshooting-incident-review.test.js"
+      ]
     },
     {
       "id": "TR-22-GUIDE",
@@ -774,7 +1131,11 @@
       "state": "IMPLEMENTED_PENDING_COMBINED_CI",
       "evidence": [
         "troubleshooting-guidance.js",
-        "tests/unit/troubleshooting-guidance.test.js"
+        "tests/unit/troubleshooting-guidance.test.js",
+        "troubleshooting-help-routes.js",
+        "Enterprise/portal/troubleshooting.html",
+        "Enterprise/portal/troubleshooting-help.js",
+        "tests/unit/troubleshooting-help-routes.test.js"
       ]
     },
     {
@@ -790,18 +1151,31 @@
         "troubleshooting-incidents.js",
         "database/migrations/020_troubleshooting_employee_bindings.sql",
         "tests/unit/employee-troubleshooting.test.js",
-        "test-atomic-telemetry-batch-mysql.js"
+        "test-atomic-telemetry-batch-mysql.js",
+        "installation-database-identity.js",
+        "troubleshooting-employee-routes.js",
+        "database/migrations/021_installation_database_identity.sql",
+        "tests/unit/installation-database-identity.test.js",
+        "Enterprise/portal/troubleshooting-report.js",
+        "test-installation-database-identity-mysql.js"
       ]
     },
     {
       "id": "TR-22-OUTCOME",
       "parent": "M5",
       "title": "Independent outcome verification and reopen lifecycle",
-      "state": "PENDING",
+      "state": "PARTIAL_REFERENCE_ONLY",
       "requires": [
         "TR-22-INTAKE"
       ],
-      "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
+      "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution.",
+      "evidence": [
+        "troubleshooting-incident-review.js",
+        "troubleshooting-review-routes.js",
+        "database/migrations/022_troubleshooting_incident_reviews.sql",
+        "Enterprise/portal/troubleshooting-review.js",
+        "tests/unit/troubleshooting-incident-review.test.js"
+      ]
     },
     {
       "id": "TR-23-GUIDE",
@@ -810,7 +1184,11 @@
       "state": "IMPLEMENTED_PENDING_COMBINED_CI",
       "evidence": [
         "troubleshooting-guidance.js",
-        "tests/unit/troubleshooting-guidance.test.js"
+        "tests/unit/troubleshooting-guidance.test.js",
+        "troubleshooting-help-routes.js",
+        "Enterprise/portal/troubleshooting.html",
+        "Enterprise/portal/troubleshooting-help.js",
+        "tests/unit/troubleshooting-help-routes.test.js"
       ]
     },
     {
@@ -826,18 +1204,31 @@
         "troubleshooting-incidents.js",
         "database/migrations/020_troubleshooting_employee_bindings.sql",
         "tests/unit/employee-troubleshooting.test.js",
-        "test-atomic-telemetry-batch-mysql.js"
+        "test-atomic-telemetry-batch-mysql.js",
+        "installation-database-identity.js",
+        "troubleshooting-employee-routes.js",
+        "database/migrations/021_installation_database_identity.sql",
+        "tests/unit/installation-database-identity.test.js",
+        "Enterprise/portal/troubleshooting-report.js",
+        "test-installation-database-identity-mysql.js"
       ]
     },
     {
       "id": "TR-23-OUTCOME",
       "parent": "M5",
       "title": "Independent outcome verification and reopen lifecycle",
-      "state": "PENDING",
+      "state": "PARTIAL_REFERENCE_ONLY",
       "requires": [
         "TR-23-INTAKE"
       ],
-      "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
+      "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution.",
+      "evidence": [
+        "troubleshooting-incident-review.js",
+        "troubleshooting-review-routes.js",
+        "database/migrations/022_troubleshooting_incident_reviews.sql",
+        "Enterprise/portal/troubleshooting-review.js",
+        "tests/unit/troubleshooting-incident-review.test.js"
+      ]
     },
     {
       "id": "TR-24-GUIDE",
@@ -846,7 +1237,11 @@
       "state": "IMPLEMENTED_PENDING_COMBINED_CI",
       "evidence": [
         "troubleshooting-guidance.js",
-        "tests/unit/troubleshooting-guidance.test.js"
+        "tests/unit/troubleshooting-guidance.test.js",
+        "troubleshooting-help-routes.js",
+        "Enterprise/portal/troubleshooting.html",
+        "Enterprise/portal/troubleshooting-help.js",
+        "tests/unit/troubleshooting-help-routes.test.js"
       ]
     },
     {
@@ -862,18 +1257,31 @@
         "troubleshooting-incidents.js",
         "database/migrations/020_troubleshooting_employee_bindings.sql",
         "tests/unit/employee-troubleshooting.test.js",
-        "test-atomic-telemetry-batch-mysql.js"
+        "test-atomic-telemetry-batch-mysql.js",
+        "installation-database-identity.js",
+        "troubleshooting-employee-routes.js",
+        "database/migrations/021_installation_database_identity.sql",
+        "tests/unit/installation-database-identity.test.js",
+        "Enterprise/portal/troubleshooting-report.js",
+        "test-installation-database-identity-mysql.js"
       ]
     },
     {
       "id": "TR-24-OUTCOME",
       "parent": "M5",
       "title": "Qualified human escalation and independently cleared hazard",
-      "state": "PENDING",
+      "state": "PARTIAL_REFERENCE_ONLY",
       "requires": [
         "TR-24-INTAKE"
       ],
-      "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
+      "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution.",
+      "evidence": [
+        "troubleshooting-incident-review.js",
+        "troubleshooting-review-routes.js",
+        "database/migrations/022_troubleshooting_incident_reviews.sql",
+        "Enterprise/portal/troubleshooting-review.js",
+        "tests/unit/troubleshooting-incident-review.test.js"
+      ]
     },
     {
       "id": "TR-25-GUIDE",
@@ -882,7 +1290,11 @@
       "state": "IMPLEMENTED_PENDING_COMBINED_CI",
       "evidence": [
         "troubleshooting-guidance.js",
-        "tests/unit/troubleshooting-guidance.test.js"
+        "tests/unit/troubleshooting-guidance.test.js",
+        "troubleshooting-help-routes.js",
+        "Enterprise/portal/troubleshooting.html",
+        "Enterprise/portal/troubleshooting-help.js",
+        "tests/unit/troubleshooting-help-routes.test.js"
       ]
     },
     {
@@ -898,18 +1310,31 @@
         "troubleshooting-incidents.js",
         "database/migrations/020_troubleshooting_employee_bindings.sql",
         "tests/unit/employee-troubleshooting.test.js",
-        "test-atomic-telemetry-batch-mysql.js"
+        "test-atomic-telemetry-batch-mysql.js",
+        "installation-database-identity.js",
+        "troubleshooting-employee-routes.js",
+        "database/migrations/021_installation_database_identity.sql",
+        "tests/unit/installation-database-identity.test.js",
+        "Enterprise/portal/troubleshooting-report.js",
+        "test-installation-database-identity-mysql.js"
       ]
     },
     {
       "id": "TR-25-OUTCOME",
       "parent": "M5",
       "title": "Independent outcome verification and reopen lifecycle",
-      "state": "PENDING",
+      "state": "PARTIAL_REFERENCE_ONLY",
       "requires": [
         "TR-25-INTAKE"
       ],
-      "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
+      "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution.",
+      "evidence": [
+        "troubleshooting-incident-review.js",
+        "troubleshooting-review-routes.js",
+        "database/migrations/022_troubleshooting_incident_reviews.sql",
+        "Enterprise/portal/troubleshooting-review.js",
+        "tests/unit/troubleshooting-incident-review.test.js"
+      ]
     },
     {
       "id": "TR-26-GUIDE",
@@ -918,7 +1343,11 @@
       "state": "IMPLEMENTED_PENDING_COMBINED_CI",
       "evidence": [
         "troubleshooting-guidance.js",
-        "tests/unit/troubleshooting-guidance.test.js"
+        "tests/unit/troubleshooting-guidance.test.js",
+        "troubleshooting-help-routes.js",
+        "Enterprise/portal/troubleshooting.html",
+        "Enterprise/portal/troubleshooting-help.js",
+        "tests/unit/troubleshooting-help-routes.test.js"
       ]
     },
     {
@@ -934,18 +1363,31 @@
         "troubleshooting-incidents.js",
         "database/migrations/020_troubleshooting_employee_bindings.sql",
         "tests/unit/employee-troubleshooting.test.js",
-        "test-atomic-telemetry-batch-mysql.js"
+        "test-atomic-telemetry-batch-mysql.js",
+        "installation-database-identity.js",
+        "troubleshooting-employee-routes.js",
+        "database/migrations/021_installation_database_identity.sql",
+        "tests/unit/installation-database-identity.test.js",
+        "Enterprise/portal/troubleshooting-report.js",
+        "test-installation-database-identity-mysql.js"
       ]
     },
     {
       "id": "TR-26-OUTCOME",
       "parent": "M5",
       "title": "Independent outcome verification and reopen lifecycle",
-      "state": "PENDING",
+      "state": "PARTIAL_REFERENCE_ONLY",
       "requires": [
         "TR-26-INTAKE"
       ],
-      "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
+      "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution.",
+      "evidence": [
+        "troubleshooting-incident-review.js",
+        "troubleshooting-review-routes.js",
+        "database/migrations/022_troubleshooting_incident_reviews.sql",
+        "Enterprise/portal/troubleshooting-review.js",
+        "tests/unit/troubleshooting-incident-review.test.js"
+      ]
     },
     {
       "id": "DIAG-RESOURCE_PRESSURE-CONTRACT",

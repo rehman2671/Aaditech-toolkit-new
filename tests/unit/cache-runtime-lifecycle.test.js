@@ -1,0 +1,18 @@
+import {test} from 'vitest';
+import {createCacheLifecycle} from '../../cache-runtime-lifecycle.js';
+function buildCases(){
+ const cases=[],add=(n,f)=>cases.push([n,f]),eq=(a,b)=>{if(JSON.stringify(a)!==JSON.stringify(b))throw Error('assertion mismatch')};
+ const make=()=>{let disconnected=0;return {client:{disconnect(){disconnected++}},count:()=>disconnected}};
+ const reject=(fn,code)=>{let e;try{fn()}catch(err){e=err}if(!e||!e.message.includes(code))throw Error('expected '+code)};
+ for(const bad of [null,undefined,0,{}, {disconnect:1},'x'])add('invalid cache admission '+String(bad),()=>{const c=createCacheLifecycle();reject(()=>c.install(bad),'CACHE_CLIENT_ADMISSION_DENIED');eq(c.ready,false)});
+ for(const action of ['markReady','markUnavailable'])for(const kind of ['foreign','null','undefined'])add('ignore '+action+' '+kind,()=>{const c=createCacheLifecycle(),{client}=make();c.install(client);if(action==='markUnavailable')c.markReady(client);c[action](kind==='foreign'?{}:kind==='null'?null:undefined);eq(c.ready,action==='markUnavailable')});
+ for(const initial of ['empty','installed','ready','unavailable'])for(const method of ['markReady','markUnavailable'])add('stop fences '+initial+' '+method,()=>{const c=createCacheLifecycle(),f=make();if(initial!=='empty')c.install(f.client);if(initial==='ready'||initial==='unavailable')c.markReady(f.client);if(initial==='unavailable')c.markUnavailable(f.client);c.stop();c[method](f.client);c.stop();eq(c.current,null);eq(c.ready,false);eq(f.count(),initial==='empty'?0:1);reject(()=>c.install(f.client),'CACHE_CLIENT_ADMISSION_DENIED')});
+ for(const state of ['empty','connecting','unavailable','stopped'])for(const fallback of [null,false])add('skip work '+state+' '+fallback,async()=>{const c=createCacheLifecycle(),f=make();if(state!=='empty')c.install(f.client);if(state==='unavailable'){c.markReady(f.client);c.markUnavailable(f.client)}if(state==='stopped')c.stop();let calls=0;eq(await c.run(fallback,()=>{calls++;return 1}),fallback);eq(calls,0)});
+ for(const value of [null,false,true,0,'fixture',{a:1}])add('ready work result '+JSON.stringify(value),async()=>{const c=createCacheLifecycle(),f=make();c.install(f.client);c.markReady(f.client);eq(await c.run('fallback',(client,valid)=>{eq(client===f.client,true);eq(valid(),true);return value}),value)});
+ for(const action of ['stop','markUnavailable'])for(const result of [true,false,null,{fixture:1}])add('late result fenced '+action+' '+JSON.stringify(result),async()=>{const c=createCacheLifecycle(),f=make();c.install(f.client);c.markReady(f.client);let resolve,check;const p=c.run('fallback',(_,valid)=>{check=valid;return new Promise(r=>{resolve=r})});c[action](f.client);eq(check(),false);resolve(result);eq(await p,'fallback')});
+ for(const style of ['sync','async'])for(const fallback of [null,false])add('cache errors degrade '+style+' '+fallback,async()=>{const c=createCacheLifecycle(),f=make();c.install(f.client);c.markReady(f.client);eq(await c.run(fallback,()=>{if(style==='sync')throw Error('fixture');return Promise.reject(Error('fixture'))}),fallback)});
+ add('duplicate client refused without replacing original',()=>{const c=createCacheLifecycle(),a=make(),b=make();c.install(a.client);c.markReady(a.client);reject(()=>c.install(b.client),'CACHE_CLIENT_ADMISSION_DENIED');eq(c.current===a.client,true);eq(c.ready,true)});
+ add('disconnect throw still permanently fences cache',()=>{const c=createCacheLifecycle(),client={disconnect(){throw Error('fixture')}};c.install(client);c.markReady(client);reject(()=>c.stop(),'fixture');c.markReady(client);eq(c.ready,false);eq(c.current,null);c.stop()});
+ return cases;
+}
+for(const [name,run] of buildCases())test(name,run);

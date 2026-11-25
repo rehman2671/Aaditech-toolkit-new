@@ -12,7 +12,7 @@ function add(id,parent,state,requires=[]){if(expected.has(id))throw Error('dupli
 for(const issue of troubleshootingCatalog){
  add(issue.id+'-GUIDE','M4','IMPLEMENTED_PENDING_COMBINED_CI');
  add(issue.id+'-INTAKE','M4','PARTIAL_REFERENCE_ONLY',[issue.id+'-GUIDE']);
- add(issue.id+'-OUTCOME','M5','PENDING',[issue.id+'-INTAKE']);
+ add(issue.id+'-OUTCOME','M5','PARTIAL_REFERENCE_ONLY',[issue.id+'-INTAKE']);
 }
 for(const d of diagnosticCapabilities){
  const prefix='DIAG-'+d.diagnostic_id,contract=prefix+'-CONTRACT';
@@ -23,6 +23,9 @@ for(const d of diagnosticCapabilities){
 }
 const allowedEvidence=new Set([
  'troubleshooting-guidance.js','tests/unit/troubleshooting-guidance.test.js',
+ 'troubleshooting-incident-review.js','troubleshooting-review-routes.js','database/migrations/022_troubleshooting_incident_reviews.sql','Enterprise/portal/troubleshooting-review.js','tests/unit/troubleshooting-incident-review.test.js',
+ 'installation-database-identity.js','troubleshooting-employee-routes.js','database/migrations/021_installation_database_identity.sql','tests/unit/installation-database-identity.test.js','Enterprise/portal/troubleshooting-report.js','test-installation-database-identity-mysql.js',
+ 'troubleshooting-help-routes.js','Enterprise/portal/troubleshooting.html','Enterprise/portal/troubleshooting-help.js','tests/unit/troubleshooting-help-routes.test.js',
  'diagnostic-evidence.js','diagnostic-review-contracts.js','tests/unit/diagnostic-review-contracts.test.js',
  'scripts/local-resource-diagnostic.mjs','tests/unit/local-resource-diagnostic.test.js',
  'scripts/local-categorical-diagnostics.mjs','tests/unit/local-categorical-diagnostics.test.js',

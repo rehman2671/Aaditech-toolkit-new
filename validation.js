@@ -285,6 +285,7 @@ export const setupSchema = z.object({
   server_host: z.string().optional(),
   admin_username: z.string().min(3, "Admin username must be at least 3 characters").optional(),
   admin_password: z.string().min(8, "Admin password must be at least 8 characters").optional(),
+  admin_email: z.string().email("Invalid administrator email").max(128).optional(),
   branding: z.record(z.any()).optional(),
   build_mode: z.string().optional(),
   github_repo: z.string().optional(),

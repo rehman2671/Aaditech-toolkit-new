@@ -11,6 +11,10 @@ compose() { docker compose --env-file "$ENV_FILE" -f "$HERE/docker-compose.yml" 
   echo '[rehearsal][ERROR] AADITECH_REHEARSAL=isolated-ci required.' >&2; exit 2;
 }
 [ -f "$ENV_FILE" ] || { echo 'Missing Enterprise/.env' >&2; exit 2; }
+[ "${GITHUB_ACTIONS:-}" = true ] && [ "${RUNNER_ENVIRONMENT:-}" = github-hosted ] || {
+  echo '[rehearsal][ERROR] GitHub-hosted disposable runner required.' >&2; exit 2;
+}
+grep -Eq '^COMPOSE_PROJECT_NAME=itk_rehearsal_[0-9]+$' "$ENV_FILE" || { echo 'Unexpected CI project' >&2; exit 2; }
 grep -q '^MYSQL_DATABASE=it_toolkit_rehearsal$' "$ENV_FILE" || {
   echo '[rehearsal][ERROR] This script requires MYSQL_DATABASE=it_toolkit_rehearsal.' >&2; exit 2;
 }
@@ -53,9 +57,25 @@ sql() {
 }
 # Require an additional successful final-server probe before seeding.
 sql <<< 'SELECT 1' >/dev/null
-for migration in 016_app_usage_snapshot.sql 017_device_recovery_reviews.sql 018_troubleshooting_incidents.sql 019_troubleshooting_diagnostic_plans.sql; do
+for migration in 016_app_usage_snapshot.sql 017_device_recovery_reviews.sql 018_troubleshooting_incidents.sql 019_troubleshooting_diagnostic_plans.sql 021_installation_database_identity.sql; do
   sql < "$HERE/../database/migrations/$migration"
 done
+identity_dir="$(mktemp -d)"
+chmod 700 "$identity_dir"
+encrypted_stage=''
+trap 'rm -rf -- "$identity_dir"; if [ -n "$encrypted_stage" ]; then rm -rf -- "$encrypted_stage"; fi' EXIT
+printf '%s\n' '{"schema_version":1,"installation_id":"00000000-0000-4000-8000-000000009021"}' > "$identity_dir/installation-identity.json"
+chmod 600 "$identity_dir/installation-identity.json"
+identity_hash="$(sha256sum -- "$identity_dir/installation-identity.json" | cut -d ' ' -f1)"
+[[ "$identity_hash" =~ ^[a-f0-9]{64}$ ]] || exit 1
+sql <<< "INSERT INTO installation_database_identity(singleton_id,installation_id,identity_sha256) VALUES(1,'00000000-0000-4000-8000-000000009021','$identity_hash');"
+verify_identity() {
+  local actual
+  actual="$(sql <<< 'SELECT CONCAT(singleton_id,CHAR(58),installation_id,CHAR(58),identity_sha256) FROM installation_database_identity;')"
+  [ "$actual" = "1:00000000-0000-4000-8000-000000009021:$identity_hash" ] || { echo 'Installation identity mismatch' >&2; return 1; }
+  [ "$(sha256sum -- "$identity_dir/installation-identity.json" | cut -d ' ' -f1)" = "$identity_hash" ]
+}
+verify_identity
 sql <<'SQL'
 START TRANSACTION;
 INSERT INTO tenants (id,name,slug) VALUES ('00000000-0000-4000-8000-000000009016','CI restore fixture','ci-restore-fixture');
@@ -77,6 +97,7 @@ COMMIT;
 SQL
 security_snapshot() {
   sql <<'SQL'
+SELECT singleton_id,installation_id,identity_sha256,bound_at FROM installation_database_identity;
 SELECT id,tenant_id,device_token_hash,agent_token_revoked FROM devices WHERE id='00000000-0000-4000-8000-000000009017';
 SELECT tenant_id,device_id,batch_id,request_hash,insert_nonce,accepted_count,recorded_at FROM telemetry_batches WHERE batch_id='restore-batch' AND tenant_id='00000000-0000-4000-8000-000000009016';
 SELECT device_id,tenant_id,credential_fingerprint,payload_json,recorded_at FROM device_app_usage_snapshots WHERE device_id='00000000-0000-4000-8000-000000009017';
@@ -86,8 +107,19 @@ SELECT plan_id,incident_id,installation_id,tenant_id,device_id,actor_user_id,req
 SQL
 }
 before_security="$(security_snapshot)"
-[ "$(printf '%s\n' "$before_security" | wc -l)" -eq 7 ] || { echo 'Incomplete security fixture' >&2; exit 1; }
+[ "$(printf '%s\n' "$before_security" | wc -l)" -eq 8 ] || { echo 'Incomplete security fixture' >&2; exit 1; }
 
+compose stop db
+compose up -d --wait --wait-timeout 180 db
+ready=0
+for attempt in $(seq 1 20); do
+  if sql <<< 'SELECT 1' >/dev/null 2>&1; then ready=1; break; fi
+  sleep 2
+done
+[ "$ready" -eq 1 ] || { echo 'Persistent database restart did not become ready' >&2; exit 1; }
+verify_identity
+[ "$(security_snapshot)" = "$before_security" ] || { echo 'Persistent restart changed security state' >&2; exit 1; }
+echo '[rehearsal] Persistent database restart preserved installation identity and security rows.'
 bash "$HERE/deploy/backup.sh"
 shopt -s nullglob
 backups=("$HERE"/deploy/backups/ittoolkit-*.sql)
@@ -98,7 +130,6 @@ snapshot="${backups[${#backups[@]}-1]}"
 # disposable MySQL dump. This is not a production backup/signing workflow.
 encrypted_stage="$(mktemp -d)"
 chmod 700 "$encrypted_stage"
-trap 'rm -rf -- "$encrypted_stage"' EXIT
 AADITECH_REHEARSAL=isolated-ci node "$HERE/tests/verify-encrypted-mysql-rehearsal.mjs" "$snapshot" "$encrypted_stage"
 recovered="$encrypted_stage/$(basename "$snapshot")"
 cmp "$snapshot" "$recovered"
@@ -111,6 +142,7 @@ compose exec -T db sh -ec '
 
 sql <<'SQL'
 START TRANSACTION;
+UPDATE installation_database_identity SET identity_sha256=REPEAT('9',64) WHERE singleton_id=1;
 UPDATE devices SET agent_token_revoked=0,device_token_hash=REPEAT('9',64) WHERE id='00000000-0000-4000-8000-000000009017';
 DELETE FROM telemetry_batches WHERE tenant_id='00000000-0000-4000-8000-000000009016' AND batch_id='restore-batch';
 DELETE FROM device_app_usage_snapshots WHERE device_id='00000000-0000-4000-8000-000000009017';
@@ -120,10 +152,12 @@ DELETE FROM troubleshooting_incidents WHERE incident_id IN ('00000000-0000-4000-
 COMMIT;
 SQL
 [ "$(security_snapshot)" != "$before_security" ] || { echo 'Security fixture mutation failed' >&2; exit 1; }
+if verify_identity >/dev/null 2>&1; then echo 'Mismatched installation identity was not rejected' >&2; exit 1; fi
 
 # This is a disposable database and the --db-only flag deliberately leaves
 # the API and Caddy OFF after data recovery.
 bash "$HERE/deploy/restore.sh" --yes --db-only "$recovered"
+verify_identity
 
 value="$(compose exec -T db sh -ec '
   export MYSQL_PWD="$MYSQL_PASSWORD"
@@ -165,7 +199,15 @@ then
   echo '[rehearsal][ERROR] Duplicate diagnostic plan survived restore.' >&2; exit 1
 fi
 [ "$(security_snapshot)" = "$before_security" ] || { echo 'Diagnostic plan state changed after duplicate attempt' >&2; exit 1; }
-echo '[rehearsal] Credential revocation, telemetry receipt, usage snapshot, recovery reservation, incident intake and diagnostic plans preserved.'
+if sql >/dev/null 2>&1 <<'SQL'
+INSERT INTO installation_database_identity(singleton_id,installation_id,identity_sha256) VALUES(1,'00000000-0000-4000-8000-000000009099',REPEAT('8',64));
+SQL
+then
+  echo 'Duplicate installation identity was admitted' >&2; exit 1
+fi
+verify_identity
+[ "$(security_snapshot)" = "$before_security" ] || exit 1
+echo '[rehearsal] Installation identity, credential revocation, telemetry receipt, usage snapshot, recovery reservation, incident intake and diagnostic plans preserved.'
 
 shopt -s nullglob
 backups=("$HERE"/deploy/backups/ittoolkit-*.sql)

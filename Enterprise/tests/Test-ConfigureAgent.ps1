@@ -189,6 +189,23 @@ try {
         }
     }
 
+    # Local mock verifies probe-only behavior without reaching the network.
+    & {
+        function Invoke-RestMethod {
+            param($Uri, $TimeoutSec, $MaximumRedirection, $ErrorAction)
+            if ($Uri -ne 'https://probe.example.test/healthz' -or $MaximumRedirection -ne 0 -or $TimeoutSec -ne 10) { throw 'Unexpected probe request' }
+            return @{ status = 'ok'; components = @{ database = 'HEALTHY' } }
+        }
+        $probePath = Join-Path $tmpDir 'must-not-create.json'
+        $probeResult = & $wizard -ServerUrl 'https://probe.example.test' -ProbeOnly -ConfigPath $probePath -NonInteractive
+        if (-not $probeResult.https_health_verified -or -not $probeResult.database_healthy -or $probeResult.enrollment_verified -or $probeResult.configuration_changed -or (Test-Path $probePath)) { throw 'Probe changed configuration or claimed enrollment' }
+        $denied = $false
+        try { & $wizard -ServerUrl 'http://probe.example.test' -ProbeOnly -NonInteractive | Out-Null } catch { $denied = $true }
+        if (-not $denied) { throw 'Probe allowed plaintext HTTP' }
+        $denied = $false
+        try { & $wizard -ServerUrl 'https://probe.example.test' -ProbeOnly -TokenFile $tokenFile -NonInteractive | Out-Null } catch { $denied = $true }
+        if (-not $denied) { throw 'Probe accepted enrollment secret input' }
+    }
     Write-Host 'Configure-Agent.ps1 regression tests passed.'
 }
 finally {

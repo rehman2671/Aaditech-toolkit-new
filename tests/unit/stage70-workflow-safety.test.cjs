@@ -107,3 +107,23 @@ deny('Phase O diagnostic cannot use a floating WiX compiler',ci,s=>mutateDiagnos
 deny('Phase O diagnostic cannot interpolate secret context even with bracket notation',ci,s=>mutateDiagnostic(s,d=>d.replace('run: Install-Module -Name ps2exe','run: echo '+ '$'+"{{ secrets['SIGNING_KEY'] }}"+' ; Install-Module -Name ps2exe')));
 deny('Phase O diagnostic cannot use write permission',ci,s=>mutateDiagnostic(s,d=>d.replace('contents: read','contents: write')));
 deny('Phase O diagnostic cannot replace actual lifecycle execution with a comment',ci,s=>mutateDiagnostic(s,d=>d.replace('./Enterprise/tests/Test-Windows-MsiInstall.ps1','# ./Enterprise/tests/Test-Windows-MsiInstall.ps1')));
+
+// Independent compatibility remains mandatory and unprivileged.
+deny('offline compatibility cannot skip rehearsal',ci,s=>s.replace('run: node tests/ci-offline-docker-load-rehearsal.mjs','run: echo skipped'));
+deny('offline compatibility cannot use a floating action',ci,s=>s.replace('actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020','actions/setup-node@v4'));
+
+deny('offline lifecycle rehearsal cannot be skipped',ci,s=>s.replace('run: node tests/ci-existing-compose-lifecycle-rehearsal.mjs','run: echo skipped'));
+deny('offline lifecycle rehearsal cannot be conditional',ci,s=>s.replace('run: node tests/ci-existing-compose-lifecycle-rehearsal.mjs',"if: false\n        run: node tests/ci-existing-compose-lifecycle-rehearsal.mjs"));
+deny('offline lifecycle rehearsal cannot ignore failure',ci,s=>s.replace('run: node tests/ci-existing-compose-lifecycle-rehearsal.mjs','continue-on-error: true\n        run: node tests/ci-existing-compose-lifecycle-rehearsal.mjs'));
+deny('offline lifecycle rehearsal retains bounded timeout',ci,s=>s.replace('timeout-minutes: 10\n        run: node tests/ci-existing-compose-lifecycle-rehearsal.mjs','timeout-minutes: 1\n        run: node tests/ci-existing-compose-lifecycle-rehearsal.mjs'));
+deny('offline lifecycle rehearsal cannot change interpreter',ci,s=>s.replace('run: node tests/ci-existing-compose-lifecycle-rehearsal.mjs','shell: python\n        run: node tests/ci-existing-compose-lifecycle-rehearsal.mjs'));
+
+deny('offline database rehearsal dependencies must be locked and lifecycle scripts disabled',ci,s=>s.replace('npm ci --omit=dev --ignore-scripts','npm install --omit=dev'));
+deny('offline database rehearsal cannot enable dependency lifecycle scripts',ci,s=>s.replace('npm ci --omit=dev --ignore-scripts','npm ci --omit=dev'));
+deny('offline database rehearsal must execute',ci,s=>s.replace('run: node tests/ci-fresh-database-bridge-rehearsal.mjs','run: echo skipped'));
+deny('offline database rehearsal cannot be conditional',ci,s=>s.replace('run: node tests/ci-fresh-database-bridge-rehearsal.mjs',"if: false\n        run: node tests/ci-fresh-database-bridge-rehearsal.mjs"));
+deny('offline database rehearsal cannot ignore failure',ci,s=>s.replace('run: node tests/ci-fresh-database-bridge-rehearsal.mjs','continue-on-error: true\n        run: node tests/ci-fresh-database-bridge-rehearsal.mjs'));
+deny('offline database rehearsal cannot receive secrets',ci,s=>s.replace('run: node tests/ci-fresh-database-bridge-rehearsal.mjs','env:\n          TEST_SECRET: '+ '$'+"{{ secrets.TEST_SECRET }}\n        run: node tests/ci-fresh-database-bridge-rehearsal.mjs"));
+deny('offline database rehearsal retains bounded timeout',ci,s=>s.replace('timeout-minutes: 10\n        run: node tests/ci-fresh-database-bridge-rehearsal.mjs','timeout-minutes: 1\n        run: node tests/ci-fresh-database-bridge-rehearsal.mjs'));
+deny('offline database rehearsal cannot change interpreter',ci,s=>s.replace('run: node tests/ci-fresh-database-bridge-rehearsal.mjs','shell: python\n        run: node tests/ci-fresh-database-bridge-rehearsal.mjs'));
+deny('offline database rehearsal cannot be reordered before locked dependencies',ci,s=>s.replace('run: npm ci --omit=dev --ignore-scripts','run: node tests/ci-fresh-database-bridge-rehearsal.mjs').replace('timeout-minutes: 10\n        run: node tests/ci-fresh-database-bridge-rehearsal.mjs','timeout-minutes: 10\n        run: npm ci --omit=dev --ignore-scripts'));

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "batch": "MASS-07",
+  "batch": "MASS-08",
   "date": "2026-11-26",
   "target": "20 implementation prompts planning target, 50–100 actual development tasks per batch aspirational; count only delivered functional work, not test cases",
   "base_commit": "26f6dd7ad116e85e9fd52235f681c3d57f8f7a23",
@@ -3038,6 +3038,70 @@
         "tests/unit/review-retained-diagnostic-artifact.test.js",
         "Independent key/clock provenance, server/distributed replay, retention and actual attempt acceptance pending"
       ]
+    },
+    {
+      "id": "MASS-08-01",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Fix shared telemetry freshness regression observed in exact Batch 07 CI",
+      "dependencies": [
+        "MASS-07-01",
+        "MASS-06-02"
+      ],
+      "paths": [
+        "device-observations.js",
+        "device-observation-routes.js",
+        "tests/unit/device-observation-routes.test.js"
+      ],
+      "regression": [
+        "Batch 07 CI 45693682569 ReferenceError; rerun fresh Node/Vitest and dependent API/MSI jobs"
+      ]
+    },
+    {
+      "id": "MASS-08-02",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Migration 024 and separate immutable human hazard screening, audit, review projection and portal",
+      "dependencies": [
+        "MASS-03-01",
+        "MASS-07-01",
+        "MASS-02-01",
+        "M4"
+      ],
+      "paths": [
+        "database/migrations/024_troubleshooting_hazard_assessments.sql",
+        "database/mysql/schema.sql",
+        "db.js",
+        "test-migrations-runner.js",
+        "installation-database-identity.js",
+        "test-installation-database-identity-mysql.js",
+        "troubleshooting-hazard-assessment.js",
+        "troubleshooting-review-routes.js",
+        "troubleshooting-incident-review.js",
+        "Enterprise/portal/hazard-assessment.html",
+        "Enterprise/portal/hazard-assessment.js",
+        "Enterprise/portal/troubleshooting-review.js"
+      ],
+      "regression": [
+        "tests/unit/troubleshooting-hazard-assessment.test.js",
+        "Real SQL/HTTP role, tenant, replay, concurrent record, known hazard/D3 rejection and browser; no plan unlock or actual safety approval"
+      ]
+    },
+    {
+      "id": "MASS-08-03",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Stream native OCI archive candidate from independently pinned signed release stage",
+      "dependencies": [
+        "MASS-06-01",
+        "M1",
+        "DEC-001"
+      ],
+      "paths": [
+        "scripts/prepare-native-oci-archive.mjs",
+        "scripts/prepare-native-oci-archive-cli.mjs"
+      ],
+      "regression": [
+        "tests/unit/prepare-native-oci-archive.test.js",
+        "Independent archive reread verifier and approved production daemon import/release rehearsal pending"
+      ]
     }
   ],
   "unresolved": [
@@ -3071,15 +3135,19 @@
     },
     {
       "id": "BLOCK-SETUP-EXECUTION",
-      "next": "Read-only interrupted config switch inspection added; real service quiescence/restart, TLS/DB continuity, approved installer and physical recovery remain."
+      "next": "Native OCI preparation candidate and read-only switch recovery available; independent native archive verifier, actual importer, approved installer, service lifecycle, TLS/DB continuity and physical acceptance pending."
     },
     {
       "id": "BLOCK-DIAGNOSTIC-EXECUTION",
-      "next": "Local single-use review challenge ledger added; actual collection consent, credential-bound execution, independent custody and distributed attempt ledger remain."
+      "next": "Immutable human hazard screening available for unknown cases; no safety certification, no automatic plan unlock. Actual collection consent, safe reassessment/planning integration, credential-bound execution and distributed evidence custody pending."
     },
     {
       "id": "BLOCK-DOCKER-45691335891",
       "next": "Synthetic native OCI fixture passed exact Batch 06 CI 45692900554; earlier classic conversion mismatch is documented. Approved production native archive/importer, runtime execution and actual release acceptance remain pending; do not claim production compatibility."
+    },
+    {
+      "id": "BLOCK-CI-45693682569",
+      "next": "Batch 07 freshness reference failure addressed by shared constant; fresh exact-head CI needed to confirm Node/API and MSI gates."
     }
   ],
   "regression": {
@@ -3155,6 +3223,15 @@
         "a8a3400a54bfebb8838c66ffbca827c68c5954d8",
         "d61cc0a5badf0b2ec8c094d46a3a4728d4c95038",
         "6035e9426674a9fe66da11597e7ed3980a6a7d7e"
+      ],
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI"
+    },
+    {
+      "id": "MASS-08",
+      "source_commits": [
+        "afcd61fb0631deee9c920ccdad11f6981c0a2e19",
+        "f26aa770d153e306ef4a11a28ad1ea91cc13a846",
+        "6c02ba4e17342c701353b2425c888db8a9f2583f"
       ],
       "status": "SOURCE_IMPLEMENTED_PENDING_CI"
     }

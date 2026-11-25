@@ -32,6 +32,7 @@ import * as db from './db.js';
 import {registerTroubleshootingHelpRoutes} from './troubleshooting-help-routes.js';
 import {registerBoundEmployeeRoutes} from './troubleshooting-employee-routes.js';
 import {registerIncidentReviewRoutes} from './troubleshooting-review-routes.js';
+import {registerServerConfigurationRoutes} from './server-configuration-routes.js';
 import { isValidSetupKey, isSeededDemoPasswordHash } from './setup-security.js';
 import { validateEnrollmentIdentity, validateFreshEnrollment, matchesEnrolledDeviceIdentifier, extractEnrolledDeviceHeaderToken, validateDeviceRevocationRequest, validatePendingCommandReconciliation } from './enrollment-security.js';
 import { resolveAgentOrigin } from './agent-origin.js';
@@ -1012,6 +1013,7 @@ app.get(['/api/v1/auth/me', '/api/me'], async (req, res) => {
 registerTroubleshootingHelpRoutes(app);
 registerBoundEmployeeRoutes(app,db);
 registerIncidentReviewRoutes(app,db);
+registerServerConfigurationRoutes(app,db);
 
 // Devices (Canonical v1 + Legacy aliases /api/devices and /api/agents)
 app.get(['/api/v1/devices', '/api/devices', '/api/agents'], async (req, res) => {
@@ -2417,6 +2419,9 @@ app.post(['/api/v1/setup', '/api/setup'], async (req, res, next) => {
     if (!isPlatformSettingsAdmin(req.user)) {
       return res.status(403).json({ error: 'PLATFORM_ADMIN_REQUIRED',
         detail: 'Only the designated platform operator can change completed server setup.' });
+    }
+    if (process.env.NODE_ENV !== 'test') {
+      return res.status(409).json({ error: 'SETUP_ALREADY_COMPLETED', detail: 'Use workspace settings for branding and the local deployment operator for runtime changes. First-run credentials cannot be reset through setup.' });
     }
   } else if (REQUIRE_SECURE_SETUP &&
              !isValidSetupKey(req.headers['x-setup-token'], INITIAL_SETUP_TOKEN)) {

@@ -5,6 +5,7 @@ import {resolve,isAbsolute,relative,sep} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {rejectDuplicateJsonKeys} from './verify-lan-bundle.mjs';
 import {initializeLocalInstallationIdentity,inspectLocalInstallationIdentity} from './installation-identity-store-posix.mjs';
+import {planInstallationIdentity} from './installation-identity.mjs';
 import {withLocalSetupLock} from './local-setup-lock.mjs';
 const fail=()=>{throw Error('LOCAL_IDENTITY_INPUT_INVALID')};
 const path=v=>typeof v==='string'&&v.length<=4096&&isAbsolute(v)&&resolve(v)===v&&!v.includes('\0');
@@ -18,6 +19,7 @@ export async function runLocalIdentityCli(bytes,argv){
  if(argv[0]==='--initialize-empty-store'){
   if(!exact(doc,['directoryPath','lockRoot','observed'])||!path(doc.directoryPath)||!path(doc.lockRoot)||
    inside(doc.directoryPath,doc.lockRoot)||inside(doc.lockRoot,doc.directoryPath))fail();
+  if(planInstallationIdentity({intent:'fresh',observed:doc.observed}).reason!=='GENERATE_NEW_IDENTITY')fail();
   return withLocalSetupLock({confirmation:'ACQUIRE_LOCAL_SETUP_LOCK_ONLY',lockRoot:doc.lockRoot},
    ()=>initializeLocalInstallationIdentity({confirmation:'INITIALIZE_EMPTY_IDENTITY_STORE_ONLY',directoryPath:doc.directoryPath,observed:doc.observed}));
  }

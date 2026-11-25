@@ -6,7 +6,8 @@ import {spawnSync} from 'node:child_process';
 import {mkdir,chmod} from 'node:fs/promises';
 import {join,dirname} from 'node:path';
 import {staged} from './fixtures/signed-offline-oci-fixture.mjs';
-import {prepareNativeOciFixtureArchive} from './fixtures/native-oci-fixture-archive.mjs';
+import {prepareNativeOciArchive} from '../scripts/prepare-native-oci-archive.mjs';
+import {importNativeOciArchive} from '../scripts/import-native-oci-archive.mjs';
 import {prepareOfflineDockerArchive} from '../scripts/prepare-offline-docker-archive.mjs';
 import {verifyPreparedDockerArchive} from '../scripts/verify-prepared-docker-archive.mjs';
 import {inspectLocalDockerRuntime} from '../scripts/local-docker-runtime-preflight.mjs';
@@ -26,14 +27,19 @@ await staged(async({input,g})=>{
  const status=JSON.parse(docker(['info','--format','{{json .DriverStatus}}']));
  const containerd=Array.isArray(status)&&status.some(x=>Array.isArray(x)&&x[0]==='driver-type'&&x[1]==='io.containerd.snapshotter.v1');
  assert.ok(containerd||driver==='overlay2','Unsupported fixture image store');
- const native=containerd?await prepareNativeOciFixtureArchive(input,g,join(destinationParent,'native-oci.tar')):null;
- const selected=native??verified;
+ const native=containerd?await prepareNativeOciArchive({...input,confirmation:'PREPARE_NATIVE_OCI_ARCHIVE_ONLY',destinationParent}):null;
+ const selected=native?{expected_image_ids:native.expected_manifest_ids}:verified;
+ const lockRoot=join(dirname(destinationParent),'import-lock');await mkdir(lockRoot,{mode:0o700});
  const policy={confirmation:'OBSERVE_LOCAL_DOCKER_ONLY',architecture:'amd64',imageIds:selected.expected_image_ids};
  const before=await inspectLocalDockerRuntime(policy);
  assert.equal(before.runtime_state,'LOCAL_LINUX_DAEMON_OBSERVED');
  assert.deepEqual(before.images.map(x=>x.state),['NOT_FOUND','NOT_FOUND','NOT_FOUND']);
  try{
-  const loaded=docker(['image','load','--input',(native??r).archive_path]);
+  let loaded='';
+  if(native){
+   const receipt=await importNativeOciArchive({confirmation:'IMPORT_PINNED_NATIVE_OCI_IMAGES_ONLY_EXCLUSIVE_DAEMON_CUSTODY',lockRoot,admission:{...input,confirmation:'VERIFY_NATIVE_OCI_ARCHIVE_ONLY',archivePath:native.archive_path,archiveSha256:native.archive_sha256,archiveBytes:native.archive_bytes}});
+   assert.equal(receipt.images_imported,true);assert.equal(receipt.container_execution_performed,false);
+  }else loaded=docker(['image','load','--input',r.archive_path]);
   const after=await inspectLocalDockerRuntime(policy);
   if(!after.all_expected_image_ids_observed){
    // Fixture-only diagnostics. Do not dump daemon info, env/config, or

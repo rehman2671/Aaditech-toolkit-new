@@ -92,7 +92,7 @@ export function classifyDockerRuntimeObservation(policy,version,info,images){
   image_payload_integrity_verified:false,publisher_signature_verified:false,actual_resource_absence_verified:false,
   runtime_compatibility_verified:false,offline_execution_verified:false,installation_authorized:false,production_accepted:false});
 }
-async function socketIdentity(){
+export async function socketIdentity(){
  if(process.platform!=='linux'||typeof process.geteuid!=='function')fail('LOCAL_DOCKER_SOCKET_UNVERIFIED');
  const dir=await lstat('/run'),socket=await lstat(socketPath);
  if(!dir.isDirectory()||dir.uid!==0||(dir.mode&0o022)!==0||await realpath('/run')!=='/run'||

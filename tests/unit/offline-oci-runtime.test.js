@@ -168,3 +168,12 @@ describe.skipIf(process.platform!=='linux')('bounded compressed and uncompressed
   await expect(verifyGzipLayerFile(x.path,x.entry,x.diffId,x.limit??4096)).rejects.toThrow('OFFLINE_OCI_RUNTIME_UNVERIFIED');
  }));
 });
+
+it.skipIf(process.platform!=='linux')('checks the restricted tar profile of a real signed staged OCI release through CLI',()=>staged(async({input})=>{
+ const r=await inspectOfflineOciRuntime({...input,confirmation:'INSPECT_SIGNED_OCI_TAR_PROFILE_ONLY'});
+ expect(r).toMatchObject({restricted_tar_profile_verified:true,archive_extraction_verified:false,image_imported:false,installation_authorized:false});
+ const doc={...input};delete doc.confirmation;
+ const script=fileURLToPath(new URL('../../scripts/inspect-offline-oci-runtime-cli.mjs',import.meta.url));
+ const run=spawnSync(process.execPath,[script,'--inspect-restricted-tar'],{input:JSON.stringify(doc),encoding:'utf8',timeout:15000});
+ expect(run.status).toBe(0);expect(JSON.parse(run.stdout).restricted_tar_profile_verified).toBe(true);
+}));

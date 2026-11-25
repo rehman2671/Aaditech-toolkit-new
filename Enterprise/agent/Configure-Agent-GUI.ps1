@@ -104,6 +104,26 @@ $save.Size = [System.Drawing.Size]::new(262, 34)
 $form.Controls.Add($save)
 $form.AcceptButton = $save
 
+$probe = New-Object System.Windows.Forms.Button
+$probe.Text = 'Test connection only'
+$probe.Location = [System.Drawing.Point]::new(20, 310)
+$probe.Size = [System.Drawing.Size]::new(238, 34)
+$form.Controls.Add($probe)
+$probe.Add_Click({
+    $probe.Enabled = $false
+    $save.Enabled = $false
+    $status.Text = 'Checking trusted HTTPS and database health...'
+    try {
+        $result = & (Join-Path $PSScriptRoot 'Configure-Agent.ps1') -ServerUrl $urlBox.Text -ProbeOnly -NonInteractive
+        if (-not $result.https_health_verified -or -not $result.database_healthy -or $result.configuration_changed) { throw 'Unconfirmed probe' }
+        $status.Text = 'Server reachable; database healthy. Enrollment is not verified.'
+        $status.ForeColor = [System.Drawing.Color]::DarkGreen
+    } catch {
+        $status.Text = 'Connection not verified. Check the HTTPS address, trust and server health.'
+        $status.ForeColor = [System.Drawing.Color]::DarkRed
+    } finally { $probe.Enabled = $true; $save.Enabled = $true }
+})
+
 # Only the previous server origin is read, never saved or displayed credentials.
 try {
     if (Test-Path -LiteralPath $ConfigPath -PathType Leaf) {

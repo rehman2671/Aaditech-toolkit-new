@@ -36,6 +36,9 @@
     pending=Object.freeze({incidentId:r.incident_id,deviceId:r.device_id,requestId:crypto.randomUUID(),expectedRevision:r.revision,nextState:select.value,confirmation:'CONFIRM_HUMAN_REVIEW_ONLY'});submit();
    });card.append(f);
   }
+  if(r.intake_status==='OPEN'&&r.hazard==='NONE'){
+   const link=node('a','Diagnostic review consent');link.href='/diagnostic-consent.html?'+new URLSearchParams({incidentId:r.incident_id,deviceId:r.device_id});card.append(link);
+  }
   return card;
  }
  async function load(next=false){

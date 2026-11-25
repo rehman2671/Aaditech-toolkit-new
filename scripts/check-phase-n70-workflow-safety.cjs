@@ -57,12 +57,22 @@ function auditN70WorkflowBundle(files) {
     }
 
     if (filename.endsWith('/ci.yml')) {
+      const offline = wf.jobs['offline-docker-load-rehearsal'];
+      if (!offline || offline['runs-on']!=='ubuntu-latest' || offline.if!==undefined ||
+          offline.environment!==undefined || offline.env!==undefined || offline['continue-on-error']!==undefined ||
+          JSON.stringify(offline.permissions)!==JSON.stringify({contents:'read'}) ||
+          offline.steps.length!==3 || offline.steps[0].uses!=='actions/checkout@11d5960a326750d5838078e36cf38b85af677262' ||
+          offline.steps[0].with?.['persist-credentials']!==false ||
+          offline.steps[1].uses!=='actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020' ||
+          offline.steps[2].run!=='node tests/ci-offline-docker-load-rehearsal.mjs' ||
+          offline.steps.some(s=>s.if!==undefined||s.env!==undefined||s['continue-on-error']!==undefined) ||
+          /\$\{\{/.test(JSON.stringify(offline))) fail();
       const diagnostic = wf.jobs['phase-o-msi-diagnostic'];
       if (!diagnostic || diagnostic.if !== "github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.base_ref == 'main' && startsWith(github.head_ref, 'integration/')" ||
           diagnostic['runs-on'] !== 'windows-latest' ||
           JSON.stringify(diagnostic.permissions) !== JSON.stringify({contents:'read'}) ||
           diagnostic.environment !== undefined ||
-          JSON.stringify(diagnostic.needs) !== JSON.stringify(['powershell-validation','node-tests','api-tests']) ||
+          JSON.stringify(diagnostic.needs) !== JSON.stringify(['powershell-validation','node-tests','api-tests','offline-docker-load-rehearsal']) ||
           JSON.stringify(diagnostic.env) !== JSON.stringify({RELEASE_SIGNING_ENABLED:'false',PUBLISH_SIGNED:'false'}) ||
           diagnostic['continue-on-error'] !== undefined) fail();
       const steps=diagnostic.steps;
@@ -124,7 +134,7 @@ function auditN70WorkflowBundle(files) {
       if (!raw.includes('branches: [main]')) fail();
     }
   }
-  if (actionCount !== 14) fail();
+  if (actionCount !== 16) fail();
   return true;
 }
 
@@ -137,7 +147,7 @@ function readBundle() {
 if (require.main === module) {
   try {
     auditN70WorkflowBundle(readBundle());
-    console.log('N70 PASS: universal main safety checks and 14 immutable official action refs verified.');
+    console.log('N70 PASS: universal main safety checks and 16 immutable official action refs verified.');
   } catch (_) {
     console.error('N70 GitHub security workflow governance blocked.');
     process.exitCode=1;

@@ -107,3 +107,7 @@ deny('Phase O diagnostic cannot use a floating WiX compiler',ci,s=>mutateDiagnos
 deny('Phase O diagnostic cannot interpolate secret context even with bracket notation',ci,s=>mutateDiagnostic(s,d=>d.replace('run: Install-Module -Name ps2exe','run: echo '+ '$'+"{{ secrets['SIGNING_KEY'] }}"+' ; Install-Module -Name ps2exe')));
 deny('Phase O diagnostic cannot use write permission',ci,s=>mutateDiagnostic(s,d=>d.replace('contents: read','contents: write')));
 deny('Phase O diagnostic cannot replace actual lifecycle execution with a comment',ci,s=>mutateDiagnostic(s,d=>d.replace('./Enterprise/tests/Test-Windows-MsiInstall.ps1','# ./Enterprise/tests/Test-Windows-MsiInstall.ps1')));
+
+// Independent compatibility remains mandatory and unprivileged.
+deny('offline compatibility cannot skip rehearsal',ci,s=>s.replace('run: node tests/ci-offline-docker-load-rehearsal.mjs','run: echo skipped'));
+deny('offline compatibility cannot use a floating action',ci,s=>s.replace('actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020','actions/setup-node@v4'));

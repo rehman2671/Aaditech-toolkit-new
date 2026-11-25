@@ -290,7 +290,7 @@ export async function runDatabaseMigrations() {
       memAppliedMigrations.add('019');
       memAppliedMigrations.add('020');
     }
-    return { applied: [], skipped: ['001_init_schema.sql', '002_partitioning.sql', '003_rbac_and_audit.sql', '004_workspace_memberships.sql', '005_remediation_tenant_logs.sql', '006_notification_outbox.sql', '007_scrub_legacy_github_pat.sql', '008_scrub_legacy_ticket_keys.sql', '009_notification_destination_binding.sql', '010_events_tenant_device_identity.sql', '011_security_posture_provenance.sql', '012_measured_device_telemetry.sql', '013_events_idempotency.sql', '014_telemetry_batches.sql', '015_batch_receipt_retention_index.sql', '016_app_usage_snapshot.sql', '017_device_recovery_reviews.sql', '018_troubleshooting_incidents.sql', '019_troubleshooting_diagnostic_plans.sql', '020_troubleshooting_employee_bindings.sql'], status: 'FALLBACK_MODE' };
+    return { applied: [], skipped: ['001_init_schema.sql', '002_partitioning.sql', '003_rbac_and_audit.sql', '004_workspace_memberships.sql', '005_remediation_tenant_logs.sql', '006_notification_outbox.sql', '007_scrub_legacy_github_pat.sql', '008_scrub_legacy_ticket_keys.sql', '009_notification_destination_binding.sql', '010_events_tenant_device_identity.sql', '011_security_posture_provenance.sql', '012_measured_device_telemetry.sql', '013_events_idempotency.sql', '014_telemetry_batches.sql', '015_batch_receipt_retention_index.sql', '016_app_usage_snapshot.sql', '017_device_recovery_reviews.sql', '018_troubleshooting_incidents.sql', '019_troubleshooting_diagnostic_plans.sql', '020_troubleshooting_employee_bindings.sql', '021_installation_database_identity.sql'], status: 'FALLBACK_MODE' };
   }
 
   return runDatabaseMigrationsOnPool(pool);

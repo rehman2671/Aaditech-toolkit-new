@@ -6,7 +6,7 @@ import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {tmpdir} from 'node:os';
 import {join,dirname} from 'node:path';
-import {verifyOfflineOciGraph,inspectOfflineOciRuntime} from '../../scripts/inspect-offline-oci-runtime.mjs';
+import {verifyOfflineOciGraph,inspectOfflineOciRuntime,verifyGzipLayerFile} from '../../scripts/inspect-offline-oci-runtime.mjs';
 import {stageOfflineLanBundle} from '../../scripts/stage-offline-lan-bundle.mjs';
 import {parseOfflineOciInput} from '../../scripts/inspect-offline-oci-runtime-cli.mjs';
 const sha=b=>createHash('sha256').update(b).digest('hex'),id=c=>'sha256:'+c.repeat(64);
@@ -108,7 +108,7 @@ describe.skipIf(process.platform!=='linux')('real signed staged OCI release',()=
  it('verifies actual signed bytes and descriptor graph without import or execution',()=>staged(async({g,input})=>{
   const r=await inspectOfflineOciRuntime(input);
   expect(r.images.map(x=>x.image_config_id)).toEqual(g.manifests.map(x=>x.config.digest));
-  expect(r).toMatchObject({release_signature_verified:true,compressed_blob_integrity_verified:true,oci_descriptor_graph_verified:true,uncompressed_diff_ids_verified:false,image_imported:false,installation_authorized:false,production_accepted:false});
+  expect(r).toMatchObject({release_signature_verified:true,compressed_blob_integrity_verified:true,oci_descriptor_graph_verified:true,uncompressed_diff_ids_verified:true,image_imported:false,installation_authorized:false,production_accepted:false});
  }));
  it('inspects signed staged release through actual CLI',()=>staged(async({input})=>{
   const doc={...input};delete doc.confirmation;
@@ -139,4 +139,32 @@ describe('strict OCI operator input',()=>{
   ['relative stage',Buffer.from(JSON.stringify({...doc,stagedDirectory:'relative'})),args],
   ['wrong arch',Buffer.from(JSON.stringify({...doc,architecture:'386'})),args]
  ])it('refuses '+label,()=>expect(()=>parseOfflineOciInput(b,a)).toThrow('OFFLINE_OCI_INPUT_INVALID'));
+});
+
+describe.skipIf(process.platform!=='linux')('bounded compressed and uncompressed layer evidence',()=>{
+ async function fixture(fn){
+  const dir=await mkdtemp(join(await realpath(tmpdir()),'oci-layer-'));
+  try{
+   const raw=Buffer.alloc(4096,65),bytes=gzipSync(raw),path=join(dir,'layer');
+   await writeFile(path,bytes,{mode:0o600});
+   const entry={size:bytes.length,sha256:sha(bytes)},diffId='sha256:'+sha(raw);
+   await fn({raw,bytes,path,entry,diffId});
+  }finally{await rm(dir,{recursive:true,force:true})}
+ }
+ it('streams exact compressed and uncompressed digests within a strict budget',()=>fixture(async x=>{
+  expect(await verifyGzipLayerFile(x.path,x.entry,x.diffId,4096)).toBe(4096);
+ }));
+ for(const [label,mutate] of [
+  ['wrong diff ID',x=>({...x,diffId:id('a')})],
+  ['wrong packed digest',x=>({...x,entry:{...x.entry,sha256:'a'.repeat(64)}})],
+  ['wrong packed length',x=>({...x,entry:{...x.entry,size:x.entry.size+1}})],
+  ['uncompressed limit',x=>({...x,limit:4095})],
+  ['zero budget',x=>({...x,limit:0})],
+  ['invalid gzip with matching packed digest',async x=>{const bad=Buffer.from('not gzip');await writeFile(x.path,bad);return {...x,entry:{size:bad.length,sha256:sha(bad)}}}],
+  ['truncated gzip with matching packed digest',async x=>{const bad=x.bytes.subarray(0,x.bytes.length-3);await writeFile(x.path,bad);return {...x,entry:{size:bad.length,sha256:sha(bad)}}}],
+  ['unsafe file mode',async x=>{await chmod(x.path,0o644);return x}]
+ ])it('rejects '+label,()=>fixture(async input=>{
+  const x=await mutate(input);
+  await expect(verifyGzipLayerFile(x.path,x.entry,x.diffId,x.limit??4096)).rejects.toThrow('OFFLINE_OCI_RUNTIME_UNVERIFIED');
+ }));
 });

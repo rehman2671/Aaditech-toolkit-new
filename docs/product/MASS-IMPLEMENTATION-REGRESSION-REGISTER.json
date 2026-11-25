@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "batch": "MASS-05",
+  "batch": "MASS-06",
   "date": "2026-11-26",
   "target": "20 implementation prompts planning target, 50–100 actual development tasks per batch aspirational; count only delivered functional work, not test cases",
   "base_commit": "26f6dd7ad116e85e9fd52235f681c3d57f8f7a23",
@@ -2925,6 +2925,61 @@
       "regression": [
         "Disposable Docker runner: exact config IDs, ordered diff IDs, no tags and cleanup; investigate observed driver/version and returned IDs"
       ]
+    },
+    {
+      "id": "MASS-06-01",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Store-profile-aware synthetic Docker fixture native OCI import and exact signed manifest pins",
+      "dependencies": [
+        "MASS-05-03",
+        "MASS-01-04",
+        "M1"
+      ],
+      "paths": [
+        "tests/fixtures/native-oci-fixture-archive.mjs",
+        "tests/ci-offline-docker-load-rehearsal.mjs"
+      ],
+      "regression": [
+        "tests/unit/native-oci-fixture-archive.test.js",
+        "Actual disposable Docker containerd and classic store rehearsal, exact IDs/diff IDs/no tags/cleanup; production archive adapter pending"
+      ]
+    },
+    {
+      "id": "MASS-06-02",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Tenant device telemetry observation API and portal with pressure signals and freshness safeguards",
+      "dependencies": [
+        "M4",
+        "MASS-01-02"
+      ],
+      "paths": [
+        "device-observation-routes.js",
+        "server.js",
+        "Enterprise/portal/device-observations.html",
+        "Enterprise/portal/device-observations.js",
+        "Enterprise/portal/index.html"
+      ],
+      "regression": [
+        "tests/unit/device-observation-routes.test.js",
+        "Real HTTP role/tenant isolation, SQL freshness, pagination, UI filtering and physical telemetry acceptance"
+      ]
+    },
+    {
+      "id": "MASS-06-03",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Local retained diagnostic signature and content review bridge",
+      "dependencies": [
+        "FE-16",
+        "MASS-05-02"
+      ],
+      "paths": [
+        "scripts/review-retained-diagnostic-artifact.mjs",
+        "scripts/review-retained-diagnostic-cli.mjs"
+      ],
+      "regression": [
+        "tests/unit/review-retained-diagnostic-artifact.test.js",
+        "Independent key and clock custody, expiry/replay and actual physical diagnostic attempt still pending"
+      ]
     }
   ],
   "unresolved": [
@@ -2962,11 +3017,11 @@
     },
     {
       "id": "BLOCK-DIAGNOSTIC-EXECUTION",
-      "next": "Review consent and bound review plan added; distinct collection consent, approved execution policy, endpoint credential binding, signed attempt/evidence custody and independent outcomes pending."
+      "next": "Local retained signature/content review bridge added; independent signer credential and clock custody, durable replay, actual collection authorization and physical attempt/independent outcome remain pending."
     },
     {
       "id": "BLOCK-DOCKER-45691335891",
-      "next": "Exact fixture identity assertion remains failing; bounded diagnostic logging added for next CI. No production import or compatibility claim."
+      "next": "Batch 05 exact log points to containerd manifest vs classic config identity. Native OCI synthetic fixture path added; fresh CI must verify exact signed IDs and cleanup. No production import approval."
     }
   ],
   "regression": {
@@ -3024,6 +3079,15 @@
         "274c0b222fe167a36f5b775554e0e16ce0016916",
         "e3ecb69f84f5839bf7180530e73fe5419dbe6a20",
         "64e5fc39f968d3d8ea750ddcbab6ad6e026ec357"
+      ],
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI"
+    },
+    {
+      "id": "MASS-06",
+      "source_commits": [
+        "ca21ed8959b9237901c69c242bd53d5b8dbf5bc8",
+        "2201b31c558cf3630a868a62a92db9113d2171f2",
+        "de051c6bf9813a47c571005e16b2498998cb7a62"
       ],
       "status": "SOURCE_IMPLEMENTED_PENDING_CI"
     }

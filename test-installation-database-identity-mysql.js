@@ -19,7 +19,7 @@ try{
  c=await mysql.createConnection({host:env.DB_HOST,port:Number(env.DB_PORT),user:env.DB_USER,password:env.DB_PASSWORD,database:env.DB_NAME});
  const ddl=await readFile(new URL('./database/migrations/021_installation_database_identity.sql',import.meta.url),'utf8');
  await c.query(ddl.replace('CREATE TABLE IF NOT EXISTS','CREATE TEMPORARY TABLE'));
- for(const table of ['devices','troubleshooting_incidents','troubleshooting_diagnostic_plans','troubleshooting_employee_bindings','troubleshooting_incident_reviews','troubleshooting_incident_review_events'])await c.query('CREATE TEMPORARY TABLE '+table+' (id INT PRIMARY KEY) ENGINE=InnoDB');
+ for(const table of ['devices','troubleshooting_incidents','troubleshooting_diagnostic_plans','troubleshooting_employee_bindings','troubleshooting_incident_reviews','troubleshooting_incident_review_events','troubleshooting_diagnostic_consent','troubleshooting_diagnostic_consent_events'])await c.query('CREATE TEMPORARY TABLE '+table+' (id INT PRIMARY KEY) ENGINE=InnoDB');
  const confirmation='BIND_EMPTY_DATABASE_TO_PINNED_IDENTITY_ONLY';
  await assert.rejects(()=>assertDatabaseIdentity(c,policy));
  await c.query('INSERT INTO devices VALUES (1)');

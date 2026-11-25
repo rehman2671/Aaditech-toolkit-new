@@ -63,46 +63,57 @@ export async function startPrivateLanForwarder(input){
  // Initial commissioning requires the clean first-run setup marker. Existing
  // installations must use a separately reviewed reconfiguration procedure.
  await guard();await probePrivateLanHttps({confirmation:'PROBE_PINNED_PRIVATE_LAN_HTTPS_ONLY',...target},guard);await guard();
- const sockets=new Set(),maxConnections=64,idleMs=60000,connectMs=5000;
- let server,timer,stopping=false,checking=false,resolveClosed,accepting=false;
+ const sockets=new Set(),perSource=new Map(),maxConnections=64,maxPerSource=8,idleMs=60000,connectMs=5000,maxAgeMs=300000;
+ let server,timer,stopping=false,checking=false,resolveClosed,accepting=false,commissioning=false;
  const closed=new Promise(ok=>{resolveClosed=ok});
  function stop(){
-  if(stopping)return closed;stopping=true;accepting=false;clearInterval(timer);
+  if(stopping)return closed;stopping=true;accepting=false;commissioning=false;clearInterval(timer);
   for(const s of sockets)s.destroy();
   if(server?.listening)server.close(()=>resolveClosed());else resolveClosed();
   return closed;
  }
  server=createServer({pauseOnConnect:true},client=>{
-  if(stopping||!accepting||client.localAddress!==p.bindAddress||client.localPort!==443||!sourceInApprovedSubnet(client.remoteAddress,p.subnet)||sockets.size>=maxConnections*2){client.destroy();return}
-  try{if(JSON.stringify(selectApprovedLanInterface(p,networkInterfaces()))!==JSON.stringify(selected)){client.destroy();void stop();return}}catch{client.destroy();void stop();return}
-  const upstream=createConnection({host:p.ingressAddress,port:443,family:4});
-  sockets.add(client);sockets.add(upstream);
-  const kill=()=>{clearTimeout(timeout);client.destroy();upstream.destroy()};
-  const timeout=setTimeout(kill,connectMs);
-  for(const s of [client,upstream]){
-   s.setTimeout(idleMs,kill);s.once('error',kill);s.once('close',()=>{sockets.delete(s);kill()});
-  }
-  upstream.once('connect',()=>{
-   clearTimeout(timeout);
-   if(upstream.remoteAddress!==p.ingressAddress||upstream.remotePort!==443||stopping){kill();return}
-   client.pipe(upstream);upstream.pipe(client);client.resume();
-  });
+  const source=client.remoteAddress;
+  if(stopping||(!accepting&&!(commissioning&&source===p.bindAddress))||client.localAddress!==p.bindAddress||client.localPort!==443||!sourceInApprovedSubnet(source,p.subnet)||[...perSource.values()].reduce((a,b)=>a+b,0)>=maxConnections||(perSource.get(source)??0)>=maxPerSource){client.destroy();return}
+  // Reserve the pending slot before asynchronous custody checks.
+  sockets.add(client);perSource.set(source,(perSource.get(source)??0)+1);
+  let upstream,finished=false;
+  const kill=()=>{
+   if(finished)return;finished=true;clearTimeout(timeout);clearTimeout(age);
+   client.destroy();if(upstream)upstream.destroy();
+   sockets.delete(client);if(upstream)sockets.delete(upstream);
+   const count=(perSource.get(source)??1)-1;if(count>0)perSource.set(source,count);else perSource.delete(source);
+  };
+  const timeout=setTimeout(kill,connectMs),age=setTimeout(kill,maxAgeMs);
+  client.setTimeout(idleMs,kill);client.once('error',kill);client.once('close',kill);
+  void (async()=>{
+   try{await guard()}catch{kill();void stop();return}
+   if(finished||stopping||(!accepting&&!(commissioning&&source===p.bindAddress))){kill();return}
+   try{upstream=createConnection({host:p.ingressAddress,port:443,family:4})}catch{kill();return}
+   sockets.add(upstream);
+   upstream.setTimeout(idleMs,kill);upstream.once('error',kill);upstream.once('close',kill);
+   upstream.once('connect',()=>{
+    clearTimeout(timeout);
+    if(finished||upstream.remoteAddress!==p.ingressAddress||upstream.remotePort!==443||stopping){kill();return}
+    client.pipe(upstream);upstream.pipe(client);client.resume();
+   });
+  })();
  });
  server.maxConnections=maxConnections;
  try{
   await new Promise((ok,no)=>{server.once('error',no);server.listen({host:p.bindAddress,port:443,exclusive:true,backlog:64},()=>{server.removeListener('error',no);ok()})});
   server.on('error',()=>{void stop()});
   const bound=server.address();if(!bound||bound.address!==p.bindAddress||bound.port!==443||bound.family!=='IPv4')fail();
-  accepting=true;
+  commissioning=true;
   const receipt=await probePrivateLanHttps({confirmation:'PROBE_PINNED_PRIVATE_LAN_HTTPS_ONLY',...target,address:p.bindAddress},guard);
   if(!receipt.application_readiness_verified||!receipt.exact_leaf_verified||!receipt.private_routes_denied)fail();
-  await guard();
+  await guard();if(stopping)fail();commissioning=false;accepting=true;
   // Health after setup is intentionally not tied to setup_complete=false.
   // Failure stops the foreground listener; no auto-restart or DNS fallback.
   timer=setInterval(async()=>{
    if(stopping||checking)return;checking=true;
    try{await guard();await probePrivateLanHealth({confirmation:'PROBE_PINNED_PRIVATE_LAN_HEALTH_ONLY',...target});await guard()}catch{void stop()}finally{checking=false}
   },15000);
-  return Object.freeze({receipt:Object.freeze({schema_version:1,private_listener_verified:true,private_subnet_restricted:true,tls_passthrough:true,local_https_verified:true,remote_client_verified:false,firewall_verified:false,host_ports_published_by_docker:false,system_service_installed:false,production_accepted:false}),close:stop,closed});
+  return Object.freeze({receipt:Object.freeze({schema_version:1,private_listener_verified:true,private_subnet_restricted:true,remote_admission_after_readiness:true,connection_limits_enforced:true,tls_passthrough:true,local_https_verified:true,remote_client_verified:false,firewall_verified:false,host_ports_published_by_docker:false,system_service_installed:false,production_accepted:false}),close:stop,closed});
  }catch{await stop();fail()}
 }

@@ -19,7 +19,7 @@ try {
     $file=Join-Path $dir 'root.cer'
     [IO.File]::WriteAllBytes($file,$raw)
     $proof=Test-PrivateLanRootCertificate -CertificatePath $file -ApprovedRootSha256 $pin
-    if (-not $proof.independent_pin_matched -or $proof.trust_store_modified) { throw 'Unexpected root proof.' }
+    if (-not $proof.independent_pin_matched -or -not $proof.root_self_signature_verified -or $proof.trust_store_modified) { throw 'Unexpected root proof.' }
     $pem=Join-Path $dir 'root.pem'
     [IO.File]::WriteAllText($pem,("-----BEGIN CERTIFICATE-----"+[Environment]::NewLine+[Convert]::ToBase64String($raw,[Base64FormattingOptions]::InsertLineBreaks)+[Environment]::NewLine+"-----END CERTIFICATE-----"+[Environment]::NewLine),[Text.Encoding]::ASCII)
     $null=Test-PrivateLanRootCertificate -CertificatePath $pem -ApprovedRootSha256 $pin
@@ -31,6 +31,14 @@ try {
     $null=Install-PrivateLanRootCertificate -Confirmation 'INSTALL_INDEPENDENTLY_PINNED_PRIVATE_LAN_ROOT_LOCAL_MACHINE_ONLY' -CertificatePath $file -ApprovedRootSha256 $pin -WhatIf
     $after=@(Get-ChildItem Cert:\LocalMachine\Root | Where-Object { $_.Thumbprint -eq $cert.Thumbprint }).Count
     if ($before -ne $after) { throw 'WhatIf changed local-machine trust.' }
+    # Change a signature byte, compute a matching independent fixture digest,
+    # and prove that DER pin/subject/issuer alone cannot admit the root.
+    $bad = [byte[]]$raw.Clone()
+    $bad[$bad.Length-1] = $bad[$bad.Length-1] -bxor 1
+    $badFile = Join-Path $dir 'bad-signature.cer'
+    [IO.File]::WriteAllBytes($badFile,$bad)
+    $badPin = ([BitConverter]::ToString($sha.ComputeHash($bad))).Replace('-','').ToLowerInvariant()
+    Assert-Denied { Test-PrivateLanRootCertificate -CertificatePath $badFile -ApprovedRootSha256 $badPin }
     [IO.File]::AppendAllText($pem,'trailing')
     Assert-Denied { Test-PrivateLanRootCertificate -CertificatePath $pem -ApprovedRootSha256 $pin }
     Write-Host 'PASS: independently pinned public DER/PEM root policy, incorrect pin and confirmation denial, WhatIf leaves machine trust unchanged.'

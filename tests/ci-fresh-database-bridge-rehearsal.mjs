@@ -18,6 +18,7 @@ import {verifyBoundRuntimeHistory} from '../bound-runtime-schema.js';
 import {staged} from './fixtures/signed-offline-oci-fixture.mjs';
 import {provisionFreshPrivateLanTls,inspectPinnedPrivateLanRuntime} from '../scripts/provision-fresh-private-lan-tls.mjs';
 import {probePrivateLanHttps} from '../scripts/probe-private-lan-https.mjs';
+import {rehearsePrivateLanForwarder} from './fixtures/rehearse-private-lan-forwarder.mjs';
 if(process.argv.length!==2||process.env.GITHUB_ACTIONS!=='true'||process.env.RUNNER_ENVIRONMENT!=='github-hosted'||process.platform!=='linux'||process.arch!=='x64')throw Error('DISPOSABLE_GITHUB_RUNNER_REQUIRED');
 // Same isolated-runner root boundary as the existing offline storage rehearsal.
 // Root is needed for exact volume and non-root bind ownership, not for the API.
@@ -239,6 +240,7 @@ try{
    await assert.rejects(()=>probePrivateLanHttps({...httpsInput,trustedRootSha256:'b'.repeat(64)},assertHeld));
    await observeTriple();
    console.log('PASS: real Caddy private HTTPS, pinned direct leaf and root, clean API readiness, private route denial and wrong hostname/root/leaf refusal; no published host port or signed runtime activation.');
+   await rehearsePrivateLanForwarder({target:httpsInput,identity:pins,stopBackend:async()=>{docker(['container','stop','--time','3',caddyId]);await assertHeld()}});
    docker(['container','rm','--force',caddyId]);caddyId=undefined;
    // Scoped cleanup before the independent occupied-schema denial check.
    docker(['container','rm','--force',apiId]);apiId=undefined;

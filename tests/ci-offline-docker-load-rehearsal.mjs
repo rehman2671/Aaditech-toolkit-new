@@ -25,8 +25,19 @@ await staged(async({input,g})=>{
  assert.equal(before.runtime_state,'LOCAL_LINUX_DAEMON_OBSERVED');
  assert.deepEqual(before.images.map(x=>x.state),['NOT_FOUND','NOT_FOUND','NOT_FOUND']);
  try{
-  docker(['image','load','--input',r.archive_path]);
+  const loaded=docker(['image','load','--input',r.archive_path]);
   const after=await inspectLocalDockerRuntime(policy);
+  if(!after.all_expected_image_ids_observed){
+   // Fixture-only diagnostics. Do not dump daemon info, env/config, or
+   // unrelated images. Do not accept returned IDs as replacement pins.
+   const reported=[...new Set([...loaded.matchAll(/sha256:[a-f0-9]{64}/g)].map(x=>x[0]))].slice(0,12);
+   const version=docker(['version','--format','{{.Server.Version}}']).trim();
+   const driver=docker(['info','--format','{{.Driver}}']).trim();
+   console.error(JSON.stringify({event:'FIXTURE_LOAD_IDENTITY_MISMATCH',
+    daemon_version:/^[a-zA-Z0-9.+_-]{1,80}$/.test(version)?version:'unverified',
+    storage_driver:/^[a-zA-Z0-9_-]{1,80}$/.test(driver)?driver:'unverified',
+    expected_image_ids:verified.expected_image_ids,reported_load_ids:reported,observations:after.images}));
+  }
   assert.equal(after.all_expected_image_ids_observed,true);
   for(const [i,id] of Object.values(verified.expected_image_ids).entries()){
    const [image]=JSON.parse(docker(['image','inspect',id]));

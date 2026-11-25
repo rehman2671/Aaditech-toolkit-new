@@ -3,8 +3,9 @@
 // tokens, advisory text or URLs. No dependency or lockfile mutation.
 const {spawnSync}=require('node:child_process');
 const {createHash}=require('node:crypto');
-const {readFileSync}=require('node:fs');
-const {resolve}=require('node:path');
+const {readFileSync,mkdtempSync,writeFileSync,rmSync,chmodSync}=require('node:fs');
+const {tmpdir}=require('node:os');
+const {resolve,join}=require('node:path');
 const root=resolve(__dirname,'..');
 const levels=['info','low','moderate','high','critical'];
 const plain=x=>x&&Object.getPrototypeOf(x)===Object.prototype;
@@ -37,12 +38,29 @@ function summarizeAudit(raw,status){
 function releaseAllowed(prod,full){
  return prod?.status==='VERIFIED_REPORT'&&full?.status==='VERIFIED_REPORT'&&prod.counts?.critical===0&&prod.counts?.high===0;
 }
+// npm rejects loading the same path for two config sources, including /dev/null.
+// Isolate both config files, HOME and cache; never inherit auth or registry overrides.
+function withIsolatedNpmConfig(fn){
+ const dir=mkdtempSync(join(tmpdir(),'aaditech-npm-audit-'));
+ try{
+  chmodSync(dir,0o700);
+  const user=join(dir,'user.npmrc'),global=join(dir,'global.npmrc');
+  for(const file of [user,global])writeFileSync(file,'',{mode:0o600,flag:'wx'});
+  return fn({PATH:process.env.PATH,HOME:dir,CI:'true',NPM_CONFIG_USERCONFIG:user,NPM_CONFIG_GLOBALCONFIG:global,NPM_CONFIG_CACHE:join(dir,'cache')});
+ }finally{rmSync(dir,{recursive:true,force:true})}
+}
 function collect(scope){
  const args=['audit','--json','--audit-level=info','--ignore-scripts','--package-lock-only','--registry=https://registry.npmjs.org/','--fetch-retries=1','--fetch-timeout=20000'];
  if(scope==='production')args.push('--omit=dev');
- const r=spawnSync('npm',args,{cwd:root,encoding:'utf8',timeout:65000,maxBuffer:8*1024*1024,env:{PATH:process.env.PATH,HOME:process.env.HOME,CI:'true',NPM_CONFIG_USERCONFIG:'/dev/null',NPM_CONFIG_GLOBALCONFIG:'/dev/null'}});
- if(r.error||r.signal)return {status:'UNVERIFIED'};
- try{return summarizeAudit(r.stdout,r.status)}catch{return {status:'UNVERIFIED'}}
+ return withIsolatedNpmConfig(env=>{
+  const r=spawnSync('npm',args,{cwd:root,encoding:'utf8',timeout:65000,maxBuffer:8*1024*1024,env});
+  if(r.error||r.signal)return {status:'UNVERIFIED',reason:'AUDIT_PROCESS_UNAVAILABLE'};
+  if(![0,1].includes(r.status))return {status:'UNVERIFIED',reason:'AUDIT_EXIT_UNEXPECTED'};
+  try{return summarizeAudit(r.stdout,r.status)}catch{
+   let d;try{d=JSON.parse(r.stdout)}catch{return {status:'UNVERIFIED',reason:'AUDIT_OUTPUT_INVALID'}}
+   return {status:'UNVERIFIED',reason:d?.error?'AUDIT_REGISTRY_OR_CONFIGURATION_ERROR':'AUDIT_SCHEMA_UNVERIFIED'};
+  }
+ });
 }
 function main(){
  if(process.platform!=='linux'||process.argv.length!==3||!['--report','--release'].includes(process.argv[2]))throw Error('AUDIT_POLICY_INPUT_INVALID');
@@ -54,4 +72,4 @@ function main(){
  if(process.argv[2]==='--release'&&!allowed)process.exitCode=1;
 }
 if(require.main===module){try{main()}catch{console.error('Dependency audit unavailable or policy invalid; no release authorization.');process.exitCode=1}}
-module.exports={summarizeAudit,releaseAllowed};
+module.exports={summarizeAudit,releaseAllowed,withIsolatedNpmConfig};

@@ -1,0 +1,13 @@
+import {it,expect} from 'vitest';
+import {validateFreshResourcePolicy as validate,expectedFreshResources as expected,verifyProvisionedNetwork as network,verifyProvisionedVolume as volume} from '../../scripts/provision-fresh-compose-resources.mjs';
+const sha='a'.repeat(64),policy={confirmation:'PROVISION_EMPTY_COMPOSE_RESOURCES_ONLY_EXCLUSIVE_DAEMON_CUSTODY',project:'aaditech',lockRoot:'/private/lock',release:{confirmation:'INSPECT_SIGNED_OCI_RUNTIME_ONLY',stagedDirectory:'/private/stage',trustedManifestSha256:sha,trustedSignerSpkiSha256:'b'.repeat(64),trustedPublicKeyPem:'fixture',architecture:'amd64'}};
+it('pins candidate input and release',()=>{const p=validate(policy);expect(Object.isFrozen(p.release)).toBe(true);expect(p.release.trustedManifestSha256).toBe(sha)});
+it.each([{project:'../x'},{lockRoot:'relative'},{confirmation:'yes'},{extra:true},{release:{...policy.release,architecture:'386'}},{release:{...policy.release,trustedManifestSha256:'0'.repeat(64)}},{release:{...policy.release,endpoint:'tcp://x'}}])('rejects unsafe policy %j',patch=>expect(()=>validate({...policy,...patch})).toThrow());
+const plan=expected(policy.project,sha);
+it('derives exactly five fixed volumes and one internal bridge name',()=>{expect(plan.network.name).toBe('aaditech_ittoolkit');expect(plan.volumes.map(v=>v.name)).toEqual(['aaditech_mysqldata','aaditech_api_data','aaditech_caddy_data','aaditech_caddy_config','aaditech_agent_artifacts']);expect(plan.volumes.every(v=>v.labels['org.aaditech.release-sha256']===sha)).toBe(true)});
+const n={Name:plan.network.name,Id:'c'.repeat(64),Driver:'bridge',Scope:'local',Internal:true,Attachable:false,Ingress:false,Labels:plan.network.labels,Containers:{}};
+it('verifies exact network identity and zero endpoints',()=>expect(network(n,plan.network)).toBe(n.Id));
+it.each([{Internal:false},{Attachable:true},{Ingress:true},{Driver:'host'},{Scope:'swarm'},{Containers:{foreign:{}}},{Labels:{}},{Name:'foreign'},{Id:'short'}])('rejects network drift %j',patch=>expect(()=>network({...n,...patch},plan.network)).toThrow());
+const v={Name:plan.volumes[0].name,Driver:'local',Scope:'local',Labels:plan.volumes[0].labels,Options:null};
+it('verifies local default volume driver and exact ownership labels',()=>expect(volume(v,plan.volumes[0])).toBe(v.Name));
+it.each([{Driver:'remote'},{Scope:'global'},{Options:{device:'/host'}},{Labels:{}},{Name:'foreign'}])('rejects volume drift %j',patch=>expect(()=>volume({...v,...patch},plan.volumes[0])).toThrow());

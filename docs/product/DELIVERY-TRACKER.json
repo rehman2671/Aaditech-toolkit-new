@@ -111,9 +111,10 @@
         "2026-11-26 MASS-14: docs/product/STORE-BOUND-RUNTIME-AND-CI-GOVERNANCE.md; exact historical rehearsal PASS, N70 failed and source correction pending CI; no parent promotion.",
         "2026-11-26 MASS-15: docs/product/NODE-RUNTIME-AND-DEPENDENCY-AUDIT-POLICY.md; Node 24 and dependency audit gate candidate; actual audit findings remediation and exact-head CI pending; no parent promotion.",
         "2026-11-26 MASS-16: docs/product/PERSISTENT-IDENTITY-RECOVERY-AND-CI-CORRECTION.md; persistent identity restart/restore fixture and transaction correction source pending CI; no parent promotion.",
-        "2026-11-26 MASS-17: docs/product/CONSENT-RENEWAL-AND-FRESH-RESOURCE-INVENTORY.md; source implemented, CI and parent acceptance pending."
+        "2026-11-26 MASS-17: docs/product/CONSENT-RENEWAL-AND-FRESH-RESOURCE-INVENTORY.md; source implemented, CI and parent acceptance pending.",
+        "2026-11-26 MASS-18: docs/product/FRESH-RESOURCE-PROVISIONING-AND-AUDIT-CONFIG-CORRECTION.md; fresh resource provisioning candidate and audit startup correction; exact-head CI and parent acceptance pending."
       ],
-      "next": "Verify exact-head CI, production-mode atomic bootstrap and concurrent MySQL, pinned private HTTPS health, actual existing-container lifecycle; approved fresh Compose creation/recreation, identity continuity, private TLS ingress and DEC-001 remain pending.",
+      "next": "Verify exact-head CI, actual signed-stage resource provisioning, audit registry reports and individual remediation; complete fresh container creation/recreation, private TLS and identity continuity, persistent restore approval, DEC-001.",
       "blocked": true,
       "issue_url": "https://github.com/rehman2671/Aaditech-toolkit-new/issues/80"
     },

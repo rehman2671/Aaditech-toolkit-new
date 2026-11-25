@@ -4,6 +4,9 @@
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
 import {mkdir,chmod} from 'node:fs/promises';
+import {randomUUID} from 'node:crypto';
+import {provisionFreshComposeResources,expectedFreshResources} from '../scripts/provision-fresh-compose-resources.mjs';
+import {inspectFreshComposeResources} from '../scripts/fresh-compose-resource-inventory.mjs';
 import {join,dirname} from 'node:path';
 import {staged} from './fixtures/signed-offline-oci-fixture.mjs';
 import {prepareNativeOciArchive} from '../scripts/prepare-native-oci-archive.mjs';
@@ -60,6 +63,24 @@ await staged(async({input,g})=>{
    const [image]=JSON.parse(docker(['image','inspect',id]));
    assert.equal(image.Id,id);assert.equal(image.Os,'linux');assert.equal(image.Architecture,'amd64');
    assert.deepEqual(image.RepoTags??[],[]);assert.deepEqual(image.RootFS.Layers,g.configs[i].rootfs.diff_ids);
+  }
+  const project='at_res_'+randomUUID().replaceAll('-',''),resourceLock=join(dirname(destinationParent),'resource-lock'),repeatLock=join(dirname(destinationParent),'repeat-lock');
+  await mkdir(resourceLock,{mode:0o700});await mkdir(repeatLock,{mode:0o700});
+  const expected=expectedFreshResources(project,input.trustedManifestSha256);
+  const policy={confirmation:'PROVISION_EMPTY_COMPOSE_RESOURCES_ONLY_EXCLUSIVE_DAEMON_CUSTODY',project,lockRoot:resourceLock,release:input};
+  const inventory=()=>inspectFreshComposeResources({confirmation:'INSPECT_FRESH_COMPOSE_RESOURCE_COLLISIONS_ONLY',project});
+  assert.equal((await inventory()).resource_collision_free_observed,true);
+  let receipt;
+  try{
+   receipt=await provisionFreshComposeResources(policy);
+   assert.equal(receipt.resources_provisioned,true);assert.equal(receipt.containers_created,false);assert.deepEqual((await inventory()).collision_counts,{containers:0,networks:1,volumes:5});
+   await assert.rejects(()=>provisionFreshComposeResources({...policy,lockRoot:repeatLock}));
+   assert.deepEqual((await inventory()).collision_counts,{containers:0,networks:1,volumes:5});
+  }finally{
+   // Disposable runner only, names generated here and absence proved above.
+   // On uncertain provisioning retain resources for runner teardown; never
+   // remove resources in production adapter or guess IDs after failure.
+   if(receipt){for(const name of receipt.volume_names)docker(['volume','rm',name]);docker(['network','rm',receipt.network_id]);assert.equal((await inventory()).resource_collision_free_observed,true)}
   }
  }finally{
   // Only the three random fixture IDs proved absent before load. Never prune,

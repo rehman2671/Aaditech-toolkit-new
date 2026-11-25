@@ -816,3 +816,7 @@ Dedicated persistent identity initialization, exact UUID/raw SHA-256-pinned read
 ## 2026-11-25 — Local runtime observation gate
 
 Prior exact e107e210 CI 45639287071 passed 1,972 tests, PowerShell and real API/MySQL; MSI jobs skipped. Candidate adds fixed local Linux Docker GET-only runtime/image-ID observation, 83 unit cases and actual CI disposable Docker observation. Fresh CI required. No image import, release manifest/layer verification, actual runtime compatibility, installer execution or production acceptance. DEC-001 and independently approved image/runtime topology remain required.
+
+## 2026-11-25 — Signed staged OCI runtime binding (documentation catch-up)
+
+Exact review head `09908e11014727f955f05fc572d8c422709af28d` CI 45648531712 passed 2,131/2,131 Vitest (71.20% statements), PowerShell, actual Docker socket observation and API/MySQL; both MSI jobs skipped. The signed OCI profile verifies three role manifests/config IDs and compressed/uncompressed layer digests with bounded streaming; no archive extraction, image import or runtime mutation. DEC-001 and disconnected physical acceptance remain open. This entry reconciles the previously timed-out documentation update; it does not certify installation or production readiness.

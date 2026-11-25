@@ -7,6 +7,7 @@ import {createHash} from 'node:crypto';
 import {Transform,Writable} from 'node:stream';
 import {pipeline} from 'node:stream/promises';
 import {createGunzip} from 'node:zlib';
+import {createOciTarSafetyInspector} from './oci-tar-safety.mjs';
 import {inspectStagedLanBundle} from './inspect-staged-lan-bundle.mjs';
 import {rejectDuplicateJsonKeys} from './verify-lan-bundle.mjs';
 import {inspectLocalDockerRuntime} from './local-docker-runtime-preflight.mjs';
@@ -44,13 +45,14 @@ async function readJson(path,expected,max=1024*1024){
 }
 // Hash both compressed bytes and exact uncompressed tar stream, without
 // materializing an archive or trusting the layer's declared gzip size.
-export async function verifyGzipLayerFile(path,entry,expectedDiffId,remainingBytes=8*1024**3){
+export async function verifyGzipLayerFile(path,entry,expectedDiffId,remainingBytes=8*1024**3,strictTar=false){
  if(!digest(expectedDiffId)||!Number.isSafeInteger(remainingBytes)||remainingBytes<1||remainingBytes>8*1024**3)fail();
  const st=await lstat(path);
  if(!st.isFile()||st.nlink!==1||st.uid!==process.geteuid()||(st.mode&0o7777)!==0o600||
     st.size!==entry.size||st.size<1)fail();
  const fd=await open(path,constants.O_RDONLY|constants.O_NOFOLLOW|constants.O_NONBLOCK);
  const packed=createHash('sha256'),raw=createHash('sha256');
+ const tar=strictTar?createOciTarSafetyInspector():null;
  let compressed=0,uncompressed=0;
  try{
   if(!same(st,await fd.stat()))fail();
@@ -62,12 +64,13 @@ export async function verifyGzipLayerFile(path,entry,expectedDiffId,remainingByt
   const sink=new Writable({write(chunk,_encoding,cb){
    uncompressed+=chunk.length;
    if(uncompressed>remainingBytes)return cb(Error('OFFLINE_OCI_RUNTIME_UNVERIFIED'));
-   raw.update(chunk);cb();
+   try{tar?.push(chunk);raw.update(chunk);cb()}catch(e){cb(e)}
   }});
   await pipeline(fd.createReadStream({autoClose:false,start:0,end:entry.size-1}),measure,createGunzip(),sink,
    {signal:AbortSignal.timeout(120000)});
   if(compressed!==entry.size||uncompressed<1||packed.digest('hex')!==entry.sha256||
    'sha256:'+raw.digest('hex')!==expectedDiffId||!same(st,await fd.stat())||!same(st,await lstat(path)))fail();
+  tar?.finish();
   return uncompressed;
  }catch{fail()}finally{await fd.close()}
 }
@@ -139,14 +142,14 @@ export async function inspectOfflineOciRuntime(input={}){
   verifyLayer:async(path,entry,diffId)=>{
    if(checkedLayers.has(path)){if(checkedLayers.get(path)!==diffId)fail();return}
    const limit=Math.min(8*1024**3,32*1024**3-totalUncompressed);
-   totalUncompressed+=await verifyGzipLayerFile(join(stagedDirectory,'payload',path),entry,diffId,limit);
+   totalUncompressed+=await verifyGzipLayerFile(join(stagedDirectory,'payload',path),entry,diffId,limit,true);
    checkedLayers.set(path,diffId);
   }});
  const final=await inspectStagedLanBundle(pins);
  if(JSON.stringify(prior)!==JSON.stringify(final))fail();
  return Object.freeze({schema_version:1,architecture,approved_manifest_sha256:prior.approved_manifest_sha256,
    images,release_signature_verified:true,compressed_blob_integrity_verified:true,oci_descriptor_graph_verified:true,
-   uncompressed_diff_ids_verified:true,archive_extraction_verified:false,image_imported:false,
+   uncompressed_diff_ids_verified:true,strict_ustar_profile_verified:true,merged_rootfs_verified:false,archive_extraction_verified:false,image_imported:false,
    runtime_compatibility_verified:false,installation_authorized:false,production_accepted:false});
 }
 // Only derive the daemon observation pins from the authenticated release.

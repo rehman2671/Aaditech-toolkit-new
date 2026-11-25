@@ -17,6 +17,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 import {createTaskTracker} from './runtime-shutdown.js';
+import {guardTransactionConnection} from './transaction-connection-custody.js';
 const databaseTasks=createTaskTracker();
 let databaseStopping=false;
 let pool = null;
@@ -1674,7 +1675,7 @@ export async function revokeDeviceCredential({ principal, deviceId, reasonCode, 
     throw new Error('DEVICE_REVOCATION_INVALID');
   }
   if (!isMysqlConnected() || !pool?.getConnection) throw new Error('DEVICE_REVOCATION_MYSQL_REQUIRED');
-  const conn = await pool.getConnection();
+  const conn = guardTransactionConnection(await pool.getConnection());
   let committed = false;
   let discard = false;
   try {
@@ -1738,7 +1739,7 @@ export async function reconcileRevokedDevicePendingCommands({principal,deviceId,
       !isCredentialDeviceId(deviceId) ||
       action !== 'CANCEL_NEVER_CLAIMED_PENDING') throw new Error('DEVICE_RECONCILIATION_INVALID');
   if (!isMysqlConnected() || !pool?.getConnection) throw new Error('DEVICE_RECONCILIATION_MYSQL_REQUIRED');
-  const conn=await pool.getConnection();
+  const conn=guardTransactionConnection(await pool.getConnection());
   let settled=false,discard=false;
   try {
     await conn.beginTransaction();
@@ -1830,7 +1831,7 @@ export async function ingestTelemetryBatchOnce(batch, credential = undefined) {
       !/^[A-Za-z0-9][A-Za-z0-9:._-]{0,63}$/.test(String(batchId || '')) ||
       !/^[0-9a-f]{64}$/.test(String(hash || ''))) throw new Error('TELEMETRY_BATCH_INVALID');
   if (!isMysqlConnected() || !pool?.getConnection) throw new Error('TELEMETRY_BATCH_MYSQL_REQUIRED');
-  const conn = await pool.getConnection();
+  const conn = guardTransactionConnection(await pool.getConnection());
   let committed = false;
   let discard = false;
   try {
@@ -2234,7 +2235,7 @@ export async function syncDeviceProcesses(deviceId, processes) {
   if (isMysqlConnected() && pool) {
     let conn = null;
     try {
-      conn = await pool.getConnection();
+      conn = guardTransactionConnection(await pool.getConnection());
       await conn.beginTransaction();
 
       await conn.query('DELETE FROM device_processes WHERE device_id = ?', [devIdStr]);
@@ -2470,7 +2471,7 @@ async function executeCredentialBoundCommandWrite(owner, credential, sql, params
     throw new Error('COMMAND_CREDENTIAL_CHANGED');
   }
   if (!isMysqlConnected() || !pool?.getConnection) throw new Error('COMMAND_CREDENTIAL_DATABASE_UNAVAILABLE');
-  const conn = await pool.getConnection();
+  const conn = guardTransactionConnection(await pool.getConnection());
   let committed = false;
   let discard = false;
   try {
@@ -2654,7 +2655,7 @@ export async function createAlert(alt, notifications = []) {
   let res;
   if (process.env.NODE_ENV !== 'test' && jobs.length) {
     if (!isMysqlConnected() || !pool?.getConnection) throw new Error('OUTBOX_DATABASE_UNAVAILABLE');
-    const conn = await pool.getConnection();
+    const conn = guardTransactionConnection(await pool.getConnection());
     try {
       await conn.beginTransaction();
       [res] = await conn.query(sql, values);

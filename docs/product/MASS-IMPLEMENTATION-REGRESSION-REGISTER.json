@@ -8238,6 +8238,47 @@
       "limitations": [
         "Returned promises only; detached callbacks and third-party router internals not tracked",
         "No independent transaction quiescence or forced-kill reconciliation proof"
+      ],
+      "exact_head_ci": {
+        "head": "8d9e031277410eb745dad0975e6de967bbbfa6ba",
+        "run": 45718929154,
+        "jobs": [
+          {
+            "id": 139572131223,
+            "name": "Node.js Unit & Integration Tests (Vitest + MySQL 8)",
+            "status": "in_progress",
+            "conclusion": null
+          },
+          {
+            "id": 139572131683,
+            "name": "PowerShell validation",
+            "status": "in_progress",
+            "conclusion": null
+          },
+          {
+            "id": 139572131800,
+            "name": "Offline Docker load compatibility (disposable runner)",
+            "status": "in_progress",
+            "conclusion": null
+          }
+        ],
+        "scope": "Observed in-progress jobs only; no acceptance promotion"
+      }
+    },
+    {
+      "id": "MASS-46",
+      "base_commit": "8d9e031277410eb745dad0975e6de967bbbfa6ba",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "evidence": [
+        "transaction-connection-custody.js",
+        "db.js",
+        "tests/unit/transaction-connection-custody.test.js"
+      ],
+      "regression_definitions": 52,
+      "local_verification": "52/52 isolated JavaScript cases executed against exact helper function; repository Vitest and live MySQL pending",
+      "limitations": [
+        "No independent commit outcome reconciliation",
+        "Six db.js paths only; raw connection and pool generation coverage pending"
       ]
     }
   ]

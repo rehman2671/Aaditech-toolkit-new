@@ -36,6 +36,10 @@
     pending=Object.freeze({incidentId:r.incident_id,deviceId:r.device_id,requestId:crypto.randomUUID(),expectedRevision:r.revision,nextState:select.value,confirmation:'CONFIRM_HUMAN_REVIEW_ONLY'});submit();
    });card.append(f);
   }
+  if(r.hazard_assessment?.assessment_state==='RECORDED')card.append(node('p','Human screening: '+r.hazard_assessment.assessment+' (not verified safety)'+(r.hazard_assessment.human_referral_required?' — qualified human referral required.':'')));
+  if(admin&&r.intake_status==='OPEN'&&r.hazard==='UNKNOWN'){
+   const link=node('a','Inspect or record hazard screening');link.href='/hazard-assessment.html?'+new URLSearchParams({incidentId:r.incident_id,deviceId:r.device_id});card.append(link);
+  }
   if(r.intake_status==='OPEN'&&r.hazard==='NONE'){
    const link=node('a','Diagnostic review consent');link.href='/diagnostic-consent.html?'+new URLSearchParams({incidentId:r.incident_id,deviceId:r.device_id});card.append(link);
   }

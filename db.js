@@ -19,6 +19,7 @@ const __dirname = path.dirname(__filename);
 import {createTaskTracker} from './runtime-shutdown.js';
 import {guardTransactionConnection} from './transaction-connection-custody.js';
 import {withDeviceAdvisoryLocks,observeMysqlPool} from './database-pool-custody.js';
+import {outboxLeaseParameters,confirmedLeaseRenewal,requireLegacyTelemetryTestProfile,requireConfirmedTelemetryInsert} from './durable-delivery-boundary.js';
 const databaseTasks=createTaskTracker();
 let databaseStopping=false;
 let pool = null;
@@ -2086,7 +2087,7 @@ export function flushTelemetryQueue(){
 }
 async function flushTelemetryBatch() {
   if (telemetryQueue.length === 0) return 0;
-  if(process.env.NODE_ENV!=='test'&&!isMysqlConnected())throw Error('TELEMETRY_DATABASE_UNAVAILABLE');
+  requireLegacyTelemetryTestProfile(process.env.NODE_ENV);
   const batch = telemetryQueue.splice(0, telemetryQueue.length);
   if (batch.length === 0) return 0;
 
@@ -2131,11 +2132,12 @@ export function startTelemetryFlushWorker(intervalMs = TELEMETRY_FLUSH_INTERVAL_
 
 export async function insertTelemetryBatch(records) {
   if (!Array.isArray(records) || records.length === 0) return 0;
+  if(process.env.NODE_ENV!=='test'&&!isMysqlConnected())throw Error('TELEMETRY_DATABASE_UNAVAILABLE');
   const normalized = [];
   for (const item of records) {
     const pt = normalizeMetricPoint(item.device_id || item.deviceId, item.metrics || item);
     normalized.push(pt);
-    memTelemetry.push(pt);
+    if(process.env.NODE_ENV==='test')memTelemetry.push(pt);
   }
 
   if (isMysqlConnected() && pool) {
@@ -2153,10 +2155,11 @@ export async function insertTelemetryBatch(records) {
           device_id, cpu_pct, ram_pct, disk_free_gb, net_latency_ms, recorded_at
         ) VALUES ?
       `;
-      await pool.query(sql, [rows]);
+      const [result]=await pool.query(sql, [rows]);
+      if(process.env.NODE_ENV!=='test')requireConfirmedTelemetryInsert(result,normalized.length);
     } catch (err) {
       if (process.env.NODE_ENV !== 'test') {
-        console.error('insertTelemetryBatch error in production:', err.message);
+        console.error('insertTelemetryBatch error in production:', err.code || 'TELEMETRY_INSERT_UNCONFIRMED');
         throw err;
       }
       console.error('insertTelemetryBatch error:', err.message);
@@ -2167,6 +2170,7 @@ export async function insertTelemetryBatch(records) {
 }
 
 export async function insertTelemetryRecord(deviceId, metrics) {
+  requireLegacyTelemetryTestProfile(process.env.NODE_ENV);
   if (!metrics) return false;
 
   // Support direct array batch insertion
@@ -2712,9 +2716,20 @@ export async function claimNotificationOutbox(batchSize = 20) {
   );
   if (!claimed?.affectedRows) return [];
   return executeQuery(
-    "SELECT * FROM notification_outbox WHERE lease_token = ? AND status = 'PROCESSING' ORDER BY id ASC",
+    "SELECT * FROM notification_outbox WHERE lease_token = ? AND status = 'PROCESSING' AND lease_expires_at > UTC_TIMESTAMP(3) ORDER BY id ASC",
     [lease]
   );
+}
+
+// Renew only the exact current, unexpired claim immediately before delivery.
+export async function renewNotificationOutboxLease(row) {
+  const params=outboxLeaseParameters(row);
+  if(!isMysqlConnected())throw Error('OUTBOX_DATABASE_UNAVAILABLE');
+  const result=await executeQuery(
+    "UPDATE notification_outbox SET lease_expires_at = DATE_ADD(UTC_TIMESTAMP(3), INTERVAL 300 SECOND) " +
+    "WHERE id = ? AND tenant_id = ? AND lease_token = ? AND attempts = ? AND channel = ? " +
+    "AND status = 'PROCESSING' AND lease_expires_at > UTC_TIMESTAMP(3)",params);
+  return confirmedLeaseRenewal(result);
 }
 
 export async function finishNotificationOutbox(id, lease, status) {

@@ -4,6 +4,7 @@ import * as db from './db.js';
 import { deliverTenantWebhook } from './tenant-alert-safety.js';
 import { deliverTenantEmail } from './smtp-alerts.js';
 import { matchesQueuedDestination } from './notification-destination.js';
+import {admitOutboxDispatch} from './durable-delivery-boundary.js';
 
 export async function deliverOutboxEntry(row, adapters = {}) {
   if (typeof row?.tenant_id !== 'string' || !row.tenant_id.trim() || !['webhook', 'email'].includes(row.channel)) {
@@ -28,6 +29,10 @@ export async function deliverOutboxEntry(row, adapters = {}) {
     if ((adapters.verifyDestination || matchesQueuedDestination)(row, config) !== true) {
       return { outcome: 'SKIPPED', reason: 'DESTINATION_CHANGED_OR_UNBOUND' };
     }
+    if(adapters.beforeDispatch){
+      const admission=await adapters.beforeDispatch(row);
+      if(admission!=='READY')return {outcome:admission};
+    }
     const result = await (adapters.sendWebhook || deliverTenantWebhook)(
       row.tenant_id, config, event
     );
@@ -41,6 +46,10 @@ export async function deliverOutboxEntry(row, adapters = {}) {
   if (config?.enabled !== true) return { outcome: 'SKIPPED', reason: 'DISABLED' };
   if ((adapters.verifyDestination || matchesQueuedDestination)(row, config) !== true) {
     return { outcome: 'SKIPPED', reason: 'DESTINATION_CHANGED_OR_UNBOUND' };
+  }
+  if(adapters.beforeDispatch){
+    const admission=await adapters.beforeDispatch(row);
+    if(admission!=='READY')return {outcome:admission};
   }
   const result = await (adapters.sendEmail || deliverTenantEmail)(
     row.tenant_id, config, event
@@ -56,20 +65,29 @@ export async function runNotificationOutboxBatch(adapters = {}) {
   const claim = adapters.claim || db.claimNotificationOutbox;
   const complete = adapters.complete || db.finishNotificationOutbox;
   const retry = adapters.retry || db.retryNotificationOutbox;
-  const rows = await claim(20);
   const empty = { processed: 0, delivered: 0, skipped: 0, retried: 0, lostLease: 0 };
+  const canStart=adapters.canStart||(()=>true);
+  const renewLease=adapters.renewLease||db.renewNotificationOutboxLease;
+  const beforeDispatch=row=>admitOutboxDispatch(row,{canStart,renewLease});
+  if(canStart()!==true)return empty;
+  const rows = await claim(20);
   if (!Array.isArray(rows) || !rows.length) return empty;
   const counts = { ...empty };
   // Five concurrent messages per group; DB claim lease is 300 seconds.
   // External delivery remains at-least-once if a crash occurs before the ACK.
   for (let i = 0; i < rows.length; i += 5) {
+    if(canStart()!==true)break;
     const settled=await Promise.allSettled(rows.slice(i, i + 5).map(async row => {
+      if(canStart()!==true)return;
       let outcome;
       try {
-        outcome = await deliverOutboxEntry(row, adapters);
+        outcome = await deliverOutboxEntry(row, {...adapters,beforeDispatch});
       } catch {
         outcome = { outcome: 'RETRY', reason: 'DELIVERY_EXCEPTION' };
       }
+      if(outcome.outcome==='DEFERRED')return;
+      if(outcome.outcome==='LEASE_UNCONFIRMED')throw Error('OUTBOX_LEASE_RENEWAL_UNCONFIRMED');
+      if(outcome.outcome==='LOST_LEASE'){counts.lostLease++;counts.processed++;return}
       if (outcome.outcome === 'DELIVERED') {
         if (await complete(row.id, row.lease_token, 'DELIVERED')) counts.delivered += 1;
         else counts.lostLease += 1;
@@ -95,8 +113,8 @@ export function startNotificationOutboxWorker(intervalMs = 5000) {
     if (stopped || running || !db.isMysqlConnected()) return;
     running = true;
     try {
-      await runNotificationOutboxBatch();
-      if (++ticks % 720 === 0) await db.pruneNotificationOutbox();
+      await runNotificationOutboxBatch({canStart:()=>!stopped&&db.isMysqlConnected()});
+      if (!stopped&&++ticks % 720 === 0) await db.pruneNotificationOutbox();
     } catch (err) {
       // Codes only: never log event data, credentials or destination addresses.
       console.error('Notification outbox cycle failed:', err.code || 'DATABASE_UNAVAILABLE');

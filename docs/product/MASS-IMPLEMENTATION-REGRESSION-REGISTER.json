@@ -8320,6 +8320,50 @@
       "limitations": [
         "No full pool lease custody for other consumers",
         "No forced-crash or durable reconciliation proof"
+      ],
+      "exact_head_ci": {
+        "head": "685803f8a7e5b740fb95a8210d41233ba2e58608",
+        "run": 45719441627,
+        "jobs": [
+          {
+            "id": 139573863916,
+            "name": "Node.js Unit & Integration Tests (Vitest + MySQL 8)",
+            "status": "in_progress",
+            "conclusion": null
+          },
+          {
+            "id": 139573864519,
+            "name": "PowerShell validation",
+            "status": "in_progress",
+            "conclusion": null
+          },
+          {
+            "id": 139573864541,
+            "name": "Offline Docker load compatibility (disposable runner)",
+            "status": "in_progress",
+            "conclusion": null
+          }
+        ],
+        "scope": "Observed in-progress jobs only; no acceptance promotion"
+      }
+    },
+    {
+      "id": "MASS-48",
+      "base_commit": "685803f8a7e5b740fb95a8210d41233ba2e58608",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "evidence": [
+        "durable-delivery-boundary.js",
+        "db.js",
+        "notification-outbox.js",
+        "tests/unit/durable-delivery-boundary.test.js",
+        "tests/unit/durable-delivery-integration.test.js",
+        "tests/unit/notification-outbox-stage17.test.js"
+      ],
+      "regression_definitions": 87,
+      "local_verification": "78/78 isolated helper cases executed; nine integration definitions unexecuted locally",
+      "limitations": [
+        "Direct unkeyed bulk insert cannot reconcile uncertain commit",
+        "External notifications remain at-least-once; no external receipt or forced-crash proof"
       ]
     }
   ]

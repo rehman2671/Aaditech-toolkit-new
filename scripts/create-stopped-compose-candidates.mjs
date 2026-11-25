@@ -408,7 +408,7 @@ async function stoppedCandidates(input,observeOnly,initializeDatabase=false,init
     await guard();
     await conn.end();conn=undefined;
     await guard();
-    let apiReady=false,ingressReady=false,httpsProof=null;
+    let apiReady=false,ingressReady=false,httpsProof=null,ingressAddress=null;
     if(initializeApi){
      if(!storage.apiVolumeIdentities||!admission.clean_bootstrap_verified)fail();
      // The database-only guard stays in force until the explicit API start.
@@ -473,10 +473,10 @@ async function stoppedCandidates(input,observeOnly,initializeDatabase=false,init
       if(!httpsProof.exact_leaf_verified||!httpsProof.application_readiness_verified||!httpsProof.clean_setup_verified||!httpsProof.private_routes_denied)fail();
       await tripleGuard();await verifyImages();
       if(JSON.stringify(await inspectBoundOfflineRuntime(p.release))!==JSON.stringify(bound)||JSON.stringify(await admitSignedFreshMigrations(migrationPins))!==JSON.stringify(migrations))fail();
-      await tripleGuard();ingressReady=true;
+      await tripleGuard();ingressAddress=triplePin.caddy.ip;ingressReady=true;
      }
     }
-    return Object.freeze({schema_version:1,project:p.project,release_sha256:p.release.trustedManifestSha256,configuration_sha256:p.configurationSha256,network_id:p.networkId,containers:result,database_started:true,database_initialized:true,signed_migrations_verified:true,migrations_applied:schema.migrations_applied,installation_id:schema.installation_id,identity_sha256:schema.identity_sha256,database_binding_verified:schema.database_binding_verified,bootstrap_ready:schema.bootstrap_ready,clean_bootstrap_reobserved:true,api_started:apiReady,api_runtime_identity_verified:apiReady,api_private_database_verified:apiReady,api_http_readiness_verified:apiReady,ingress_started:ingressReady,activation_blocked:true,tls_verified:ingressReady,private_https_readiness_verified:ingressReady,private_routes_denied:ingressReady,host_ports_published:false,client_trust_installed:false,...(httpsProof?{root_sha256:httpsProof.root_sha256,leaf_sha256:httpsProof.leaf_sha256}:{}),installation_authorized:false,production_accepted:false});
+    return Object.freeze({schema_version:1,project:p.project,release_sha256:p.release.trustedManifestSha256,configuration_sha256:p.configurationSha256,network_id:p.networkId,containers:result,database_started:true,database_initialized:true,signed_migrations_verified:true,migrations_applied:schema.migrations_applied,installation_id:schema.installation_id,identity_sha256:schema.identity_sha256,database_binding_verified:schema.database_binding_verified,bootstrap_ready:schema.bootstrap_ready,clean_bootstrap_reobserved:true,api_started:apiReady,api_runtime_identity_verified:apiReady,api_private_database_verified:apiReady,api_http_readiness_verified:apiReady,ingress_started:ingressReady,activation_blocked:true,tls_verified:ingressReady,private_https_readiness_verified:ingressReady,private_routes_denied:ingressReady,host_ports_published:false,client_trust_installed:false,...(httpsProof?{root_sha256:httpsProof.root_sha256,leaf_sha256:httpsProof.leaf_sha256,private_ingress_address:ingressAddress}:{}),installation_authorized:false,production_accepted:false});
    }catch{fail()}finally{if(conn)try{conn.destroy()}catch{}}
   }
   return {schema_version:1,project:p.project,release_sha256:p.release.trustedManifestSha256,configuration_sha256:p.configurationSha256,network_id:p.networkId,containers:result,containers_created:!observeOnly,stopped_candidates_verified:true,signed_migrations_verified:!!migrations,activation_blocked:true,services_started:false,database_initialized:false,volume_contents_verified:!!storage,api_volume_ownership_verified:!!storage,identity_mount_verified:!!storage,private_tls_mount_verified:!!tls,tls_verified:false,installation_authorized:false,production_accepted:false};

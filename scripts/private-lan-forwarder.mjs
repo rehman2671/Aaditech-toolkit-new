@@ -21,7 +21,7 @@ function privateIPv4(ip){
 }
 const dotted=x=>[24,16,8,0].map(i=>(x>>>i)&255).join('.');
 export function parsePrivateSubnet(value){
- if(typeof value!=='string'||value.length>18||!/^[0-9.]+\/(?:[89]|[12][0-9]|30)$/.test(value))fail();
+ if(typeof value!=='string'||value.length>18||!/^[0-9.]+\/(?:[89]|[12][0-9]|30)$(?![\s\S])/.test(value))fail();
  const [address,bits]=value.split('/'),prefix=Number(bits),mask=(0xffffffff<<(32-prefix))>>>0,first=n(address),last=(first|(~mask>>>0))>>>0;
  if(!privateIPv4(address)||!privateIPv4(dotted(last))||((first&mask)>>>0)!==first)fail();
  return Object.freeze({cidr:value,first,last,prefix,mask});
@@ -43,9 +43,9 @@ export function selectApprovedLanInterface(policy,interfaces){
  return Object.freeze({interfaceName:policy.interfaceName,address:row.address,cidr:row.cidr,netmask:row.netmask,mac:row.mac});
 }
 export function validatePrivateLanForwarderPolicy(input){
- if(!exact(input,['confirmation','interfaceName','bindAddress','clientSubnet','ingressAddress','hostname','rootPem','trustedRootSha256','trustedLeafSha256','identity'])||input.confirmation!=='RUN_PINNED_PRIVATE_LAN_FORWARDER_ONLY_EXCLUSIVE_OPERATOR_CUSTODY'||typeof input.interfaceName!=='string'||!/^[A-Za-z0-9][A-Za-z0-9_.-]{0,14}$/.test(input.interfaceName)||/^(lo$|docker|br-|veth)/.test(input.interfaceName)||!privateIPv4(input.bindAddress)||!privateIPv4(input.ingressAddress)||input.bindAddress===input.ingressAddress||!hex(input.trustedRootSha256)||!hex(input.trustedLeafSha256)||typeof input.hostname!=='string'||!/[a-z]/.test(input.hostname))fail();
+ if(!exact(input,['confirmation','interfaceName','bindAddress','clientSubnet','ingressAddress','hostname','rootPem','trustedRootSha256','trustedLeafSha256','identity'])||input.confirmation!=='RUN_PINNED_PRIVATE_LAN_FORWARDER_ONLY_EXCLUSIVE_OPERATOR_CUSTODY'||typeof input.interfaceName!=='string'||!/^[A-Za-z0-9][A-Za-z0-9_.-]{0,14}$(?![\s\S])/.test(input.interfaceName)||/^(lo$|docker|br-|veth)/.test(input.interfaceName)||!privateIPv4(input.bindAddress)||!privateIPv4(input.ingressAddress)||input.bindAddress===input.ingressAddress||!hex(input.trustedRootSha256)||!hex(input.trustedLeafSha256)||typeof input.hostname!=='string'||!/[a-z]/.test(input.hostname))fail();
  const i=input.identity;
- if(!exact(i,['confirmation','directoryPath','expectedInstallationId','expectedIdentitySha256'])||i.confirmation!=='INSPECT_PINNED_IDENTITY_STORE_ONLY'||!pathOk(i.directoryPath)||!hex(i.expectedIdentitySha256)||typeof i.expectedInstallationId!=='string'||!/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(i.expectedInstallationId))fail();
+ if(!exact(i,['confirmation','directoryPath','expectedInstallationId','expectedIdentitySha256'])||i.confirmation!=='INSPECT_PINNED_IDENTITY_STORE_ONLY'||!pathOk(i.directoryPath)||!hex(i.expectedIdentitySha256)||typeof i.expectedInstallationId!=='string'||!/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$(?![\s\S])/.test(i.expectedInstallationId))fail();
  const subnet=parsePrivateSubnet(input.clientSubnet);
  if(!sourceInApprovedSubnet(input.bindAddress,subnet)||n(input.ingressAddress)>=subnet.first&&n(input.ingressAddress)<=subnet.last)fail();
  validatePrivateTlsInputs({address:input.ingressAddress,hostname:input.hostname,port:443,rootPem:input.rootPem,trustedRootSha256:input.trustedRootSha256});

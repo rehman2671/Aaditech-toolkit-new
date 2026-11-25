@@ -5422,7 +5422,8 @@
         "scripts/private-lan-health.mjs"
       ],
       "regression": [
-        "Canonical subnet/interface policy and refusal cases; actual isolated LAN socket/remote client/firewall tests pending"
+        "Canonical subnet/interface policy and refusal cases; actual isolated LAN socket/remote client/firewall tests pending",
+        "MASS-35 follow-up: absolute end-of-input required for CIDR, interface name and installation UUID validation; additional CR/LF/Unicode line-terminator regression cases. Exact-head CI required."
       ]
     },
     {
@@ -6315,7 +6316,11 @@
         "scripts/private-lan-health.mjs",
         "Enterprise/deploy/PRIVATE-LAN-TLS-PREFLIGHT.md",
         "docs/product/FRESH-VOLUME-OWNERSHIP-AND-IDENTITY-MOUNT.md"
-      ]
+      ],
+      "followup": {
+        "base_commit": "bafd34e94caaf0fa2e8004afce33efacca78b6c0",
+        "scope": "MASS-35 follow-up: absolute end-of-input required for CIDR, interface name and installation UUID validation; additional CR/LF/Unicode line-terminator regression cases. Exact-head CI required."
+      }
     }
   ]
 }

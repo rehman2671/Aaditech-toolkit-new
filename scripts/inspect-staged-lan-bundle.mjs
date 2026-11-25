@@ -41,7 +41,7 @@ export async function inspectStagedLanBundle({confirmation,stagedDirectory,trust
  if(confirmation!=='INSPECT_STAGED_RELEASE_ONLY'||process.platform!=='linux'||
     typeof process.geteuid!=='function'||typeof stagedDirectory!=='string'||stagedDirectory.length>4096||
     !isAbsolute(stagedDirectory)||stagedDirectory.includes('\0')||resolve(stagedDirectory)!==stagedDirectory||
-    !/^release-[A-Za-z0-9]{6}$/.test(basename(stagedDirectory))||
+    (basename(stagedDirectory).length!==14||!/^release-[A-Za-z0-9]{6}$/.test(basename(stagedDirectory)))||
     !hex(trustedManifestSha256)||!hex(trustedSignerSpkiSha256))fail();
  const stage=stagedDirectory,parent=dirname(stage),uid=process.geteuid();
  const parentBefore=await lstat(parent);
@@ -49,9 +49,9 @@ export async function inspectStagedLanBundle({confirmation,stagedDirectory,trust
  const before=await snapshot(stage,uid);
  const result=await verifySignedLanBundle({root:join(stage,'payload'),manifest:join(stage,'manifest.json'),
   signature:join(stage,'manifest.sig'),trustedManifestSha256,trustedPublicKeyPem,trustedSignerSpkiSha256});
- const after=await snapshot(stage,uid);
- if(!privateNode(await lstat(parent),true,uid)||await realpath(parent)!==parent||
-    !equal(fingerprint(parentBefore),fingerprint(await lstat(parent)))||before.size!==after.size||
+ const after=await snapshot(stage,uid),parentAfter=await lstat(parent);
+ if(!privateNode(parentAfter,true,uid)||await realpath(parent)!==parent||
+    !['dev','ino','uid','mode'].every(k=>parentBefore[k]===parentAfter[k])||before.size!==after.size||
     [...before].some(([path,value])=>!after.has(path)||!equal(value,after.get(path))))fail();
  return Object.freeze({schema_version:1,approved_manifest_sha256:result.approved_manifest_sha256,
   signer_spki_sha256:result.signer_spki_sha256,files:result.files,

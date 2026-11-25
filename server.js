@@ -29,6 +29,7 @@ import helmet from 'helmet';
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 import * as db from './db.js';
+import {readPersistentSetupStatus,completeInitialSetup} from './initial-setup-transaction.js';
 import {registerTroubleshootingHelpRoutes} from './troubleshooting-help-routes.js';
 import {registerBoundEmployeeRoutes} from './troubleshooting-employee-routes.js';
 import {registerIncidentReviewRoutes} from './troubleshooting-review-routes.js';
@@ -883,7 +884,9 @@ app.use(async (req, res, next) => {
 
   // Initial setup is allowed only before setup is marked complete
   if (p === '/api/setup' || p === '/api/v1/setup') {
-    const branding = await db.getBranding();
+    let branding;
+    try { branding = REQUIRE_SECURE_SETUP ? await readPersistentSetupStatus(db) : await db.getBranding(); }
+    catch { return res.status(503).json({error:'SETUP_UNAVAILABLE'}); }
     if (!branding.setup_complete) {
       return next();
     }
@@ -921,7 +924,9 @@ async function handleLogin(req, res) {
   }
 
   if (REQUIRE_SECURE_SETUP) {
-    const branding = await db.getBranding();
+    let branding;
+    try { branding = await readPersistentSetupStatus(db); }
+    catch { return res.status(503).json({error:'SETUP_UNAVAILABLE'}); }
     if (!branding.setup_complete) {
       return res.status(403).json({ error: 'SETUP_REQUIRED', detail: 'Complete authorized first-run setup before logging in.' });
     }
@@ -2400,6 +2405,8 @@ app.post('/api/v1/settings/retention/batch-receipts',
 
 // Setup status (Canonical v1 + Legacy alias)
 app.get(['/api/v1/setup/status', '/api/setup/status'], async (req, res) => {
+  res.set('Cache-Control','no-store');
+  if(REQUIRE_SECURE_SETUP){try{return res.json({...await readPersistentSetupStatus(db),server_host:resolveAgentOrigin(req)?.host??null})}catch{return res.status(503).json({error:'SETUP_UNAVAILABLE'})}}
   const branding = await db.getBranding();
   res.json({
     setup_complete: branding.setup_complete,
@@ -2414,7 +2421,9 @@ app.get(['/api/v1/setup/status', '/api/setup/status'], async (req, res) => {
 
 // Run setup (Canonical v1 + Legacy alias)
 app.post(['/api/v1/setup', '/api/setup'], async (req, res, next) => {
-  const branding = await db.getBranding();
+  let branding;
+  try { branding = REQUIRE_SECURE_SETUP ? await readPersistentSetupStatus(db) : await db.getBranding(); }
+  catch { return res.status(503).json({error:'SETUP_UNAVAILABLE'}); }
   req.isInitialSetup = !branding.setup_complete;
   if (branding.setup_complete) {
     // Never let an ordinary authenticated user reset the administrator via
@@ -2438,6 +2447,19 @@ app.post(['/api/v1/setup', '/api/setup'], async (req, res, next) => {
       (typeof admin_password !== 'string' || admin_password.length < 12 ||
        ['Admin123!', 'Operator123!', 'Monitor123!'].includes(admin_password))) {
     return res.status(400).json({ error: 'WEAK_INITIAL_PASSWORD', detail: 'Choose a new administrator password of at least 12 characters, not a shipped demo password.' });
+  }
+  if(REQUIRE_SECURE_SETUP){
+    if(!req.isInitialSetup||!isValidSetupKey(req.headers['x-setup-token'],INITIAL_SETUP_TOKEN))return res.status(403).json({error:'FORBIDDEN'});
+    if(Buffer.byteLength(admin_password,'utf8')>72)return res.status(400).json({error:'WEAK_INITIAL_PASSWORD',detail:'Password must not exceed 72 UTF-8 bytes.'});
+    const origin=resolveAgentOrigin(req);
+    if(!origin||server_host!==origin.host)return res.status(400).json({error:'SETUP_INVALID',detail:'Use the operator-configured HTTPS server hostname.'});
+    try{
+      const result=await completeInitialSetup(db,{body:req.body,configuredHost:origin.host,passwordHash:await bcrypt.hash(admin_password,10)});
+      const token=issueUserToken(result.admin);
+      res.cookie('auth_token',token,{httpOnly:true,secure:true,sameSite:'lax',maxAge:8*3600*1000});
+      res.cookie('itk_session',token,{httpOnly:true,secure:true,sameSite:'lax',maxAge:8*3600*1000});
+      return res.json({...result,token});
+    }catch(e){const code=e?.message;return res.status(code==='SETUP_INVALID'?400:code==='SETUP_ALREADY_COMPLETED'||code==='SETUP_RECOVERY_REQUIRED'?409:503).json({error:['SETUP_INVALID','SETUP_ALREADY_COMPLETED','SETUP_RECOVERY_REQUIRED'].includes(code)?code:'SETUP_UNAVAILABLE',detail:'Setup not confirmed. Refresh status; contact the local operator if recovery is required.'})}
   }
   const updates = { setup_complete: true };
   if (company_name) updates.company_name = company_name;

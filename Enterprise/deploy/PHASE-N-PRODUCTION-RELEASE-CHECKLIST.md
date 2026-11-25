@@ -804,3 +804,7 @@ Added scoped `summarizeTroubleshootingCategories` for all 26 issue categories, m
 ## 2026-11-25 — Offline staging review gate
 
 Current batch stages independently pinned signed release bytes into private Linux storage, re-verifies staged manifest and payload and syncs files/directories. Fifteen new regression cases pending fresh CI. Seven Windows providers retained from #116 (166 checks passed per shell); current master green CI 45569189221 and safety 45569189216. No runtime import, install authorization or production acceptance. 50 parent and 158 granular IDs retained: 42 source-level, 43 partial, 73 pending. DEC-001 and physical offline acceptance remain required.
+
+## 2026-11-25 — Staged custody and TLS material review gate
+
+Added independent staged release reinspection with private modes, exact tree and signed payload re-verification; staging publication reuses this check. Added local direct-root LAN leaf/key custody, exact SAN, server EKU, validity, key match and secure-context inspection. 53 named regression cases pending execution. #117 prior CI 45579087345: 1630/1632 tests, two Windows capability mapping mismatches corrected, PowerShell passed, API/MSI skipped. No runtime import, issuance, listener, trusted OS distribution, production approval or main merge.

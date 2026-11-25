@@ -3,6 +3,9 @@ import {mkdtemp,mkdir,chmod,writeFile,readdir,readFile,rm,lstat,realpath,symlink
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {generateKeyPairSync,createHash,sign} from 'node:crypto';
+import {spawnSync} from 'node:child_process';
+import {fileURLToPath} from 'node:url';
+import {runOfflineStagingCli} from '../../scripts/stage-offline-lan-bundle-cli.mjs';
 import {stageOfflineLanBundle as stage} from '../../scripts/stage-offline-lan-bundle.mjs';
 import {verifySignedLanBundle} from '../../scripts/verify-lan-bundle.mjs';
 const sha=b=>createHash('sha256').update(b).digest('hex');
@@ -50,5 +53,32 @@ describe.skipIf(process.platform!=='linux')('verified offline private staging',(
   ['symlink destination',async x=>{const alias=join(x.dir,'alias');await symlink(x.destinationParent,alias);return {...x.input,destinationParent:alias}}]
  ])it('refuses '+name+' before publishing a usable stage',()=>fixture(async x=>{
   await expect(stage(await mutate(x))).rejects.toThrow();expect(await readdir(x.destinationParent)).toEqual([]);
+ }));
+});
+
+describe.skipIf(process.platform!=='linux')('offline staging operator CLI',()=>{
+ const args=['--confirm-local-staging'];
+ it('materializes a real signed fixture through bounded stdin and returns verified location',()=>fixture(async x=>{
+  const script=fileURLToPath(new URL('../../scripts/stage-offline-lan-bundle-cli.mjs',import.meta.url));
+  const result=spawnSync(process.execPath,[script,...args],{input:JSON.stringify({bundle:x.bundle,destinationParent:x.destinationParent}),encoding:'utf8',timeout:15000});
+  expect(result.status).toBe(0);expect(result.stderr).toBe('');
+  const r=JSON.parse(result.stdout);
+  expect(r).toMatchObject({staged_signature_verified:true,installation_authorized:false});
+  expect(await readdir(x.destinationParent)).toHaveLength(1);
+  expect(result.stdout).not.toContain(x.bundle.trustedPublicKeyPem);
+ }));
+ it('refuses unexpected options, oversize data and malformed UTF-8 before writes',()=>fixture(async x=>{
+  const bytes=Buffer.from(JSON.stringify({bundle:x.bundle,destinationParent:x.destinationParent}));
+  for(const [payload,flags] of [[bytes,[]],[bytes,[...args,'--force']],[Buffer.alloc(32769),args],[Buffer.from([0xff]),args],[Buffer.alloc(0),args]])
+   await expect(runOfflineStagingCli(payload,flags)).rejects.toThrow('OFFLINE_STAGING_INPUT_INVALID');
+  expect(await readdir(x.destinationParent)).toEqual([]);
+ }));
+ it('rejects duplicate decoded keys, unknown fields and nonabsolute paths',()=>fixture(async x=>{
+  const doc={bundle:x.bundle,destinationParent:x.destinationParent},raw=JSON.stringify(doc);
+  const invalid=[raw.replace('"bundle":','"bundle":{},"bundle":'),raw.replace('"bundle":','"bu\\u006edle":{},"bundle":'),
+   JSON.stringify({...doc,execute:true}),JSON.stringify({...doc,bundle:{...doc.bundle,token:'secret'}}),
+   JSON.stringify({...doc,bundle:{...doc.bundle,root:'relative'}})];
+  for(const payload of invalid)await expect(runOfflineStagingCli(Buffer.from(payload),args)).rejects.toThrow('OFFLINE_STAGING_INPUT_INVALID');
+  expect(await readdir(x.destinationParent)).toEqual([]);
  }));
 });

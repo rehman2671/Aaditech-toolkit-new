@@ -2,7 +2,7 @@
 const fs=require('node:fs'),path=require('node:path'),YAML=require('yaml');
 const fail=()=>{throw Error('NODE_RUNTIME_POLICY_MISMATCH')};
 function check({pkg,lock,docker,version,workflow}){
- if(pkg?.engines?.node!=='>=24.0.0 <25'||lock?.packages?.['']?.engines?.node!==pkg.engines.node||version!=='24\n'||!/^FROM node:24-alpine AS base$/m.test(docker))fail();
+ if(pkg?.engines?.node!=='>=24.0.0 <25'||lock?.packages?.['']?.engines?.node!==pkg.engines.node||version!=='24\n'||!/^FROM node:24-alpine AS base$/m.test(docker)||!/^RUN npm ci --omit=dev --no-audit --no-fund$/m.test(docker)||!docker.includes("RUN node -e \"if (Number(process.versions.node.split('.')[0]) !== 24) process.exit(1)\"\nRUN npm ci"))fail();
  const parsed=YAML.parseDocument(workflow,{uniqueKeys:true});if(parsed.errors.length)fail();const wf=parsed.toJS({maxAliasCount:0});
  for(const name of ['node-tests','api-tests','offline-docker-load-rehearsal']){
   const steps=wf.jobs?.[name]?.steps;if(!Array.isArray(steps))fail();
@@ -13,7 +13,7 @@ function check({pkg,lock,docker,version,workflow}){
  const report=steps.filter(s=>s.run==='node scripts/dependency-audit-policy.cjs --report');
  const release=steps.filter(s=>s.run==='node scripts/dependency-audit-policy.cjs --release');
  const tests=steps.findIndex(s=>s.run==='npm run test:coverage');
- if(report.length!==1||release.length!==1||tests<0||steps.indexOf(report[0])<=tests||steps.indexOf(release[0])<=steps.indexOf(report[0])||
+ if(report.length!==1||release.length!==1||tests<0||steps.indexOf(report[0])>=tests||steps.indexOf(release[0])<=tests||
     report[0].if!==undefined||release[0].if!=="github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'"||
     [report[0],release[0]].some(s=>s['continue-on-error']!==undefined||s.env!==undefined||s.shell!==undefined||s['working-directory']!==undefined||s['timeout-minutes']!==3))fail();
  return true;

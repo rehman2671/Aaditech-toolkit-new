@@ -28,9 +28,9 @@ export async function assertDatabaseIdentity(connection,policy,lock=false){
 export async function bindFreshDatabaseIdentity(connection,policy,confirmation){
  if(confirmation!=='BIND_EMPTY_DATABASE_TO_PINNED_IDENTITY_ONLY')fail();
  const local=await inspectLocalInstallationIdentity(policy);
- let committed=false,commitStarted=false;
- await connection.beginTransaction();
+ let committed=false,commitStarted=false,begun=false;
  try{
+  await connection.beginTransaction();begun=true;
   const [rows]=await connection.query(select+' FOR UPDATE');
   if(!Array.isArray(rows))fail();
   if(rows.length)match(rows,local);
@@ -47,18 +47,19 @@ export async function bindFreshDatabaseIdentity(connection,policy,confirmation){
   if(current.installation_id!==local.installation_id||current.identity_sha256!==local.identity_sha256)fail();
   commitStarted=true;await connection.commit();committed=true;
   return Object.freeze({database_binding_verified:true,installation_id:local.installation_id,created:rows.length===0,production_accepted:false});
- }finally{if(!committed){try{await connection.rollback()}catch{commitStarted=true}if(commitStarted&&typeof connection.destroy==='function')connection.destroy()}}
+ }finally{if(!committed){try{await connection.rollback()}catch{commitStarted=true}if((!begun||commitStarted)&&typeof connection.destroy==='function')connection.destroy()}}
 }
 // Existing business service owns transaction lifecycle; binding is checked
 // under the same row lock, both before business queries and before commit.
 export function boundReportPool(pool,policy,expectedId){
  return {async getConnection(){
-  const c=await pool.getConnection();let state='NEW';
+  const c=await pool.getConnection();let state='NEW',uncertain=false;
+  const transition=(from,to)=>{if(state!==from)fail();state=to};
   return {
-   async beginTransaction(){if(state!=='NEW')fail();state='UNVERIFIED';await c.beginTransaction();if(await assertDatabaseIdentity(c,policy,true)!==expectedId)fail();state='ACTIVE'},
+   async beginTransaction(){transition('NEW','BEGINNING');try{await c.beginTransaction();transition('BEGINNING','VERIFYING');if(await assertDatabaseIdentity(c,policy,true)!==expectedId)fail();transition('VERIFYING','ACTIVE')}catch(e){if(state==='BEGINNING')uncertain=true;if(state!=='CLOSED')state='UNVERIFIED';throw e}},
    query:(...a)=>{if(state!=='ACTIVE')fail();return c.query(...a)},
-   async commit(){if(state!=='ACTIVE')fail();state='UNVERIFIED';if(await assertDatabaseIdentity(c,policy,true)!==expectedId)fail();state='COMMITTING';await c.commit();state='DONE'},
-   async rollback(){if(!['ACTIVE','UNVERIFIED','COMMITTING'].includes(state))fail();const uncertain=state==='COMMITTING';state='UNVERIFIED';await c.rollback();state=uncertain?'DISCARD':'DONE'},
+   async commit(){transition('ACTIVE','VERIFYING');try{if(await assertDatabaseIdentity(c,policy,true)!==expectedId)fail();transition('VERIFYING','COMMITTING');uncertain=true;await c.commit();transition('COMMITTING','DONE');uncertain=false}catch(e){if(state!=='CLOSED')state='UNVERIFIED';throw e}},
+   async rollback(){if(!['ACTIVE','UNVERIFIED'].includes(state))fail();state='ROLLING_BACK';try{await c.rollback();transition('ROLLING_BACK',uncertain?'DISCARD':'DONE')}catch(e){uncertain=true;if(state!=='CLOSED')state='UNVERIFIED';throw e}},
    release:()=>{if(state==='DONE'||state==='NEW'){state='CLOSED';return c.release()}if(state!=='CLOSED'){state='CLOSED';return c.destroy()}},destroy:()=>{if(state!=='CLOSED'){state='CLOSED';return c.destroy()}}
   };
  }};

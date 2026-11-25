@@ -430,6 +430,10 @@ jobs:
           console.log('PASS: actual local Docker socket observation and missing image refusal.');
           NODE
 
+      - name: Report production and development dependency audit
+        timeout-minutes: 3
+        run: node scripts/dependency-audit-policy.cjs --report
+
       - name: Run Vitest unit & integration test suite (enforcing 70%+ coverage)
         env:
           DB_HOST: 127.0.0.1
@@ -440,10 +444,6 @@ jobs:
           NODE_ENV: test
           VITEST: "true"
         run: npm run test:coverage
-
-      - name: Report production and development dependency audit
-        timeout-minutes: 3
-        run: node scripts/dependency-audit-policy.cjs --report
 
       - name: Require verified production dependency audit before protected manual build
         if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'

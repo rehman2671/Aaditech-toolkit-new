@@ -109,7 +109,8 @@
         "2026-11-26 MASS-12: docs/product/EXISTING-SERVICE-RECOVERY-AND-DB-TRANSACTION-CUSTODY.md; existing service recovery and database transaction custody; fresh CI and external acceptance pending; no parent promotion.",
         "2026-11-26 MASS-13: docs/product/QUIESCENT-COMPOSE-CONFIGURATION-AND-LIFECYCLE-REHEARSAL.md; quiescent file-only switch and fixture lifecycle/DB transaction CI candidate; no parent promotion.",
         "2026-11-26 MASS-14: docs/product/STORE-BOUND-RUNTIME-AND-CI-GOVERNANCE.md; exact historical rehearsal PASS, N70 failed and source correction pending CI; no parent promotion.",
-        "2026-11-26 MASS-15: docs/product/NODE-RUNTIME-AND-DEPENDENCY-AUDIT-POLICY.md; Node 24 and dependency audit gate candidate; actual audit findings remediation and exact-head CI pending; no parent promotion."
+        "2026-11-26 MASS-15: docs/product/NODE-RUNTIME-AND-DEPENDENCY-AUDIT-POLICY.md; Node 24 and dependency audit gate candidate; actual audit findings remediation and exact-head CI pending; no parent promotion.",
+        "2026-11-26 MASS-16: docs/product/PERSISTENT-IDENTITY-RECOVERY-AND-CI-CORRECTION.md; persistent identity restart/restore fixture and transaction correction source pending CI; no parent promotion."
       ],
       "next": "Verify exact-head CI, production-mode atomic bootstrap and concurrent MySQL, pinned private HTTPS health, actual existing-container lifecycle; approved fresh Compose creation/recreation, identity continuity, private TLS ingress and DEC-001 remain pending.",
       "blocked": true,

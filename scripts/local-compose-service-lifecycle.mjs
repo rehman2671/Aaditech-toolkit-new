@@ -26,7 +26,7 @@ export function validateLifecyclePolicy(input){
 export function classifyExistingContainer(doc,policy,role){
  const c=policy.containers[role],l=doc?.Config?.Labels,s=doc?.State;
  if(!c||doc.Id!==c.containerId||doc.Image!==c.imageId||l?.['com.docker.compose.project']!==policy.project||l?.['com.docker.compose.service']!==role||typeof l?.['com.docker.compose.oneoff']!=='string'||l['com.docker.compose.oneoff'].toLowerCase()!=='false'||!s||typeof s.Running!=='boolean'||s.Paused!==false||s.Restarting!==false||s.Dead!==false||!['running','exited','created'].includes(s.Status)||s.Running!==(s.Status==='running'))fail();
- if(role!=='caddy'&&(!Array.isArray(doc.Config?.Healthcheck?.Test)||doc.Config.Healthcheck.Test.length<2||!['CMD','CMD-SHELL'].includes(doc.Config.Healthcheck.Test[0])||doc.Config.Healthcheck.Test.some(x=>typeof x!=='string'||!x.length)))fail();
+ if(role!=='caddy'&&(!Array.isArray(doc.Config?.Healthcheck?.Test)||doc.Config.Healthcheck.Test.length<2||!['CMD','CMD-SHELL'].includes(doc.Config.Healthcheck.Test[0])||Array.from(doc.Config.Healthcheck.Test).some(x=>typeof x!=='string'||!x.length)))fail();
  const health=s.Running?(s.Health?.Status??'NOT_CONFIGURED'):'NOT_RUNNING';
  if(s.Running&&(!['healthy','starting','unhealthy','NOT_CONFIGURED'].includes(health)||(role!=='caddy'&&health==='NOT_CONFIGURED')))fail();
  return {role,state:s.Status,health};
@@ -91,7 +91,7 @@ async function openLifecycleObservation(p,assertHeld){
 // the cooperative lock. Lock presence always blocks a resume conclusion.
 export function classifyLifecycleRecovery(rows,lockEntriesPresent){
  if(typeof lockEntriesPresent!=='boolean'||!Array.isArray(rows)||rows.length!==3||
-  rows.some((x,i)=>!exact(x,['role','state','health'])||x.role!==roles[i]||
+  Array.from(rows).some((x,i)=>!exact(x,['role','state','health'])||x.role!==roles[i]||
   !['created','exited','running'].includes(x.state)||
   (x.state==='running'?(!['healthy','starting','unhealthy','NOT_CONFIGURED'].includes(x.health)||(x.role!=='caddy'&&x.health==='NOT_CONFIGURED')):x.health!=='NOT_RUNNING')))fail();
  const stopped=rows.every(x=>x.state!=='running');

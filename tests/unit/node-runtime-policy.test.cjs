@@ -13,3 +13,6 @@ for(const [label,patch] of [
  ['audit ignored',{workflow:base.workflow.replace('run: node scripts/dependency-audit-policy.cjs --release','continue-on-error: true\n        run: node scripts/dependency-audit-policy.cjs --release')}],
  ['audit bypass on main',{workflow:base.workflow.replace("if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'\n        timeout-minutes: 3","if: false\n        timeout-minutes: 3")}]
 ])test(label,()=>{assert.throws(()=>check({...base,...patch}))});
+
+test('Docker runtime check cannot be removed',()=>assert.throws(()=>check({...base,docker:base.docker.replace(/^RUN node -e .*\n/m,'')})));
+test('Docker locked install cannot be replaced',()=>assert.throws(()=>check({...base,docker:base.docker.replace('RUN npm ci --omit=dev --no-audit --no-fund','RUN npm install')})));

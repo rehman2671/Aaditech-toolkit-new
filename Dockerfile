@@ -7,8 +7,8 @@ WORKDIR /app
 # to a different dependency graph after npm ci fails. The offline LAN
 # deliverable still needs pinned image digests and an attested offline bundle.
 COPY package.json package-lock.json ./
-RUN node -e "if (Number(process.versions.node.split('.')[0]) !== 24) process.exit(1)" && \
-    npm ci --omit=dev --no-audit --no-fund
+RUN node -e "if (Number(process.versions.node.split('.')[0]) !== 24) process.exit(1)"
+RUN npm ci --omit=dev --no-audit --no-fund
 
 # Copy application source code
 COPY . .

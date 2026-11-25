@@ -8,10 +8,10 @@ const number=x=>typeof x==='string'&&/^(0|[1-9][0-9]*)$/.test(x)?Number(x):x;
 const fail=code=>{throw Error(code)};
 const states=Object.freeze(['UNREVIEWED','IN_REVIEW','AWAITING_USER','REFERRED','REOPENED']);
 const graph=Object.freeze({UNREVIEWED:['IN_REVIEW','REFERRED'],IN_REVIEW:['AWAITING_USER','REFERRED'],AWAITING_USER:['IN_REVIEW','REFERRED'],REFERRED:['REOPENED'],REOPENED:['IN_REVIEW','REFERRED']});
-export function allowedReviewTransitions(state,intakeStatus){
+export function allowedReviewTransitions(state,intakeStatus,screeningReferral=false){
  if(!states.includes(state)||!['OPEN','ESCALATED'].includes(intakeStatus))fail('REVIEW_INVALID');
  // Escalation remains visible and never becomes an ordinary local resolution.
- return Object.freeze(graph[state].filter(x=>intakeStatus==='OPEN'||x!=='AWAITING_USER'));
+ return Object.freeze(graph[state].filter(x=>(intakeStatus==='OPEN'||x!=='AWAITING_USER')&&(!screeningReferral||x==='REFERRED')));
 }
 function scope(pool,input,role){
  const p=input?.principal;
@@ -34,9 +34,11 @@ function project(r,s){
  if(plan.reason==='INVALID_INPUT'||r.status!==(plan.decision==='HUMAN_ONLY'?'ESCALATED':'OPEN'))fail('REVIEW_STATE_INVALID');
  const state=r.review_state??'UNREVIEWED',revision=number(r.revision??0);
  if(!states.includes(state)||!integer(revision)||(state==='UNREVIEWED')!==(revision===0))fail('REVIEW_STATE_INVALID');
+ const hazardAssessment=projectHazardAssessment(r.assessment_id?{assessment_id:r.assessment_id,incident_id:r.assessment_incident_id,installation_id:r.assessment_installation_id,tenant_id:r.assessment_tenant_id,device_id:r.assessment_device_id,actor_user_id:r.assessment_actor_id,request_id:r.assessment_request_id,assessment:r.assessment}:null,r);
+ const screeningReferral=hazardAssessment.assessment_state==='RECORDED'&&hazardAssessment.human_referral_required;
  return {incident_id:r.incident_id,device_id:r.device_id,category_id:r.category_id,hazard:r.hazard,intake_status:r.status,review_state:state,revision,
-  hazard_assessment:projectHazardAssessment(r.assessment_id?{assessment_id:r.assessment_id,incident_id:r.assessment_incident_id,installation_id:r.assessment_installation_id,tenant_id:r.assessment_tenant_id,device_id:r.assessment_device_id,actor_user_id:r.assessment_actor_id,request_id:r.assessment_request_id,assessment:r.assessment}:null,r),
-  allowed_transitions:allowedReviewTransitions(state,r.status),diagnostic_authorized:false,repair_authorized:false,verified_resolved:false};
+  hazard_assessment:hazardAssessment,qualified_referral_pending:screeningReferral&&state!=='REFERRED',qualified_referral_recorded:screeningReferral&&state==='REFERRED',
+  allowed_transitions:allowedReviewTransitions(state,r.status,screeningReferral),diagnostic_authorized:false,repair_authorized:false,verified_resolved:false};
 }
 const select="SELECT i.incident_id,i.installation_id,i.tenant_id,i.device_id,i.actor_user_id,i.category_id,i.hazard,i.status,r.review_state,r.revision,h.assessment_id,h.incident_id AS assessment_incident_id,h.installation_id AS assessment_installation_id,h.tenant_id AS assessment_tenant_id,h.device_id AS assessment_device_id,h.actor_user_id AS assessment_actor_id,h.request_id AS assessment_request_id,h.assessment FROM troubleshooting_incidents i LEFT JOIN troubleshooting_incident_reviews r ON r.incident_id=i.incident_id AND r.installation_id=i.installation_id AND r.tenant_id=i.tenant_id AND r.device_id=i.device_id LEFT JOIN troubleshooting_hazard_assessments h ON h.incident_id=i.incident_id JOIN devices d ON d.id=i.device_id AND d.tenant_id=i.tenant_id WHERE i.installation_id=? AND i.tenant_id=?";
 export async function listIncidentReviews(pool,input){
@@ -80,7 +82,11 @@ export async function transitionIncidentReview(pool,input){
   if(!Array.isArray(rows)||rows.length>1)fail('REVIEW_STATE_INVALID');
   const row=rows[0];
   if(row&&(row.incident_id!==incidentId||row.installation_id!==s.installation||row.tenant_id!==s.tenant||row.device_id!==deviceId||!states.slice(1).includes(row.review_state)))fail('REVIEW_STATE_INVALID');
-  const current=project({...inc[0],review_state:row?.review_state,revision:row?.revision},s);
+  // Same incident row lock serializes assessment creation and transitions.
+  const [screenings]=await c.query('SELECT * FROM troubleshooting_hazard_assessments WHERE incident_id=? FOR UPDATE',[incidentId]);
+  if(!Array.isArray(screenings)||screenings.length>1)fail('REVIEW_STATE_INVALID');
+  const a=screenings[0];
+  const current=project({...inc[0],review_state:row?.review_state,revision:row?.revision,...(a?{assessment_id:a.assessment_id,assessment_incident_id:a.incident_id,assessment_installation_id:a.installation_id,assessment_tenant_id:a.tenant_id,assessment_device_id:a.device_id,assessment_actor_id:a.actor_user_id,assessment_request_id:a.request_id,assessment:a.assessment}:{})},s);
   const [events]=await c.query('SELECT * FROM troubleshooting_incident_review_events WHERE incident_id=? AND request_id=? FOR UPDATE',[incidentId,requestId]);
   if(!Array.isArray(events)||events.length>1)fail('REVIEW_STATE_INVALID');
   const receipt=(eventId,revision,duplicate)=>({event_id:eventId,incident_id:incidentId,review_state:nextState,revision,duplicate,diagnostic_authorized:false,repair_authorized:false,verified_resolved:false,production_accepted:false});
@@ -95,7 +101,7 @@ export async function transitionIncidentReview(pool,input){
   if(w?.affectedRows!==1)fail('REVIEW_WRITE_UNCONFIRMED');
   const [event]=await c.query('INSERT INTO troubleshooting_incident_review_events (event_id,incident_id,installation_id,tenant_id,device_id,actor_user_id,request_id,previous_state,next_state,revision) VALUES (?,?,?,?,?,?,?,?,?,?)',[eventId,incidentId,s.installation,s.tenant,deviceId,s.actor,requestId,current.review_state,nextState,revision]);
   if(event?.affectedRows!==1)fail('REVIEW_WRITE_UNCONFIRMED');
-  const [audit]=await c.query('INSERT INTO audit_logs (id,tenant_id,actor_id,actor,action,target_resource,details,ip_address,created_at) VALUES (?,?,?,?,?,?,?,?,NOW(3))',[randomUUID(),s.tenant,s.actor,String(s.actor),'TROUBLESHOOTING_HUMAN_REVIEW_CHANGED','Incident:'+incidentId,JSON.stringify({event_id:eventId,revision,previous_state:current.review_state,next_state:nextState}),null]);
+  const [audit]=await c.query('INSERT INTO audit_logs (id,tenant_id,actor_id,actor,action,target_resource,details,ip_address,created_at) VALUES (?,?,?,?,?,?,?,?,NOW(3))',[randomUUID(),s.tenant,s.actor,String(s.actor),'TROUBLESHOOTING_HUMAN_REVIEW_CHANGED','Incident:'+incidentId,JSON.stringify({event_id:eventId,revision,previous_state:current.review_state,next_state:nextState,...(current.qualified_referral_pending?{hazard_assessment_id:current.hazard_assessment.assessment_id,scope:'QUALIFIED_REFERRAL_RECORD_ONLY'}:{})}),null]);
   if(audit?.affectedRows!==1)fail('REVIEW_WRITE_UNCONFIRMED');
   return receipt(eventId,revision,false);
  });

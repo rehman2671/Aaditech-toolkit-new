@@ -4,10 +4,11 @@ const id=n=>'00000000-0000-4000-8000-'+String(n).padStart(12,'0');
 const principal={id:1,role:'SUPER_ADMIN',tenant_id:id(1)},installationId=id(2),deviceId=id(3),incidentId=id(4),requestId=id(5);
 const incident={incident_id:incidentId,installation_id:installationId,tenant_id:principal.tenant_id,device_id:deviceId,actor_user_id:2,category_id:'TR-01',hazard:'NONE',status:'OPEN'};
 const input={principal,installationId,deviceId,incidentId,requestId,expectedRevision:0,nextState:'IN_REVIEW',confirmation:'CONFIRM_HUMAN_REVIEW_ONLY'};
-function fixture({row,events=[],inc=[incident],listed=[incident],writes=1,role='SUPER_ADMIN',actor=1}={}){
+function fixture({row,events=[],inc=[incident],listed=[incident],screenings=[],writes=1,role='SUPER_ADMIN',actor=1}={}){
  const c={beginTransaction:vi.fn(),commit:vi.fn(),rollback:vi.fn(),release:vi.fn(),destroy:vi.fn(),query:vi.fn(async(sql)=>{
   if(sql.includes('FROM users'))return [[{id:actor,role,tenant_id:principal.tenant_id,active:1,status:'ACTIVE'}]];
   if(sql.includes('LEFT JOIN'))return [listed];
+  if(sql.includes('FROM troubleshooting_hazard_assessments'))return [screenings];
   if(sql.includes('FROM troubleshooting_incident_review_events'))return [events];
   if(sql.includes('FROM troubleshooting_incident_reviews'))return [row?[row]:[]];
   if(sql.includes('FROM troubleshooting_incidents'))return [inc];
@@ -47,5 +48,23 @@ describe('human review lifecycle only',()=>{
   const event={...row,event_id:id(6),request_id:requestId,actor_user_id:1,previous_state:'UNREVIEWED',next_state:'IN_REVIEW'};
   const f=fixture({row,events:[event]});expect(await transitionIncidentReview(f.pool,input)).toMatchObject({duplicate:true,event_id:id(6),current_revision:1});expect(f.c.query.mock.calls.every(([q])=>q.startsWith('SELECT'))).toBe(true);
   await expect(transitionIncidentReview(f.pool,{...input,nextState:'REFERRED'})).rejects.toThrow('REVIEW_CONFLICT');
+ });
+});
+
+describe('hazard-screening referral gate',()=>{
+ const unknown={...incident,hazard:'UNKNOWN'};
+ const screening={assessment_id:id(7),incident_id:incidentId,installation_id:installationId,tenant_id:principal.tenant_id,device_id:deviceId,actor_user_id:1,request_id:id(8),assessment:'DATA_LOSS_RISK'};
+ const joined={...unknown,assessment_id:screening.assessment_id,assessment_incident_id:incidentId,assessment_installation_id:installationId,assessment_tenant_id:principal.tenant_id,assessment_device_id:deviceId,assessment_actor_id:1,assessment_request_id:screening.request_id,assessment:screening.assessment};
+ it('shows referral pending and restricts new transitions to REFERRED',async()=>{
+  const f=fixture({inc:[unknown],screenings:[screening],listed:[joined]});const q=await listIncidentReviews(f.pool,{principal,installationId});expect(q.items[0]).toMatchObject({qualified_referral_pending:true,allowed_transitions:['REFERRED']});
+  await expect(transitionIncidentReview(f.pool,input)).rejects.toThrow('REVIEW_CONFLICT');
+  expect(await transitionIncidentReview(f.pool,{...input,nextState:'REFERRED'})).toMatchObject({review_state:'REFERRED',verified_resolved:false});
+  const audit=f.c.query.mock.calls.find(([sql])=>sql.startsWith('INSERT INTO audit_logs'));expect(JSON.parse(audit[1][6])).toMatchObject({hazard_assessment_id:screening.assessment_id,scope:'QUALIFIED_REFERRAL_RECORD_ONLY'});
+ });
+ it('does not reopen referred screened hazards and preserves original history',async()=>{
+  const row={incident_id:incidentId,installation_id:installationId,tenant_id:principal.tenant_id,device_id:deviceId,review_state:'REFERRED',revision:1};
+  const f=fixture({inc:[unknown],screenings:[screening],row,listed:[{...joined,review_state:'REFERRED',revision:1}]});
+  expect((await listIncidentReviews(f.pool,{principal,installationId})).items[0]).toMatchObject({qualified_referral_recorded:true,allowed_transitions:[]});
+  await expect(transitionIncidentReview(f.pool,{...input,nextState:'REOPENED',expectedRevision:1})).rejects.toThrow('REVIEW_CONFLICT');
  });
 });

@@ -29,13 +29,15 @@
    select.replaceChildren(...r.allowed_transitions.map(s=>new Option(s.replaceAll('_',' '),s)));
    const confirm=document.createElement('input');confirm.type='checkbox';confirm.required=true;
    const consent=node('label','');consent.className='check';consent.append(confirm,document.createTextNode('Confirm human review change only'));
-   const b=node('button','Update review');b.type='submit';f.append(label,select,consent,b);
+   const b=node('button',r.qualified_referral_pending?'Record qualified referral':'Update review');b.type='submit';f.append(label,select,consent,b);
    f.addEventListener('submit',e=>{
     e.preventDefault();if(busy||pending||!confirm.checked)return;
     if(typeof crypto.randomUUID!=='function'){status('Secure HTTPS context required.');return}
     pending=Object.freeze({incidentId:r.incident_id,deviceId:r.device_id,requestId:crypto.randomUUID(),expectedRevision:r.revision,nextState:select.value,confirmation:'CONFIRM_HUMAN_REVIEW_ONLY'});submit();
    });card.append(f);
   }
+  if(r.qualified_referral_pending)card.append(node('p','Qualified referral pending. Use the review transition to record referral; local review and reopening are blocked.'));
+  if(r.qualified_referral_recorded)card.append(node('p','Qualified referral recorded, not verified handoff or resolution. Reopening requires a separately approved reassessment workflow.'));
   if(r.hazard_assessment?.assessment_state==='RECORDED')card.append(node('p','Human screening: '+r.hazard_assessment.assessment+' (not verified safety)'+(r.hazard_assessment.human_referral_required?' — qualified human referral required.':'')));
   if(admin&&r.intake_status==='OPEN'&&r.hazard==='UNKNOWN'){
    const link=node('a','Inspect or record hazard screening');link.href='/hazard-assessment.html?'+new URLSearchParams({incidentId:r.incident_id,deviceId:r.device_id});card.append(link);

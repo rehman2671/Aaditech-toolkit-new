@@ -38,9 +38,9 @@ async function createCleanAdministrator(c,old,body,passwordHash,identity){
 }
 export async function completeInitialSetup(db,{body,configuredHost,passwordHash,freshIdentityPolicy=null}){
  if(!db.isMysqlConnected()||!plain(body)||typeof configuredHost!=='string'||!configuredHost||body.server_host!==configuredHost||typeof body.admin_username!=='string'||!/^[a-zA-Z0-9_.-]{3,64}$/.test(body.admin_username)||typeof body.company_name!=='string'||!body.company_name.trim()||body.company_name.length>128||!plain(body.branding)||typeof body.branding.logo_text!=='string'||body.branding.logo_text.length>128||!/^#[0-9a-fA-F]{6}$/.test(body.branding.color)||!['manual','local_windows','github'].includes(body.build_mode)||typeof passwordHash!=='string'||!/^\$2[aby]\$10\$[./A-Za-z0-9]{53}$/.test(passwordHash)||passwordHash===seedHash)fail('SETUP_INVALID');
- const pool=db.getPool(),c=await pool.getConnection();let committed=false,committing=false,discard=false;
+ const pool=db.getPool(),c=await pool.getConnection();let committed=false,committing=false,discard=false,begun=false;
  try{
-  await c.beginTransaction();
+  await c.beginTransaction();begun=true;
   // Upsert a singleton without altering an existing value, acquiring its row
   // lock before credentials. Concurrent bootstrap can never both complete.
   await c.query("INSERT INTO system_settings (setting_key,setting_value) VALUES ('branding',JSON_OBJECT('setup_complete',false)) ON DUPLICATE KEY UPDATE setting_key=setting_key");
@@ -75,5 +75,5 @@ export async function completeInitialSetup(db,{body,configuredHost,passwordHash,
   if(clean&&(a.email!==u.email||await assertDatabaseIdentity(c,freshIdentityPolicy,true)!==old.installation_id))fail('SETUP_RECOVERY_REQUIRED');
   committing=true;await c.commit();committed=true;
   return {company:next.company_name,server_host:configuredHost,admin:{id:Number(u.id),username:a.username,email:a.email,role:a.role,tenant_id:u.tenant_id}};
- }finally{if(!committed){if(committing)discard=true;try{await c.rollback()}catch{discard=true}}if(discard)c.destroy();else c.release()}
+ }finally{if(!committed){if(!begun||committing)discard=true;try{await c.rollback()}catch{discard=true}}if(discard)c.destroy();else c.release()}
 }

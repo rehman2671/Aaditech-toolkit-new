@@ -70,14 +70,14 @@ export function validateFreshSchemaRequest(input){
 }
 export function verifyFactorySeedRows(table,rows){
  const expected=Object.hasOwn(seeds,table)?seeds[table]:null;if(!expected||!Array.isArray(rows)||rows.length!==expected.rows.length)fail();
- const canonical=a=>a.map(x=>JSON.stringify(x.map(String))).sort();
- if(JSON.stringify(canonical(rows.map(r=>{if(!exact(r,expected.columns)||expected.columns.some(k=>!['string','number'].includes(typeof r[k])))fail();return expected.columns.map(k=>r[k])})))!==JSON.stringify(canonical(expected.rows)))fail();
+ const canonical=a=>Array.from(a,x=>JSON.stringify(x.map(String))).sort();
+ if(JSON.stringify(canonical(Array.from(rows,r=>{if(!exact(r,expected.columns)||expected.columns.some(k=>!['string','number'].includes(typeof r[k])))fail();return expected.columns.map(k=>r[k])})))!==JSON.stringify(canonical(expected.rows)))fail();
  return expected.rows.length;
 }
 async function query(c,sql,args=[]){const [rows]=await c.query(sql,args);return rows}
 async function tableInventory(c){
  const rows=await query(c,"SELECT TABLE_NAME AS name,TABLE_TYPE AS kind,ENGINE AS engine FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() ORDER BY TABLE_NAME");
- if(!Array.isArray(rows)||rows.length>200||rows.some(x=>!id(x.name)||x.kind!=='BASE TABLE'||x.engine!=='InnoDB')||new Set(rows.map(x=>x.name)).size!==rows.length)fail();
+ if(!Array.isArray(rows)||rows.length>200||Array.from(rows).some(x=>!x||!id(x.name)||x.kind!=='BASE TABLE'||x.engine!=='InnoDB')||new Set(rows.map(x=>x.name)).size!==rows.length)fail();
  for(const [table,column] of [['ROUTINES','ROUTINE_SCHEMA'],['TRIGGERS','TRIGGER_SCHEMA'],['EVENTS','EVENT_SCHEMA']]){
   const r=await query(c,'SELECT COUNT(*) AS n FROM information_schema.'+table+' WHERE '+column+'=DATABASE()');if(r?.length!==1||Number(r[0].n)!==0)fail();
  }
@@ -85,12 +85,12 @@ async function tableInventory(c){
 }
 export async function initializeFreshMySqlSchema(connection,input,assertHeld){
  const p=validateFreshSchemaRequest(input);if(typeof assertHeld!=='function'||!connection||typeof connection.query!=='function'||typeof connection.destroy!=='function')fail();
+ let transaction=false,done=false;
+ try{
  await assertHeld();const admitted=await admitSignedFreshMigrations(p.release),local=await inspectLocalInstallationIdentity(p.identity);
  const observe=async()=>{await assertHeld();const r=await query(connection,'SELECT DATABASE() AS db,@@server_uuid AS uuid,CONNECTION_ID() AS connection_id,@@version AS version');if(r?.length!==1||r[0].db!==p.databaseName||typeof r[0].uuid!=='string'||!r[0].uuid||!Number.isSafeInteger(Number(r[0].connection_id))||!/^8\./.test(r[0].version)||/MariaDB/i.test(r[0].version))fail();return r[0]};
  const initial=await observe(),lockName='itk_schema_migrations_lock';
  const guard=async()=>{if(JSON.stringify(await observe())!==JSON.stringify(initial))fail();const r=await query(connection,'SELECT IS_USED_LOCK(?) AS owner',[lockName]);if(r?.length!==1||Number(r[0].owner)!==Number(initial.connection_id))fail();await assertHeld()};
- let transaction=false,done=false;
- try{
   const acquired=await query(connection,'SELECT GET_LOCK(?,0) AS acquired',[lockName]);if(acquired?.length!==1||acquired[0].acquired!==1)fail();
   await guard();if((await tableInventory(connection)).length)fail();
   await guard();

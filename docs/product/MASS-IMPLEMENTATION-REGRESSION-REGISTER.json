@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
-  "batch": "MASS-22",
+  "batch": "MASS-23",
   "date": "2026-11-26",
   "target": "20 implementation prompts planning target, 50–100 actual development tasks per batch aspirational; count only delivered functional work, not test cases",
-  "base_commit": "1192b7a1ae8db67461edbadcc3c95c402e55ee5d",
+  "base_commit": "a8cf03fc0933c07e4d6544895cd4f2484f27714a",
   "source_of_truth": [
     "docs/product/DELIVERY-TRACKER.json",
     "docs/product/TROUBLESHOOTING-WORK-REGISTER.json",
@@ -3708,6 +3708,52 @@
         "Clean bootstrap missing identity denial and repeat denial",
         "Actual signed fresh MySQL bootstrap CI pending; no runtime activation"
       ]
+    },
+    {
+      "id": "MASS-23-01",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Unsigned publisher OCI and exact migration packaging, manifest integrity and external-signature fixture",
+      "dependencies": [
+        "MASS-22-01",
+        "MASS-09-02",
+        "M1",
+        "DEC-001"
+      ],
+      "paths": [
+        "scripts/prepare-unsigned-lan-release.mjs",
+        "scripts/prepare-unsigned-lan-release-cli.mjs",
+        "tests/unit/prepare-unsigned-lan-release.test.js",
+        "docs/product/UNSIGNED-RELEASE-PACKAGING-AND-STOPPED-RUNTIME-ADMISSION.md"
+      ],
+      "regression": [
+        "External fixture signing/staging/migration admission and malformed input denial; exact-head CI pending"
+      ]
+    },
+    {
+      "id": "MASS-23-02",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Read-only stopped candidate admission with signed migrations, independent container pins and release/config/resource continuity; correct fresh MySQL regression import and lock custody",
+      "dependencies": [
+        "MASS-20-02",
+        "MASS-22-01",
+        "MASS-22-02",
+        "MASS-23-01"
+      ],
+      "paths": [
+        "scripts/create-stopped-compose-candidates.mjs",
+        "scripts/inspect-stopped-compose-candidates-cli.mjs",
+        "tests/unit/create-stopped-compose-candidates.test.js",
+        "tests/ci-offline-docker-load-rehearsal.mjs",
+        "test-fresh-mysql-schema-ci.js",
+        "scripts/initialize-fresh-mysql-schema.mjs",
+        "initial-setup-transaction.js",
+        "tests/unit/initial-setup-transaction.test.js",
+        "docs/product/UNSIGNED-RELEASE-PACKAGING-AND-STOPPED-RUNTIME-ADMISSION.md"
+      ],
+      "regression": [
+        "MASS-22 CI 45708345245 API startup failure retained",
+        "Actual signed stopped observation, fresh MySQL setup and recovery, ambiguous transaction denial pending"
+      ]
     }
   ],
   "unresolved": [
@@ -3989,6 +4035,18 @@
         "docs/product/DEPENDENCY-ADVISORY-REGISTER-20261126.json",
         "test-fresh-mysql-schema-ci.js",
         "tests/unit/initialize-fresh-mysql-schema.test.js"
+      ]
+    },
+    {
+      "id": "MASS-23",
+      "base_commit": "a8cf03fc0933c07e4d6544895cd4f2484f27714a",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "evidence": [
+        "docs/product/UNSIGNED-RELEASE-PACKAGING-AND-STOPPED-RUNTIME-ADMISSION.md",
+        "docs/product/DEPENDENCY-ADVISORY-REGISTER-20261126.json",
+        "tests/unit/prepare-unsigned-lan-release.test.js",
+        "tests/ci-offline-docker-load-rehearsal.mjs",
+        "test-fresh-mysql-schema-ci.js"
       ]
     }
   ]

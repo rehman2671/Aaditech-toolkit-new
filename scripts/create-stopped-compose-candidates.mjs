@@ -13,6 +13,7 @@ import {inspectFreshComposeResources} from './fresh-compose-resource-inventory.m
 import {socketIdentity,requestLocalDockerJson} from './local-docker-runtime-preflight.mjs';
 import {withLocalSetupLock} from './local-setup-lock.mjs';
 import {rejectDuplicateJsonKeys} from './verify-lan-bundle.mjs';
+import {admitSignedFreshMigrations} from './initialize-fresh-mysql-schema.mjs';
 const exec=promisify(execFile),binary='/usr/bin/docker',socket='/run/docker.sock';
 const fail=()=>{throw Error('STOPPED_COMPOSE_CANDIDATES_UNCONFIRMED')};
 const hex=x=>typeof x==='string'&&x.length===64&&/^[a-f0-9]{64}$/.test(x)&&!/^0+$/.test(x);
@@ -92,9 +93,18 @@ async function readPinnedConfig(p,dir){
   await privateDir(p.configDirectory,dir);return text;
  }finally{await fd.close()}
 }
-export async function createStoppedComposeCandidates(input){
+export function validateStoppedObservationPolicy(input){
+ if(!exact(input,['confirmation','project','lockRoot','configDirectory','serverHost','release','configurationSha256','networkId','containers'])||input.confirmation!=='INSPECT_PINNED_STOPPED_COMPOSE_CANDIDATES_ONLY'||!exact(input.containers,roles))fail();
+ const pins={};for(const role of roles){const x=input.containers[role];if(!exact(x,['containerId','imageId'])||!hex(x.containerId)||typeof x.imageId!=='string'||!/^sha256:[a-f0-9]{64}$/.test(x.imageId)||!hex(x.imageId.slice(7)))fail();pins[role]=Object.freeze({...x})}
+ if(new Set(roles.map(r=>pins[r].containerId)).size!==3||new Set(roles.map(r=>pins[r].imageId)).size!==3)fail();
+ const {containers,...base}=input;
+ return Object.freeze({...validateStoppedCandidatePolicy({...base,confirmation:'CREATE_STOPPED_COMPOSE_CANDIDATES_ONLY_EXCLUSIVE_DAEMON_CUSTODY'}),containers:Object.freeze(pins)});
+}
+export async function createStoppedComposeCandidates(input){return stoppedCandidates(input,false)}
+export async function inspectStoppedComposeCandidates(input){return stoppedCandidates(input,true)}
+async function stoppedCandidates(input,observeOnly){
  if(process.platform!=='linux'||typeof process.geteuid!=='function')fail();
- const p=validateStoppedCandidatePolicy(input),dir=await privateDir(p.configDirectory);
+ const p=observeOnly?validateStoppedObservationPolicy(input):validateStoppedCandidatePolicy(input),dir=await privateDir(p.configDirectory);
  return withLocalSetupLock({confirmation:'ACQUIRE_LOCAL_SETUP_LOCK_ONLY',lockRoot:p.lockRoot},async({assertHeld})=>{
   const b=await binaryIdentity(),s=await socketIdentity(),initial=await requestLocalDockerJson(socket,'/info'),daemon=initial.value?.ID;
   if(initial.missing!==false||typeof daemon!=='string'||!daemon||initial.value.OSType!=='linux')fail();
@@ -127,12 +137,19 @@ export async function createStoppedComposeCandidates(input){
     imageEnvironment[role]=e;
    }
   }
-  await verifyImages();await inventory(0);
+  const migrationPins={confirmation:'ADMIT_SIGNED_FRESH_MYSQL_MIGRATIONS_ONLY',stagedDirectory:p.release.stagedDirectory,trustedManifestSha256:p.release.trustedManifestSha256,trustedPublicKeyPem:p.release.trustedPublicKeyPem,trustedSignerSpkiSha256:p.release.trustedSignerSpkiSha256};
+  const migrations=observeOnly?await admitSignedFreshMigrations(migrationPins):null;
+  await verifyImages();await inventory(observeOnly?3:0);
   const result={},expected={};
   for(const role of roles){
-   await inventory(Object.keys(result).length);
+   await inventory(observeOnly?3:Object.keys(result).length);
    for(const k of Object.keys(result))verifyStoppedCandidate(await inspect('container',result[k].containerId),expected[k]);
    const labels=candidateLabels(p.project,p.release.trustedManifestSha256,p.configurationSha256,role),imageId=store.imageIds[releaseRoles[role]],environment=environments[role];
+   if(observeOnly){
+    const pin=p.containers[role];if(pin.imageId!==imageId)fail();
+    expected[role]={id:pin.containerId,imageId,project:p.project,role,networkId:p.networkId,labels,environment,imageEnvironment:imageEnvironment[role]};
+    result[role]=verifyStoppedCandidate(await inspect('container',pin.containerId),expected[role]);continue;
+   }
    const args=['container','create','--pull','never','--name',p.project+'-'+role+'-1','--network',p.networkId,'--network-alias',role,'--restart','no','--security-opt','no-new-privileges=true'];
    for(const [k,v] of Object.entries(labels))args.push('--label',k+'='+v);
    for(const [name,destination] of Object.entries(targets[role]))args.push('--mount','type=volume,source='+p.project+'_'+name+',target='+destination+',volume-nocopy');
@@ -149,7 +166,8 @@ export async function createStoppedComposeCandidates(input){
   await inventory(3);
   for(const role of roles)verifyStoppedCandidate(await inspect('container',result[role].containerId),expected[role]);
   await verifyImages();const final=await inspectBoundOfflineRuntime(p.release);if(JSON.stringify(final)!==JSON.stringify(bound))fail();
-  await inventory(3);await continuity();
-  return {schema_version:1,project:p.project,release_sha256:p.release.trustedManifestSha256,configuration_sha256:p.configurationSha256,network_id:p.networkId,containers:result,containers_created:true,activation_blocked:true,services_started:false,database_initialized:false,tls_verified:false,installation_authorized:false,production_accepted:false};
+  if(observeOnly&&JSON.stringify(await admitSignedFreshMigrations(migrationPins))!==JSON.stringify(migrations))fail();
+  await inventory(3);for(const role of roles)verifyStoppedCandidate(await inspect('container',result[role].containerId),expected[role]);await continuity();
+  return {schema_version:1,project:p.project,release_sha256:p.release.trustedManifestSha256,configuration_sha256:p.configurationSha256,network_id:p.networkId,containers:result,containers_created:!observeOnly,stopped_candidates_verified:true,signed_migrations_verified:observeOnly,activation_blocked:true,services_started:false,database_initialized:false,volume_contents_verified:false,identity_mount_verified:false,tls_verified:false,installation_authorized:false,production_accepted:false};
  });
 }

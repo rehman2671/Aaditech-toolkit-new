@@ -7,7 +7,8 @@ import {join} from 'node:path';
 import {staged} from './tests/fixtures/signed-offline-oci-fixture.mjs';
 import {initializeLocalInstallationIdentity} from './scripts/installation-identity-store-posix.mjs';
 import {completeInitialSetup,readPersistentSetupStatus} from './initial-setup-transaction.js';
-import bcrypt from 'bcryptjs';
+import bcrypt from 'bcrypt';
+import {withLocalSetupLock} from './scripts/local-setup-lock.mjs';
 import {initializeFreshMySqlSchema} from './scripts/initialize-fresh-mysql-schema.mjs';
 const e=process.env;
 if(e.GITHUB_ACTIONS!=='true'||e.RUNNER_ENVIRONMENT!=='github-hosted'||e.AADITECH_FRESH_SCHEMA_REHEARSAL!=='isolated-ci'||e.NODE_ENV!=='test'||e.DB_HOST!=='127.0.0.1'||e.DB_PORT!=='3306'||!/^\d{1,20}$/.test(e.GITHUB_RUN_ID??'')||!e.DB_ROOT_PASSWORD)throw Error('ISOLATED_CI_REQUIRED');
@@ -24,9 +25,10 @@ try{
  const files=new Map();for(const f of (await readdir(new URL('./database/migrations/',import.meta.url))).filter(x=>x.endsWith('.sql')).sort())files.set('database/migrations/'+f,await readFile(new URL('./database/migrations/'+f,import.meta.url)));
  await staged(async({input})=>{
   const {architecture,...release}=input;const policy={confirmation:'INITIALIZE_EMPTY_MYSQL_SCHEMA_ONLY_EXCLUSIVE_WRITER_CUSTODY',databaseName:db,release:{...release,confirmation:'ADMIT_SIGNED_FRESH_MYSQL_MIGRATIONS_ONLY'},identity:pins};
-  const lock={held:true};const guard=async()=>assert.equal(lock.held,true);
+  const lockRoot=join(root,'setup-lock');await mkdir(lockRoot,{mode:0o700});
+  const lock=operation=>withLocalSetupLock({confirmation:'ACQUIRE_LOCAL_SETUP_LOCK_ONLY',lockRoot},operation);
   conn=await mysql.createConnection({...options,database:db});
-  const result=await initializeFreshMySqlSchema(conn,policy,guard);
+  const result=await lock(({assertHeld})=>initializeFreshMySqlSchema(conn,policy,assertHeld));
   assert.equal(result.migrations_applied,24);assert.equal(result.clean_schema_verified,true);assert.equal(result.bootstrap_ready,true);assert.equal(result.database_binding_verified,true);
   const [[row]]=await conn.query('SELECT installation_id,identity_sha256 FROM installation_database_identity');assert.equal(row.installation_id,identity.installation_id);assert.equal(row.identity_sha256,identity.identity_sha256);
   for(const table of ['users','devices','companies','tenants','user_workspace_memberships','remediation_policies']){const [[r]]=await conn.query('SELECT COUNT(*) AS n FROM '+table);assert.equal(Number(r.n),0)}
@@ -46,7 +48,8 @@ try{
   const [[newUser]]=await conn.query('SELECT username,email,password_hash FROM users');assert.equal(newUser.username,body.admin_username);assert.equal(newUser.password_hash,passwordHash);
   await conn.end();conn=undefined;
   conn=await mysql.createConnection({...options,database:db});
-  await assert.rejects(()=>initializeFreshMySqlSchema(conn,policy,guard));conn=undefined;
+  await assert.rejects(()=>lock(({assertHeld})=>initializeFreshMySqlSchema(conn,policy,assertHeld)));conn=undefined;
+  assert.deepEqual(await readdir(lockRoot),['setup.lock']);
   const [[n]]=await admin.query('SELECT COUNT(*) AS n FROM `'+db+'`.schema_migrations');assert.equal(Number(n.n),24);
   console.log('PASS: signed 24-migration fresh schema, exact factory seed removal, persistent identity and occupied refusal; no application activation.');
  },null,files);

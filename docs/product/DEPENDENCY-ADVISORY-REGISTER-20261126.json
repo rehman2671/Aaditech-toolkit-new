@@ -529,5 +529,25 @@
     },
     "node_tests_passed": 2815,
     "compatible_candidate_changes": 0
+  },
+  "installed_mass22": {
+    "head": "a8cf03fc0933c07e4d6544895cd4f2484f27714a",
+    "run_id": 45708345245,
+    "job_id": 139535994694,
+    "lock_sha256": "2c2163f026bccd844ae09872690adf7465098d79c630f081be41cc0cf2272744",
+    "production": {
+      "critical": 0,
+      "high": 0,
+      "moderate": 0,
+      "total": 0
+    },
+    "full": {
+      "critical": 0,
+      "high": 0,
+      "moderate": 3,
+      "total": 3
+    },
+    "node_tests_passed": 2836,
+    "compatible_candidate_changes": 0
   }
 }

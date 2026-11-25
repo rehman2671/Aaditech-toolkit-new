@@ -3,8 +3,8 @@
 // Restricted to a disposable GitHub-hosted Linux x64 Actions runner.
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
-import {mkdir,chmod,readFile,lstat} from 'node:fs/promises';
-import {createStoppedComposeCandidates} from '../scripts/create-stopped-compose-candidates.mjs';
+import {mkdir,chmod,readFile,lstat,readdir} from 'node:fs/promises';
+import {createStoppedComposeCandidates,inspectStoppedComposeCandidates} from '../scripts/create-stopped-compose-candidates.mjs';
 import {operateExistingComposeServices} from '../scripts/local-compose-service-lifecycle.mjs';
 import {initializeFreshComposeEnvironment,validateFreshEnvironmentText} from '../scripts/initialize-fresh-compose-environment.mjs';
 import {randomUUID} from 'node:crypto';
@@ -23,6 +23,8 @@ if(process.argv.length!==2||process.env.GITHUB_ACTIONS!=='true'||process.env.RUN
 const docker=(args)=>{const r=spawnSync('/usr/bin/docker',['--host','unix:///run/docker.sock',...args],
  {encoding:'utf8',timeout:120000,maxBuffer:1024*1024,env:{PATH:'/usr/bin:/bin',HOME:process.env.HOME||'/tmp'}});
  if(r.status!==0||r.error)throw Error('CI_DOCKER_REHEARSAL_COMMAND_FAILED');return r.stdout};
+const migrationFiles=new Map();
+for(const file of (await readdir(new URL('../database/migrations/',import.meta.url))).filter(x=>x.endsWith('.sql')))migrationFiles.set('database/migrations/'+file,await readFile(new URL('../database/migrations/'+file,import.meta.url)));
 await staged(async({input,g})=>{
  const destinationParent=join(dirname(dirname(input.stagedDirectory)),'archive-output');
  await mkdir(destinationParent,{mode:0o700});await chmod(destinationParent,0o700);
@@ -89,6 +91,8 @@ await staged(async({input,g})=>{
    created=await createStoppedComposeCandidates(createInput);
    assert.equal(created.activation_blocked,true);assert.equal(created.services_started,false);assert.deepEqual((await inventory()).collision_counts,{containers:3,networks:1,volumes:5});
    for(const c of Object.values(created.containers))assert.equal(docker(['container','inspect','--format','{{.State.Status}}',c.containerId]).trim(),'created');
+   const observed=await inspectStoppedComposeCandidates({...createInput,confirmation:'INSPECT_PINNED_STOPPED_COMPOSE_CANDIDATES_ONLY',containers:created.containers});
+   assert.equal(observed.stopped_candidates_verified,true);assert.equal(observed.signed_migrations_verified,true);assert.equal(observed.containers_created,false);assert.equal(observed.installation_authorized,false);assert.deepEqual(observed.containers,created.containers);
    const blockedLock=join(dirname(destinationParent),'activation-blocked-lock');await mkdir(blockedLock,{mode:0o700});
    await assert.rejects(()=>operateExistingComposeServices({confirmation:'START_PINNED_EXISTING_COMPOSE_CONTAINERS_ONLY',operation:'start',project,lockRoot:blockedLock,containers:created.containers}));
    for(const c of Object.values(created.containers))assert.equal(docker(['container','inspect','--format','{{.State.Status}}',c.containerId]).trim(),'created');
@@ -111,4 +115,4 @@ await staged(async({input,g})=>{
   assert.deepEqual(final.images.map(x=>x.state),['NOT_FOUND','NOT_FOUND','NOT_FOUND']);
  }
  console.log('PASS: disposable signed fixture archive load, exact untagged store-specific pinned IDs, ordered diff IDs and scoped cleanup; no container execution or production acceptance.');
-});
+},null,migrationFiles);

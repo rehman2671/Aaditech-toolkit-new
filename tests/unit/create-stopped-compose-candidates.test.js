@@ -1,5 +1,5 @@
 import {it,expect} from 'vitest';
-import {validateStoppedCandidatePolicy as policy,deriveCandidateRoleEnvironment as derive,verifyCandidateImage as image,candidateLabels as labels,verifyStoppedCandidate as verify} from '../../scripts/create-stopped-compose-candidates.mjs';
+import {validateStoppedCandidatePolicy as policy,deriveCandidateRoleEnvironment as derive,verifyCandidateImage as image,candidateLabels as labels,verifyStoppedCandidate as verify,validateStoppedObservationPolicy as observe} from '../../scripts/create-stopped-compose-candidates.mjs';
 const sha='a'.repeat(64),networkId='c'.repeat(64),imageId='sha256:'+'d'.repeat(64),id='e'.repeat(64),project='aaditech',host='server.example.com';
 const release={confirmation:'INSPECT_SIGNED_OCI_RUNTIME_ONLY',stagedDirectory:'/private/stage',trustedManifestSha256:sha,trustedSignerSpkiSha256:'b'.repeat(64),trustedPublicKeyPem:'fixture',architecture:'amd64'};
 const input={confirmation:'CREATE_STOPPED_COMPOSE_CANDIDATES_ONLY_EXCLUSIVE_DAEMON_CUSTODY',project,lockRoot:'/private/lock',configDirectory:'/private/config',serverHost:host,release,configurationSha256:sha,networkId};
@@ -17,3 +17,8 @@ const row={Id:id,Image:imageId,Name:'/aaditech-caddy-1',State:{Status:'created',
 it('verifies stopped candidate and returns only pinned IDs',()=>expect(verify(row,e)).toEqual({containerId:id,imageId}));
 it.each([{Privileged:true},{PublishAllPorts:true},{PortBindings:{'443/tcp':[{HostPort:'443'}]}},{Binds:['/host:/data']},{CapAdd:['ALL']},{RestartPolicy:{Name:'always'}},{SecurityOpt:[]},{NetworkMode:'host'},{Mounts:[{Type:'bind'}]}])('rejects host-config drift %j',patch=>expect(()=>verify({...row,HostConfig:{...row.HostConfig,...patch}},e)).toThrow());
 it('rejects activation, extra secrets, mount and network drift',()=>{for(const patch of [{State:{...row.State,Status:'running',Running:true}},{Config:{...row.Config,Env:[...row.Config.Env,'MYSQL_ROOT_PASSWORD=bad']}},{Config:{...row.Config,Labels:{...l,'org.aaditech.activation-blocked':'false'}}},{Mounts:[]},{NetworkSettings:{Networks:{foreign:{}}}},{Name:'/foreign'}])expect(()=>verify({...row,...patch},e)).toThrow()});
+
+const pins=Object.fromEntries(['db','api','caddy'].map((r,i)=>[r,{containerId:String(i+1).repeat(64),imageId:'sha256:'+String(i+4).repeat(64)}]));
+const observation={...input,confirmation:'INSPECT_PINNED_STOPPED_COMPOSE_CANDIDATES_ONLY',containers:pins};
+it('read-only admission binds independently supplied distinct IDs and freezes them',()=>{const p=observe(observation);expect(p.containers).toEqual(pins);expect(Object.isFrozen(p.containers.db)).toBe(true)});
+it.each([{confirmation:'START'},{containers:{...pins,api:pins.db}},{containers:{...pins,db:{...pins.db,extra:true}}},{containers:{...pins,db:{...pins.db,imageId:'latest'}}},{containers:{...pins,db:{...pins.db,containerId:'0'.repeat(64)}}},{containers:{db:pins.db,api:pins.api}}])('rejects unsafe admission pins %j',patch=>expect(()=>observe({...observation,...patch})).toThrow());

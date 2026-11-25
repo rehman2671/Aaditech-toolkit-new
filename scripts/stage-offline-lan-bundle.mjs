@@ -5,6 +5,7 @@ import {constants} from 'node:fs';
 import {open,lstat,realpath,mkdtemp,mkdir,chmod,rm,statfs} from 'node:fs/promises';
 import {resolve,join,dirname,isAbsolute,relative,sep} from 'node:path';
 import {createHash} from 'node:crypto';
+import {inspectStagedLanBundle} from './inspect-staged-lan-bundle.mjs';
 import {verifySignedLanBundle} from './verify-lan-bundle.mjs';
 const fail=code=>{throw Error(code)};
 const maxBytes=64n*1024n*1024n*1024n;
@@ -71,14 +72,15 @@ export async function stageOfflineLanBundle({confirmation,bundle,destinationPare
  const parentStat=await assertDirectory(parent);
  if(await realpath(root)!==root||within(root,parent)||within(parent,root)||
     within(parent,resolve(input.manifest))||within(parent,resolve(input.signature)))fail('STAGING_SOURCE_DESTINATION_OVERLAP');
- const verified=await verifySignedLanBundle(input);
- if(!verified.publisher_signature_verified||!verified.payload_integrity_verified)fail('STAGING_RELEASE_UNVERIFIED');
  const manifest=await readSmall(input.manifest,2*1024*1024),signature=await readSmall(input.signature,64);
  if(sha(manifest)!==input.trustedManifestSha256||signature.length!==64)fail('STAGING_METADATA_INVALID');
  const doc=JSON.parse(manifest.toString('utf8'));
+ if(!Array.isArray(doc.files)||doc.files.length<1||doc.files.length>10000||doc.files.some(f=>!f||!Number.isSafeInteger(f.size)||f.size<0))fail('STAGING_METADATA_INVALID');
  const total=doc.files.reduce((n,f)=>n+BigInt(f.size),BigInt(manifest.length+signature.length));
  const fs=await statfs(parent,{bigint:true});
  if(total>maxBytes||fs.bavail<0n||fs.bsize<=0n||fs.bavail*fs.bsize<total+1048576n)fail('STAGING_CAPACITY_UNVERIFIED');
+ const verified=await verifySignedLanBundle(input);
+ if(!verified.publisher_signature_verified||!verified.payload_integrity_verified)fail('STAGING_RELEASE_UNVERIFIED');
  await assertDirectory(parent,parentStat);
  let stage;
  try{
@@ -96,12 +98,14 @@ export async function stageOfflineLanBundle({confirmation,bundle,destinationPare
   const manifestPath=join(stage,'manifest.json'),signaturePath=join(stage,'manifest.sig');
   await copyExact(input.manifest,manifestPath,manifest.length,sha(manifest));
   await copyExact(input.signature,signaturePath,signature.length,sha(signature));
-  const staged=await verifySignedLanBundle({...input,root:payload,manifest:manifestPath,signature:signaturePath});
+  const staged=await inspectStagedLanBundle({confirmation:'INSPECT_STAGED_RELEASE_ONLY',stagedDirectory:stage,
+  trustedManifestSha256:input.trustedManifestSha256,trustedPublicKeyPem:input.trustedPublicKeyPem,
+  trustedSignerSpkiSha256:input.trustedSignerSpkiSha256});
   if(staged.files!==verified.files||staged.approved_manifest_sha256!==verified.approved_manifest_sha256)fail('STAGING_RELEASE_UNVERIFIED');
   for(const d of [...directories].sort((a,b)=>b.length-a.length))await syncDirectory(d);
   await assertDirectory(parent,parentStat);await syncDirectory(parent);
   return Object.freeze({schema_version:1,staged_directory:stage,files:staged.files,approved_manifest_sha256:staged.approved_manifest_sha256,
-   staged_signature_verified:true,staged_payload_integrity_verified:true,runtime_imported:false,
+   staged_signature_verified:true,staged_payload_integrity_verified:true,private_custody_observed:true,runtime_imported:false,
    installation_authorized:false,offline_execution_verified:false,production_accepted:false});
  }catch(e){
   // Only remove the unique directory created by this operation, under trusted

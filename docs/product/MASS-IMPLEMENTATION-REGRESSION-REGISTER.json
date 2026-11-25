@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
-  "batch": "MASS-27",
+  "batch": "MASS-28",
   "date": "2026-11-26",
   "target": "20 implementation prompts planning target, 50–100 actual development tasks per batch aspirational; count only delivered functional work, not test cases",
-  "base_commit": "40cae1ed1adaf707c1885747ebabd27df3a4cbc2",
+  "base_commit": "828258a8df858a7599ef963bf5cb1ae7ed932813",
   "source_of_truth": [
     "docs/product/DELIVERY-TRACKER.json",
     "docs/product/TROUBLESHOOTING-WORK-REGISTER.json",
@@ -4074,7 +4074,38 @@
       ],
       "regression": [
         "Vitest suite parses and executes; exact-head CI pending"
-      ]
+      ],
+      "ci_evidence": {
+        "head": "828258a8df858a7599ef963bf5cb1ae7ed932813",
+        "run": 45712208933,
+        "jobs": [
+          {
+            "id": 139549214114,
+            "name": "PowerShell validation",
+            "status": "in_progress",
+            "conclusion": null
+          },
+          {
+            "id": 139549214750,
+            "name": "Node.js Unit & Integration Tests (Vitest + MySQL 8)",
+            "status": "completed",
+            "conclusion": "failure"
+          },
+          {
+            "id": 139549214774,
+            "name": "Offline Docker load compatibility (disposable runner)",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 139549526651,
+            "name": "API test suite (Node.js vs MySQL 8)",
+            "status": "completed",
+            "conclusion": "skipped"
+          }
+        ],
+        "scope": "Exact-head observation; actual disposable database component passed, N70 lint failed, no complete batch promotion or production acceptance"
+      }
     },
     {
       "id": "MASS-27-02",
@@ -4093,7 +4124,38 @@
       ],
       "regression": [
         "Invalid connection policies rejected before connect; actual MySQL component rehearsal pending"
-      ]
+      ],
+      "ci_evidence": {
+        "head": "828258a8df858a7599ef963bf5cb1ae7ed932813",
+        "run": 45712208933,
+        "jobs": [
+          {
+            "id": 139549214114,
+            "name": "PowerShell validation",
+            "status": "in_progress",
+            "conclusion": null
+          },
+          {
+            "id": 139549214750,
+            "name": "Node.js Unit & Integration Tests (Vitest + MySQL 8)",
+            "status": "completed",
+            "conclusion": "failure"
+          },
+          {
+            "id": 139549214774,
+            "name": "Offline Docker load compatibility (disposable runner)",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 139549526651,
+            "name": "API test suite (Node.js vs MySQL 8)",
+            "status": "completed",
+            "conclusion": "skipped"
+          }
+        ],
+        "scope": "Exact-head observation; actual disposable database component passed, N70 lint failed, no complete batch promotion or production acceptance"
+      }
     },
     {
       "id": "MASS-27-03",
@@ -4112,6 +4174,85 @@
       ],
       "regression": [
         "CI disposable runner actual MySQL 8; publisher-signed end-to-end activation not tested"
+      ],
+      "ci_evidence": {
+        "head": "828258a8df858a7599ef963bf5cb1ae7ed932813",
+        "run": 45712208933,
+        "jobs": [
+          {
+            "id": 139549214114,
+            "name": "PowerShell validation",
+            "status": "in_progress",
+            "conclusion": null
+          },
+          {
+            "id": 139549214750,
+            "name": "Node.js Unit & Integration Tests (Vitest + MySQL 8)",
+            "status": "completed",
+            "conclusion": "failure"
+          },
+          {
+            "id": 139549214774,
+            "name": "Offline Docker load compatibility (disposable runner)",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 139549526651,
+            "name": "API test suite (Node.js vs MySQL 8)",
+            "status": "completed",
+            "conclusion": "skipped"
+          }
+        ],
+        "scope": "Exact-head observation; actual disposable database component passed, N70 lint failed, no complete batch promotion or production acceptance"
+      }
+    },
+    {
+      "id": "MASS-28-01",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Require exact six-step mandatory offline compatibility workflow, locked install with disabled scripts and actual database rehearsal",
+      "dependencies": [
+        "MASS-27-03"
+      ],
+      "paths": [
+        "scripts/check-phase-n70-workflow-safety.cjs",
+        "tests/unit/stage70-workflow-safety.test.cjs",
+        ".github/workflows/ci.yml"
+      ],
+      "regression": [
+        "Nine negative N70 workflow mutations; no signing gate weakening"
+      ]
+    },
+    {
+      "id": "MASS-28-02",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Read-only signed initialized schema and clean bootstrap admission under pinned database session and installation identity",
+      "dependencies": [
+        "MASS-26-02",
+        "MASS-27-02"
+      ],
+      "paths": [
+        "scripts/initialize-fresh-mysql-schema.mjs",
+        "scripts/create-stopped-compose-candidates.mjs"
+      ],
+      "regression": [
+        "Actual MySQL clean admission, occupied and mismatched history/marker refusal pending CI"
+      ]
+    },
+    {
+      "id": "MASS-28-03",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Integrate fresh-schema reobservation into database-only receipt and expand real MySQL drift rehearsal",
+      "dependencies": [
+        "MASS-28-02",
+        "MASS-27-03"
+      ],
+      "paths": [
+        "scripts/create-stopped-compose-candidates.mjs",
+        "tests/ci-fresh-database-bridge-rehearsal.mjs"
+      ],
+      "regression": [
+        "Actual disposable MySQL clean admission, marker/history drift refusal, retained lock, fixture restoration; signed end-to-end activation remains pending"
       ]
     }
   ],
@@ -4553,6 +4694,50 @@
         ".github/workflows/ci.yml",
         "docs/product/FRESH-VOLUME-OWNERSHIP-AND-IDENTITY-MOUNT.md",
         "tests/ci-fresh-database-bridge-rehearsal.mjs"
+      ],
+      "exact_head_ci": {
+        "head": "828258a8df858a7599ef963bf5cb1ae7ed932813",
+        "run": 45712208933,
+        "jobs": [
+          {
+            "id": 139549214114,
+            "name": "PowerShell validation",
+            "status": "in_progress",
+            "conclusion": null
+          },
+          {
+            "id": 139549214750,
+            "name": "Node.js Unit & Integration Tests (Vitest + MySQL 8)",
+            "status": "completed",
+            "conclusion": "failure"
+          },
+          {
+            "id": 139549214774,
+            "name": "Offline Docker load compatibility (disposable runner)",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 139549526651,
+            "name": "API test suite (Node.js vs MySQL 8)",
+            "status": "completed",
+            "conclusion": "skipped"
+          }
+        ],
+        "scope": "Exact-head observation; actual disposable database component passed, N70 lint failed, no complete batch promotion or production acceptance"
+      }
+    },
+    {
+      "id": "MASS-28",
+      "base_commit": "828258a8df858a7599ef963bf5cb1ae7ed932813",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "evidence": [
+        "scripts/check-phase-n70-workflow-safety.cjs",
+        "tests/unit/stage70-workflow-safety.test.cjs",
+        "scripts/initialize-fresh-mysql-schema.mjs",
+        "scripts/create-stopped-compose-candidates.mjs",
+        "tests/ci-fresh-database-bridge-rehearsal.mjs",
+        "docs/product/FRESH-VOLUME-OWNERSHIP-AND-IDENTITY-MOUNT.md"
       ]
     }
   ]

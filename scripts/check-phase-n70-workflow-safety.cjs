@@ -61,13 +61,16 @@ function auditN70WorkflowBundle(files) {
       if (!offline || offline['runs-on']!=='ubuntu-latest' || offline.if!==undefined ||
           offline.environment!==undefined || offline.env!==undefined || offline['continue-on-error']!==undefined ||
           JSON.stringify(offline.permissions)!==JSON.stringify({contents:'read'}) ||
-          offline.steps.length!==4 || offline.steps[0].uses!=='actions/checkout@11d5960a326750d5838078e36cf38b85af677262' ||
+          offline.steps.length!==6 || offline.steps[0].uses!=='actions/checkout@11d5960a326750d5838078e36cf38b85af677262' ||
           offline.steps[0].with?.['persist-credentials']!==false ||
           offline.steps[1].uses!=='actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020' ||
           offline.steps[1].with?.['node-version']!=='24' ||
           offline.steps[2].run!=='node tests/ci-offline-docker-load-rehearsal.mjs' ||
           offline.steps[3].run!=='node tests/ci-existing-compose-lifecycle-rehearsal.mjs' ||
           offline.steps[3]['timeout-minutes']!==10 ||
+          offline.steps[4].run!=='npm ci --omit=dev --ignore-scripts' ||
+          offline.steps[5].run!=='node tests/ci-fresh-database-bridge-rehearsal.mjs' ||
+          offline.steps[5]['timeout-minutes']!==10 ||
           offline.steps.slice(2).some(s=>s.uses!==undefined||s.with!==undefined||s.shell!==undefined||s['working-directory']!==undefined) ||
           offline.steps.some(s=>s.if!==undefined||s.env!==undefined||s['continue-on-error']!==undefined) ||
           /\$\{\{/.test(JSON.stringify(offline))) fail();

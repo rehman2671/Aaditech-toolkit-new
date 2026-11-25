@@ -147,3 +147,63 @@ export async function initializeFreshMySqlSchema(connection,input,assertHeld){
   if(!done){if(transaction)try{await connection.rollback()}catch{}connection.destroy()}
  }
 }
+
+// Read-only pre-API admission under the same exclusive host/daemon/writer
+// custody as initialization. No recovery, migration, DDL, account creation,
+// or authorization to activate any service. Failure destroys the connection;
+// the caller retains its cooperative setup lock. Never infer readiness from
+// an empty users table or a receipt from a prior process.
+export async function verifyInitializedFreshMySqlSchema(connection,input,assertHeld){
+ let tx=false,done=false;
+ try{
+  if(!exact(input,['confirmation','databaseName','release','identity'])||input.confirmation!=='VERIFY_INITIALIZED_FRESH_MYSQL_SCHEMA_ONLY_EXCLUSIVE_WRITER_CUSTODY'||typeof assertHeld!=='function'||!connection||typeof connection.query!=='function'||typeof connection.destroy!=='function')fail();
+  const p=validateFreshSchemaRequest({...input,confirmation:'INITIALIZE_EMPTY_MYSQL_SCHEMA_ONLY_EXCLUSIVE_WRITER_CUSTODY'});
+  await assertHeld();
+  const admitted=await admitSignedFreshMigrations(p.release),local=await inspectLocalInstallationIdentity(p.identity);
+  const observe=async()=>{
+   await assertHeld();
+   const r=await query(connection,'SELECT DATABASE() AS db,@@server_uuid AS uuid,CONNECTION_ID() AS connection_id,@@version AS version');
+   if(r?.length!==1||r[0].db!==p.databaseName||typeof r[0].uuid!=='string'||!r[0].uuid||!Number.isSafeInteger(Number(r[0].connection_id))||Number(r[0].connection_id)<1||typeof r[0].version!=='string'||!/^8\\./.test(r[0].version)||/MariaDB/i.test(r[0].version))fail();
+   return r[0];
+  };
+  const initial=await observe(),lockName='itk_schema_migrations_lock';
+  const acquired=await query(connection,'SELECT GET_LOCK(?,0) AS acquired',[lockName]);
+  if(acquired?.length!==1||acquired[0].acquired!==1)fail();
+  const guard=async()=>{
+   if(JSON.stringify(await observe())!==JSON.stringify(initial))fail();
+   const r=await query(connection,'SELECT IS_USED_LOCK(?) AS owner',[lockName]);
+   if(r?.length!==1||Number(r[0].owner)!==Number(initial.connection_id))fail();
+   await assertHeld();
+  };
+  await guard();
+  await connection.query('START TRANSACTION READ ONLY');tx=true;
+  const names=await tableInventory(connection);
+  if(protectedTables.some(t=>!names.includes(t))||Object.keys(seeds).some(t=>!names.includes(t)))fail();
+  const rows=await query(connection,'SELECT version,name,checksum FROM schema_migrations');
+  const history=planMigrationHistory(admitted.files,rows);
+  if(history.pending.length!==0||history.applied.length!==24)fail();
+  if(await assertDatabaseIdentity(connection,p.identity)!==local.installation_id)fail();
+  const settings=await query(connection,'SELECT setting_key,setting_value FROM system_settings LIMIT 2');
+  if(settings?.length!==1||settings[0].setting_key!=='branding')fail();
+  const marker=typeof settings[0].setting_value==='string'?JSON.parse(settings[0].setting_value):settings[0].setting_value;
+  if(!exact(marker,['setup_complete','bootstrap_profile','installation_id','identity_sha256'])||marker.setup_complete!==false||marker.bootstrap_profile!=='clean_install_v1'||marker.installation_id!==local.installation_id||marker.identity_sha256!==local.identity_sha256)fail();
+  for(const table of names.filter(t=>!['schema_migrations','installation_database_identity','system_settings'].includes(t))){
+   const occupied=await query(connection,'SELECT 1 AS occupied FROM '+quoted(table)+' LIMIT 1');
+   if(!Array.isArray(occupied)||occupied.length)fail();
+  }
+  await guard();
+  const final=await admitSignedFreshMigrations(p.release);
+  if(final.manifest_sha256!==admitted.manifest_sha256||JSON.stringify(final.history)!==JSON.stringify(admitted.history)||(await tableInventory(connection)).join('|')!==names.join('|')||await assertDatabaseIdentity(connection,p.identity)!==local.installation_id)fail();
+  await guard();await connection.rollback();tx=false;
+  await guard();
+  const released=await query(connection,'SELECT RELEASE_LOCK(?) AS released',[lockName]);
+  if(released?.length!==1||released[0].released!==1)fail();
+  await assertHeld();done=true;
+  return Object.freeze({schema_version:1,database_name:p.databaseName,release_sha256:admitted.manifest_sha256,migrations_verified:24,installation_id:local.installation_id,identity_sha256:local.identity_sha256,database_binding_verified:true,clean_bootstrap_verified:true,read_only:true,api_activation_authorized:false,production_accepted:false});
+ }finally{
+  if(!done&&connection&&typeof connection.destroy==='function'){
+   if(tx)try{await connection.rollback()}catch{}
+   connection.destroy();
+  }
+ }
+}

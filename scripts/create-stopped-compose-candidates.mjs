@@ -15,7 +15,7 @@ import {inspectFreshComposeResources} from './fresh-compose-resource-inventory.m
 import {socketIdentity,requestLocalDockerJson} from './local-docker-runtime-preflight.mjs';
 import {withLocalSetupLock} from './local-setup-lock.mjs';
 import {rejectDuplicateJsonKeys} from './verify-lan-bundle.mjs';
-import {admitSignedFreshMigrations,initializeFreshMySqlSchema} from './initialize-fresh-mysql-schema.mjs';
+import {admitSignedFreshMigrations,initializeFreshMySqlSchema,verifyInitializedFreshMySqlSchema} from './initialize-fresh-mysql-schema.mjs';
 import {setTimeout as sleep} from 'node:timers/promises';
 import {isIPv4} from 'node:net';
 import {validateRuntimeStoragePolicy,checkOrPrepareFreshRuntimeStorage,runtimeIdentityEnvironment} from './fresh-runtime-storage.mjs';
@@ -308,12 +308,14 @@ async function stoppedCandidates(input,observeOnly,initializeDatabase=false){
     conn=await openPinnedFreshDatabaseConnection(started.ip,environments.db);
     await guard();
     const schema=await initializeFreshMySqlSchema(conn,{confirmation:'INITIALIZE_EMPTY_MYSQL_SCHEMA_ONLY_EXCLUSIVE_WRITER_CUSTODY',databaseName:environments.db.MYSQL_DATABASE,release:migrationPins,identity:p.storage.identity},guard);
+    const admission=await verifyInitializedFreshMySqlSchema(conn,{confirmation:'VERIFY_INITIALIZED_FRESH_MYSQL_SCHEMA_ONLY_EXCLUSIVE_WRITER_CUSTODY',databaseName:environments.db.MYSQL_DATABASE,release:migrationPins,identity:p.storage.identity},guard);
+    if(admission.installation_id!==schema.installation_id||admission.identity_sha256!==schema.identity_sha256||admission.clean_bootstrap_verified!==true)fail();
     await guard();await verifyImages();
     if(JSON.stringify(await inspectBoundOfflineRuntime(p.release))!==JSON.stringify(bound)||JSON.stringify(await admitSignedFreshMigrations(migrationPins))!==JSON.stringify(migrations))fail();
     await guard();
     await conn.end();conn=undefined;
     await guard();
-    return Object.freeze({schema_version:1,project:p.project,release_sha256:p.release.trustedManifestSha256,configuration_sha256:p.configurationSha256,network_id:p.networkId,containers:result,database_started:true,database_initialized:true,signed_migrations_verified:true,migrations_applied:schema.migrations_applied,installation_id:schema.installation_id,identity_sha256:schema.identity_sha256,database_binding_verified:schema.database_binding_verified,bootstrap_ready:schema.bootstrap_ready,api_started:false,ingress_started:false,activation_blocked:true,tls_verified:false,installation_authorized:false,production_accepted:false});
+    return Object.freeze({schema_version:1,project:p.project,release_sha256:p.release.trustedManifestSha256,configuration_sha256:p.configurationSha256,network_id:p.networkId,containers:result,database_started:true,database_initialized:true,signed_migrations_verified:true,migrations_applied:schema.migrations_applied,installation_id:schema.installation_id,identity_sha256:schema.identity_sha256,database_binding_verified:schema.database_binding_verified,bootstrap_ready:schema.bootstrap_ready,clean_bootstrap_reobserved:true,api_started:false,ingress_started:false,activation_blocked:true,tls_verified:false,installation_authorized:false,production_accepted:false});
    }catch{fail()}finally{if(conn)try{conn.destroy()}catch{}}
   }
   return {schema_version:1,project:p.project,release_sha256:p.release.trustedManifestSha256,configuration_sha256:p.configurationSha256,network_id:p.networkId,containers:result,containers_created:!observeOnly,stopped_candidates_verified:true,signed_migrations_verified:!!migrations,activation_blocked:true,services_started:false,database_initialized:false,volume_contents_verified:!!storage,api_volume_ownership_verified:!!storage,identity_mount_verified:!!storage,tls_verified:false,installation_authorized:false,production_accepted:false};

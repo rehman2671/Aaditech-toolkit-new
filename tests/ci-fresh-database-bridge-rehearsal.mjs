@@ -9,7 +9,7 @@ import {join} from 'node:path';
 import {setTimeout as sleep} from 'node:timers/promises';
 import {candidateLabels,candidateProcessSpec,freshDatabaseHealthCommand,verifyRunningFreshDatabase,openPinnedFreshDatabaseConnection} from '../scripts/create-stopped-compose-candidates.mjs';
 import {expectedFreshResources} from '../scripts/provision-fresh-compose-resources.mjs';
-import {initializeFreshMySqlSchema} from '../scripts/initialize-fresh-mysql-schema.mjs';
+import {initializeFreshMySqlSchema,verifyInitializedFreshMySqlSchema} from '../scripts/initialize-fresh-mysql-schema.mjs';
 import {initializeLocalInstallationIdentity} from '../scripts/installation-identity-store-posix.mjs';
 import {withLocalSetupLock} from '../scripts/local-setup-lock.mjs';
 import {staged} from './fixtures/signed-offline-oci-fixture.mjs';
@@ -49,6 +49,7 @@ try{
   assert.equal(inspect('container',id).State.Status,'created');
   const {architecture,...release}=input;
   const request={confirmation:'INITIALIZE_EMPTY_MYSQL_SCHEMA_ONLY_EXCLUSIVE_WRITER_CUSTODY',databaseName:'it_toolkit',release:{...release,confirmation:'ADMIT_SIGNED_FRESH_MYSQL_MIGRATIONS_ONLY'},identity:pins};
+  const readRequest={...request,confirmation:'VERIFY_INITIALIZED_FRESH_MYSQL_SCHEMA_ONLY_EXCLUSIVE_WRITER_CUSTODY'};
   await lock(async({assertHeld})=>{
    await assertHeld();docker(['container','start',id]);
    let pin;
@@ -63,6 +64,8 @@ try{
    conn=await openPinnedFreshDatabaseConnection(pin.ip,env);
    const result=await initializeFreshMySqlSchema(conn,request,guard);
    assert.equal(result.migrations_applied,24);assert.equal(result.bootstrap_ready,true);assert.equal(result.database_binding_verified,true);
+   const ready=await verifyInitializedFreshMySqlSchema(conn,readRequest,guard);
+   assert.equal(ready.migrations_verified,24);assert.equal(ready.clean_bootstrap_verified,true);assert.equal(ready.read_only,true);assert.equal(ready.api_activation_authorized,false);assert.equal(ready.installation_id,identity.installation_id);
    const [[row]]=await conn.query('SELECT installation_id,identity_sha256 FROM installation_database_identity');
    assert.equal(row.installation_id,identity.installation_id);assert.equal(row.identity_sha256,identity.identity_sha256);
    const [[count]]=await conn.query('SELECT COUNT(*) AS n FROM schema_migrations');assert.equal(Number(count.n),24);
@@ -72,6 +75,31 @@ try{
   assert.deepEqual(await readdir(lockRoot),[]);
   // A second initialization must deny the occupied schema and retain lock.
   const endpoint=verifyRunningFreshDatabase(inspect('container',id),expected,inspect('network',networkId));
+  // Exercise read-only denial on deliberate CI-only drift, then restore the
+  // fixture using a separate scoped session. Never repair real data here.
+  const driftCases=[
+   ["UPDATE system_settings SET setting_value=JSON_SET(setting_value,'$.setup_complete',true) WHERE setting_key='branding'","UPDATE system_settings SET setting_value=? WHERE setting_key='branding'"],
+   ["UPDATE schema_migrations SET checksum=REPEAT('0',64) WHERE version='001'","UPDATE schema_migrations SET checksum=? WHERE version='001'"]
+  ];
+  for(let i=0;i<driftCases.length;i++){
+   const failureRoot=join(root,'drift-lock-'+i);await mkdir(failureRoot,{mode:0o700});
+   conn=await openPinnedFreshDatabaseConnection(endpoint.ip,env);
+   const [saved]=await conn.query(i===0?"SELECT setting_value AS value FROM system_settings WHERE setting_key='branding'":"SELECT checksum AS value FROM schema_migrations WHERE version='001'");
+   assert.equal(saved.length,1);
+   const original=i===0&&typeof saved[0].value!=='string'?JSON.stringify(saved[0].value):saved[0].value;
+   await conn.query(driftCases[i][0]);await conn.end();conn=undefined;
+   conn=await openPinnedFreshDatabaseConnection(endpoint.ip,env);
+   await assert.rejects(()=>withLocalSetupLock({confirmation:'ACQUIRE_LOCAL_SETUP_LOCK_ONLY',lockRoot:failureRoot},({assertHeld})=>verifyInitializedFreshMySqlSchema(conn,readRequest,assertHeld)));
+   conn=undefined;
+   assert.deepEqual(await readdir(failureRoot),['setup.lock']);
+   conn=await openPinnedFreshDatabaseConnection(endpoint.ip,env);
+   const [drift]=await conn.query(i===0?"SELECT setting_value AS value FROM system_settings WHERE setting_key='branding'":"SELECT checksum AS value FROM schema_migrations WHERE version='001'");
+   assert.notDeepEqual(drift[0].value,saved[0].value);
+   await conn.query(driftCases[i][1],[original]);await conn.end();conn=undefined;
+  }
+  conn=await openPinnedFreshDatabaseConnection(endpoint.ip,env);
+  await lock(async({assertHeld})=>{const ready=await verifyInitializedFreshMySqlSchema(conn,readRequest,assertHeld);assert.equal(ready.clean_bootstrap_verified,true)});
+  await conn.end();conn=undefined;
   conn=await openPinnedFreshDatabaseConnection(endpoint.ip,env);
   await assert.rejects(()=>lock(({assertHeld})=>initializeFreshMySqlSchema(conn,request,assertHeld)));
   conn=undefined;
@@ -79,7 +107,7 @@ try{
   conn=await openPinnedFreshDatabaseConnection(endpoint.ip,env);
   const [[count]]=await conn.query('SELECT COUNT(*) AS n FROM schema_migrations');assert.equal(Number(count.n),24);
   await conn.end();conn=undefined;
-  console.log('PASS: real disposable MySQL 8 container, private bridge endpoint, scoped account, signed 24 migrations, identity binding, occupied denial and retained lock; not signed runtime activation.');
+  console.log('PASS: real disposable MySQL 8 container, private bridge endpoint, scoped account, signed 24 migrations, identity binding, read-only fresh admission, marker/history drift denial, occupied denial and retained lock; not signed runtime activation.');
  },null,files);
 }finally{
  if(conn)conn.destroy();

@@ -32,7 +32,7 @@ export async function bindFreshDatabaseIdentity(connection,policy,confirmation){
   if(!Array.isArray(rows))fail();
   if(rows.length)match(rows,local);
   else{
-   for(const table of ['devices','troubleshooting_incidents','troubleshooting_diagnostic_plans','troubleshooting_employee_bindings']){
+   for(const table of ['devices','troubleshooting_incidents','troubleshooting_diagnostic_plans','troubleshooting_employee_bindings','troubleshooting_incident_reviews','troubleshooting_incident_review_events']){
     const [data]=await connection.query('SELECT 1 AS occupied FROM '+table+' LIMIT 1 FOR UPDATE');
     if(!Array.isArray(data)||data.length)fail();
    }

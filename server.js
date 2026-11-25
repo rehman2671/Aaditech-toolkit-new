@@ -34,6 +34,7 @@ import {registerBoundEmployeeRoutes} from './troubleshooting-employee-routes.js'
 import {registerIncidentReviewRoutes} from './troubleshooting-review-routes.js';
 import {registerDiagnosticConsentRoutes} from './troubleshooting-consent-routes.js';
 import {registerServerConfigurationRoutes} from './server-configuration-routes.js';
+import {registerDeviceObservationRoutes} from './device-observation-routes.js';
 import { isValidSetupKey, isSeededDemoPasswordHash } from './setup-security.js';
 import { validateEnrollmentIdentity, validateFreshEnrollment, matchesEnrolledDeviceIdentifier, extractEnrolledDeviceHeaderToken, validateDeviceRevocationRequest, validatePendingCommandReconciliation } from './enrollment-security.js';
 import { resolveAgentOrigin } from './agent-origin.js';
@@ -1016,6 +1017,7 @@ registerBoundEmployeeRoutes(app,db);
 registerIncidentReviewRoutes(app,db);
 registerDiagnosticConsentRoutes(app,db);
 registerServerConfigurationRoutes(app,db);
+registerDeviceObservationRoutes(app,db);
 
 // Devices (Canonical v1 + Legacy aliases /api/devices and /api/agents)
 app.get(['/api/v1/devices', '/api/devices', '/api/agents'], async (req, res) => {

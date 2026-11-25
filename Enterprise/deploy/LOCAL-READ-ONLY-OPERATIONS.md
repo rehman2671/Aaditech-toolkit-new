@@ -139,3 +139,14 @@ node scripts/private-lan-tls-material-cli.mjs --confirm-local-read-only < tls-ma
 ```
 
 Checks local private custody, independent root pin, direct signature, exact DNS/IP SAN, dates, server EKU, matching key and local secure-context creation. No network, listener, certificate issuance, trust store changes, revocation proof or runtime install. Independent approved PKI, actual TLS handshake, physical LAN acceptance and fresh CI remain required.
+
+## Explicit locked identity metadata initialization (2026-11-25)
+
+Initialization **writes** local identity metadata; it is not a read-only command or an installation. Prepare independent existing trusted owner-only (0700) identity and lock directories. Use JSON via stdin containing exactly `directoryPath`, `lockRoot`, and `observed` with explicit `database`, `credentials`, `service` states. Only all `absent` is accepted; do not supply this unless independently observed. These inputs do not prove actual absence. Paths must be absolute and non-overlapping.
+
+```sh
+node scripts/local-installation-identity-cli.mjs --initialize-empty-store < identity-init.json
+node scripts/local-installation-identity-cli.mjs --inspect-pinned-store < identity-inspect.json
+```
+
+Retain the UUID and exact file digest in independently trusted custody. The inspection JSON contains exactly `directoryPath`, `expectedInstallationId`, `expectedIdentitySha256`. Never obtain the expected pins solely from a possibly replaced file. Failure or interruption can leave an exclusive setup.lock marker: do not automatically remove it or rerun initialization. Reconcile actual process/resource/identity state under operator review. No Windows ACL, hostile same-UID protection, database binding, restore or install execution. Fresh combined CI required.

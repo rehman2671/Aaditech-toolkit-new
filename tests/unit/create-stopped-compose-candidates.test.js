@@ -1,5 +1,10 @@
 import {describe,it,expect} from 'vitest';
-import {validateStoppedCandidatePolicy as policy,deriveCandidateRoleEnvironment as derive,verifyCandidateImage as image,candidateProcessSpec as processSpec,freshDatabaseHealthCommand,openPinnedFreshDatabaseConnection as connectDb,verifyRunningFreshDatabase as verifyDb,verifyRunningFreshPair as verifyPair,verifyFreshApiProbeReceipt as probeReceipt,validateFreshApiActivationPolicy as apiPolicy,validateFreshDatabaseActivationPolicy as dbPolicy,candidateLabels as labels,verifyStoppedCandidate as verify,validateStoppedObservationPolicy as observe} from '../../scripts/create-stopped-compose-candidates.mjs';
+import {execFileSync} from 'node:child_process';
+import {mkdtemp,readFile,rm} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {createHash,X509Certificate} from 'node:crypto';
+import {validateStoppedCandidatePolicy as policy,deriveCandidateRoleEnvironment as derive,verifyCandidateImage as image,candidateProcessSpec as processSpec,freshDatabaseHealthCommand,openPinnedFreshDatabaseConnection as connectDb,verifyRunningFreshDatabase as verifyDb,verifyRunningFreshPair as verifyPair,verifyFreshApiProbeReceipt as probeReceipt,validateFreshApiActivationPolicy as apiPolicy,validateFreshDatabaseActivationPolicy as dbPolicy,candidateLabels as labels,verifyStoppedCandidate as verify,validateStoppedObservationPolicy as observe,validatePrivateStackCreationPolicy as createPrivate,validatePrivateStackObservationPolicy as observePrivate,validatePrivateStackActivationPolicy as activatePrivate,privateCaddyProcessSpec,privateCaddyCommand} from '../../scripts/create-stopped-compose-candidates.mjs';
 const sha='a'.repeat(64),networkId='c'.repeat(64),imageId='sha256:'+'d'.repeat(64),id='e'.repeat(64),project='aaditech',host='server.example.com';
 const release={confirmation:'INSPECT_SIGNED_OCI_RUNTIME_ONLY',stagedDirectory:'/private/stage',trustedManifestSha256:sha,trustedSignerSpkiSha256:'b'.repeat(64),trustedPublicKeyPem:'fixture',architecture:'amd64'};
 const input={confirmation:'CREATE_STOPPED_COMPOSE_CANDIDATES_ONLY_EXCLUSIVE_DAEMON_CUSTODY',project,lockRoot:'/private/lock',configDirectory:'/private/config',serverHost:host,release,configurationSha256:sha,networkId};
@@ -146,4 +151,30 @@ describe('explicit fresh database-only admission',()=>{
  it.each([{MYSQL_USER:'root'},{MYSQL_DATABASE:'other'},{MYSQL_PASSWORD:'short'},{MYSQL_PASSWORD:env.db.MYSQL_ROOT_PASSWORD},{extra:true}])('rejects unsafe database connection parameters %j',async patch=>{
   await expect(connectDb('172.20.0.2',{...env.db,...patch})).rejects.toThrow();
  });
+});
+
+describe.skipIf(process.platform!=='linux')('explicit TLS-bound fresh stack policy',()=>{
+ it('accepts only independently pinned local TLS material and exact fresh profiles',async()=>{
+  const dir=await mkdtemp(join(tmpdir(),'private-stack-policy-'));
+  try{
+   execFileSync('/usr/bin/openssl',['req','-new','-x509','-newkey','rsa:2048','-nodes','-days','1','-subj','/CN=fixture','-addext','basicConstraints=critical,CA:TRUE','-keyout',join(dir,'key'),'-out',join(dir,'cert')],{stdio:'ignore',timeout:10000});
+   const rootPem=await readFile(join(dir,'cert'),'utf8'),trustedRootSha256=createHash('sha256').update(new X509Certificate(rootPem).raw).digest('hex');
+   const storage={identity:{confirmation:'INSPECT_PINNED_IDENTITY_STORE_ONLY',directoryPath:'/private/id',expectedInstallationId:'12345678-1234-4234-8234-123456789abc',expectedIdentitySha256:sha},runtimeIdentityParent:'/private/runtime-id'};
+   const tls={runtimeDirectory:'/private/tls',address:'127.0.0.1',rootPem,trustedRootSha256,trustedLeafSha256:sha,trustedCaddyfileSha256:sha};
+   const create={...input,confirmation:'CREATE_TLS_BOUND_STOPPED_CANDIDATES_ONLY_EXCLUSIVE_DAEMON_CUSTODY',storage,tls};
+   expect(createPrivate(create).tls).toEqual(tls);expect(Object.isFrozen(createPrivate(create).tls)).toBe(true);
+   const obs={...create,confirmation:'INSPECT_TLS_BOUND_STOPPED_CANDIDATES_ONLY',containers:pins};
+   const start={...obs,confirmation:'INITIALIZE_PINNED_FRESH_PRIVATE_STACK_ONLY_EXCLUSIVE_DAEMON_AND_WRITER_CUSTODY'};
+   expect(observePrivate(obs).containers).toEqual(pins);expect(activatePrivate(start).storage).toEqual(storage);
+   expect(()=>policy(create)).toThrow();expect(()=>observe(obs)).toThrow();expect(()=>dbPolicy(start)).toThrow();expect(()=>apiPolicy(start)).toThrow();
+   expect(()=>activatePrivate(obs)).toThrow();expect(()=>createPrivate(start)).toThrow();
+   for(const patch of [{runtimeDirectory:'/private/id'},{runtimeDirectory:'/private/config/tls'},{runtimeDirectory:'/private'},{runtimeDirectory:'/var/lib/docker/volumes/tls'},{runtimeDirectory:'/private/tls,other'},{address:'8.8.8.8'},{trustedRootSha256:'b'.repeat(64)},{trustedLeafSha256:'0'.repeat(64)},{trustedCaddyfileSha256:'short'},{extra:true}]){
+    expect(()=>createPrivate({...create,tls:{...tls,...patch}})).toThrow();
+   }
+  }finally{await rm(dir,{recursive:true,force:true})}
+ },20000);
+});
+it('pins private Caddy process rather than public ACME default',()=>{
+ expect(privateCaddyProcessSpec({Cmd:['caddy','run','--config','/etc/caddy/Caddyfile']})).toMatchObject({cmd:privateCaddyCommand,entrypoint:[]});
+ for(const patch of [{Entrypoint:['sh']},{User:'1000:1000'}])expect(()=>privateCaddyProcessSpec({Cmd:['caddy'],...patch})).toThrow();
 });

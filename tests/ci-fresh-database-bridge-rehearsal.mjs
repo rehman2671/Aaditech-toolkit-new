@@ -85,7 +85,7 @@ try{
   const readRequest={...request,confirmation:'VERIFY_INITIALIZED_FRESH_MYSQL_SCHEMA_ONLY_EXCLUSIVE_WRITER_CUSTODY'};
   let storage;
   const storagePolicy={identity:pins,runtimeIdentityParent};
-  const storageCheck=(assertHeld,prepare,databaseVolumeIdentity,apiVolumeIdentities)=>checkOrPrepareFreshRuntimeStorage({storage:storagePolicy,volumes:resources.volumes,inspect,continuity:async()=>{await assertHeld();return {value:JSON.parse(docker(['info','--format','{{json .}}']))}},prepare,databaseVolumeIdentity,apiVolumeIdentities});
+  const storageCheck=(assertHeld,prepare,databaseVolumeIdentity,apiVolumeIdentities,caddyVolumeIdentities)=>checkOrPrepareFreshRuntimeStorage({storage:storagePolicy,volumes:resources.volumes,inspect,continuity:async()=>{await assertHeld();return {value:JSON.parse(docker(['info','--format','{{json .}}']))}},prepare,databaseVolumeIdentity,apiVolumeIdentities,caddyVolumeIdentities});
   await lock(async({assertHeld})=>{
    storage=await storageCheck(assertHeld,true);
    assert.equal(storage.identity_copy_verified,true);assert.equal(storage.api_volume_ownership_verified,true);
@@ -222,6 +222,8 @@ try{
     const {health:dbHealth,...dbPin}=triple.db,{health:apiHealth,...apiPin}=triple.api;
     assert.deepEqual({db:dbPin,api:apiPin},pairPin);
     if(triplePin)assert.deepEqual(triple,triplePin);else triplePin=triple;
+    const observedStorage=await storageCheck(assertHeld,false,storage.databaseVolumeIdentity,storage.apiVolumeIdentities,storage.caddyVolumeIdentities);
+    assert.deepEqual(observedStorage.caddyVolumeIdentities,storage.caddyVolumeIdentities);
     assert.deepEqual(await inspectPinnedPrivateLanRuntime(tlsInput,assertHeld),tls);
     await assertHeld();return triple.caddy.ip;
    }

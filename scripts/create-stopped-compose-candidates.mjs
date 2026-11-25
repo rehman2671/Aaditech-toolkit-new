@@ -3,12 +3,13 @@
 // Create/inspect never start services. The separately confirmed fresh database
 // adapter starts ONLY the pinned database and initializes its signed schema.
 // A distinct combined fresh-only profile can also start the pinned API.
-// No ingress start, published ports, or production authorization.
+// Explicit TLS-bound profile can additionally start private bridge ingress.
+// No published host ports, client trust mutation or production authorization.
 import {execFile} from 'node:child_process';
 import {promisify} from 'node:util';
 import {constants} from 'node:fs';
 import {lstat,realpath,open,readdir} from 'node:fs/promises';
-import {join,relative,isAbsolute} from 'node:path';
+import {join,relative,isAbsolute,resolve} from 'node:path';
 import {validateFreshEnvironmentPolicy,validateFreshEnvironmentText} from './initialize-fresh-compose-environment.mjs';
 import {expectedFreshResources,verifyProvisionedNetwork,verifyProvisionedVolume} from './provision-fresh-compose-resources.mjs';
 import {inspectBoundOfflineRuntime,selectReleaseStoreIdentity} from './inspect-offline-oci-runtime.mjs';
@@ -20,6 +21,9 @@ import {admitSignedFreshMigrations,initializeFreshMySqlSchema,verifyInitializedF
 import {setTimeout as sleep} from 'node:timers/promises';
 import {isIPv4} from 'node:net';
 import {validateRuntimeStoragePolicy,checkOrPrepareFreshRuntimeStorage,runtimeIdentityEnvironment} from './fresh-runtime-storage.mjs';
+import {inspectPinnedPrivateLanRuntime} from './provision-fresh-private-lan-tls.mjs';
+import {validatePrivateTlsInputs} from './private-lan-tls-preflight.mjs';
+import {probePrivateLanHttps} from './probe-private-lan-https.mjs';
 const exec=promisify(execFile),binary='/usr/bin/docker',socket='/run/docker.sock';
 const fail=()=>{throw Error('STOPPED_COMPOSE_CANDIDATES_UNCONFIRMED')};
 const hex=x=>typeof x==='string'&&x.length===64&&/^[a-f0-9]{64}$/.test(x)&&!/^0+$/.test(x);
@@ -238,9 +242,42 @@ export async function initializeStoppedCandidateDatabaseAndApi(input){
  validateFreshApiActivationPolicy(input);
  return stoppedCandidates({...input,confirmation:'INSPECT_IDENTITY_BOUND_STOPPED_CANDIDATES_ONLY'},true,true,true);
 }
-async function stoppedCandidates(input,observeOnly,initializeDatabase=false,initializeApi=false){
+// A TLS-bound request is a separate exact profile. The host, identity and
+// TLS material pins cannot be independently substituted by another profile.
+function validateTlsCandidatePolicy(input,observeOnly,confirmation){
+ if(!input||input.confirmation!==confirmation||!Object.hasOwn(input,'tls')||!Object.hasOwn(input,'storage'))fail();
+ const {tls,...base}=input;
+ const p=observeOnly?validateStoppedObservationPolicy({...base,confirmation:'INSPECT_IDENTITY_BOUND_STOPPED_CANDIDATES_ONLY'}):validateStoppedCandidatePolicy({...base,confirmation:'CREATE_IDENTITY_BOUND_STOPPED_CANDIDATES_ONLY_EXCLUSIVE_DAEMON_CUSTODY'});
+ if(!exact(tls,['runtimeDirectory','address','rootPem','trustedRootSha256','trustedLeafSha256','trustedCaddyfileSha256'])||typeof tls.runtimeDirectory!=='string'||tls.runtimeDirectory.length>4096||!isAbsolute(tls.runtimeDirectory)||resolve(tls.runtimeDirectory)!==tls.runtimeDirectory||/[\x00-\x1f\x7f,]/.test(tls.runtimeDirectory)||!hex(tls.trustedRootSha256)||!hex(tls.trustedLeafSha256)||!hex(tls.trustedCaddyfileSha256))fail();
+ const nested=(a,b)=>{const q=relative(a,b);return q===''||!isAbsolute(q)&&q!=='..'&&!q.startsWith('../')};
+ for(const dir of [p.lockRoot,p.configDirectory,p.release.stagedDirectory,p.storage.identity.directoryPath,p.storage.runtimeIdentityParent,'/var/lib/docker']){
+  if(nested(dir,tls.runtimeDirectory)||nested(tls.runtimeDirectory,dir))fail();
+ }
+ const target=validatePrivateTlsInputs({address:tls.address,hostname:p.serverHost,port:443,rootPem:tls.rootPem,trustedRootSha256:tls.trustedRootSha256});
+ if(target.hostname!==p.serverHost)fail();
+ return Object.freeze({...p,tls:Object.freeze({...tls})});
+}
+const privateCreateConfirmation='CREATE_TLS_BOUND_STOPPED_CANDIDATES_ONLY_EXCLUSIVE_DAEMON_CUSTODY';
+const privateInspectConfirmation='INSPECT_TLS_BOUND_STOPPED_CANDIDATES_ONLY';
+const privateActivateConfirmation='INITIALIZE_PINNED_FRESH_PRIVATE_STACK_ONLY_EXCLUSIVE_DAEMON_AND_WRITER_CUSTODY';
+export function validatePrivateStackCreationPolicy(input){return validateTlsCandidatePolicy(input,false,privateCreateConfirmation)}
+export function validatePrivateStackObservationPolicy(input){return validateTlsCandidatePolicy(input,true,privateInspectConfirmation)}
+export function validatePrivateStackActivationPolicy(input){return validateTlsCandidatePolicy(input,true,privateActivateConfirmation)}
+export async function createPrivateStackCandidates(input){
+ validatePrivateStackCreationPolicy(input);
+ return stoppedCandidates(input,false,false,false,true,false);
+}
+export async function inspectPrivateStackCandidates(input){
+ validatePrivateStackObservationPolicy(input);
+ return stoppedCandidates(input,true,false,false,true,false);
+}
+export async function initializeStoppedPrivateStack(input){
+ validatePrivateStackActivationPolicy(input);
+ return stoppedCandidates(input,true,true,true,true,true);
+}
+async function stoppedCandidates(input,observeOnly,initializeDatabase=false,initializeApi=false,privateProfile=false,initializeIngress=false){
  if(process.platform!=='linux'||typeof process.geteuid!=='function')fail();
- const p=observeOnly?validateStoppedObservationPolicy(input):validateStoppedCandidatePolicy(input),dir=await privateDir(p.configDirectory);
+ const p=privateProfile?(initializeIngress?validatePrivateStackActivationPolicy(input):observeOnly?validatePrivateStackObservationPolicy(input):validatePrivateStackCreationPolicy(input)):(observeOnly?validateStoppedObservationPolicy(input):validateStoppedCandidatePolicy(input)),dir=await privateDir(p.configDirectory);
  return withLocalSetupLock({confirmation:'ACQUIRE_LOCAL_SETUP_LOCK_ONLY',lockRoot:p.lockRoot},async({assertHeld})=>{
   const b=await binaryIdentity(),s=await socketIdentity(),initial=await requestLocalDockerJson(socket,'/info'),daemon=initial.value?.ID;
   if(initial.missing!==false||typeof daemon!=='string'||!daemon||initial.value.OSType!=='linux')fail();
@@ -264,7 +301,12 @@ async function stoppedCandidates(input,observeOnly,initializeDatabase=false,init
    if(await readPinnedConfig(p,dir)!==config)fail();
    await continuity();
   }
-  const imageEnvironment={},imageProcesses={};
+  const tlsInput=p.tls?{confirmation:'INSPECT_PINNED_PRIVATE_LAN_RUNTIME_ONLY',...p.tls,hostname:p.serverHost,identity:p.storage.identity}:null;
+  const tls=tlsInput?await inspectPinnedPrivateLanRuntime(tlsInput,continuity):null;
+  async function verifyTls(){
+   if(tls&&JSON.stringify(await inspectPinnedPrivateLanRuntime(tlsInput,continuity))!==JSON.stringify(tls))fail();
+  }
+  const imageEnvironment={},imageProcesses={},originalProcesses={};
   async function verifyImages(){
    if(JSON.stringify(selectReleaseStoreIdentity(await continuity(),p.release.architecture,bound.release.images))!==JSON.stringify(store))fail();
    for(const role of roles){
@@ -272,15 +314,15 @@ async function stoppedCandidates(input,observeOnly,initializeDatabase=false,init
     const doc=await inspect('image',store.imageIds[rr]);if(p.storage&&role==='api'&&doc.Config?.User!=='1000:1000')fail();
     const e=verifyCandidateImage(doc,store.imageIds[rr],p.release.architecture,release.layers.map(x=>x.diff_id),role);
     if(imageEnvironment[role]&&JSON.stringify(e)!==JSON.stringify(imageEnvironment[role]))fail();
-    const processSpec=candidateProcessSpec(doc.Config);
-    if(imageProcesses[role]&&JSON.stringify(imageProcesses[role])!==JSON.stringify(processSpec))fail();
-    imageEnvironment[role]=e;imageProcesses[role]=processSpec;
+    const original=candidateProcessSpec(doc.Config),processSpec=tls&&role==='caddy'?privateCaddyProcessSpec(doc.Config):original;
+    if(originalProcesses[role]&&JSON.stringify(originalProcesses[role])!==JSON.stringify(original)||imageProcesses[role]&&JSON.stringify(imageProcesses[role])!==JSON.stringify(processSpec))fail();
+    originalProcesses[role]=original;imageEnvironment[role]=e;imageProcesses[role]=processSpec;
    }
   }
   const migrationPins={confirmation:'ADMIT_SIGNED_FRESH_MYSQL_MIGRATIONS_ONLY',stagedDirectory:p.release.stagedDirectory,trustedManifestSha256:p.release.trustedManifestSha256,trustedPublicKeyPem:p.release.trustedPublicKeyPem,trustedSignerSpkiSha256:p.release.trustedSignerSpkiSha256};
   const migrations=observeOnly||p.storage?await admitSignedFreshMigrations(migrationPins):null;
   await verifyImages();await inventory(observeOnly?3:0);
-  const checkStorage=(prepare,databaseVolumeIdentity,apiVolumeIdentities)=>checkOrPrepareFreshRuntimeStorage({storage:p.storage,volumes:resources.volumes,inspect,continuity,prepare,databaseVolumeIdentity,apiVolumeIdentities});
+  const checkStorage=(prepare,databaseVolumeIdentity,apiVolumeIdentities,caddyVolumeIdentities)=>checkOrPrepareFreshRuntimeStorage({storage:p.storage,volumes:resources.volumes,inspect,continuity,prepare,databaseVolumeIdentity,apiVolumeIdentities,caddyVolumeIdentities});
   const storage=p.storage?await checkStorage(!observeOnly):null;
   const result={},expected={};
   for(const role of roles){
@@ -289,23 +331,26 @@ async function stoppedCandidates(input,observeOnly,initializeDatabase=false,init
    const labels=candidateLabels(p.project,p.release.trustedManifestSha256,p.configurationSha256,role),imageId=store.imageIds[releaseRoles[role]],environment=environments[role];
    if(storage){await checkStorage(false);if(role==='api')labels['org.aaditech.identity-sha256']=p.storage.identity.expectedIdentitySha256}
    const identityMount=storage&&role==='api'?{source:storage.source,target:storage.target}:null;
+   const tlsMount=tls&&role==='caddy'?{source:tls.source,target:tls.target}:null;
+   if(tlsMount){await verifyTls();labels['org.aaditech.tls-leaf-sha256']=tls.leaf_sha256;labels['org.aaditech.caddyfile-sha256']=tls.caddyfile_sha256;}
    if(observeOnly){
     const pin=p.containers[role];if(pin.imageId!==imageId)fail();
-    expected[role]={id:pin.containerId,imageId,project:p.project,role,networkId:p.networkId,labels,environment,imageEnvironment:imageEnvironment[role],imageProcess:imageProcesses[role],identityMount};
+    expected[role]={id:pin.containerId,imageId,project:p.project,role,networkId:p.networkId,labels,environment,imageEnvironment:imageEnvironment[role],imageProcess:imageProcesses[role],identityMount,tlsMount};
     result[role]=verifyStoppedCandidate(await inspect('container',pin.containerId),expected[role]);continue;
    }
    const args=['container','create','--pull','never','--name',p.project+'-'+role+'-1','--network',p.networkId,'--network-alias',role,'--restart','no','--security-opt','no-new-privileges=true'];
    for(const [k,v] of Object.entries(labels))args.push('--label',k+'='+v);
    for(const [name,destination] of Object.entries(targets[role]))args.push('--mount','type=volume,source='+p.project+'_'+name+',target='+destination+',volume-nocopy');
    if(identityMount)args.push('--mount','type=bind,source='+identityMount.source+',target='+identityMount.target+',readonly,bind-propagation=rprivate');
+   if(tlsMount)args.push('--mount','type=bind,source='+tlsMount.source+',target='+tlsMount.target+',readonly,bind-propagation=rprivate');
    // Secret values are supplied only in the child environment, never argv,
    // stdout, error details or the receipt. Docker's privileged metadata
    // necessarily retains container environment; root custody is required.
    for(const key of Object.keys(environment))args.push('--env',key);
    if(role==='caddy')args.push('--no-healthcheck');else args.push('--health-cmd',health[role],'--health-interval','10s','--health-timeout','5s','--health-retries','5');
-   args.push(imageId);
+   args.push(imageId);if(tlsMount)args.push(...privateCaddyCommand);
    const id=(await run(args,environment)).trim();if(!hex(id))fail();
-   expected[role]={id,imageId,project:p.project,role,networkId:p.networkId,labels,environment,imageEnvironment:imageEnvironment[role],imageProcess:imageProcesses[role],identityMount};
+   expected[role]={id,imageId,project:p.project,role,networkId:p.networkId,labels,environment,imageEnvironment:imageEnvironment[role],imageProcess:imageProcesses[role],identityMount,tlsMount};
    result[role]=verifyStoppedCandidate(await inspect('container',id),expected[role]);
   }
   await inventory(3);
@@ -313,6 +358,7 @@ async function stoppedCandidates(input,observeOnly,initializeDatabase=false,init
   await verifyImages();const final=await inspectBoundOfflineRuntime(p.release);if(JSON.stringify(final)!==JSON.stringify(bound))fail();
   if(migrations&&JSON.stringify(await admitSignedFreshMigrations(migrationPins))!==JSON.stringify(migrations))fail();
   if(storage&&JSON.stringify(await checkStorage(false))!==JSON.stringify(storage))fail();
+  await verifyTls();
   await inventory(3);for(const role of roles)verifyStoppedCandidate(await inspect('container',result[role].containerId),expected[role]);await continuity();
   if(initializeDatabase){
    if(!observeOnly||!p.storage||!migrations||!storage?.databaseVolumeIdentity)fail();
@@ -340,7 +386,9 @@ async function stoppedCandidates(input,observeOnly,initializeDatabase=false,init
    const guard=async()=>{
     await continuity();
     if((await observeDatabase()).health!=='healthy')fail();
-    await checkStorage(false,storage.databaseVolumeIdentity);
+    const current=await checkStorage(false,storage.databaseVolumeIdentity);
+    if(JSON.stringify(current.apiVolumeIdentities)!==JSON.stringify(storage.apiVolumeIdentities)||JSON.stringify(current.caddyVolumeIdentities)!==JSON.stringify(storage.caddyVolumeIdentities))fail();
+    await verifyTls();
     if(await readPinnedConfig(p,dir)!==config)fail();
     await assertHeld();
    };
@@ -360,7 +408,7 @@ async function stoppedCandidates(input,observeOnly,initializeDatabase=false,init
     await guard();
     await conn.end();conn=undefined;
     await guard();
-    let apiReady=false;
+    let apiReady=false,ingressReady=false,httpsProof=null;
     if(initializeApi){
      if(!storage.apiVolumeIdentities||!admission.clean_bootstrap_verified)fail();
      // The database-only guard stays in force until the explicit API start.
@@ -377,8 +425,9 @@ async function stoppedCandidates(input,observeOnly,initializeDatabase=false,init
       const {health:dbHealth,...dbPin}=pair.db,{health:apiHealth,...apiCurrent}=pair.api;
       if(dbHealth!=='healthy'||JSON.stringify(dbPin)!==JSON.stringify(started)||apiPin&&JSON.stringify(apiCurrent)!==JSON.stringify(apiPin)||requireHealthy&&apiHealth!=='healthy')fail();
       apiPin=apiCurrent;
-      await checkStorage(false,storage.databaseVolumeIdentity,storage.apiVolumeIdentities);
-      await continuity();
+      const current=await checkStorage(false,storage.databaseVolumeIdentity,storage.apiVolumeIdentities);
+      if(JSON.stringify(current.caddyVolumeIdentities)!==JSON.stringify(storage.caddyVolumeIdentities))fail();
+      await verifyTls();await continuity();
       return apiHealth;
      };
      const apiDeadline=performance.now()+120000;
@@ -395,10 +444,41 @@ async function stoppedCandidates(input,observeOnly,initializeDatabase=false,init
      if(JSON.stringify(await inspectBoundOfflineRuntime(p.release))!==JSON.stringify(bound)||JSON.stringify(await admitSignedFreshMigrations(migrationPins))!==JSON.stringify(migrations))fail();
      await pairGuard(true);
      apiReady=true;
+     if(initializeIngress){
+      if(!tls||!storage.caddyVolumeIdentities||!apiPin)fail();
+      await pairGuard(true);await verifyTls();
+      // Start only the already admitted immutable TLS-bound Caddy candidate.
+      // Any failure retains the lock and observed resources for reconciliation.
+      await run(['container','start',result.caddy.containerId],{},60000);
+      let triplePin;
+      async function tripleGuard(){
+       await inventory(3,true);
+       const triple=verifyRunningFreshTriple(await inspect('container',dbId),await inspect('container',result.api.containerId),await inspect('container',result.caddy.containerId),expected,await inspect('network',p.networkId));
+       const {health:dbHealth,...dbPin}=triple.db,{health:apiHealth,...appPin}=triple.api;
+       if(dbHealth!=='healthy'||apiHealth!=='healthy'||JSON.stringify(dbPin)!==JSON.stringify(started)||JSON.stringify(appPin)!==JSON.stringify(apiPin)||triplePin&&JSON.stringify(triple)!==JSON.stringify(triplePin))fail();
+       triplePin=triple;
+       await checkStorage(false,storage.databaseVolumeIdentity,storage.apiVolumeIdentities,storage.caddyVolumeIdentities);
+       await verifyTls();await continuity();
+      }
+      await tripleGuard();
+      const endpoint={confirmation:'PROBE_PINNED_PRIVATE_LAN_HTTPS_ONLY',address:triplePin.caddy.ip,hostname:p.serverHost,port:443,rootPem:p.tls.rootPem,trustedRootSha256:tls.root_sha256,trustedLeafSha256:tls.leaf_sha256};
+      // Read-only readiness retries only; never repeat a container start or
+      // swallow a failed custody check. No DNS or unpinned TLS fallback.
+      const deadline=performance.now()+30000;
+      while(!httpsProof){
+       let custodyFailed=false;
+       const held=async()=>{try{await tripleGuard()}catch(e){custodyFailed=true;throw e}};
+       try{httpsProof=await probePrivateLanHttps(endpoint,held)}catch{if(custodyFailed||performance.now()>deadline)fail();await sleep(500)}
+      }
+      if(!httpsProof.exact_leaf_verified||!httpsProof.application_readiness_verified||!httpsProof.clean_setup_verified||!httpsProof.private_routes_denied)fail();
+      await tripleGuard();await verifyImages();
+      if(JSON.stringify(await inspectBoundOfflineRuntime(p.release))!==JSON.stringify(bound)||JSON.stringify(await admitSignedFreshMigrations(migrationPins))!==JSON.stringify(migrations))fail();
+      await tripleGuard();ingressReady=true;
+     }
     }
-    return Object.freeze({schema_version:1,project:p.project,release_sha256:p.release.trustedManifestSha256,configuration_sha256:p.configurationSha256,network_id:p.networkId,containers:result,database_started:true,database_initialized:true,signed_migrations_verified:true,migrations_applied:schema.migrations_applied,installation_id:schema.installation_id,identity_sha256:schema.identity_sha256,database_binding_verified:schema.database_binding_verified,bootstrap_ready:schema.bootstrap_ready,clean_bootstrap_reobserved:true,api_started:apiReady,api_runtime_identity_verified:apiReady,api_private_database_verified:apiReady,api_http_readiness_verified:apiReady,ingress_started:false,activation_blocked:true,tls_verified:false,installation_authorized:false,production_accepted:false});
+    return Object.freeze({schema_version:1,project:p.project,release_sha256:p.release.trustedManifestSha256,configuration_sha256:p.configurationSha256,network_id:p.networkId,containers:result,database_started:true,database_initialized:true,signed_migrations_verified:true,migrations_applied:schema.migrations_applied,installation_id:schema.installation_id,identity_sha256:schema.identity_sha256,database_binding_verified:schema.database_binding_verified,bootstrap_ready:schema.bootstrap_ready,clean_bootstrap_reobserved:true,api_started:apiReady,api_runtime_identity_verified:apiReady,api_private_database_verified:apiReady,api_http_readiness_verified:apiReady,ingress_started:ingressReady,activation_blocked:true,tls_verified:ingressReady,private_https_readiness_verified:ingressReady,private_routes_denied:ingressReady,host_ports_published:false,client_trust_installed:false,...(httpsProof?{root_sha256:httpsProof.root_sha256,leaf_sha256:httpsProof.leaf_sha256}:{}),installation_authorized:false,production_accepted:false});
    }catch{fail()}finally{if(conn)try{conn.destroy()}catch{}}
   }
-  return {schema_version:1,project:p.project,release_sha256:p.release.trustedManifestSha256,configuration_sha256:p.configurationSha256,network_id:p.networkId,containers:result,containers_created:!observeOnly,stopped_candidates_verified:true,signed_migrations_verified:!!migrations,activation_blocked:true,services_started:false,database_initialized:false,volume_contents_verified:!!storage,api_volume_ownership_verified:!!storage,identity_mount_verified:!!storage,tls_verified:false,installation_authorized:false,production_accepted:false};
+  return {schema_version:1,project:p.project,release_sha256:p.release.trustedManifestSha256,configuration_sha256:p.configurationSha256,network_id:p.networkId,containers:result,containers_created:!observeOnly,stopped_candidates_verified:true,signed_migrations_verified:!!migrations,activation_blocked:true,services_started:false,database_initialized:false,volume_contents_verified:!!storage,api_volume_ownership_verified:!!storage,identity_mount_verified:!!storage,private_tls_mount_verified:!!tls,tls_verified:false,installation_authorized:false,production_accepted:false};
  });
 }

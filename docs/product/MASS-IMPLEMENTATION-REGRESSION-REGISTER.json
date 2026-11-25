@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
-  "batch": "MASS-33",
+  "batch": "MASS-34",
   "date": "2026-11-26",
   "target": "20 implementation prompts planning target, 50–100 actual development tasks per batch aspirational; count only delivered functional work, not test cases",
-  "base_commit": "6670ed87aef5e25981e40b5682295431a3516cb6",
+  "base_commit": "84792c57c60353727ff426bccd757d34477aaa8e",
   "source_of_truth": [
     "docs/product/DELIVERY-TRACKER.json",
     "docs/product/TROUBLESHOOTING-WORK-REGISTER.json",
@@ -5061,7 +5061,38 @@
       ],
       "regression": [
         "Generated material admission; root/leaf/config mismatch, extra file, mode and config drift refusal"
-      ]
+      ],
+      "ci_evidence": {
+        "head": "84792c57c60353727ff426bccd757d34477aaa8e",
+        "run": 45714635960,
+        "jobs": [
+          {
+            "id": 139557432107,
+            "name": "PowerShell validation",
+            "status": "in_progress",
+            "conclusion": null
+          },
+          {
+            "id": 139557432454,
+            "name": "Offline Docker load compatibility (disposable runner)",
+            "status": "in_progress",
+            "conclusion": null
+          },
+          {
+            "id": 139557432521,
+            "name": "Node.js Unit & Integration Tests (Vitest + MySQL 8)",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 139558030441,
+            "name": "API test suite (Node.js vs MySQL 8)",
+            "status": "in_progress",
+            "conclusion": null
+          }
+        ],
+        "scope": "Exact-head observed job results; no production or signed end-to-end acceptance"
+      }
     },
     {
       "id": "MASS-33-02",
@@ -5078,7 +5109,38 @@
       ],
       "regression": [
         "Actual Caddy TLS component rehearsal with wrong root/leaf/hostname denial; production startup orchestration pending"
-      ]
+      ],
+      "ci_evidence": {
+        "head": "84792c57c60353727ff426bccd757d34477aaa8e",
+        "run": 45714635960,
+        "jobs": [
+          {
+            "id": 139557432107,
+            "name": "PowerShell validation",
+            "status": "in_progress",
+            "conclusion": null
+          },
+          {
+            "id": 139557432454,
+            "name": "Offline Docker load compatibility (disposable runner)",
+            "status": "in_progress",
+            "conclusion": null
+          },
+          {
+            "id": 139557432521,
+            "name": "Node.js Unit & Integration Tests (Vitest + MySQL 8)",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 139558030441,
+            "name": "API test suite (Node.js vs MySQL 8)",
+            "status": "in_progress",
+            "conclusion": null
+          }
+        ],
+        "scope": "Exact-head observed job results; no production or signed end-to-end acceptance"
+      }
     },
     {
       "id": "MASS-33-03",
@@ -5096,6 +5158,88 @@
       ],
       "regression": [
         "Actual real Caddy source component proof and scoped cleanup pending exact-head CI; no host ports or signed image acceptance"
+      ],
+      "ci_evidence": {
+        "head": "84792c57c60353727ff426bccd757d34477aaa8e",
+        "run": 45714635960,
+        "jobs": [
+          {
+            "id": 139557432107,
+            "name": "PowerShell validation",
+            "status": "in_progress",
+            "conclusion": null
+          },
+          {
+            "id": 139557432454,
+            "name": "Offline Docker load compatibility (disposable runner)",
+            "status": "in_progress",
+            "conclusion": null
+          },
+          {
+            "id": 139557432521,
+            "name": "Node.js Unit & Integration Tests (Vitest + MySQL 8)",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 139558030441,
+            "name": "API test suite (Node.js vs MySQL 8)",
+            "status": "in_progress",
+            "conclusion": null
+          }
+        ],
+        "scope": "Exact-head observed job results; no production or signed end-to-end acceptance"
+      }
+    },
+    {
+      "id": "MASS-34-01",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Separate exact TLS-bound signed stopped-stack create, inspect and activation policies with fixed Caddy command/mount and local CLI",
+      "dependencies": [
+        "MASS-30-01",
+        "MASS-33-01",
+        "MASS-33-02"
+      ],
+      "paths": [
+        "scripts/create-stopped-compose-candidates.mjs",
+        "tests/unit/create-stopped-compose-candidates.test.js",
+        "scripts/private-stack-candidates-cli.mjs"
+      ],
+      "regression": [
+        "Explicit profile, root/leaf/config pin, path overlap and legacy cross-profile rejection; full signed release adapter execution pending"
+      ]
+    },
+    {
+      "id": "MASS-34-02",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Combined private DB/API/Caddy activation under original setup lock and pinned HTTPS receipt",
+      "dependencies": [
+        "MASS-34-01",
+        "MASS-33-02"
+      ],
+      "paths": [
+        "scripts/create-stopped-compose-candidates.mjs",
+        "scripts/private-stack-candidates-cli.mjs"
+      ],
+      "regression": [
+        "Fixed triple and TLS probe; no public ports; actual signed full-stack orchestration pending"
+      ]
+    },
+    {
+      "id": "MASS-34-03",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Preserve independently pinned Caddy volumes across controlled first start and verify TLS/identity storage continuity",
+      "dependencies": [
+        "MASS-30-02",
+        "MASS-34-02"
+      ],
+      "paths": [
+        "scripts/create-stopped-compose-candidates.mjs",
+        "scripts/fresh-runtime-storage.mjs",
+        "tests/ci-fresh-database-bridge-rehearsal.mjs"
+      ],
+      "regression": [
+        "Actual disposable Caddy volume continuity rehearsal pending exact-head CI"
       ]
     }
   ],
@@ -5838,6 +5982,51 @@
         "Enterprise/deploy/PRIVATE-LAN-TLS-PREFLIGHT.md",
         "docs/product/FRESH-VOLUME-OWNERSHIP-AND-IDENTITY-MOUNT.md",
         "scripts/probe-private-lan-https.mjs"
+      ],
+      "exact_head_ci": {
+        "head": "84792c57c60353727ff426bccd757d34477aaa8e",
+        "run": 45714635960,
+        "jobs": [
+          {
+            "id": 139557432107,
+            "name": "PowerShell validation",
+            "status": "in_progress",
+            "conclusion": null
+          },
+          {
+            "id": 139557432454,
+            "name": "Offline Docker load compatibility (disposable runner)",
+            "status": "in_progress",
+            "conclusion": null
+          },
+          {
+            "id": 139557432521,
+            "name": "Node.js Unit & Integration Tests (Vitest + MySQL 8)",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 139558030441,
+            "name": "API test suite (Node.js vs MySQL 8)",
+            "status": "in_progress",
+            "conclusion": null
+          }
+        ],
+        "scope": "Exact-head observed job results; no production or signed end-to-end acceptance"
+      }
+    },
+    {
+      "id": "MASS-34",
+      "base_commit": "84792c57c60353727ff426bccd757d34477aaa8e",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "evidence": [
+        "scripts/create-stopped-compose-candidates.mjs",
+        "scripts/fresh-runtime-storage.mjs",
+        "tests/unit/create-stopped-compose-candidates.test.js",
+        "tests/ci-fresh-database-bridge-rehearsal.mjs",
+        "Enterprise/deploy/PRIVATE-LAN-TLS-PREFLIGHT.md",
+        "docs/product/FRESH-VOLUME-OWNERSHIP-AND-IDENTITY-MOUNT.md",
+        "scripts/private-stack-candidates-cli.mjs"
       ]
     }
   ]

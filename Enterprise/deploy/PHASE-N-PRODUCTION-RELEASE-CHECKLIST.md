@@ -808,3 +808,7 @@ Current batch stages independently pinned signed release bytes into private Linu
 ## 2026-11-25 — Staged custody and TLS material review gate
 
 Added independent staged release reinspection with private modes, exact tree and signed payload re-verification; staging publication reuses this check. Added local direct-root LAN leaf/key custody, exact SAN, server EKU, validity, key match and secure-context inspection. 53 named regression cases pending execution. #117 prior CI 45579087345: 1630/1632 tests, two Windows capability mapping mismatches corrected, PowerShell passed, API/MSI skipped. No runtime import, issuance, listener, trusted OS distribution, production approval or main merge.
+
+## 2026-11-25 — Local identity lock gate
+
+Dedicated persistent identity initialization, exact UUID/raw SHA-256-pinned readback and cooperative local setup lock are implemented in the review candidate; 82 new regression cases defined. Prior CI 45637884369 Node and API passed; PowerShell/MSI canceled. Fresh combined CI and independently approved actual runtime/resource observation, DB/backup binding, physical restore, Windows ACL and DEC-001 remain required. No production acceptance.

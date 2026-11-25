@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "batch": "MASS-06",
+  "batch": "MASS-07",
   "date": "2026-11-26",
   "target": "20 implementation prompts planning target, 50–100 actual development tasks per batch aspirational; count only delivered functional work, not test cases",
   "base_commit": "26f6dd7ad116e85e9fd52235f681c3d57f8f7a23",
@@ -2980,6 +2980,64 @@
         "tests/unit/review-retained-diagnostic-artifact.test.js",
         "Independent key and clock custody, expiry/replay and actual physical diagnostic attempt still pending"
       ]
+    },
+    {
+      "id": "MASS-07-01",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Human-confirmed current telemetry observation to scoped incident with source audit and exact retry",
+      "dependencies": [
+        "MASS-06-02",
+        "MASS-02-01",
+        "MASS-03-01"
+      ],
+      "paths": [
+        "device-observations.js",
+        "device-observation-routes.js",
+        "troubleshooting-incidents.js",
+        "Enterprise/portal/device-observations.html",
+        "Enterprise/portal/device-observations.js"
+      ],
+      "regression": [
+        "tests/unit/observation-incident.test.js",
+        "tests/unit/device-observation-routes.test.js",
+        "Real HTTP/MySQL telemetry refresh, role/tenant, exact replay, browser, technician hazard assessment and physical telemetry acceptance"
+      ]
+    },
+    {
+      "id": "MASS-07-02",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Read-only interrupted runtime switch recovery state inspector",
+      "dependencies": [
+        "MASS-05-01",
+        "MASS-04-03",
+        "M1"
+      ],
+      "paths": [
+        "scripts/switch-runtime-configuration.mjs",
+        "scripts/inspect-runtime-recovery-cli.mjs"
+      ],
+      "regression": [
+        "tests/unit/inspect-runtime-recovery.test.js",
+        "tests/unit/switch-runtime-configuration.test.js",
+        "Real crash/lock reconciliation, stopped service, restart and TLS/DB continuity remain"
+      ]
+    },
+    {
+      "id": "MASS-07-03",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Durable local single-use review proof challenge ledger and concurrent replay refusal",
+      "dependencies": [
+        "MASS-06-03",
+        "FE-16"
+      ],
+      "paths": [
+        "scripts/record-retained-diagnostic-review.mjs",
+        "scripts/record-retained-diagnostic-review-cli.mjs"
+      ],
+      "regression": [
+        "tests/unit/review-retained-diagnostic-artifact.test.js",
+        "Independent key/clock provenance, server/distributed replay, retention and actual attempt acceptance pending"
+      ]
     }
   ],
   "unresolved": [
@@ -2987,13 +3045,13 @@
       "id": "BLOCK-DOCKER-123",
       "source": "CI 45676377331",
       "failure": "loaded image identity reconciliation failed",
-      "next": "Investigate daemon image-store behavior and exact config/diff IDs; no production load"
+      "next": "Synthetic native OCI fixture passed exact Batch 06 CI 45692900554; earlier classic conversion mismatch is documented. Approved production native archive/importer, runtime execution and actual release acceptance remain pending; do not claim production compatibility."
     },
     {
       "id": "BLOCK-DOCKER-121",
       "source": "CI 45677600074",
       "failure": "image inventory mismatch",
-      "next": "Review alternate implementation, preserve tests, reconcile only verified changes"
+      "next": "Synthetic native OCI fixture passed exact Batch 06 CI 45692900554; earlier classic conversion mismatch is documented. Approved production native archive/importer, runtime execution and actual release acceptance remain pending; do not claim production compatibility."
     },
     {
       "id": "BLOCK-DEC-001",
@@ -3013,15 +3071,15 @@
     },
     {
       "id": "BLOCK-SETUP-EXECUTION",
-      "next": "Configuration candidate and local file switch/rollback plus Windows probe added; actual installer, independently verified service quiescence/restart, TLS/DB continuity and signed agent enrollment pending."
+      "next": "Read-only interrupted config switch inspection added; real service quiescence/restart, TLS/DB continuity, approved installer and physical recovery remain."
     },
     {
       "id": "BLOCK-DIAGNOSTIC-EXECUTION",
-      "next": "Local retained signature/content review bridge added; independent signer credential and clock custody, durable replay, actual collection authorization and physical attempt/independent outcome remain pending."
+      "next": "Local single-use review challenge ledger added; actual collection consent, credential-bound execution, independent custody and distributed attempt ledger remain."
     },
     {
       "id": "BLOCK-DOCKER-45691335891",
-      "next": "Batch 05 exact log points to containerd manifest vs classic config identity. Native OCI synthetic fixture path added; fresh CI must verify exact signed IDs and cleanup. No production import approval."
+      "next": "Synthetic native OCI fixture passed exact Batch 06 CI 45692900554; earlier classic conversion mismatch is documented. Approved production native archive/importer, runtime execution and actual release acceptance remain pending; do not claim production compatibility."
     }
   ],
   "regression": {
@@ -3088,6 +3146,15 @@
         "ca21ed8959b9237901c69c242bd53d5b8dbf5bc8",
         "2201b31c558cf3630a868a62a92db9113d2171f2",
         "de051c6bf9813a47c571005e16b2498998cb7a62"
+      ],
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI"
+    },
+    {
+      "id": "MASS-07",
+      "source_commits": [
+        "a8a3400a54bfebb8838c66ffbca827c68c5954d8",
+        "d61cc0a5badf0b2ec8c094d46a3a4728d4c95038",
+        "6035e9426674a9fe66da11597e7ed3980a6a7d7e"
       ],
       "status": "SOURCE_IMPLEMENTED_PENDING_CI"
     }

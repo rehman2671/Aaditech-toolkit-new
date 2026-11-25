@@ -14,7 +14,7 @@ const fields=['dev','ino','uid','mode','size','nlink','mtimeMs','ctimeMs'];
 const same=(a,b,keys=fields)=>keys.every(k=>a[k]===b[k]);
 const pad=n=>(512-n%512)%512;
 const maxArchive=33*1024**3;
-function header(name,size){
+export function canonicalDockerArchiveHeader(name,size){
  if(typeof name!=='string'||name.length>100||!/^[a-z0-9.-]+$/.test(name)||
    !Number.isSafeInteger(size)||size<0||size>0o77777777777)fail();
  const h=Buffer.alloc(512);
@@ -109,11 +109,11 @@ export async function prepareOfflineDockerArchive(input={}){
    let n=0;while(n<b.length){const r=await fd.write(b,n,b.length-n,count+n);if(!r.bytesWritten)fail();n+=r.bytesWritten}
    count+=b.length;hash.update(b);
   };
-  const member=async(name,bytes)=>{await write(header(name,bytes.length));await write(bytes);await write(Buffer.alloc(pad(bytes.length)))};
+  const member=async(name,bytes)=>{await write(canonicalDockerArchiveHeader(name,bytes.length));await write(bytes);await write(Buffer.alloc(pad(bytes.length)))};
   const blobs=join(stagedDirectory,'payload','runtime','blobs','sha256');
   for(const [name,c] of plan.configs)await member(name,await configBytes(join(blobs,c.digest),c.size,c.digest));
   for(const [name,l] of plan.layers){
-   await write(header(name,l.uncompressed_bytes));
+   await write(canonicalDockerArchiveHeader(name,l.uncompressed_bytes));
    const n=await verifyGzipLayerFile(join(blobs,l.blob_sha256),{size:l.compressed_bytes,sha256:l.blob_sha256},l.diff_id,l.uncompressed_bytes,true,null,write);
    if(n!==l.uncompressed_bytes)fail();await write(Buffer.alloc(pad(n)));
   }

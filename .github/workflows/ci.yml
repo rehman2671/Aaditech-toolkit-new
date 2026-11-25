@@ -429,6 +429,9 @@ jobs:
           console.log('PASS: actual local Docker socket observation and missing image refusal.');
           NODE
 
+      - name: Rehearse signed fixture Docker archive load on disposable runner
+        run: node tests/ci-offline-docker-load-rehearsal.mjs
+
       - name: Run Vitest unit & integration test suite (enforcing 70%+ coverage)
         env:
           DB_HOST: 127.0.0.1

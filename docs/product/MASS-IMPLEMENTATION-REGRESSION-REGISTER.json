@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "batch": "MASS-08",
+  "batch": "MASS-09",
   "date": "2026-11-26",
   "target": "20 implementation prompts planning target, 50–100 actual development tasks per batch aspirational; count only delivered functional work, not test cases",
   "base_commit": "26f6dd7ad116e85e9fd52235f681c3d57f8f7a23",
@@ -3102,6 +3102,63 @@
         "tests/unit/prepare-native-oci-archive.test.js",
         "Independent archive reread verifier and approved production daemon import/release rehearsal pending"
       ]
+    },
+    {
+      "id": "MASS-09-01",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Independent native OCI archive admission against signed original members",
+      "dependencies": [
+        "MASS-08-03",
+        "MASS-06-01",
+        "M1"
+      ],
+      "paths": [
+        "scripts/verify-native-oci-archive.mjs",
+        "scripts/verify-native-oci-archive-cli.mjs"
+      ],
+      "regression": [
+        "tests/unit/verify-native-oci-archive.test.js",
+        "Fresh disposable CI, production release profile acceptance pending"
+      ]
+    },
+    {
+      "id": "MASS-09-02",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Explicit local native OCI image import and disposable native CI integration with exact store-specific identities",
+      "dependencies": [
+        "MASS-09-01",
+        "MASS-08-03",
+        "M1",
+        "DEC-001"
+      ],
+      "paths": [
+        "scripts/import-native-oci-archive.mjs",
+        "scripts/import-native-oci-archive-cli.mjs",
+        "scripts/local-docker-runtime-preflight.mjs",
+        "tests/ci-offline-docker-load-rehearsal.mjs"
+      ],
+      "regression": [
+        "tests/unit/import-native-oci-archive.test.js",
+        "Disposable native store import, expected IDs/layers/tags and fixture cleanup; real production release, partial failure reconciliation and operator approval pending"
+      ]
+    },
+    {
+      "id": "MASS-09-03",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Qualified referral gate for hazardous human screening and review audit",
+      "dependencies": [
+        "MASS-08-02",
+        "MASS-03-01",
+        "M5"
+      ],
+      "paths": [
+        "troubleshooting-incident-review.js",
+        "Enterprise/portal/troubleshooting-review.js"
+      ],
+      "regression": [
+        "tests/unit/troubleshooting-incident-review.test.js",
+        "Real MySQL/HTTP concurrency, role scope, historical replay and browser referral; no reassessment or verified handoff"
+      ]
     }
   ],
   "unresolved": [
@@ -3135,11 +3192,11 @@
     },
     {
       "id": "BLOCK-SETUP-EXECUTION",
-      "next": "Native OCI preparation candidate and read-only switch recovery available; independent native archive verifier, actual importer, approved installer, service lifecycle, TLS/DB continuity and physical acceptance pending."
+      "next": "Native archive preparation, independent admission and explicit local import source adapter now available. Fresh disposable CI, actual approved production release, installer and service lifecycle, TLS/DB continuity and physical acceptance pending."
     },
     {
       "id": "BLOCK-DIAGNOSTIC-EXECUTION",
-      "next": "Immutable human hazard screening available for unknown cases; no safety certification, no automatic plan unlock. Actual collection consent, safe reassessment/planning integration, credential-bound execution and distributed evidence custody pending."
+      "next": "Hazard screening and qualified referral gate implemented. Reassessment, approved collection consent, credential-bound execution and distributed evidence custody pending."
     },
     {
       "id": "BLOCK-DOCKER-45691335891",
@@ -3147,7 +3204,7 @@
     },
     {
       "id": "BLOCK-CI-45693682569",
-      "next": "Batch 07 freshness reference failure addressed by shared constant; fresh exact-head CI needed to confirm Node/API and MSI gates."
+      "next": "Batch 08 exact Node/Vitest passed on CI 45694682997; dependent API/MSI verification tracked separately."
     }
   ],
   "regression": {
@@ -3232,6 +3289,15 @@
         "afcd61fb0631deee9c920ccdad11f6981c0a2e19",
         "f26aa770d153e306ef4a11a28ad1ea91cc13a846",
         "6c02ba4e17342c701353b2425c888db8a9f2583f"
+      ],
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI"
+    },
+    {
+      "id": "MASS-09",
+      "source_commits": [
+        "74c2bacc13ace6744b98fe79f69ae696ee80640b",
+        "72f83c76a23d67959d8655096846fd4c49e80740",
+        "bfdc0356abbf4d10226c0f0b2d23cb875c94d43f"
       ],
       "status": "SOURCE_IMPLEMENTED_PENDING_CI"
     }

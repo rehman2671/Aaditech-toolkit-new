@@ -80,3 +80,66 @@ describe('offline authenticated backup identity preflight',()=>{
     await expect(verifyAuthenticatedBackup(backup)).rejects.toThrow('INVALID_BACKUP_FILE');
   }));
 });
+
+
+describe('strict backup provenance boundaries',()=>{
+ const record={schema_version:1,installation_id:A,backup_id:B,created_at:'2026-11-24T00:00:00.000Z',
+  format:'encrypted-backup-container',payload_size:1,payload_sha256:'a'.repeat(64)};
+ const bad=[
+ ['null',()=>null],['array',()=>[]],['inherited',r=>Object.create(r)],
+ ['extra',r=>({...r,extra:true})],['symbol',r=>({...r,[Symbol('extra')]:1})],
+ ['hidden',r=>{Object.defineProperty(r,'backup_id',{enumerable:false});return r}],
+ ['missing',r=>{delete r.backup_id;return r}],
+ ['schema string',r=>({...r,schema_version:'1'})],['wrong format',r=>({...r,format:'plaintext'})],
+ ['bad calendar',r=>({...r,created_at:'2026-02-30T00:00:00.000Z'})],
+ ['non-UTC',r=>({...r,created_at:'2026-11-24T00:00:00.000+00:00'})],
+ ['leap second',r=>({...r,created_at:'2026-11-24T00:00:60.000Z'})],
+ ['zero size',r=>({...r,payload_size:0})],['negative size',r=>({...r,payload_size:-1})],
+ ['fractional size',r=>({...r,payload_size:1.5})],['string size',r=>({...r,payload_size:'1'})],
+ ['oversize',r=>({...r,payload_size:1024**4+1})],['NaN size',r=>({...r,payload_size:NaN})],
+ ['uppercase digest',r=>({...r,payload_sha256:'A'.repeat(64)})],
+ ['short digest',r=>({...r,payload_sha256:'a'.repeat(63)})],
+ ['nonhex digest',r=>({...r,payload_sha256:'g'.repeat(64)})],
+ ['newline digest',r=>({...r,payload_sha256:'a'.repeat(63)+'\n'})],
+ ['bad install UUID',r=>({...r,installation_id:'invalid'})],
+ ['bad backup UUID',r=>({...r,backup_id:B.toUpperCase()})]
+ ];
+ it.each(bad)('rejects manifest %s',(_name,change)=>expect(()=>canonicalBackupManifest(change({...record}))).toThrow());
+ it('does not invoke manifest getters',()=>{
+  let reads=0;const r={...record};Object.defineProperty(r,'payload_size',{enumerable:true,get(){reads++;return 1}});
+  expect(()=>canonicalBackupManifest(r)).toThrow('INVALID_BACKUP_MANIFEST');expect(reads).toBe(0);
+ });
+ const paths=[
+ ['relative manifest',b=>({...b,manifestPath:'manifest.json'})],
+ ['relative payload',b=>({...b,payloadPath:'backup.bin'})],
+ ['relative signature',b=>({...b,signaturePath:'manifest.sig'})],
+ ['aliased lexical path',b=>({...b,payloadPath:b.payloadPath.replace(/[^/\\]+$/,'./backup.bin')})],
+ ['duplicate signature',b=>({...b,signaturePath:b.manifestPath})],
+ ['duplicate payload',b=>({...b,payloadPath:b.manifestPath})],
+ ['NUL',b=>({...b,payloadPath:b.payloadPath+'\0'})],
+ ['line break',b=>({...b,payloadPath:b.payloadPath+'\n'})],
+ ['too long',b=>({...b,payloadPath:b.payloadPath+'x'.repeat(4096)})],
+ ['number path',b=>({...b,payloadPath:1})]
+ ];
+ it.each(paths)('rejects %s before file reads',(_name,change)=>fixture(async({backup})=>{
+  await expect(verifyAuthenticatedBackup(change(backup))).rejects.toThrow('BACKUP_PATH_INVALID');
+ }));
+ it('rejects inherited, unknown and getter-backed backup records',()=>fixture(async({backup})=>{
+  let reads=0;const access={...backup};Object.defineProperty(access,'payloadPath',{enumerable:true,get(){reads++;return backup.payloadPath}});
+  for(const b of [Object.create(backup),{...backup,extra:true},access])
+   await expect(verifyAuthenticatedBackup(b)).rejects.toThrow('EXPLICIT_BACKUP_INPUT_REQUIRED');
+  expect(reads).toBe(0);
+ }));
+ it.each(['concatenated','extra newline','invalid base64','private key header'])('rejects %s PEM',kind=>fixture(async({backup})=>{
+  const p=backup.trustedPublicKeyPem;
+  const pem=kind==='concatenated'?p+p:kind==='extra newline'?p+'\n\n':
+   kind==='invalid base64'?'-----BEGIN PUBLIC KEY-----\nAAAA\n-----END PUBLIC KEY-----\n':p.replaceAll('PUBLIC KEY','PRIVATE KEY');
+  await expect(verifyAuthenticatedBackup({...backup,trustedPublicKeyPem:pem})).rejects.toThrow('TRUSTED_PUBLIC_KEY_REQUIRED');
+ }));
+ it('preserves the initial blocked restore decision despite later observation mutation',()=>fixture(async({backup})=>{
+  const observed={...empty};const identity={schema_version:1,installation_id:B};
+  const pending=preflightAuthenticatedRestore({backup,observed,localIdentity:identity,intent:'restore-same'});
+  Object.assign(observed,live);identity.installation_id=A;
+  const r=await pending;expect(r.decision).toMatchObject({decision:'BLOCKED',reason:'CROSS_INSTALLATION_RESTORE_FORBIDDEN'});
+ }));
+});

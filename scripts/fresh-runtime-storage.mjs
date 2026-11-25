@@ -83,18 +83,27 @@ async function sourceIdentity(storage){
  await inspectLocalInstallationIdentity(storage.identity);
  return readIdentity(join(storage.identity.directoryPath,file),0,null,storage.identity);
 }
-export async function checkOrPrepareFreshRuntimeStorage({storage,volumes,inspect,continuity,prepare}){
+export async function checkOrPrepareFreshRuntimeStorage({storage,volumes,inspect,continuity,prepare,databaseVolumeIdentity}){
  if(process.platform!=='linux'||process.geteuid?.()!==0||typeof inspect!=='function'||typeof continuity!=='function'||typeof prepare!=='boolean')fail();
+ if(databaseVolumeIdentity&&(prepare||!exact(databaseVolumeIdentity,['path','dev','ino'])||typeof databaseVolumeIdentity.path!=='string'||!Number.isSafeInteger(databaseVolumeIdentity.dev)||!Number.isSafeInteger(databaseVolumeIdentity.ino)))fail();
+ async function observeVolume(path,api,prepared,isDatabase){
+  if(!isDatabase||!databaseVolumeIdentity)return emptyVolume(path,api,prepared);
+  // The pinned database alone may become populated and change owner after
+  // its explicitly admitted first start. It must remain the same directory.
+  await checkRootPath(path);const s=await lstat(path);
+  if(path!==databaseVolumeIdentity.path||!s.isDirectory()||await realpath(path)!==path||s.dev!==databaseVolumeIdentity.dev||s.ino!==databaseVolumeIdentity.ino||(s.mode&0o7022)!==0)fail();
+  return s;
+ }
  const parent=await directory(storage.runtimeIdentityParent,0,null,0o700),dest=join(storage.runtimeIdentityParent,'runtime-identity');
  const guard=async()=>{const result=await continuity();verifyRootfulStorageDaemon(result.value);await directory(storage.runtimeIdentityParent,0,null,0o700,parent)};
  await guard();const bytes=await sourceIdentity(storage),records=[];
  for(const v of volumes){
   const role=v.labels['com.docker.compose.volume'],api=['api_data','agent_artifacts'].includes(role);
   if(!['mysqldata','api_data','agent_artifacts','caddy_data','caddy_config'].includes(role))fail();
-  const path=expectedVolumeMountpoint(await inspect('volume',v.name),v),stat=await emptyVolume(path,api,!prepare);
-  records.push({path,api,stat});
+  const isDatabase=role==='mysqldata',path=expectedVolumeMountpoint(await inspect('volume',v.name),v),stat=await observeVolume(path,api,!prepare,isDatabase);
+  records.push({path,api,stat,isDatabase});
  }
- if(records.length!==5||new Set(records.map(x=>x.path)).size!==5||records.filter(x=>x.api).length!==2)fail();
+ if(records.length!==5||new Set(records.map(x=>x.path)).size!==5||records.filter(x=>x.api).length!==2||records.filter(x=>x.isDatabase).length!==1)fail();
  await guard();
  if(prepare){
   await noContents(storage.runtimeIdentityParent);
@@ -115,9 +124,10 @@ export async function checkOrPrepareFreshRuntimeStorage({storage,volumes,inspect
  if(!(await readIdentity(join(dest,file),uid,gid,storage.identity)).equals(bytes)||!(await sourceIdentity(storage)).equals(bytes))fail();
  await directory(dest,uid,gid,0o700,d);
  for(let i=0;i<records.length;i++){
-  const rec=records[i],path=expectedVolumeMountpoint(await inspect('volume',volumes[i].name),volumes[i]),st=await emptyVolume(path,rec.api,true);
+  const rec=records[i],path=expectedVolumeMountpoint(await inspect('volume',volumes[i].name),volumes[i]),st=await observeVolume(path,rec.api,true,rec.isDatabase);
   if(path!==rec.path||st.dev!==rec.stat.dev||st.ino!==rec.stat.ino)fail();
  }
  await guard();
- return Object.freeze({source:dest,target:'/run/aaditech-identity',volume_contents_verified:true,api_volume_ownership_verified:true,identity_copy_verified:true});
+ const db=records.find(x=>x.isDatabase);
+ return Object.freeze({source:dest,target:'/run/aaditech-identity',volume_contents_verified:!databaseVolumeIdentity,api_volume_ownership_verified:true,identity_copy_verified:true,databaseVolumeIdentity:Object.freeze({path:db.path,dev:db.stat.dev,ino:db.stat.ino})});
 }

@@ -1,7 +1,8 @@
 // Create stopped, explicitly activation-blocked containers from a signed
 // staged release. Optional rootful profile mounts only pinned identity read-only.
-// Never starts services, publishes ports,
-// initializes database contents, or authorizes an installation.
+// Create/inspect never start services. The separately confirmed fresh database
+// adapter starts ONLY the pinned database and initializes its signed schema.
+// No API/ingress start, published ports, or production authorization.
 import {execFile} from 'node:child_process';
 import {promisify} from 'node:util';
 import {constants} from 'node:fs';
@@ -14,7 +15,9 @@ import {inspectFreshComposeResources} from './fresh-compose-resource-inventory.m
 import {socketIdentity,requestLocalDockerJson} from './local-docker-runtime-preflight.mjs';
 import {withLocalSetupLock} from './local-setup-lock.mjs';
 import {rejectDuplicateJsonKeys} from './verify-lan-bundle.mjs';
-import {admitSignedFreshMigrations} from './initialize-fresh-mysql-schema.mjs';
+import {admitSignedFreshMigrations,initializeFreshMySqlSchema} from './initialize-fresh-mysql-schema.mjs';
+import {setTimeout as sleep} from 'node:timers/promises';
+import {isIPv4} from 'node:net';
 import {validateRuntimeStoragePolicy,checkOrPrepareFreshRuntimeStorage,runtimeIdentityEnvironment} from './fresh-runtime-storage.mjs';
 const exec=promisify(execFile),binary='/usr/bin/docker',socket='/run/docker.sock';
 const fail=()=>{throw Error('STOPPED_COMPOSE_CANDIDATES_UNCONFIRMED')};
@@ -82,11 +85,12 @@ export function candidateLabels(project,releaseSha,configSha,role){
  if(!roles.includes(role)||!hex(releaseSha)||!hex(configSha))fail();
  return {'com.docker.compose.project':project,'com.docker.compose.service':role,'com.docker.compose.oneoff':'False','org.aaditech.release-sha256':releaseSha,'org.aaditech.configuration-sha256':configSha,'org.aaditech.activation-blocked':'true'};
 }
-export function verifyStoppedCandidate(doc,expected){
+export function verifyStoppedCandidate(doc,expected){return verifyCandidate(doc,expected,false)}
+function verifyCandidate(doc,expected,runningDb){
  const {id,imageId,project,role,networkId,labels,environment,imageEnvironment,imageProcess,identityMount}=expected;
  if(identityMount&&(role!=='api'||doc?.Config?.User!=='1000:1000'))fail();
  const state=doc?.State,c=doc?.Config,h=doc?.HostConfig;
- if(doc?.Id!==id||doc.Image!==imageId||doc.Name!=='/'+project+'-'+role+'-1'||state?.Status!=='created'||state.Running!==false||state.Paused!==false||state.Restarting!==false||state.Dead!==false||!c||!h||Object.entries(labels).some(([k,v])=>c.Labels?.[k]!==v))fail();
+ if(doc?.Id!==id||doc.Image!==imageId||doc.Name!=='/'+project+'-'+role+'-1'||state?.Status!==(runningDb?'running':'created')||state.Running!==runningDb||state.Paused!==false||state.Restarting!==false||state.Dead!==false||!c||!h||Object.entries(labels).some(([k,v])=>c.Labels?.[k]!==v))fail();
  if(!imageProcess||JSON.stringify(candidateProcessSpec(c))!==JSON.stringify(imageProcess))fail();
  if(Object.keys(c.Labels??{}).some(k=>(k.startsWith('com.docker.compose.')||k.startsWith('org.aaditech.'))&&!Object.hasOwn(labels,k)))fail();
  if(h.Privileged!==false||h.PublishAllPorts!==false||!empty(h.PortBindings)||!empty(h.Binds)||!empty(h.CapAdd)||!empty(h.Devices)||!empty(h.DeviceRequests)||h.RestartPolicy?.Name!=='no'||!Array.isArray(h.SecurityOpt)||h.SecurityOpt.length!==1||!['no-new-privileges','no-new-privileges:true','no-new-privileges=true'].includes(h.SecurityOpt[0]))fail();
@@ -118,6 +122,28 @@ export function verifyStoppedCandidate(doc,expected){
  if(role==='caddy'?JSON.stringify(hc)!==JSON.stringify(['NONE']):JSON.stringify(hc)!==JSON.stringify(['CMD-SHELL',health[role]]))fail();
  return {containerId:id,imageId};
 }
+// The host bridge address is derived from two independent Docker observations,
+// not operator input, a mutable DNS name, a published port, or a returned URL.
+function privateIPv4(ip){
+ if(typeof ip!=='string'||!isIPv4(ip))fail();
+ const [a,b]=ip.split('.').map(Number);
+ if(a!==10&&!(a===172&&b>=16&&b<=31)&&!(a===192&&b===168))fail();
+ return ip;
+}
+export function verifyRunningFreshDatabase(doc,expected,network){
+ if(expected.role!=='db')fail();
+ verifyCandidate(doc,expected,true);
+ const s=doc.State;
+ if(doc.RestartCount!==0||!Number.isSafeInteger(s.Pid)||s.Pid<=0||typeof s.StartedAt!=='string'||!Number.isFinite(Date.parse(s.StartedAt))||!['starting','healthy'].includes(s.Health?.Status))fail();
+ const resources=expectedFreshResources(expected.project,expected.labels['org.aaditech.release-sha256']);
+ if(!network?.Containers||Object.keys(network.Containers).length!==1||!Object.hasOwn(network.Containers,expected.id))fail();
+ if(verifyProvisionedNetwork({...network,Containers:{}},resources.network)!==expected.networkId)fail();
+ const endpoint=doc.NetworkSettings.Networks[resources.network.name],member=network.Containers[expected.id],ip=privateIPv4(endpoint?.IPAddress);
+ if(endpoint.NetworkID!==expected.networkId||!hex(endpoint.EndpointID)||member?.EndpointID!==endpoint.EndpointID||member.Name!==expected.project+'-db-1'||endpoint.GlobalIPv6Address!==''&&endpoint.GlobalIPv6Address!==undefined||member.IPv6Address!==''&&member.IPv6Address!==undefined)fail();
+ const prefix=endpoint.IPPrefixLen;
+ if(!Number.isInteger(prefix)||prefix<8||prefix>30||member.IPv4Address!==ip+'/'+prefix)fail();
+ return Object.freeze({ip,endpointId:endpoint.EndpointID,pid:s.Pid,startedAt:s.StartedAt,health:s.Health.Status});
+}
 async function binaryIdentity(){const s=await lstat(binary);if(!s.isFile()||s.uid!==0||(s.mode&0o022)!==0||(s.mode&0o111)===0||await realpath(binary)!==binary)fail();return [s.dev,s.ino,s.uid,s.mode,s.size,s.mtimeMs,s.ctimeMs]}
 async function privateDir(path,expected){const s=await lstat(path);if(!s.isDirectory()||s.uid!==process.geteuid()||(s.mode&0o7777)!==0o700||await realpath(path)!==path||expected&&!same(s,expected,dirFields))fail();return s}
 async function readPinnedConfig(p,dir){
@@ -142,14 +168,24 @@ export function validateStoppedObservationPolicy(input){
 }
 export async function createStoppedComposeCandidates(input){return stoppedCandidates(input,false)}
 export async function inspectStoppedComposeCandidates(input){return stoppedCandidates(input,true)}
-async function stoppedCandidates(input,observeOnly){
+export function validateFreshDatabaseActivationPolicy(input){
+ if(input?.confirmation!=='INITIALIZE_PINNED_FRESH_DATABASE_ONLY_EXCLUSIVE_DAEMON_AND_WRITER_CUSTODY'||!Object.hasOwn(input,'storage'))fail();
+ return validateStoppedObservationPolicy({...input,confirmation:'INSPECT_IDENTITY_BOUND_STOPPED_CANDIDATES_ONLY'});
+}
+export async function initializeStoppedCandidateDatabase(input){
+ const p=validateFreshDatabaseActivationPolicy(input);
+ // Rebuild the exact accepted observation request; the internal branch is not
+ // exposed as a generic callback or arbitrary Docker command adapter.
+ return stoppedCandidates({...input,confirmation:'INSPECT_IDENTITY_BOUND_STOPPED_CANDIDATES_ONLY'},true,true);
+}
+async function stoppedCandidates(input,observeOnly,initializeDatabase=false){
  if(process.platform!=='linux'||typeof process.geteuid!=='function')fail();
  const p=observeOnly?validateStoppedObservationPolicy(input):validateStoppedCandidatePolicy(input),dir=await privateDir(p.configDirectory);
  return withLocalSetupLock({confirmation:'ACQUIRE_LOCAL_SETUP_LOCK_ONLY',lockRoot:p.lockRoot},async({assertHeld})=>{
   const b=await binaryIdentity(),s=await socketIdentity(),initial=await requestLocalDockerJson(socket,'/info'),daemon=initial.value?.ID;
   if(initial.missing!==false||typeof daemon!=='string'||!daemon||initial.value.OSType!=='linux')fail();
   async function continuity(){await assertHeld();await privateDir(p.configDirectory,dir);if(JSON.stringify(await binaryIdentity())!==JSON.stringify(b)||JSON.stringify(await socketIdentity())!==JSON.stringify(s))fail();const d=await requestLocalDockerJson(socket,'/info');if(d.missing!==false||d.value?.ID!==daemon||d.value.OSType!=='linux'||JSON.stringify(await socketIdentity())!==JSON.stringify(s))fail();await assertHeld();return d}
-  async function run(args,environment={}){await continuity();let r;try{r=await exec(binary,['--host','unix:///run/docker.sock',...args],{encoding:'utf8',timeout:30000,maxBuffer:1048576,env:{PATH:'/usr/bin:/bin',HOME:'/nonexistent',DOCKER_CONFIG:'/nonexistent',...environment}})}catch{fail()}await continuity();return r.stdout}
+  async function run(args,environment={},timeout=30000){await continuity();let r;try{r=await exec(binary,['--host','unix:///run/docker.sock',...args],{encoding:'utf8',timeout,maxBuffer:1048576,env:{PATH:'/usr/bin:/bin',HOME:'/nonexistent',DOCKER_CONFIG:'/nonexistent',...environment}})}catch{fail()}await continuity();return r.stdout}
   async function inspect(type,key){const raw=await run([type,'inspect',key]);rejectDuplicateJsonKeys(raw);const a=JSON.parse(raw);if(!Array.isArray(a)||a.length!==1)fail();return a[0]}
   const config=await readPinnedConfig(p,dir),environments=deriveCandidateRoleEnvironment(config,p.project,p.serverHost);
   if(p.storage){if(process.geteuid()!==0)fail();Object.assign(environments.api,runtimeIdentityEnvironment(p.storage))}
@@ -158,12 +194,12 @@ async function stoppedCandidates(input,observeOnly){
   const store=selectReleaseStoreIdentity(await continuity(),p.release.architecture,bound.release.images);
   if(store.store!==bound.store_profile)fail();
   const resources=expectedFreshResources(p.project,p.release.trustedManifestSha256);
-  async function inventory(count){
+  async function inventory(count,runningDatabase=false){
    await continuity();const r=await inspectFreshComposeResources({confirmation:'INSPECT_FRESH_COMPOSE_RESOURCE_COLLISIONS_ONLY',project:p.project});
    if(r.collision_counts.containers!==count||r.collision_counts.networks!==1||r.collision_counts.volumes!==5)fail();
    // Stopped containers have no active endpoints. Any attached running
    // endpoint is a reconciliation condition, not an activation invitation.
-   if(verifyProvisionedNetwork(await inspect('network',p.networkId),resources.network)!==p.networkId)fail();
+   if(!runningDatabase&&verifyProvisionedNetwork(await inspect('network',p.networkId),resources.network)!==p.networkId)fail();
    for(const v of resources.volumes)verifyProvisionedVolume(await inspect('volume',v.name),v);
    if(await readPinnedConfig(p,dir)!==config)fail();
    await continuity();
@@ -184,7 +220,7 @@ async function stoppedCandidates(input,observeOnly){
   const migrationPins={confirmation:'ADMIT_SIGNED_FRESH_MYSQL_MIGRATIONS_ONLY',stagedDirectory:p.release.stagedDirectory,trustedManifestSha256:p.release.trustedManifestSha256,trustedPublicKeyPem:p.release.trustedPublicKeyPem,trustedSignerSpkiSha256:p.release.trustedSignerSpkiSha256};
   const migrations=observeOnly||p.storage?await admitSignedFreshMigrations(migrationPins):null;
   await verifyImages();await inventory(observeOnly?3:0);
-  const checkStorage=prepare=>checkOrPrepareFreshRuntimeStorage({storage:p.storage,volumes:resources.volumes,inspect,continuity,prepare});
+  const checkStorage=(prepare,databaseVolumeIdentity)=>checkOrPrepareFreshRuntimeStorage({storage:p.storage,volumes:resources.volumes,inspect,continuity,prepare,databaseVolumeIdentity});
   const storage=p.storage?await checkStorage(!observeOnly):null;
   const result={},expected={};
   for(const role of roles){
@@ -218,6 +254,54 @@ async function stoppedCandidates(input,observeOnly){
   if(migrations&&JSON.stringify(await admitSignedFreshMigrations(migrationPins))!==JSON.stringify(migrations))fail();
   if(storage)await checkStorage(false);
   await inventory(3);for(const role of roles)verifyStoppedCandidate(await inspect('container',result[role].containerId),expected[role]);await continuity();
+  if(initializeDatabase){
+   if(!observeOnly||!p.storage||!migrations||!storage?.databaseVolumeIdentity)fail();
+   // All three exact candidates, empty volumes, signed migrations and identity
+   // have just been reobserved while holding THIS same setup lock.
+   const dbId=result.db.containerId;
+   await run(['container','start',dbId],{},60000);
+   let started;
+   async function observeDatabase(){
+    await inventory(3,true);
+    for(const role of ['api','caddy'])verifyStoppedCandidate(await inspect('container',result[role].containerId),expected[role]);
+    const d=verifyRunningFreshDatabase(await inspect('container',dbId),expected.db,await inspect('network',p.networkId));
+    const {health:status,...pin}=d;
+    if(started&&JSON.stringify(pin)!==JSON.stringify(started))fail();
+    started=pin;
+    return d;
+   }
+   const deadline=performance.now()+120000;
+   while(true){
+    const d=await observeDatabase();
+    if(d.health==='healthy')break;
+    if(performance.now()>deadline)fail();
+    await sleep(2000);
+   }
+   const guard=async()=>{
+    await continuity();
+    if((await observeDatabase()).health!=='healthy')fail();
+    await checkStorage(false,storage.databaseVolumeIdentity);
+    if(await readPinnedConfig(p,dir)!==config)fail();
+    await assertHeld();
+   };
+   // Local private IPv4 bridge only, under trusted exclusive host/daemon and
+   // writer custody. No TLS claim. A host unable to reach this bridge fails
+   // closed; no port publication, DNS fallback or new network is attempted.
+   await guard();
+   const {createConnection}=await import('mysql2/promise');
+   let conn;
+   try{
+    conn=await createConnection({host:started.ip,port:3306,user:environments.db.MYSQL_USER,password:environments.db.MYSQL_PASSWORD,database:environments.db.MYSQL_DATABASE,connectTimeout:10000,multipleStatements:true});
+    if(conn.connection?.stream?.remoteAddress!==started.ip||conn.connection?.stream?.remotePort!==3306)fail();
+    await guard();
+    const schema=await initializeFreshMySqlSchema(conn,{confirmation:'INITIALIZE_EMPTY_MYSQL_SCHEMA_ONLY_EXCLUSIVE_WRITER_CUSTODY',databaseName:environments.db.MYSQL_DATABASE,release:migrationPins,identity:p.storage.identity},guard);
+    await guard();await verifyImages();
+    if(JSON.stringify(await inspectBoundOfflineRuntime(p.release))!==JSON.stringify(bound)||JSON.stringify(await admitSignedFreshMigrations(migrationPins))!==JSON.stringify(migrations))fail();
+    await guard();
+    await conn.end();conn=undefined;
+    return Object.freeze({schema_version:1,project:p.project,release_sha256:p.release.trustedManifestSha256,configuration_sha256:p.configurationSha256,network_id:p.networkId,containers:result,database_started:true,database_initialized:true,signed_migrations_verified:true,migrations_applied:schema.migrations_applied,installation_id:schema.installation_id,identity_sha256:schema.identity_sha256,database_binding_verified:schema.database_binding_verified,bootstrap_ready:schema.bootstrap_ready,api_started:false,ingress_started:false,activation_blocked:true,tls_verified:false,installation_authorized:false,production_accepted:false});
+   }catch{fail()}finally{if(conn)try{conn.destroy()}catch{}}
+  }
   return {schema_version:1,project:p.project,release_sha256:p.release.trustedManifestSha256,configuration_sha256:p.configurationSha256,network_id:p.networkId,containers:result,containers_created:!observeOnly,stopped_candidates_verified:true,signed_migrations_verified:!!migrations,activation_blocked:true,services_started:false,database_initialized:false,volume_contents_verified:!!storage,api_volume_ownership_verified:!!storage,identity_mount_verified:!!storage,tls_verified:false,installation_authorized:false,production_accepted:false};
  });
 }

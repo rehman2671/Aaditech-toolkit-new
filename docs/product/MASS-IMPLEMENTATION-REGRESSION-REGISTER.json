@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
-  "batch": "MASS-25",
+  "batch": "MASS-26",
   "date": "2026-11-26",
   "target": "20 implementation prompts planning target, 50–100 actual development tasks per batch aspirational; count only delivered functional work, not test cases",
-  "base_commit": "d21c220c58045a6ae6a7c1d0e42bd47388e22f87",
+  "base_commit": "9d47da3d67d177c06746bb4f609e9937e95de8bf",
   "source_of_truth": [
     "docs/product/DELIVERY-TRACKER.json",
     "docs/product/TROUBLESHOOTING-WORK-REGISTER.json",
@@ -3867,6 +3867,67 @@
         "tests/unit/create-stopped-compose-candidates.test.js",
         "Disposable Docker rootful fixture and legacy stopped profile; no activation approval"
       ]
+    },
+    {
+      "id": "MASS-26-01",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Explicit pinned fresh database-only start, stable process and private network endpoint admission under original setup lock",
+      "dependencies": [
+        "MASS-24-02",
+        "MASS-25-01",
+        "MASS-25-02"
+      ],
+      "paths": [
+        "scripts/create-stopped-compose-candidates.mjs",
+        "scripts/fresh-runtime-storage.mjs",
+        "tests/unit/create-stopped-compose-candidates.test.js",
+        "docs/product/FRESH-VOLUME-OWNERSHIP-AND-IDENTITY-MOUNT.md",
+        "scripts/initialize-stopped-candidate-database-cli.mjs"
+      ],
+      "regression": [
+        "tests/unit/create-stopped-compose-candidates.test.js",
+        "Actual isolated signed MySQL container start and private bridge connectivity pending"
+      ]
+    },
+    {
+      "id": "MASS-26-02",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Fresh database volume continuity and guarded private connection to signed schema initialization and persistent identity bootstrap marker",
+      "dependencies": [
+        "MASS-26-01",
+        "MASS-22-01",
+        "MASS-24-01"
+      ],
+      "paths": [
+        "scripts/create-stopped-compose-candidates.mjs",
+        "scripts/fresh-runtime-storage.mjs",
+        "tests/unit/create-stopped-compose-candidates.test.js",
+        "docs/product/FRESH-VOLUME-OWNERSHIP-AND-IDENTITY-MOUNT.md",
+        "scripts/initialize-stopped-candidate-database-cli.mjs"
+      ],
+      "regression": [
+        "tests/unit/create-stopped-compose-candidates.test.js",
+        "test-fresh-mysql-schema-ci.js",
+        "Actual Docker MySQL volume, scoped account, schema initialization and failure lock rehearsal pending"
+      ]
+    },
+    {
+      "id": "MASS-26-03",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Bounded explicit local database initialization CLI with redacted errors and manual partial-state reconciliation",
+      "dependencies": [
+        "MASS-26-02"
+      ],
+      "paths": [
+        "scripts/create-stopped-compose-candidates.mjs",
+        "scripts/fresh-runtime-storage.mjs",
+        "tests/unit/create-stopped-compose-candidates.test.js",
+        "docs/product/FRESH-VOLUME-OWNERSHIP-AND-IDENTITY-MOUNT.md",
+        "scripts/initialize-stopped-candidate-database-cli.mjs"
+      ],
+      "regression": [
+        "Manual CLI malformed/duplicate JSON and partial-state refusal; isolated real Docker MySQL integration pending"
+      ]
     }
   ],
   "unresolved": [
@@ -4197,6 +4258,49 @@
         "scripts/create-stopped-compose-candidates.mjs",
         "tests/unit/create-stopped-compose-candidates.test.js",
         "docs/product/FRESH-VOLUME-OWNERSHIP-AND-IDENTITY-MOUNT.md"
+      ],
+      "exact_head_ci": {
+        "head": "9d47da3d67d177c06746bb4f609e9937e95de8bf",
+        "run": 45711342588,
+        "jobs": [
+          {
+            "id": 139546255614,
+            "name": "Offline Docker load compatibility (disposable runner)",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 139546255717,
+            "name": "PowerShell validation",
+            "status": "in_progress",
+            "conclusion": null
+          },
+          {
+            "id": 139546255747,
+            "name": "Node.js Unit & Integration Tests (Vitest + MySQL 8)",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 139546891050,
+            "name": "API test suite (Node.js vs MySQL 8)",
+            "status": "in_progress",
+            "conclusion": null
+          }
+        ],
+        "scope": "exact-head observation; no main merge or field acceptance"
+      }
+    },
+    {
+      "id": "MASS-26",
+      "base_commit": "9d47da3d67d177c06746bb4f609e9937e95de8bf",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "evidence": [
+        "scripts/create-stopped-compose-candidates.mjs",
+        "scripts/fresh-runtime-storage.mjs",
+        "tests/unit/create-stopped-compose-candidates.test.js",
+        "docs/product/FRESH-VOLUME-OWNERSHIP-AND-IDENTITY-MOUNT.md",
+        "scripts/initialize-stopped-candidate-database-cli.mjs"
       ]
     }
   ]

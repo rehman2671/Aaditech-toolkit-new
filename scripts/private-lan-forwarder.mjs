@@ -60,24 +60,26 @@ export function validateExistingLanForwarderPolicy(input){
  // derived fields and must not be fed back into strict adapters.
  return Object.freeze({forwarder:Object.freeze({...input.forwarder,identity:Object.freeze({...input.forwarder.identity})}),stack:Object.freeze({...input.stack,release:s.release,storage:s.storage,tls:s.tls,containers:s.containers,runningPins:s.runningPins})});
 }
-export async function startExistingPrivateLanForwarder(input){
+export async function startExistingPrivateLanForwarder(input,assertPolicyHeld=async()=>{}){
+ if(typeof assertPolicyHeld!=='function')fail();
  const p=validateExistingLanForwarderPolicy(input);
  const inspect=async()=>{
-  const proof=await inspectLivePrivateStack(p.stack);
+  await assertPolicyHeld();const proof=await inspectLivePrivateStack(p.stack);await assertPolicyHeld();
   if(!proof.live_stack_verified||!proof.database_history_verified||!proof.private_https_readiness_verified||proof.services_mutated!==false||proof.private_ingress_address!==p.forwarder.ingressAddress)fail();
   return proof;
  };
  await inspect();
- return startForwarder(p.forwarder,inspect);
+ return startForwarder(p.forwarder,inspect,assertPolicyHeld);
 }
-export async function startPrivateLanForwarder(input){return startForwarder(input,null)}
-async function startForwarder(input,inspectExisting){
+export async function startPrivateLanForwarder(input){return startForwarder(input,null,async()=>{})}
+async function startForwarder(input,inspectExisting,assertPolicyHeld){
  const p=validatePrivateLanForwarderPolicy(input);
  if(process.platform!=='linux'||process.geteuid?.()!==0)fail();
  const selected=selectApprovedLanInterface(p,networkInterfaces());
  async function guard(){
+  await assertPolicyHeld();
   if(JSON.stringify(selectApprovedLanInterface(p,networkInterfaces()))!==JSON.stringify(selected))fail();
-  await inspectLocalInstallationIdentity(p.identity);
+  await inspectLocalInstallationIdentity(p.identity);await assertPolicyHeld();
  }
  const target={address:p.ingressAddress,hostname:p.hostname,port:443,rootPem:p.rootPem,trustedRootSha256:p.trustedRootSha256,trustedLeafSha256:p.trustedLeafSha256};
  // Initial commissioning requires the clean first-run setup marker. Existing

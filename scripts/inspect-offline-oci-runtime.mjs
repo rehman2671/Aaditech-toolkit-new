@@ -7,10 +7,11 @@ import {createHash} from 'node:crypto';
 import {Transform,Writable} from 'node:stream';
 import {pipeline} from 'node:stream/promises';
 import {createGunzip} from 'node:zlib';
+import {createOciTarSafetyInspector} from './oci-tar-safety.mjs';
+import {createRestrictedRootfsIndex} from './oci-rootfs-index.mjs';
 import {inspectStagedLanBundle} from './inspect-staged-lan-bundle.mjs';
 import {rejectDuplicateJsonKeys} from './verify-lan-bundle.mjs';
 import {inspectLocalDockerRuntime} from './local-docker-runtime-preflight.mjs';
-import {createRestrictedOciTarInspector} from './restricted-oci-tar-profile.mjs';
 
 const roles=['api','database','ingress'];
 const types=Object.freeze({index:'application/vnd.oci.image.index.v1+json',
@@ -45,15 +46,15 @@ async function readJson(path,expected,max=1024*1024){
 }
 // Hash both compressed bytes and exact uncompressed tar stream, without
 // materializing an archive or trusting the layer's declared gzip size.
-export async function verifyGzipLayerFile(path,entry,expectedDiffId,remainingBytes=8*1024**3,restrictedTar=false){
+export async function verifyGzipLayerFile(path,entry,expectedDiffId,remainingBytes=8*1024**3,strictTar=false,onVerifiedEntries=null){
  if(!digest(expectedDiffId)||!Number.isSafeInteger(remainingBytes)||remainingBytes<1||remainingBytes>8*1024**3)fail();
  const st=await lstat(path);
  if(!st.isFile()||st.nlink!==1||st.uid!==process.geteuid()||(st.mode&0o7777)!==0o600||
     st.size!==entry.size||st.size<1)fail();
  const fd=await open(path,constants.O_RDONLY|constants.O_NOFOLLOW|constants.O_NONBLOCK);
  const packed=createHash('sha256'),raw=createHash('sha256');
+ const tar=strictTar?createOciTarSafetyInspector({captureEntries:typeof onVerifiedEntries==='function'}):null;
  let compressed=0,uncompressed=0;
- const tar=restrictedTar?createRestrictedOciTarInspector():null;
  try{
   if(!same(st,await fd.stat()))fail();
   const measure=new Transform({transform(chunk,_encoding,cb){
@@ -64,13 +65,14 @@ export async function verifyGzipLayerFile(path,entry,expectedDiffId,remainingByt
   const sink=new Writable({write(chunk,_encoding,cb){
    uncompressed+=chunk.length;
    if(uncompressed>remainingBytes)return cb(Error('OFFLINE_OCI_RUNTIME_UNVERIFIED'));
-   try{tar?.write(chunk);raw.update(chunk);cb()}catch(e){cb(e)}
+   try{tar?.push(chunk);raw.update(chunk);cb()}catch(e){cb(e)}
   }});
   await pipeline(fd.createReadStream({autoClose:false,start:0,end:entry.size-1}),measure,createGunzip(),sink,
    {signal:AbortSignal.timeout(120000)});
-  tar?.finish();
   if(compressed!==entry.size||uncompressed<1||packed.digest('hex')!==entry.sha256||
    'sha256:'+raw.digest('hex')!==expectedDiffId||!same(st,await fd.stat())||!same(st,await lstat(path)))fail();
+  const report=tar?.finish();
+  if(onVerifiedEntries&&report)onVerifiedEntries(report.entry_list);
   return uncompressed;
  }catch{fail()}finally{await fd.close()}
 }
@@ -82,7 +84,7 @@ function descriptor(d,type,extra=[]){
 // This structural validator accepts only an intentionally limited, single
 // architecture OCI profile with three role-tagged manifests, gzip layers,
 // no external URLs, embedded data, alternate media or extra runtime files.
-export async function verifyOfflineOciGraph({architecture,entries,readMetadata,verifyLayer=null}){
+export async function verifyOfflineOciGraph({architecture,entries,readMetadata,verifyLayer=null,verifyImageLayers=null}){
  if(!arch(architecture)||!Array.isArray(entries)||typeof readMetadata!=='function')fail();
  const files=new Map(),used=new Set();
  for(const e of entries){
@@ -119,10 +121,13 @@ export async function verifyOfflineOciGraph({architecture,entries,readMetadata,v
    !exact(config.rootfs,['type','diff_ids'])||config.rootfs.type!=='layers'||
    !Array.isArray(config.rootfs.diff_ids)||config.rootfs.diff_ids.length!==m.layers.length||
    !config.rootfs.diff_ids.every(digest))fail();
+  const orderedLayers=[];
   for(let n=0;n<m.layers.length;n++){
    const layer=descriptor(m.layers[n],types.layer),path=blobPath(layer.digest),entry=mark(path,layer);
    if(verifyLayer)await verifyLayer(path,entry,config.rootfs.diff_ids[n]);
+   orderedLayers.push(path);
   }
+  if(verifyImageLayers)verifyImageLayers(orderedLayers);
   result.push(Object.freeze({role,manifest_digest:item.digest,image_config_id:c.digest,layer_count:m.layers.length}));
  }
  // Reject unreferenced runtime bytes, including unknown metadata and blobs.
@@ -131,26 +136,31 @@ export async function verifyOfflineOciGraph({architecture,entries,readMetadata,v
 }
 export async function inspectOfflineOciRuntime(input={}){
  const {confirmation,stagedDirectory,trustedManifestSha256,trustedPublicKeyPem,trustedSignerSpkiSha256,architecture}=input;
- const restrictedTar=confirmation==='INSPECT_SIGNED_OCI_TAR_PROFILE_ONLY';
- if(!restrictedTar&&confirmation!=='INSPECT_SIGNED_OCI_RUNTIME_ONLY'||!arch(architecture))fail();
+ if(!['INSPECT_SIGNED_OCI_RUNTIME_ONLY','INSPECT_SIGNED_OCI_TAR_PROFILE_ONLY'].includes(confirmation)||!arch(architecture))fail();
  const pins={confirmation:'INSPECT_STAGED_RELEASE_ONLY',stagedDirectory,trustedManifestSha256,trustedPublicKeyPem,trustedSignerSpkiSha256};
  const prior=await inspectStagedLanBundle(pins);
  const manifest=await readJson(join(stagedDirectory,'manifest.json'),null,2*1024*1024);
  if(manifest.hash!==prior.approved_manifest_sha256)fail();
- const checkedLayers=new Map();let totalUncompressed=0;
+ const checkedLayers=new Map(),layerEntries=new Map();let totalUncompressed=0,totalMembers=0;
  const images=await verifyOfflineOciGraph({architecture,entries:manifest.doc.files,
   readMetadata:async(path,entry)=>(await readJson(join(stagedDirectory,'payload',path),entry)).doc,
   verifyLayer:async(path,entry,diffId)=>{
    if(checkedLayers.has(path)){if(checkedLayers.get(path)!==diffId)fail();return}
    const limit=Math.min(8*1024**3,32*1024**3-totalUncompressed);
-   totalUncompressed+=await verifyGzipLayerFile(join(stagedDirectory,'payload',path),entry,diffId,limit,restrictedTar);
+   totalUncompressed+=await verifyGzipLayerFile(join(stagedDirectory,'payload',path),entry,diffId,limit,true,records=>{
+    totalMembers+=records.length;if(totalMembers>200000)fail();layerEntries.set(path,records);
+   });
    checkedLayers.set(path,diffId);
+  },verifyImageLayers:paths=>{
+   const index=createRestrictedRootfsIndex();
+   for(const path of paths)index.apply(layerEntries.get(path));
+   index.finish();
   }});
  const final=await inspectStagedLanBundle(pins);
  if(JSON.stringify(prior)!==JSON.stringify(final))fail();
  return Object.freeze({schema_version:1,architecture,approved_manifest_sha256:prior.approved_manifest_sha256,
    images,release_signature_verified:true,compressed_blob_integrity_verified:true,oci_descriptor_graph_verified:true,
-   uncompressed_diff_ids_verified:true,restricted_tar_profile_verified:restrictedTar,archive_extraction_verified:false,image_imported:false,
+   uncompressed_diff_ids_verified:true,strict_ustar_profile_verified:true,restricted_tar_profile_verified:true,cross_layer_path_profile_verified:true,merged_rootfs_verified:false,archive_extraction_verified:false,image_imported:false,
    runtime_compatibility_verified:false,installation_authorized:false,production_accepted:false});
 }
 // Only derive the daemon observation pins from the authenticated release.

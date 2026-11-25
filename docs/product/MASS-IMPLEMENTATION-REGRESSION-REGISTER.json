@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
-  "batch": "MASS-10",
+  "batch": "MASS-11",
   "date": "2026-11-26",
   "target": "20 implementation prompts planning target, 50–100 actual development tasks per batch aspirational; count only delivered functional work, not test cases",
-  "base_commit": "26f6dd7ad116e85e9fd52235f681c3d57f8f7a23",
+  "base_commit": "5624bc21f56aeea47f1d0b86d03023f91c1f52f9",
   "source_of_truth": [
     "docs/product/DELIVERY-TRACKER.json",
     "docs/product/TROUBLESHOOTING-WORK-REGISTER.json",
@@ -3214,6 +3214,30 @@
         "tests/unit/local-compose-service-lifecycle.test.js",
         "Disposable actual start/stop, partial failure, health order, recovery and identity continuity; fresh creation and reconfiguration still pending"
       ]
+    },
+    {
+      "id": "MASS-11-01",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Portal response session continuity, stale conflict invalidation, mutually exclusive consent and plan operations, receipt and authority validation",
+      "dependencies": [
+        "MASS-03-01",
+        "MASS-08-02",
+        "M4",
+        "M5"
+      ],
+      "paths": [
+        "Enterprise/portal/configuration.js",
+        "Enterprise/portal/troubleshooting-report.js",
+        "Enterprise/portal/troubleshooting-review.js",
+        "Enterprise/portal/diagnostic-consent.js",
+        "Enterprise/portal/hazard-assessment.js",
+        "Enterprise/portal/device-observations.js",
+        "docs/product/PORTAL-SESSION-RESPONSE-BOUNDARIES.md"
+      ],
+      "regression": [
+        "tests/unit/portal-session-response-boundaries.test.js",
+        "Fresh exact-head full CI; browser, HTTP/SQL and physical acceptance pending"
+      ]
     }
   ],
   "unresolved": [
@@ -3364,6 +3388,15 @@
         "8be2ce722dcddad7ffbaec72827aeb7efee68038"
       ],
       "status": "SOURCE_IMPLEMENTED_PENDING_CI"
+    },
+    {
+      "id": "MASS-11",
+      "base_commit": "5624bc21f56aeea47f1d0b86d03023f91c1f52f9",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "evidence": [
+        "docs/product/PORTAL-SESSION-RESPONSE-BOUNDARIES.md",
+        "tests/unit/portal-session-response-boundaries.test.js"
+      ]
     }
   ]
 }

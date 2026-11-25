@@ -14,7 +14,9 @@
    headers:{Accept:'application/json',Authorization:'Bearer '+token,...(body?{'Content-Type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{})});
   if(localStorage.getItem('auth_token')!==token)throw Error('SESSION_CHANGED');
   if(!response.ok){const err=Error('REQUEST_NOT_CONFIRMED');err.status=response.status;throw err}
-  return response.json();
+  const data=await response.json();
+  if(token!==localStorage.getItem('auth_token'))throw Error('SESSION_CHANGED');
+  return data;
  }
  function reportState(){
   el('report-submit').disabled=busy||!!pending||!el('report-device').value;

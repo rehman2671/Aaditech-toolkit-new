@@ -8,12 +8,15 @@
  async function api(body){
   if(token!==localStorage.getItem('auth_token'))throw Error();
   const r=await fetch(path+(body?'':'?'+new URLSearchParams({incidentId,deviceId})),{method:body?'POST':'GET',cache:'no-store',credentials:'same-origin',headers:{Accept:'application/json',Authorization:'Bearer '+token,...(body?{'Content-Type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{})});
-  if(token!==localStorage.getItem('auth_token'))throw Error();if(!r.ok){const e=Error();e.status=r.status;throw e}return r.json();
+  if(token!==localStorage.getItem('auth_token'))throw Error();if(!r.ok){const e=Error();e.status=r.status;throw e}const data=await r.json();
+  if(token!==localStorage.getItem('auth_token'))throw Error('SESSION_CHANGED');
+  return data;
  }
  function controls(){for(const k of ['hazard-choice','hazard-confirm','hazard-save','hazard-refresh'])el(k).disabled=busy||!!pending;el('hazard-retry').hidden=!pending;el('hazard-retry').disabled=busy}
  function render(r){
-  if(r.incident_id!==incidentId||r.device_id!==deviceId||r.safety_verified!==false||r.diagnostic_authorized!==false||r.repair_authorized!==false||!['NOT_RECORDED','RECORDED'].includes(r.assessment_state))throw Error();
+  if(r.incident_id!==incidentId||r.device_id!==deviceId||r.production_accepted!==false||typeof r.human_referral_required!=='boolean'||r.safety_verified!==false||r.diagnostic_authorized!==false||r.repair_authorized!==false||!['NOT_RECORDED','RECORDED'].includes(r.assessment_state))throw Error();
   if(r.assessment_state==='RECORDED'&&(!uuid(r.assessment_id)||!['NONE','PHYSICAL_HAZARD','SUSPECTED_COMPROMISE','DATA_LOSS_RISK','BOOT_OR_ENCRYPTION_DAMAGE'].includes(r.assessment)))throw Error();
+  if(r.assessment_state==='NOT_RECORDED'&&(r.assessment_id!==null||r.assessment!==null)||r.assessment_state==='RECORDED'&&r.human_referral_required!==(r.assessment!=='NONE'))throw Error();
   current=r;el('hazard-panel').hidden=false;el('hazard-form').hidden=r.assessment_state==='RECORDED';
   el('hazard-result').textContent=r.assessment_state==='RECORDED'?'Recorded: '+r.assessment+(r.human_referral_required?' — qualified human referral required.':' — safety not verified.'):'No screening recorded.';
  }

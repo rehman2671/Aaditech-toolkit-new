@@ -31,7 +31,7 @@
    const q=new URLSearchParams(next&&cursor?{after:cursor}:{});
    const r=await fetch('/api/v1/monitoring/device-observations?'+q,{cache:'no-store',credentials:'same-origin',headers:{Accept:'application/json',Authorization:'Bearer '+token}});
    if(!r.ok||token!==localStorage.getItem('auth_token'))throw Error();
-   const d=await r.json();if(!Array.isArray(d.items)||d.items.length>50||d.health_verified!==false)throw Error();
+   const d=await r.json();if(token!==localStorage.getItem('auth_token')||!Array.isArray(d.items)||d.items.length>50||d.health_verified!==false||d.production_accepted!==false||d.scope!=='CURRENT_WORKSPACE'||(d.next_cursor!==null&&!(typeof d.next_cursor==='string'&&/^[a-zA-Z0-9_-]{1,64}$/.test(d.next_cursor)))||d.items.some(x=>!x||typeof x.device_id!=='string'||!/^[a-zA-Z0-9_-]{1,64}$/.test(x.device_id)||typeof x.hostname!=='string'||!Array.isArray(x.signals)||x.signals.some(s=>!Object.hasOwn(labels,s))||!x.metrics||x.health_verified!==false||x.diagnostic_authorized!==false||x.repair_authorized!==false)||new Set(d.items.map(x=>x.device_id)).size!==d.items.length)throw Error();
    items=d.items;cursor=d.next_cursor;el('observation-results').hidden=false;el('observation-next').hidden=!cursor;render();
   }catch{cursor=null;status('Observations unavailable. Sign in as an authorized administrator or operator; no health conclusion can be drawn.')}
   finally{busy=false;el('observation-refresh').disabled=false;el('observation-next').disabled=false}
@@ -42,14 +42,14 @@
   if(token!==localStorage.getItem('auth_token'))throw Error();
   const r=await fetch('/api/v1/monitoring/observation-incident',{method:'POST',cache:'no-store',credentials:'same-origin',headers:{Accept:'application/json',Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify(pending)});
   if(token!==localStorage.getItem('auth_token'))throw Error();
-  if(r.status===409){pending=null;incidentStatus('Observation expired or request conflicts. Refresh before another report.');return}
+  if(r.status===409){pending=null;items=[];cursor=null;el('observation-list').replaceChildren();el('observation-results').hidden=true;el('observation-next').hidden=true;incidentStatus('Observation expired or request conflicts. Refresh before another report.');return}
   if(!r.ok)throw Error();
-  const d=await r.json();if(!/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/.test(d.incident_id)||d.observation_signal!==pending.signal||d.diagnostic_authorized!==false||d.repair_authorized!==false)throw Error();
+  const d=await r.json();if(token!==localStorage.getItem('auth_token')||!/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/.test(d.incident_id)||d.observation_signal!==pending.signal||d.diagnostic_authorized!==false||d.repair_authorized!==false)throw Error();
   pending=null;incidentStatus('Incident '+d.incident_id+' recorded. Open the Troubleshooting review queue; no diagnostic authorized.');
  }catch{incidentStatus('Incident not confirmed. Retry same request '+pending.requestId+' or contact IT.')}finally{submitting=false;incidentControls()}}
  el('observation-incident-retry').addEventListener('click',submitIncident);
  window.addEventListener('beforeunload',e=>{if(pending){e.preventDefault();e.returnValue=''}});
  el('observation-filter').addEventListener('change',render);el('observation-refresh').addEventListener('click',()=>load());el('observation-next').addEventListener('click',()=>load(true));
- (async()=>{try{if(token){const r=await fetch('/api/v1/auth/me',{cache:'no-store',headers:{Authorization:'Bearer '+token}});if(r.ok&&token===localStorage.getItem('auth_token'))admin=(await r.json()).role==='SUPER_ADMIN'}}catch{}await load()})();
+ (async()=>{try{if(token){const r=await fetch('/api/v1/auth/me',{cache:'no-store',headers:{Authorization:'Bearer '+token}});if(r.ok&&token===localStorage.getItem('auth_token')){const me=await r.json();if(token===localStorage.getItem('auth_token'))admin=me.role==='SUPER_ADMIN'}}}catch{}await load()})();
 
 })();

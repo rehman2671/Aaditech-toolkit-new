@@ -11,7 +11,9 @@
   const r=await fetch(path,{method:body?'POST':'GET',cache:'no-store',credentials:'same-origin',headers:{Accept:'application/json',Authorization:'Bearer '+token,...(body?{'Content-Type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{})});
   if(localStorage.getItem('auth_token')!==token)throw Error('SESSION_CHANGED');
   if(!r.ok){const e=Error('REQUEST_NOT_CONFIRMED');e.status=r.status;throw e}
-  return r.json();
+  const data=await r.json();
+  if(token!==localStorage.getItem('auth_token'))throw Error('SESSION_CHANGED');
+  return data;
  }
  const node=(tag,text)=>{const n=document.createElement(tag);n.textContent=text;return n};
  function controls(){
@@ -65,8 +67,8 @@
   try{
    const r=await api(base+'review-transition',pending);
    if(r.incident_id!==pending.incidentId||!uuid(r.event_id)||r.review_state!==pending.nextState||r.revision!==pending.expectedRevision+1||r.verified_resolved!==false)throw Error();
-   pending=null;busy=false;await load();status('Human review change recorded. No resolution or repair was verified.');
-  }catch(e){if(e.status===409){pending=null;status('Review conflict. Refresh before making a new change.')}else status('Review change unconfirmed. Retry the same request or contact IT with request ID '+pending.requestId+'.')}
+   pending=null;busy=false;await load();if(token===localStorage.getItem('auth_token'))status('Human review change recorded. Refresh queue if unavailable. No resolution or repair was verified.');
+  }catch(e){if(e.status===409){pending=null;cursor=null;el('review-list').replaceChildren();status('Review conflict. Refresh before making a new change.')}else status('Review change unconfirmed. Retry the same request or contact IT with request ID '+pending.requestId+'.')}
   finally{busy=false;controls()}
  }
  el('review-filters').addEventListener('submit',e=>{e.preventDefault();if(busy||pending)return;const deviceId=el('review-device').value.trim();if(deviceId&&!uuid(deviceId)){status('Enter an exact device UUID.');return}filters={category:el('review-category').value,status:el('review-intake').value,deviceId};load()});

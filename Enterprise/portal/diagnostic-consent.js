@@ -19,14 +19,14 @@
   el('consent-retry').hidden=!pending;el('consent-retry').disabled=busy;
  }
  function show(r){
-  if(r.incident_id!==incidentId||r.device_id!==deviceId||!Number.isSafeInteger(r.revision)||r.revision<0||typeof r.expired!=='boolean'||(r.state==='NOT_REQUESTED'?(r.revision!==0||r.expired!==false):(!uuid(r.consent_id)||r.revision<1))||r.diagnostic_authorized!==false||r.production_accepted!==false||!['NOT_REQUESTED','REQUESTED','GRANTED','DENIED','REVOKED'].includes(r.state)||r.scope!=='REVIEW_ONLY'||r.execution_authorized!==false||r.repair_authorized!==false)throw Error();
+  if(r.incident_id!==incidentId||r.device_id!==deviceId||!Number.isSafeInteger(r.revision)||r.revision<0||typeof r.expired!=='boolean'||typeof r.renewal_available!=='boolean'||(r.renewal_available&&(role!=='SUPER_ADMIN'||r.state!=='REQUESTED'||!r.expired||r.revision!==1))||(r.state==='NOT_REQUESTED'?(r.revision!==0||r.expired!==false):(!uuid(r.consent_id)||r.revision<1))||r.diagnostic_authorized!==false||r.production_accepted!==false||!['NOT_REQUESTED','REQUESTED','GRANTED','DENIED','REVOKED'].includes(r.state)||r.scope!=='REVIEW_ONLY'||r.execution_authorized!==false||r.repair_authorized!==false)throw Error();
   current=r;el('consent-details').replaceChildren();
   el('plan-panel').hidden=role!=='SUPER_ADMIN'||r.state!=='GRANTED'||r.expired;el('plan-form').hidden=true;
   for(const [k,v] of [['Incident',incidentId],['Device',deviceId],['Diagnostic category',r.diagnostic_id],['State',r.state],['Expired',r.expired?'Yes':'No']]){
    const dt=document.createElement('dt'),dd=document.createElement('dd');dt.textContent=k;dd.textContent=v;el('consent-details').append(dt,dd)
   }
-  const actions=role==='SUPER_ADMIN'&&r.state==='NOT_REQUESTED'?['REQUEST']:role==='MONITORING'&&r.state==='REQUESTED'&&!r.expired?['GRANT','DENY']:role==='MONITORING'&&r.state==='GRANTED'?['REVOKE']:[];
-  el('consent-action').replaceChildren(...actions.map(a=>new Option(a,a)));el('consent-confirm').checked=false;el('consent-form').hidden=!actions.length;el('consent-panel').hidden=false;
+  const actions=role==='SUPER_ADMIN'&&(r.state==='NOT_REQUESTED'||r.renewal_available)?['REQUEST']:role==='MONITORING'&&r.state==='REQUESTED'&&!r.expired?['GRANT','DENY']:role==='MONITORING'&&r.state==='GRANTED'?['REVOKE']:[];
+  el('consent-action').replaceChildren(...actions.map(a=>new Option(a==='REQUEST'&&r.renewal_available?'Renew unanswered expired request':a,a)));el('consent-confirm').checked=false;el('consent-form').hidden=!actions.length;el('consent-panel').hidden=false;
  }
  async function load(){if(busy||pending||planBusy||planPending)return;busy=true;controls();planControls();try{show(await api(path+'?'+new URLSearchParams({incidentId,deviceId})));status('Consent status loaded.')}catch{current=null;el('consent-panel').hidden=true;el('plan-panel').hidden=true;status('Consent unavailable or incident not eligible. No action was authorized.')}finally{busy=false;controls();planControls()}}
  async function submit(){if(busy||!pending||planBusy||planPending)return;busy=true;controls();planControls();try{

@@ -17,7 +17,7 @@ function fixture({existing=null,incident=inc,bound=true,events=[],write=1,plans=
   if(q.includes('FROM troubleshooting_diagnostic_consent_events'))return [events];
   if(q.includes('FROM troubleshooting_diagnostic_consent'))return [stored?[stored]:[]];
   if(q.startsWith('INSERT INTO troubleshooting_diagnostic_consent ('))stored={...row,consent_id:p[0],state:p[8],revision:p[9]};
-  if(q.startsWith('UPDATE troubleshooting_diagnostic_consent'))stored={...stored,state:p[0],revision:p[1]};
+  if(q.startsWith('UPDATE troubleshooting_diagnostic_consent'))stored={...stored,state:p[0],revision:p[1],...(q.includes('DATE_ADD')?{expired:0,requester_id:p[2]}:{})};
   if(q.startsWith('INSERT')||q.startsWith('UPDATE'))return [{affectedRows:write}];
   throw Error(q)
  })};return {c,pool:{getConnection:async()=>c}};
@@ -53,4 +53,14 @@ describe('consent-bound review plan',()=>{
   await expect(recordConsentReviewPlan(f.pool,{...p,requestId:id(12)})).rejects.toThrow('CONSENT_PLAN_CONFLICT');
   await expect(recordConsentReviewPlan(fixture({existing:grant,plans:[plan]}).pool,p)).rejects.toThrow('CONSENT_PLAN_CONFLICT');
  });
+});
+
+describe('expired unanswered review request renewal',()=>{
+ const expired={...row,expired:1};
+ it('admin sees eligible renewal without granting execution',async()=>{const f=fixture({existing:expired});expect(await inspectConsent(f.pool,{...base,principal:admin})).toMatchObject({renewal_available:true,execution_authorized:false});expect(await inspectConsent(f.pool,{...base,principal:employee})).toMatchObject({renewal_available:false})});
+ it('renews same consent with new revision, deadline, event and audit',async()=>{const f=fixture({existing:expired});expect(await changeConsent(f.pool,input('REQUEST',1))).toMatchObject({consent_id:row.consent_id,state:'REQUESTED',revision:2,expired:false,renewal_available:false,execution_authorized:false});expect(f.c.query.mock.calls.filter(([q])=>q.startsWith('UPDATE')&&q.includes('DATE_ADD'))).toHaveLength(1);expect(f.c.query.mock.calls.filter(([q])=>q.startsWith('INSERT'))).toHaveLength(2)});
+ it.each(['DENIED','REVOKED','GRANTED'])('never overrides %s',async state=>{const f=fixture({existing:{...expired,state}});await expect(changeConsent(f.pool,input('REQUEST',1))).rejects.toThrow('CONSENT_CONFLICT');expect(f.c.commit).not.toHaveBeenCalled()});
+ it('blocks unexpired, stale revision, employee, missing assignment, second renewal and prior plan',async()=>{for(const [f,i] of [[fixture({existing:row}),input('REQUEST',1)],[fixture({existing:expired}),input('REQUEST',0)],[fixture({existing:expired}),input('REQUEST',1,employee)],[fixture({existing:expired,bound:false}),input('REQUEST',1)],[fixture({existing:{...expired,revision:2}}),input('REQUEST',2)],[fixture({existing:expired,plans:[{plan_id:id(9)}]}),input('REQUEST',1)]]){await expect(changeConsent(f.pool,i)).rejects.toThrow();expect(f.c.commit).not.toHaveBeenCalled()}});
+ it('replays exact renewal request without extending the deadline again',async()=>{const f=fixture({existing:{...row,revision:2},events:[{event_id:id(8),actor_user_id:1,request_id:requestId,action:'REQUEST',revision:2}]});expect(await changeConsent(f.pool,input('REQUEST',1))).toMatchObject({duplicate:true,revision:2,event_id:id(8)});expect(f.c.query.mock.calls.every(([q])=>q.startsWith('SELECT'))).toBe(true)});
+ it('blocks stale employee grant from original revision after renewal',async()=>{const f=fixture({existing:{...row,revision:2}});await expect(changeConsent(f.pool,input('GRANT',1))).rejects.toThrow('CONSENT_CONFLICT');expect(f.c.commit).not.toHaveBeenCalled()});
 });

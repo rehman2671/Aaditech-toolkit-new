@@ -45,12 +45,23 @@ async function load(c,i){
  if(!Array.isArray(rows)||rows.length>1)fail('CONSENT_STATE_INVALID');return rows[0]??null;
 }
 const actions={GRANT:'GRANTED',DENY:'DENIED',REVOKE:'REVOKED'};
+// One renewal maximum; only an unanswered expired request, never a decision.
+async function renewalAvailable(c,i,current){
+ if(!current||current.state!=='REQUESTED'||!current.expired||current.revision!==1)return false;
+ const [plans]=await c.query('SELECT plan_id FROM troubleshooting_diagnostic_plans WHERE incident_id=? LIMIT 1 FOR UPDATE',[i.incident_id]);
+ if(!Array.isArray(plans)||plans.length>1)fail('CONSENT_STATE_INVALID');
+ return plans.length===0;
+}
+async function consentReceipt(c,s,i,row){
+ const current=project(row,s,i);
+ return {...current,renewal_available:s.role==='SUPER_ADMIN'&&await renewalAvailable(c,i,current)};
+}
 export async function inspectConsent(pool,input){
  const role=input.principal?.role;
  if(!['SUPER_ADMIN','MONITORING'].includes(role))fail('CONSENT_SCOPE_DENIED');
  const s=scope(input,role);
  return transaction(pool,async c=>{await activeUser(c,s,s.actor,role);const i=await incident(c,s,input),r=await load(c,i);
- return r?project(r,s,i):{incident_id:i.incident_id,device_id:i.device_id,diagnostic_id:i.diagnostic,state:'NOT_REQUESTED',revision:0,expired:false,scope:'REVIEW_ONLY',diagnostic_authorized:false,execution_authorized:false,repair_authorized:false,production_accepted:false}});
+ return r?consentReceipt(c,s,i,r):{renewal_available:false,incident_id:i.incident_id,device_id:i.device_id,diagnostic_id:i.diagnostic,state:'NOT_REQUESTED',revision:0,expired:false,scope:'REVIEW_ONLY',diagnostic_authorized:false,execution_authorized:false,repair_authorized:false,production_accepted:false}});
 }
 export async function changeConsent(pool,input){
  const {action,requestId,expectedRevision,confirmation}=input;
@@ -65,19 +76,20 @@ export async function changeConsent(pool,input){
    if(!Array.isArray(events)||events.length>1)fail('CONSENT_STATE_INVALID');
    if(events.length){
     const e=events[0];if(!uuid(e.event_id)||n(e.actor_user_id)!==s.actor||e.action!==action||e.request_id!==requestId||n(e.revision)!==expectedRevision+1||n(e.revision)>current.revision)fail('CONSENT_CONFLICT');
-    return {...current,duplicate:true,event_id:e.event_id};
+    return {...await consentReceipt(c,s,i,r),duplicate:true,event_id:e.event_id};
    }
   }
-  if(action==='REQUEST'?(current!==null||expectedRevision!==0):(!current||current.revision!==expectedRevision||((action==='REVOKE')?current.state!=='GRANTED':current.expired||current.state!=='REQUESTED')))fail('CONSENT_CONFLICT');
+  const renewing=action==='REQUEST'&&current!==null;
+  if(action==='REQUEST'?(renewing?(current.revision!==expectedRevision||!await renewalAvailable(c,i,current)):expectedRevision!==0):(!current||current.revision!==expectedRevision||((action==='REVOKE')?current.state!=='GRANTED':current.expired||current.state!=='REQUESTED')))fail('CONSENT_CONFLICT');
   const consentId=current?.consent_id??randomUUID(),eventId=randomUUID(),revision=expectedRevision+1;
-  const [w]=current?await c.query('UPDATE troubleshooting_diagnostic_consent SET state=?,revision=? WHERE consent_id=? AND revision=?',[next,revision,consentId,expectedRevision]):await c.query("INSERT INTO troubleshooting_diagnostic_consent (consent_id,installation_id,tenant_id,device_id,incident_id,employee_user_id,requester_id,diagnostic_id,state,revision,expires_at) VALUES (?,?,?,?,?,?,?,?,?,?,DATE_ADD(NOW(3), INTERVAL 24 HOUR))",[consentId,s.installation,s.tenant,i.device_id,i.incident_id,n(i.actor_user_id),s.actor,i.diagnostic,next,revision]);
+  const [w]=renewing?await c.query("UPDATE troubleshooting_diagnostic_consent SET state=?,revision=?,requester_id=?,expires_at=DATE_ADD(NOW(3), INTERVAL 24 HOUR) WHERE consent_id=? AND revision=? AND state='REQUESTED' AND expires_at<=NOW(3)",[next,revision,s.actor,consentId,expectedRevision]):current?await c.query('UPDATE troubleshooting_diagnostic_consent SET state=?,revision=? WHERE consent_id=? AND revision=?',[next,revision,consentId,expectedRevision]):await c.query("INSERT INTO troubleshooting_diagnostic_consent (consent_id,installation_id,tenant_id,device_id,incident_id,employee_user_id,requester_id,diagnostic_id,state,revision,expires_at) VALUES (?,?,?,?,?,?,?,?,?,?,DATE_ADD(NOW(3), INTERVAL 24 HOUR))",[consentId,s.installation,s.tenant,i.device_id,i.incident_id,n(i.actor_user_id),s.actor,i.diagnostic,next,revision]);
   if(w?.affectedRows!==1)fail('CONSENT_WRITE_UNCONFIRMED');
   const [event]=await c.query('INSERT INTO troubleshooting_diagnostic_consent_events (event_id,consent_id,actor_user_id,request_id,action,revision) VALUES (?,?,?,?,?,?)',[eventId,consentId,s.actor,requestId,action,revision]);
   if(event?.affectedRows!==1)fail('CONSENT_WRITE_UNCONFIRMED');
-  const [audit]=await c.query('INSERT INTO audit_logs (id,tenant_id,actor_id,actor,action,target_resource,details,ip_address,created_at) VALUES (?,?,?,?,?,?,?,?,NOW(3))',[randomUUID(),s.tenant,s.actor,String(s.actor),'TROUBLESHOOTING_DIAGNOSTIC_REVIEW_CONSENT_'+action,'Incident:'+i.incident_id,JSON.stringify({consent_id:consentId,event_id:eventId,revision,scope:'REVIEW_ONLY'}),null]);
+  const [audit]=await c.query('INSERT INTO audit_logs (id,tenant_id,actor_id,actor,action,target_resource,details,ip_address,created_at) VALUES (?,?,?,?,?,?,?,?,NOW(3))',[randomUUID(),s.tenant,s.actor,String(s.actor),'TROUBLESHOOTING_DIAGNOSTIC_REVIEW_CONSENT_'+action,'Incident:'+i.incident_id,JSON.stringify({consent_id:consentId,event_id:eventId,revision,renewed_expired_request:renewing,scope:'REVIEW_ONLY'}),null]);
   if(audit?.affectedRows!==1)fail('CONSENT_WRITE_UNCONFIRMED');
-  const result=project(await load(c,i),s,i);
-  if(result.state!==next||result.revision!==revision||result.consent_id!==consentId)fail('CONSENT_WRITE_UNCONFIRMED');
+  const result=await consentReceipt(c,s,i,await load(c,i));
+  if(result.state!==next||result.revision!==revision||result.consent_id!==consentId||(action==='REQUEST'&&result.expired))fail('CONSENT_WRITE_UNCONFIRMED');
   return {...result,event_id:eventId,duplicate:false};
  });
 }

@@ -1,6 +1,7 @@
 // Disposable fixture only, never accepts external paths, image IDs or commands.
 // Three static test images: no registry pull, network, volume or host mounts.
 import assert from 'node:assert/strict';
+import {inspectFreshComposeResources} from '../scripts/fresh-compose-resource-inventory.mjs';
 import {spawnSync} from 'node:child_process';
 import {mkdtemp,mkdir,writeFile,rm,realpath,readFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
@@ -14,8 +15,10 @@ const env={PATH:'/usr/bin:/bin',HOME:process.env.HOME||'/tmp'};
 function run(binary,args,timeout=120000){const x=spawnSync(binary,args,{encoding:'utf8',timeout,maxBuffer:1048576,env});if(x.status!==0||x.error)throw Error('FIXTURE_COMMAND_FAILED');return x.stdout.trim()}
 const docker=(...a)=>run('/usr/bin/docker',['--host','unix:///run/docker.sock',...a]);
 const images=[],created=[],containers={};
+const inventory=()=>inspectFreshComposeResources({confirmation:'INSPECT_FRESH_COMPOSE_RESOURCE_COLLISIONS_ONLY',project});
 const hash=x=>createHash('sha256').update(x).digest('hex');
 try{
+ assert.equal((await inventory()).resource_collision_free_observed,true);
  const fsroot=join(root,'rootfs'),lockRoot=join(root,'lock'),failedLock=join(root,'failed-lock'),configDir=join(root,'config');
  await mkdir(fsroot);await mkdir(join(fsroot,'bin'));for(const d of [lockRoot,failedLock,configDir])await mkdir(d,{mode:0o700});
  const src=join(root,'fixture.c'),bin=join(fsroot,'fixture'),archive=join(root,'fixture.tar');
@@ -42,6 +45,7 @@ int main(int argc,char **argv){
  }
  const observe=(lock=lockRoot)=>inspectExistingComposeRecovery({confirmation:'INSPECT_PINNED_EXISTING_COMPOSE_RECOVERY_ONLY',project,lockRoot:lock,containers});
  const operate=(operation,lock=lockRoot)=>operateExistingComposeServices({confirmation:operation==='start'?'START_PINNED_EXISTING_COMPOSE_CONTAINERS_ONLY':'STOP_PINNED_EXISTING_COMPOSE_CONTAINERS_ONLY',operation,project,lockRoot:lock,containers});
+ assert.equal((await inventory()).collision_counts.containers,3);
  assert.equal((await observe()).observed_state,'ALL_EXISTING_CONTAINERS_STOPPED');
  assert.equal((await operate('start')).services.every(x=>x.state==='running'),true);
  assert.equal((await observe()).observed_state,'ALL_EXISTING_CONTAINERS_RUNNING');

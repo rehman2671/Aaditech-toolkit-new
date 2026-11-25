@@ -526,6 +526,18 @@ jobs:
           NODE_ENV: test
         run: node test-migrations-runner.js
 
+      - name: Rehearse installation database identity against isolated MySQL
+        timeout-minutes: 2
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_USER: itk_user
+          DB_PASSWORD: itk_password_ci
+          DB_NAME: it_toolkit
+          NODE_ENV: test
+          AADITECH_BOUND_DB_REHEARSAL: isolated-ci
+        run: node test-installation-database-identity-mysql.js
+
       - name: Rehearse durable event idempotency on real MySQL (N28)
         env:
           DB_HOST: 127.0.0.1

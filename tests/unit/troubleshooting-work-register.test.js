@@ -23,6 +23,7 @@ for(const d of diagnosticCapabilities){
 }
 const allowedEvidence=new Set([
  'troubleshooting-guidance.js','tests/unit/troubleshooting-guidance.test.js',
+ 'installation-database-identity.js','troubleshooting-employee-routes.js','database/migrations/021_installation_database_identity.sql','tests/unit/installation-database-identity.test.js','Enterprise/portal/troubleshooting-report.js','test-installation-database-identity-mysql.js',
  'troubleshooting-help-routes.js','Enterprise/portal/troubleshooting.html','Enterprise/portal/troubleshooting-help.js','tests/unit/troubleshooting-help-routes.test.js',
  'diagnostic-evidence.js','diagnostic-review-contracts.js','tests/unit/diagnostic-review-contracts.test.js',
  'scripts/local-resource-diagnostic.mjs','tests/unit/local-resource-diagnostic.test.js',

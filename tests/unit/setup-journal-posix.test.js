@@ -1,5 +1,5 @@
 import {describe,it,expect} from 'vitest';
-import {mkdtemp,chmod,rm,realpath,readFile,writeFile} from 'node:fs/promises';
+import {mkdtemp,chmod,rm,realpath,readFile,writeFile,link,symlink,mkdir} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {createHash,generateKeyPairSync,sign} from 'node:crypto';
@@ -170,5 +170,58 @@ describe.skipIf(process.platform==='win32')('short-lived signed setup display bi
   }finally{await rm(ledgerDirectory,{recursive:true,force:true})}
   await f.append('PREFLIGHT','COMPLETED');
   await expect(inspectSetupHandoff(args)).rejects.toThrow('CHECKPOINT_HEAD_MISMATCH');
+ }));
+});
+
+
+describe.skipIf(process.platform!=='linux')('strict journal custody and anchored input boundaries',()=>{
+ const appendInput=f=>({...f.input,step:'PREFLIGHT',event:'STARTED',evidenceSha256:evidence,expectedSequence:0,expectedPreviousSha256:'0'.repeat(64)});
+ it.each([0o755,0o500,0o1700,0o2700,0o4700])('refuses directory mode %s',mode=>fixture(async f=>{
+  await chmod(f.directory,mode);try{await expect(f.read()).rejects.toThrow('PRIVATE_JOURNAL_REQUIRED')}finally{await chmod(f.directory,0o700)}
+ }));
+ it.each([0o644,0o400,0o1600,0o2600,0o4600])('refuses record mode %s',mode=>fixture(async f=>{
+  await f.append('PREFLIGHT','STARTED');await chmod(join(f.directory,'event-001.json'),mode);
+  await expect(f.read()).rejects.toThrow('INVALID_JOURNAL_FILE');
+ }));
+ it.each(['relative','control','nul','alias','oversize'])('refuses %s directory path',kind=>fixture(async f=>{
+  const path=kind==='relative'?'.':kind==='control'?f.directory+'\n':kind==='nul'?f.directory+'\0':kind==='alias'?f.directory+'/../'+f.directory.split('/').at(-1):'/'+ 'x'.repeat(4096);
+  await expect(inspectSetupJournal({...f.input,directory:path})).rejects.toThrow('PRIVATE_JOURNAL_REQUIRED');
+ }));
+ it.each([null,1,-1,1.5,'0',NaN,Infinity,13])('refuses stale or invalid sequence %j',seq=>fixture(async f=>{
+  await expect(appendSetupJournalEvent({...appendInput(f),expectedSequence:seq})).rejects.toThrow('STALE_JOURNAL_STATE');
+  expect((await f.read()).sequence).toBe(0);
+ }));
+ it.each(['','0'.repeat(64),'a'.repeat(63),'A'.repeat(64),'g'.repeat(64),null])('refuses invalid evidence digest %j',value=>fixture(async f=>{
+  await expect(appendSetupJournalEvent({...appendInput(f),evidenceSha256:value})).rejects.toThrow('EVIDENCE_DIGEST_REQUIRED');
+  expect((await f.read()).sequence).toBe(0);
+ }));
+ it.each(['','0'.repeat(64),'a'.repeat(63),'A'.repeat(64),'g'.repeat(64),null])('refuses invalid release digest %j',value=>fixture(async f=>{
+  await expect(inspectSetupJournal({...f.input,releaseSha256:value})).rejects.toThrow('RELEASE_DIGEST_REQUIRED');
+ }));
+ it.each(['directory','symlink','hardlink','oversized','invalid UTF8','unexpected','too many'])('refuses %s journal entry',kind=>fixture(async f=>{
+  const path=join(f.directory,'event-001.json');
+  if(kind==='directory')await mkdir(path);
+  else if(kind==='symlink')await symlink('missing',path);
+  else if(kind==='hardlink'){await f.append('PREFLIGHT','STARTED');await link(path,join(f.directory,'event-002.json'))}
+  else if(kind==='oversized')await writeFile(path,Buffer.alloc(2049),{mode:0o600});
+  else if(kind==='invalid UTF8')await writeFile(path,Buffer.from([255]),{mode:0o600});
+  else if(kind==='unexpected')await writeFile(join(f.directory,'unknown'),'x',{mode:0o600});
+  else for(let i=1;i<=13;i++)await writeFile(join(f.directory,'event-'+String(i).padStart(3,'0')+'.json'),'x',{mode:0o600});
+  await expect(f.read()).rejects.toThrow();
+ }));
+ it.each(['concatenated','trailing newline','invalid base64','private key header','missing'])('refuses %s checkpoint PEM',kind=>fixture(async f=>{
+  await f.append('PREFLIGHT','STARTED');
+  const a=checkpoint(f.input,await f.read()),p=a.signerPublicKeyPem;
+  const pem=kind==='concatenated'?p+p:kind==='trailing newline'?p+'\n\n':kind==='invalid base64'?'-----BEGIN PUBLIC KEY-----\nAAAA\n-----END PUBLIC KEY-----\n':kind==='private key header'?p.replaceAll('PUBLIC KEY','PRIVATE KEY'):undefined;
+  await expect(inspectAnchoredSetupJournal({...a,signerPublicKeyPem:pem})).rejects.toThrow('CHECKPOINT_TRUST_REQUIRED');
+ }));
+ it.each(['expectedSignerSpkiSha256','expectedCheckpointSha256'])('refuses zero pin %s',key=>fixture(async f=>{
+  await f.append('PREFLIGHT','STARTED');const a=checkpoint(f.input,await f.read());
+  await expect(inspectAnchoredSetupJournal({...a,[key]:'0'.repeat(64)})).rejects.toThrow('CHECKPOINT_TRUST_REQUIRED');
+ }));
+ it('validates zero genesis sequence and retains the exact persisted chain',()=>fixture(async f=>{
+  const result=await appendSetupJournalEvent(appendInput(f));
+  expect(result).toMatchObject({recorded:true,sequence:1,execution_authorized:false});
+  const state=await f.read();expect(state.previous_sha256).toBe(result.record_sha256);
  }));
 });

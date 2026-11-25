@@ -8364,6 +8364,57 @@
       "limitations": [
         "Direct unkeyed bulk insert cannot reconcile uncertain commit",
         "External notifications remain at-least-once; no external receipt or forced-crash proof"
+      ],
+      "exact_head_ci": {
+        "head": "f5615a7f890fac6153aa98956abafadf18733c73",
+        "run": 45719744914,
+        "jobs": [
+          {
+            "id": 139574886079,
+            "name": "Offline Docker load compatibility (disposable runner)",
+            "status": "in_progress",
+            "conclusion": null
+          },
+          {
+            "id": 139574886481,
+            "name": "Node.js Unit & Integration Tests (Vitest + MySQL 8)",
+            "status": "completed",
+            "conclusion": "failure"
+          },
+          {
+            "id": 139574886694,
+            "name": "PowerShell validation",
+            "status": "in_progress",
+            "conclusion": null
+          },
+          {
+            "id": 139575510617,
+            "name": "API test suite (Node.js vs MySQL 8)",
+            "status": "completed",
+            "conclusion": "skipped"
+          }
+        ],
+        "scope": "Observed 3521 passed, 3 failed; no acceptance promotion"
+      }
+    },
+    {
+      "id": "MASS-49",
+      "base_commit": "f5615a7f890fac6153aa98956abafadf18733c73",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "evidence": [
+        "telemetry-commit-recovery.js",
+        "db.js",
+        "server.js",
+        "tests/unit/telemetry-commit-recovery.test.js",
+        "tests/unit/device-identity-lock.test.js",
+        "tests/unit/notification-destination-stage21.test.js",
+        "test-atomic-telemetry-batch-mysql.js"
+      ],
+      "regression_definitions": 65,
+      "local_verification": "63/63 isolated helper cases executed; two real MySQL fault scenarios unexecuted locally",
+      "limitations": [
+        "No verified full CI or real MySQL rehearsal for new head",
+        "No exactly-once external delivery or forced process kill proof"
       ]
     }
   ]

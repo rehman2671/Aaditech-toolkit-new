@@ -108,6 +108,7 @@ describe('Stage N21 destination consent snapshot and outbox lease integrity', ()
     const entries = [row('email', email), { ...row('webhook', webhook), id: 7 }];
     const counts = await runNotificationOutboxBatch({
       claim: async () => entries,
+      renewLease: async () => true,
       complete: async () => false,
       retry: async () => false,
       getEmailConfig: async () => email,

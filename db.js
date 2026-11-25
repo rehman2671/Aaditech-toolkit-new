@@ -20,6 +20,7 @@ import {createTaskTracker} from './runtime-shutdown.js';
 import {guardTransactionConnection} from './transaction-connection-custody.js';
 import {withDeviceAdvisoryLocks,observeMysqlPool} from './database-pool-custody.js';
 import {outboxLeaseParameters,confirmedLeaseRenewal,requireLegacyTelemetryTestProfile,requireConfirmedTelemetryInsert} from './durable-delivery-boundary.js';
+import {recoverCommittedTelemetryReceipt} from './telemetry-commit-recovery.js';
 const databaseTasks=createTaskTracker();
 let databaseStopping=false;
 let pool = null;
@@ -1826,7 +1827,9 @@ export async function ingestTelemetryBatchOnce(batch, credential = undefined) {
       !/^[A-Za-z0-9][A-Za-z0-9:._-]{0,63}$/.test(String(batchId || '')) ||
       !/^[0-9a-f]{64}$/.test(String(hash || ''))) throw new Error('TELEMETRY_BATCH_INVALID');
   if (!isMysqlConnected() || !pool?.getConnection) throw new Error('TELEMETRY_BATCH_MYSQL_REQUIRED');
-  const conn = guardTransactionConnection(await pool.getConnection());
+  const observedPool=pool;
+  const conn = guardTransactionConnection(await observedPool.getConnection());
+  let commitAttempted=false;
   let committed = false;
   let discard = false;
   try {
@@ -1863,7 +1866,7 @@ export async function ingestTelemetryBatchOnce(batch, credential = undefined) {
     if (claims.length !== 1 || claim.request_hash !== hash ||
         Number(claim.accepted_count) !== events.length) throw new Error('TELEMETRY_BATCH_ID_CONFLICT');
     if (claim.insert_nonce !== nonce) {
-      await conn.commit();
+      commitAttempted=true;await conn.commit();
       committed = true;
       return { duplicate: true, accepted: Number(claim.accepted_count),
         recorded_at: claim.recorded_at, batch_id: batchId };
@@ -1976,13 +1979,25 @@ export async function ingestTelemetryBatchOnce(batch, credential = undefined) {
         );
       }
     }
-    await conn.commit();
+    commitAttempted=true;await conn.commit();
     committed = true;
     invalidateDeviceCache(deviceId);
     await cacheDel('cache:devices:list');
     return { duplicate: false, accepted: events.length,
       recorded_at: claim.recorded_at, batch_id: batchId };
   } catch (err) {
+    if(commitAttempted&&!committed){
+      // Destroy the uncertain session before a fresh locking read; no write retry.
+      discard=true;
+      try{conn.destroy()}catch{throw Error('TELEMETRY_COMMIT_UNCONFIRMED')}
+      const receipt=await recoverCommittedTelemetryReceipt({
+        expected:{tenantId,deviceId,batchId,hash,accepted:events.length,tokenHash:credential?.tokenHash},
+        acquire:async()=>guardTransactionConnection(await observedPool.getConnection()),
+        isCurrent:()=>pool===observedPool&&isMysqlConnected()&&!databaseStopping
+      });
+      if(receipt){invalidateDeviceCache(deviceId);await cacheDel('cache:devices:list');return receipt}
+      throw Error('TELEMETRY_COMMIT_UNCONFIRMED');
+    }
     if (!committed) {
       try { await conn.rollback(); }
       catch (_) { discard = true; if (typeof conn.destroy === 'function') conn.destroy(); }

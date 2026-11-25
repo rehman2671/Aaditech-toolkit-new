@@ -1573,6 +1573,9 @@ app.post(['/api/v1/ingest/telemetry', '/api/ingest'], agentLimiter, validateBody
       if (['TELEMETRY_CREDENTIAL_CHANGED', 'TELEMETRY_DEVICE_OWNER_MISMATCH'].includes(err.message)) {
         return res.status(401).json({ error: 'DEVICE_CREDENTIAL_CHANGED' });
       }
+      if (err.message === 'TELEMETRY_COMMIT_UNCONFIRMED') {
+        return res.status(503).set('Retry-After','5').json({error:'TELEMETRY_COMMIT_UNCONFIRMED',detail:'Retry the identical persisted batch ID and payload; no acknowledgement is confirmed.'});
+      }
       if (err.message === 'TELEMETRY_BATCH_MYSQL_REQUIRED') {
         return res.status(503).json({ error: 'DATABASE_UNAVAILABLE',
           detail: 'Durable telemetry receipt requires a healthy persistent MySQL database.' });

@@ -8419,27 +8419,14 @@
       "exact_head_ci": {
         "head": "aa23201c53a4fffe060588ce6211e0cb74e9c548",
         "run": 45720194293,
-        "jobs": [
-          {
-            "id": 139576298974,
-            "name": "Offline Docker load compatibility (disposable runner)",
-            "status": "in_progress",
-            "conclusion": null
-          },
-          {
-            "id": 139576299240,
-            "name": "PowerShell validation",
-            "status": "in_progress",
-            "conclusion": null
-          },
-          {
-            "id": 139576299495,
-            "name": "Node.js Unit & Integration Tests (Vitest + MySQL 8)",
-            "status": "in_progress",
-            "conclusion": null
-          }
-        ],
-        "scope": "Observed in-progress jobs only; no acceptance promotion"
+        "status": "NODE_JOB_FAILED_COVERAGE",
+        "tests_passed": 3587,
+        "tests_total": 3587,
+        "test_files_passed": 147,
+        "statement_coverage": 69.51,
+        "required_statement_coverage": 70,
+        "api_suite": "skipped",
+        "scope": "Observed completed Node job; no acceptance promotion"
       }
     },
     {
@@ -8457,6 +8444,48 @@
       "limitations": [
         "No actual Redis server or full Vitest run locally",
         "No verified real process crash test on new head, no signed stack acceptance"
+      ],
+      "exact_head_ci": {
+        "head": "107d9b8cfd7a4ba6a3f13fb74b38f45ae6a0389b",
+        "run": 45720411048,
+        "jobs": [
+          {
+            "id": 139577149837,
+            "name": "PowerShell validation",
+            "status": "in_progress",
+            "conclusion": null
+          },
+          {
+            "id": 139577150375,
+            "name": "Offline Docker load compatibility (disposable runner)",
+            "status": "in_progress",
+            "conclusion": null
+          },
+          {
+            "id": 139577150385,
+            "name": "Node.js Unit & Integration Tests (Vitest + MySQL 8)",
+            "status": "in_progress",
+            "conclusion": null
+          }
+        ],
+        "scope": "Observed in-progress jobs only"
+      }
+    },
+    {
+      "id": "MASS-51",
+      "base_commit": "107d9b8cfd7a4ba6a3f13fb74b38f45ae6a0389b",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "evidence": [
+        "db.js",
+        "cache-runtime-lifecycle.js",
+        "tests/unit/cache-generation-fence.test.js",
+        "tests/unit/runtime-database-wiring.test.js"
+      ],
+      "regression_definitions": 51,
+      "local_verification": "27/27 isolated cache generation scenarios; 24 module integration definitions unexecuted",
+      "limitations": [
+        "Coverage gate not yet verified",
+        "Live Redis and full stack fault recovery pending"
       ]
     }
   ]

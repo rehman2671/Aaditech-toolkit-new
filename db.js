@@ -36,6 +36,7 @@ export function initRedisClient() {
   try{
     client=new Redis(redisUrl,{
       maxRetriesPerRequest:1,connectTimeout:2000,
+      enableOfflineQueue:false,autoResendUnfulfilledCommands:false,
       retryStrategy:times=>times<=3?1000:null,lazyConnect:true
     });
     cacheLifecycle.install(client);

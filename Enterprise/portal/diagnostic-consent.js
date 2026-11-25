@@ -4,7 +4,7 @@
  const uuid=x=>typeof x==='string'&&x.length===36&&/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/.test(x);
  const status=t=>{el('consent-status').textContent=t};
  if(!token||!uuid(incidentId)||!uuid(deviceId)||[...q.keys()].length!==2){status('Sign in and open an eligible incident from the reports page.');return}
- let role,current=null,pending=null,busy=false;
+ let role,current=null,pending=null,busy=false,planPending=null,planBusy=false;
  const path='/api/v1/troubleshooting/diagnostic-consent';
  async function api(url,body){
   if(token!==localStorage.getItem('auth_token'))throw Error('SESSION_CHANGED');
@@ -19,6 +19,7 @@
  function show(r){
   if(r.incident_id!==incidentId||r.device_id!==deviceId||!Number.isSafeInteger(r.revision)||!['NOT_REQUESTED','REQUESTED','GRANTED','DENIED','REVOKED'].includes(r.state)||r.scope!=='REVIEW_ONLY'||r.execution_authorized!==false||r.repair_authorized!==false)throw Error();
   current=r;el('consent-details').replaceChildren();
+  el('plan-panel').hidden=role!=='SUPER_ADMIN'||r.state!=='GRANTED'||r.expired;el('plan-form').hidden=true;
   for(const [k,v] of [['Incident',incidentId],['Device',deviceId],['Diagnostic category',r.diagnostic_id],['State',r.state],['Expired',r.expired?'Yes':'No']]){
    const dt=document.createElement('dt'),dd=document.createElement('dd');dt.textContent=k;dd.textContent=v;el('consent-details').append(dt,dd)
   }
@@ -32,6 +33,18 @@
  finally{busy=false;controls()}}
  el('consent-form').addEventListener('submit',e=>{e.preventDefault();if(busy||pending||!current||!el('consent-confirm').checked)return;if(typeof crypto.randomUUID!=='function'){status('Secure HTTPS context required.');return}const action=el('consent-action').value;pending=Object.freeze({incidentId,deviceId,requestId:crypto.randomUUID(),expectedRevision:current.revision,action,confirmation:'CONFIRM_'+action+'_DIAGNOSTIC_REVIEW_ONLY'});submit()});
  el('consent-refresh').addEventListener('click',load);el('consent-retry').addEventListener('click',submit);
- window.addEventListener('beforeunload',e=>{if(pending){e.preventDefault();e.returnValue=''}});
+ const planPath='/api/v1/troubleshooting/diagnostic-review-plan';
+ const planStatus=t=>{el('plan-status').textContent=t};
+ function planControls(){el('plan-inspect').disabled=planBusy||!!planPending;el('plan-create').disabled=planBusy||!!planPending;el('plan-retry').hidden=!planPending;el('plan-retry').disabled=planBusy}
+ function renderPlan(r){
+  if(r.incident_id!==incidentId||r.device_id!==deviceId||r.consent_id!==current.consent_id||r.consent_revision!==current.revision||r.execution_authorized!==false||r.repair_authorized!==false||!['PLANNED_ONLY','NOT_PLANNED'].includes(r.state))throw Error();
+  if(r.state==='PLANNED_ONLY'){if(!uuid(r.plan_id))throw Error();el('plan-form').hidden=true;planStatus('Plan '+r.plan_id+' recorded for '+r.diagnostic_id+'. No execution authorized.')}
+  else{el('plan-form').hidden=false;el('plan-confirm').checked=false;planStatus('No review plan recorded.')}
+ }
+ el('plan-inspect').addEventListener('click',async()=>{if(planBusy||planPending)return;planBusy=true;planControls();el('plan-form').hidden=true;try{renderPlan(await api(planPath+'?'+new URLSearchParams({incidentId,deviceId})))}catch{planStatus('Plan unavailable. Refresh consent and verify assignment.')}finally{planBusy=false;planControls()}});
+ async function submitPlan(){if(planBusy||!planPending)return;planBusy=true;planControls();try{const r=await api(planPath,planPending);renderPlan(r);planPending=null}catch(e){if(e.status===409){planPending=null;el('plan-form').hidden=true;planStatus('Plan conflict or consent expired. Refresh consent.')}else planStatus('Plan not confirmed. Retry exact request '+planPending.requestId+' or contact IT.')}finally{planBusy=false;planControls()}}
+ el('plan-form').addEventListener('submit',e=>{e.preventDefault();if(planBusy||planPending||!current||!el('plan-confirm').checked)return;if(typeof crypto.randomUUID!=='function'){planStatus('Secure HTTPS required.');return}planPending=Object.freeze({incidentId,deviceId,requestId:crypto.randomUUID(),expectedConsentRevision:current.revision,confirmation:'CONFIRM_REVIEW_PLAN_ONLY'});submitPlan()});
+ el('plan-retry').addEventListener('click',submitPlan);
+ window.addEventListener('beforeunload',e=>{if(pending||planPending){e.preventDefault();e.returnValue=''}});
  (async()=>{try{role=(await api('/api/v1/auth/me')).role;if(!['SUPER_ADMIN','MONITORING'].includes(role))throw Error();await load()}catch{status('Authorized employee or administrator required.')}})();
 })();

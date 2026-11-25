@@ -81,3 +81,49 @@ export async function changeConsent(pool,input){
   return {...result,event_id:eventId,duplicate:false};
  });
 }
+
+// Review-only diagnostic plan bound to the employee's current recorded
+// consent and independent catalog. No collector, dispatch or signing key.
+async function currentReviewPlan(c,s,i,consent){
+ const [rows]=await c.query('SELECT plan_id,incident_id,installation_id,tenant_id,device_id,actor_user_id,request_id,diagnostic_id FROM troubleshooting_diagnostic_plans WHERE incident_id=? ORDER BY plan_id LIMIT 2 FOR UPDATE',[i.incident_id]);
+ if(!Array.isArray(rows)||rows.length>1)fail('CONSENT_PLAN_CONFLICT');
+ if(!rows.length)return null;
+ const r=rows[0];
+ if(!uuid(r.plan_id)||!uuid(r.request_id)||r.incident_id!==i.incident_id||r.installation_id!==s.installation||r.tenant_id!==s.tenant||r.device_id!==i.device_id||r.diagnostic_id!==i.diagnostic||!id(n(r.actor_user_id)))fail('CONSENT_STATE_INVALID');
+ const [audit]=await c.query("SELECT id FROM audit_logs WHERE tenant_id=? AND actor_id=? AND action='TROUBLESHOOTING_CONSENT_REVIEW_PLAN_RECORDED' AND target_resource=? AND JSON_UNQUOTE(JSON_EXTRACT(details,'$.plan_id'))=? AND JSON_UNQUOTE(JSON_EXTRACT(details,'$.consent_id'))=? AND JSON_UNQUOTE(JSON_EXTRACT(details,'$.consent_revision'))=?",[s.tenant,String(n(r.actor_user_id)),'Incident:'+i.incident_id,r.plan_id,consent.consent_id,String(consent.revision)]);
+ if(audit?.length!==1||!uuid(audit[0].id))fail('CONSENT_PLAN_CONFLICT');
+ return r;
+}
+const planReceipt=(i,consent,r,duplicate=false)=>({incident_id:i.incident_id,device_id:i.device_id,diagnostic_id:i.diagnostic,consent_id:consent.consent_id,consent_revision:consent.revision,plan_id:r?.plan_id??null,state:r?'PLANNED_ONLY':'NOT_PLANNED',duplicate,diagnostic_authorized:false,execution_authorized:false,repair_authorized:false,production_accepted:false});
+async function withGrantedConsent(pool,input,operation){
+ const s=scope(input,'SUPER_ADMIN');
+ return transaction(pool,async c=>{
+  await activeUser(c,s,s.actor,'SUPER_ADMIN');const i=await incident(c,s,input),raw=await load(c,i);
+  const consent=raw?project(raw,s,i):null;
+  if(!consent||consent.state!=='GRANTED'||consent.expired)fail('CONSENT_PLAN_CONFLICT');
+  const prior=await currentReviewPlan(c,s,i,consent);
+  return operation(c,s,i,consent,prior);
+ });
+}
+export async function inspectConsentReviewPlan(pool,input){
+ return withGrantedConsent(pool,input,async(c,s,i,consent,prior)=>planReceipt(i,consent,prior));
+}
+export async function recordConsentReviewPlan(pool,input){
+ if(!uuid(input.requestId)||!id(input.expectedConsentRevision)||input.confirmation!=='CONFIRM_REVIEW_PLAN_ONLY')fail('CONSENT_INVALID');
+ return withGrantedConsent(pool,input,async(c,s,i,consent,prior)=>{
+  if(consent.revision!==input.expectedConsentRevision)fail('CONSENT_PLAN_CONFLICT');
+  if(prior){
+   if(prior.request_id!==input.requestId||n(prior.actor_user_id)!==s.actor)fail('CONSENT_PLAN_CONFLICT');
+   return planReceipt(i,consent,prior,true);
+  }
+  const planId=randomUUID();
+  const [w]=await c.query('INSERT INTO troubleshooting_diagnostic_plans (plan_id,incident_id,installation_id,tenant_id,device_id,actor_user_id,request_id,diagnostic_id) VALUES (?,?,?,?,?,?,?,?)',[planId,i.incident_id,s.installation,s.tenant,i.device_id,s.actor,input.requestId,i.diagnostic]);
+  if(w?.affectedRows!==1)fail('CONSENT_WRITE_UNCONFIRMED');
+  const [audit]=await c.query('INSERT INTO audit_logs (id,tenant_id,actor_id,actor,action,target_resource,details,ip_address,created_at) VALUES (?,?,?,?,?,?,?,?,NOW(3))',[randomUUID(),s.tenant,s.actor,String(s.actor),'TROUBLESHOOTING_CONSENT_REVIEW_PLAN_RECORDED','Incident:'+i.incident_id,JSON.stringify({plan_id:planId,consent_id:consent.consent_id,consent_revision:consent.revision,scope:'REVIEW_ONLY'}),null]);
+  if(audit?.affectedRows!==1)fail('CONSENT_WRITE_UNCONFIRMED');
+  // Expiry check at the point of completion, still under consent row lock.
+  const current=project(await load(c,i),s,i);
+  if(current.expired||current.state!=='GRANTED'||current.revision!==consent.revision)fail('CONSENT_PLAN_CONFLICT');
+  return planReceipt(i,consent,{plan_id:planId});
+ });
+}

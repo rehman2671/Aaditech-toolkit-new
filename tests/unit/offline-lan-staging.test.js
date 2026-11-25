@@ -137,3 +137,21 @@ describe.skipIf(process.platform!=='linux')('staged release custody and independ
    await expect(runStagedInspectionCli(bytes,args)).rejects.toThrow('STAGED_RELEASE_INPUT_INVALID');
  }));
 });
+
+describe.skipIf(process.platform!=='linux')('offline staging early capacity fences',()=>{
+ it('refuses oversized declared payload before reading payload or creating stage',()=>fixture(async x=>{
+  const doc=JSON.parse(await readFile(x.bundle.manifest,'utf8'));
+  doc.files[0].size=65*1024*1024*1024;
+  const bytes=Buffer.from(JSON.stringify(doc));await writeFile(x.bundle.manifest,bytes);
+  await rm(x.bundle.root+'/images/app.tar');
+  const bundle={...x.bundle,trustedManifestSha256:sha(bytes)};
+  await expect(stage({...x.input,bundle})).rejects.toThrow('STAGING_CAPACITY_UNVERIFIED');
+  expect(await readdir(x.destinationParent)).toEqual([]);
+ }));
+ it('rejects invalid declared size before reading payload or creating stage',()=>fixture(async x=>{
+  const doc=JSON.parse(await readFile(x.bundle.manifest,'utf8'));doc.files[0].size='5';
+  const bytes=Buffer.from(JSON.stringify(doc));await writeFile(x.bundle.manifest,bytes);
+  await expect(stage({...x.input,bundle:{...x.bundle,trustedManifestSha256:sha(bytes)}})).rejects.toThrow('STAGING_METADATA_INVALID');
+  expect(await readdir(x.destinationParent)).toEqual([]);
+ }));
+});

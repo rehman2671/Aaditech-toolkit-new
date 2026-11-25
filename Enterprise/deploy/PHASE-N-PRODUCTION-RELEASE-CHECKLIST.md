@@ -812,3 +812,7 @@ Added independent staged release reinspection with private modes, exact tree and
 ## 2026-11-25 — Local identity lock gate
 
 Dedicated persistent identity initialization, exact UUID/raw SHA-256-pinned readback and cooperative local setup lock are implemented in the review candidate; 82 new regression cases defined. Prior CI 45637884369 Node and API passed; PowerShell/MSI canceled. Fresh combined CI and independently approved actual runtime/resource observation, DB/backup binding, physical restore, Windows ACL and DEC-001 remain required. No production acceptance.
+
+## 2026-11-25 — Local runtime observation gate
+
+Prior exact e107e210 CI 45639287071 passed 1,972 tests, PowerShell and real API/MySQL; MSI jobs skipped. Candidate adds fixed local Linux Docker GET-only runtime/image-ID observation, 83 unit cases and actual CI disposable Docker observation. Fresh CI required. No image import, release manifest/layer verification, actual runtime compatibility, installer execution or production acceptance. DEC-001 and independently approved image/runtime topology remain required.

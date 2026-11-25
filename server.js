@@ -4,6 +4,7 @@ import { startNotificationOutboxWorker } from './notification-outbox.js';
 import {createRuntimeShutdown,createTaskTracker} from './runtime-shutdown.js';
 import {createHttpWorkTracker,installHttpRouteTracking} from './http-work-tracker.js';
 import { destinationFingerprint } from './notification-destination.js';
+import {csvRow,deviceEventsFilename} from './safe-csv-export.js';
 import { approvedGithubBuildConfig, readApprovedBuildStatus, dispatchApprovedBuild } from './github-build-release.js';
 /**
  * ARCHITECTURAL HARD PREREQUISITE: STATELESSNESS FOR MULTI-INSTANCE / CLUSTER DEPLOYMENTS
@@ -2796,7 +2797,7 @@ app.get(['/api/v1/software/export', '/api/software/export'], async (req, res) =>
   for (const a of agents) {
     const procs = await db.getDeviceProcesses(a.id);
     for (const p of procs) {
-      csv += `"${a.hostname}","${(p.name || '').replace(/"/g, '""')}","1.0.0","Local System"\n`;
+      csv += csvRow([a.hostname,p.name||'','1.0.0','Local System']);
     }
   }
   res.setHeader('Content-Type', 'text/csv');
@@ -2828,7 +2829,7 @@ app.get(['/api/v1/license/export', '/api/license/export'], async (req, res) => {
   const agents = await db.getDevices({ tenant_id: tenantId });
   let csv = 'Hostname,WindowsStatus,OfficeStatus,Compliant\n';
   for (const a of agents) {
-    csv += `"${a.hostname}","UNKNOWN","NOT_CONFIGURED","UNKNOWN"\n`;
+    csv += csvRow([a.hostname,'UNKNOWN','NOT_CONFIGURED','UNKNOWN']);
   }
   res.setHeader('Content-Type', 'text/csv');
   res.setHeader('Content-Disposition', 'attachment; filename="license_compliance.csv"');
@@ -2843,7 +2844,7 @@ app.get(['/api/v1/reports/fleet', '/api/report/fleet'], async (req, res) => {
   const agents = await db.getDevices({ tenant_id: tenantId });
   let csv = 'Hostname,OS,IP,AgentVersion,Status,LastSeen\n';
   for (const a of agents) {
-    csv += `"${a.hostname}","${a.os_version || a.os || ''}","${a.ip_address || a.ip || ''}","${a.agent_version || version}","${a.status || 'offline'}","${a.last_seen || ''}"\n`;
+    csv += csvRow([a.hostname,a.os_version||a.os||'',a.ip_address||a.ip||'',a.agent_version||version,a.status||'offline',a.last_seen||'']);
   }
   res.setHeader('Content-Type', 'text/csv');
   res.setHeader('Content-Disposition', 'attachment; filename="fleet_report.csv"');
@@ -2859,10 +2860,10 @@ app.get(['/api/v1/reports/device/:id', '/api/report/agent/:id'], async (req, res
     const events = await db.getEvents(agent.hostname, 100, null, req.user.tenant_id, agent.id);
     let csv = 'Hostname,Kind,CapturedAt\n';
     for (const ev of events) {
-      csv += `"${agent.hostname}","${ev.kind || 'telemetry'}","${ev.created_at || ev.recorded_at || ''}"\n`;
+      csv += csvRow([agent.hostname,ev.kind||'telemetry',ev.created_at||ev.recorded_at||'']);
     }
     res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', `attachment; filename="${agent.hostname}_events.csv"`);
+    res.setHeader('Content-Disposition', `attachment; filename="${deviceEventsFilename(agent.hostname)}"`);
     return res.send(csv);
   }
   const events = await db.getEvents(agent.hostname, 100, null, req.user.tenant_id, agent.id);

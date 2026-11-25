@@ -8448,27 +8448,14 @@
       "exact_head_ci": {
         "head": "107d9b8cfd7a4ba6a3f13fb74b38f45ae6a0389b",
         "run": 45720411048,
-        "jobs": [
-          {
-            "id": 139577149837,
-            "name": "PowerShell validation",
-            "status": "in_progress",
-            "conclusion": null
-          },
-          {
-            "id": 139577150375,
-            "name": "Offline Docker load compatibility (disposable runner)",
-            "status": "in_progress",
-            "conclusion": null
-          },
-          {
-            "id": 139577150385,
-            "name": "Node.js Unit & Integration Tests (Vitest + MySQL 8)",
-            "status": "in_progress",
-            "conclusion": null
-          }
-        ],
-        "scope": "Observed in-progress jobs only"
+        "status": "NODE_JOB_FAILED_COVERAGE",
+        "tests_passed": 3635,
+        "tests_total": 3635,
+        "test_files_passed": 148,
+        "statement_coverage": 69.67,
+        "required_statement_coverage": 70,
+        "api_suite": "skipped",
+        "scope": "Observed completed Node job; no acceptance promotion"
       }
     },
     {
@@ -8486,6 +8473,48 @@
       "limitations": [
         "Coverage gate not yet verified",
         "Live Redis and full stack fault recovery pending"
+      ],
+      "exact_head_ci": {
+        "head": "4227d2d6bc9d9d2a8962c719bb6c921ee8e6e9c3",
+        "run": 45720676688,
+        "jobs": [
+          {
+            "id": 139578015475,
+            "name": "Offline Docker load compatibility (disposable runner)",
+            "status": "in_progress",
+            "conclusion": null
+          },
+          {
+            "id": 139578016008,
+            "name": "PowerShell validation",
+            "status": "in_progress",
+            "conclusion": null
+          },
+          {
+            "id": 139578016013,
+            "name": "Node.js Unit & Integration Tests (Vitest + MySQL 8)",
+            "status": "in_progress",
+            "conclusion": null
+          }
+        ],
+        "scope": "Observed in-progress jobs only"
+      }
+    },
+    {
+      "id": "MASS-52",
+      "base_commit": "4227d2d6bc9d9d2a8962c719bb6c921ee8e6e9c3",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "evidence": [
+        "server.js",
+        "safe-csv-export.js",
+        "tests/unit/safe-csv-export.test.js",
+        "tests/unit/export-route-security.test.js"
+      ],
+      "regression_definitions": 73,
+      "local_verification": "61/61 isolated helper cases; 12 Express route definitions unexecuted",
+      "limitations": [
+        "No verified latest CI coverage or live infrastructure recovery",
+        "Existing software metadata placeholders unchanged"
       ]
     }
   ]

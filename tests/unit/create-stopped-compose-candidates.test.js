@@ -4,7 +4,7 @@ import {mkdtemp,readFile,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {createHash,X509Certificate} from 'node:crypto';
-import {validateStoppedCandidatePolicy as policy,deriveCandidateRoleEnvironment as derive,verifyCandidateImage as image,candidateProcessSpec as processSpec,freshDatabaseHealthCommand,openPinnedFreshDatabaseConnection as connectDb,verifyRunningFreshDatabase as verifyDb,verifyRunningFreshPair as verifyPair,verifyFreshApiProbeReceipt as probeReceipt,validateFreshApiActivationPolicy as apiPolicy,validateFreshDatabaseActivationPolicy as dbPolicy,candidateLabels as labels,verifyStoppedCandidate as verify,validateStoppedObservationPolicy as observe,validatePrivateStackCreationPolicy as createPrivate,validatePrivateStackObservationPolicy as observePrivate,validatePrivateStackActivationPolicy as activatePrivate,validateLivePrivateStackPolicy as livePrivate,privateCaddyProcessSpec,privateCaddyCommand} from '../../scripts/create-stopped-compose-candidates.mjs';
+import {validateStoppedCandidatePolicy as policy,deriveCandidateRoleEnvironment as derive,verifyCandidateImage as image,candidateProcessSpec as processSpec,freshDatabaseHealthCommand,openPinnedFreshDatabaseConnection as connectDb,verifyRunningFreshDatabase as verifyDb,verifyRunningFreshPair as verifyPair,verifyFreshApiProbeReceipt as probeReceipt,validateFreshApiActivationPolicy as apiPolicy,validateFreshDatabaseActivationPolicy as dbPolicy,candidateLabels as labels,verifyStoppedCandidate as verify,validateStoppedObservationPolicy as observe,validatePrivateStackCreationPolicy as createPrivate,validatePrivateStackObservationPolicy as observePrivate,validatePrivateStackActivationPolicy as activatePrivate,validateLivePrivateStackPolicy as livePrivate,validateExistingPrivateStackLifecycle as existingLifecycle,verifyExitedPrivateCandidate as exitedCandidate,privateCaddyProcessSpec,privateCaddyCommand} from '../../scripts/create-stopped-compose-candidates.mjs';
 const sha='a'.repeat(64),networkId='c'.repeat(64),imageId='sha256:'+'d'.repeat(64),id='e'.repeat(64),project='aaditech',host='server.example.com';
 const release={confirmation:'INSPECT_SIGNED_OCI_RUNTIME_ONLY',stagedDirectory:'/private/stage',trustedManifestSha256:sha,trustedSignerSpkiSha256:'b'.repeat(64),trustedPublicKeyPem:'fixture',architecture:'amd64'};
 const input={confirmation:'CREATE_STOPPED_COMPOSE_CANDIDATES_ONLY_EXCLUSIVE_DAEMON_CUSTODY',project,lockRoot:'/private/lock',configDirectory:'/private/config',serverHost:host,release,configurationSha256:sha,networkId};
@@ -171,6 +171,14 @@ describe.skipIf(process.platform!=='linux')('explicit TLS-bound fresh stack poli
    const volumes={databaseVolumeIdentity:v('mysqldata',1),apiVolumeIdentities:[v('api_data',2),v('agent_artifacts',3)],caddyVolumeIdentities:[v('caddy_data',4),v('caddy_config',5)]};
    const live={...obs,confirmation:'INSPECT_PINNED_RUNNING_PRIVATE_STACK_ONLY_EXCLUSIVE_DAEMON_CUSTODY',runningPins:{volumes,processes}};
    expect(livePrivate(live).runningPins).toEqual(live.runningPins);
+   const stop={...live,confirmation:'STOP_PINNED_PRIVATE_STACK_ONLY_EXCLUSIVE_DAEMON_AND_WRITER_CUSTODY'};
+   const stoppedPins=Object.fromEntries(['db','api','caddy'].map(role=>[role,{startedAt:processes[role].startedAt,finishedAt:'2026-11-25T01:00:00.000Z',exitCode:role==='api'?143:0}]));
+   const restart={...live,confirmation:'START_PINNED_EXITED_PRIVATE_STACK_ONLY_EXCLUSIVE_DAEMON_AND_WRITER_CUSTODY',stoppedPins};
+   expect(existingLifecycle(stop,'stop').runningPins).toEqual(live.runningPins);
+   expect(existingLifecycle(restart,'start').stoppedPins).toEqual(stoppedPins);
+   expect(()=>existingLifecycle(stop,'start')).toThrow();expect(()=>existingLifecycle(restart,'stop')).toThrow();expect(()=>livePrivate(restart)).toThrow();
+   for(const patch of [{exitCode:137},{finishedAt:'bad'},{finishedAt:'2026-11-24T00:00:00.000Z'},{startedAt:'2026-11-24T00:00:00.000Z'},{extra:true}])expect(()=>existingLifecycle({...restart,stoppedPins:{...stoppedPins,db:{...stoppedPins.db,...patch}}},'start')).toThrow();
+   expect(()=>existingLifecycle({...restart,stoppedPins:{...stoppedPins,db:{...stoppedPins.db,exitCode:143}}},'start')).toThrow();
    expect(()=>livePrivate(obs)).toThrow();expect(()=>activatePrivate(live)).toThrow();
    for(const bad of [{volumes:{...volumes,databaseVolumeIdentity:v('foreign',1)}},{volumes:{...volumes,apiVolumeIdentities:[volumes.apiVolumeIdentities[0],volumes.apiVolumeIdentities[0]]}},{processes:{...processes,api:{...processes.api,pid:processes.db.pid}}},{processes:{...processes,caddy:{...processes.caddy,ip:'8.8.8.8'}}},{processes:{...processes,db:{...processes.db,health:'starting'}}}]){
     expect(()=>livePrivate({...live,runningPins:{...live.runningPins,...bad}})).toThrow();
@@ -186,4 +194,14 @@ describe.skipIf(process.platform!=='linux')('explicit TLS-bound fresh stack poli
 it('pins private Caddy process rather than public ACME default',()=>{
  expect(privateCaddyProcessSpec({Cmd:['caddy','run','--config','/etc/caddy/Caddyfile']})).toMatchObject({cmd:privateCaddyCommand,entrypoint:[]});
  for(const patch of [{Entrypoint:['sh']},{User:'1000:1000'}])expect(()=>privateCaddyProcessSpec({Cmd:['caddy'],...patch})).toThrow();
+});
+
+it('admits only exact previously running clean exited candidate and rejects fresh or uncertain state',()=>{
+ const startedAt='2026-11-25T00:00:00.000Z',finishedAt='2026-11-25T01:00:00.000Z';
+ const stopped={...row,RestartCount:0,State:{...row.State,Status:'exited',Pid:0,OOMKilled:false,Error:'',StartedAt:startedAt,FinishedAt:finishedAt,ExitCode:0}};
+ expect(exitedCandidate(stopped,e,{startedAt})).toEqual({startedAt,finishedAt,exitCode:0});
+ for(const patch of [{ExitCode:137},{ExitCode:143},{OOMKilled:true},{Pid:123},{Error:'failed'},{FinishedAt:'2026-11-24T00:00:00.000Z'},{StartedAt:'2026-11-24T00:00:00.000Z'},{Status:'created'}])expect(()=>exitedCandidate({...stopped,State:{...stopped.State,...patch}},e,{startedAt})).toThrow();
+ expect(()=>exitedCandidate({...stopped,RestartCount:1},e,{startedAt})).toThrow();
+ expect(()=>exitedCandidate({...stopped,NetworkSettings:{Networks:{aaditech_ittoolkit:{NetworkID:networkId,Aliases:['caddy'],IPAddress:'172.20.0.4'}}}},e,{startedAt})).toThrow();
+ expect(()=>verify(stopped,e)).toThrow();
 });

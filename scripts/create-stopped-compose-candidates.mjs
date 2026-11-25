@@ -25,6 +25,7 @@ import {inspectPinnedPrivateLanRuntime} from './provision-fresh-private-lan-tls.
 import {validatePrivateTlsInputs} from './private-lan-tls-preflight.mjs';
 import {probePrivateLanHttps,probeExistingPrivateLanHttps} from './probe-private-lan-https.mjs';
 import {verifyBoundRuntimeHistory} from '../bound-runtime-schema.js';
+import {inspectLanHost} from './lan-host-preflight.mjs';
 const exec=promisify(execFile),binary='/usr/bin/docker',socket='/run/docker.sock';
 const fail=()=>{throw Error('STOPPED_COMPOSE_CANDIDATES_UNCONFIRMED')};
 const hex=x=>typeof x==='string'&&x.length===64&&/^[a-f0-9]{64}$/.test(x)&&!/^0+$/.test(x);
@@ -94,13 +95,13 @@ export function candidateLabels(project,releaseSha,configSha,role){
  return {'com.docker.compose.project':project,'com.docker.compose.service':role,'com.docker.compose.oneoff':'False','org.aaditech.release-sha256':releaseSha,'org.aaditech.configuration-sha256':configSha,'org.aaditech.activation-blocked':'true'};
 }
 export function verifyStoppedCandidate(doc,expected){return verifyCandidate(doc,expected,false)}
-function verifyCandidate(doc,expected,runningDb){
+function verifyCandidate(doc,expected,runningDb,stoppedState='created'){
  const {id,imageId,project,role,networkId,labels,environment,imageEnvironment,imageProcess,identityMount,tlsMount}=expected;
  if(identityMount&&(role!=='api'||doc?.Config?.User!=='1000:1000'))fail();
  if(tlsMount&&(role!=='caddy'||identityMount||tlsMount.target!=='/run/aaditech-tls'||typeof tlsMount.source!=='string'||!['','0','0:0','root'].includes(imageProcess?.user)))fail();
  const privateMount=identityMount||tlsMount;
  const state=doc?.State,c=doc?.Config,h=doc?.HostConfig;
- if(doc?.Id!==id||doc.Image!==imageId||doc.Name!=='/'+project+'-'+role+'-1'||state?.Status!==(runningDb?'running':'created')||state.Running!==runningDb||state.Paused!==false||state.Restarting!==false||state.Dead!==false||!c||!h||Object.entries(labels).some(([k,v])=>c.Labels?.[k]!==v))fail();
+ if(doc?.Id!==id||doc.Image!==imageId||doc.Name!=='/'+project+'-'+role+'-1'||state?.Status!==(runningDb?'running':stoppedState)||state.Running!==runningDb||state.Paused!==false||state.Restarting!==false||state.Dead!==false||!c||!h||Object.entries(labels).some(([k,v])=>c.Labels?.[k]!==v))fail();
  if(!imageProcess||JSON.stringify(candidateProcessSpec(c))!==JSON.stringify(imageProcess)||tlsMount&&(imageProcess.entrypoint.length!==0||JSON.stringify(imageProcess.cmd)!==JSON.stringify(privateCaddyCommand)))fail();
  if(Object.keys(c.Labels??{}).some(k=>(k.startsWith('com.docker.compose.')||k.startsWith('org.aaditech.'))&&!Object.hasOwn(labels,k)))fail();
  if(h.Privileged!==false||h.PublishAllPorts!==false||!empty(h.PortBindings)||!empty(h.Binds)||!empty(h.CapAdd)||!empty(h.Devices)||!empty(h.DeviceRequests)||h.RestartPolicy?.Name!=='no'||!Array.isArray(h.SecurityOpt)||h.SecurityOpt.length!==1||!['no-new-privileges','no-new-privileges:true','no-new-privileges=true'].includes(h.SecurityOpt[0]))fail();
@@ -131,6 +132,14 @@ function verifyCandidate(doc,expected,runningDb){
  const hc=c.Healthcheck?.Test;
  if(role==='caddy'?JSON.stringify(hc)!==JSON.stringify(['NONE']):JSON.stringify(hc)!==JSON.stringify(['CMD-SHELL',health[role]]))fail();
  return {containerId:id,imageId};
+}
+// Explicitly exited previously admitted container, not a fresh candidate.
+export function verifyExitedPrivateCandidate(doc,expected,previous){
+ verifyCandidate(doc,expected,false,'exited');
+ const s=doc.State,endpoint=doc.NetworkSettings.Networks[expected.project+'_ittoolkit'];
+ if(!previous||s.Pid!==0||s.OOMKilled!==false||s.Error!==''||doc.RestartCount!==0||s.StartedAt!==previous.startedAt||typeof s.FinishedAt!=='string'||!Number.isFinite(Date.parse(s.FinishedAt))||Date.parse(s.FinishedAt)<Date.parse(s.StartedAt)||!(s.ExitCode===0||expected.role==='api'&&s.ExitCode===143))fail();
+ if([endpoint.IPAddress,endpoint.EndpointID,endpoint.GlobalIPv6Address].some(x=>x!==undefined&&x!==''))fail();
+ return Object.freeze({startedAt:s.StartedAt,finishedAt:s.FinishedAt,exitCode:s.ExitCode});
 }
 // The host bridge address is derived from two independent Docker observations,
 // not operator input, a mutable DNS name, a published port, or a returned URL.
@@ -307,9 +316,32 @@ export async function inspectLivePrivateStack(input){
  validateLivePrivateStackPolicy(input);
  return stoppedCandidates(input,true,false,false,true,false,true);
 }
-async function stoppedCandidates(input,observeOnly,initializeDatabase=false,initializeApi=false,privateProfile=false,initializeIngress=false,liveOnly=false){
+const stopExistingConfirmation='STOP_PINNED_PRIVATE_STACK_ONLY_EXCLUSIVE_DAEMON_AND_WRITER_CUSTODY';
+const startExistingConfirmation='START_PINNED_EXITED_PRIVATE_STACK_ONLY_EXCLUSIVE_DAEMON_AND_WRITER_CUSTODY';
+export function validateExistingPrivateStackLifecycle(input,operation){
+ if(!['stop','start'].includes(operation)||input?.confirmation!==(operation==='stop'?stopExistingConfirmation:startExistingConfirmation))fail();
+ if(operation==='stop')return validateLivePrivateStackPolicy({...input,confirmation:'INSPECT_PINNED_RUNNING_PRIVATE_STACK_ONLY_EXCLUSIVE_DAEMON_CUSTODY'});
+ const {stoppedPins,...base}=input,p=validateLivePrivateStackPolicy({...base,confirmation:'INSPECT_PINNED_RUNNING_PRIVATE_STACK_ONLY_EXCLUSIVE_DAEMON_CUSTODY'});
+ if(!exact(stoppedPins,roles))fail();
+ const pins={};
+ for(const role of roles){
+  const x=stoppedPins[role];
+  if(!exact(x,['startedAt','finishedAt','exitCode'])||x.startedAt!==p.runningPins.processes[role].startedAt||typeof x.finishedAt!=='string'||!Number.isFinite(Date.parse(x.finishedAt))||Date.parse(x.finishedAt)<Date.parse(x.startedAt)||!(x.exitCode===0||role==='api'&&x.exitCode===143))fail();
+  pins[role]=Object.freeze({...x});
+ }
+ return Object.freeze({...p,stoppedPins:Object.freeze(pins)});
+}
+export async function stopExistingPrivateStack(input){
+ validateExistingPrivateStackLifecycle(input,'stop');
+ return stoppedCandidates(input,true,false,false,true,false,true,'stop');
+}
+export async function startExitedPrivateStack(input){
+ validateExistingPrivateStackLifecycle(input,'start');
+ return stoppedCandidates(input,true,false,false,true,false,true,'start');
+}
+async function stoppedCandidates(input,observeOnly,initializeDatabase=false,initializeApi=false,privateProfile=false,initializeIngress=false,liveOnly=false,lifecycle=null){
  if(process.platform!=='linux'||typeof process.geteuid!=='function')fail();
- const p=liveOnly?validateLivePrivateStackPolicy(input):privateProfile?(initializeIngress?validatePrivateStackActivationPolicy(input):observeOnly?validatePrivateStackObservationPolicy(input):validatePrivateStackCreationPolicy(input)):(observeOnly?validateStoppedObservationPolicy(input):validateStoppedCandidatePolicy(input)),dir=await privateDir(p.configDirectory);
+ const p=lifecycle?validateExistingPrivateStackLifecycle(input,lifecycle):liveOnly?validateLivePrivateStackPolicy(input):privateProfile?(initializeIngress?validatePrivateStackActivationPolicy(input):observeOnly?validatePrivateStackObservationPolicy(input):validatePrivateStackCreationPolicy(input)):(observeOnly?validateStoppedObservationPolicy(input):validateStoppedCandidatePolicy(input)),dir=await privateDir(p.configDirectory);
  return withLocalSetupLock({confirmation:'ACQUIRE_LOCAL_SETUP_LOCK_ONLY',lockRoot:p.lockRoot},async({assertHeld})=>{
   const b=await binaryIdentity(),s=await socketIdentity(),initial=await requestLocalDockerJson(socket,'/info'),daemon=initial.value?.ID;
   if(initial.missing!==false||typeof daemon!=='string'||!daemon||initial.value.OSType!=='linux')fail();
@@ -389,19 +421,100 @@ async function stoppedCandidates(input,observeOnly,initializeDatabase=false,init
    result[role]=verifyStoppedCandidate(await inspect('container',id),expected[role]);
   }
   if(liveOnly){
-   const pins=p.runningPins.processes;
+   const pins=p.runningPins.processes,runtimeEnv={...environments.api,AADITECH_IDENTITY_DIRECTORY:p.storage.identity.directoryPath};
+   // Operator must independently stop forwarder and quiesce writers.
+   // Observe TCP listener absence; this is not global writer-quiescence proof.
+   async function noLanListener(){
+    if(!lifecycle)return;
+    const h=await inspectLanHost({targetDirectory:p.configDirectory,ports:[443],markerPaths:{database:p.storage.identity.directoryPath,credentials:p.configDirectory,service:p.tls.runtimeDirectory},minCpu:1,minMemoryBytes:1,minFreeBytes:1});
+    if(h.ports.length!==1||h.ports[0].port!==443||h.ports[0].state!=='NO_LISTENER_OBSERVED')fail();
+   }
+   async function releaseGuard(){
+    await verifyImages();
+    if(JSON.stringify(await inspectBoundOfflineRuntime(p.release))!==JSON.stringify(bound)||JSON.stringify(await admitSignedFreshMigrations(migrationPins))!==JSON.stringify(migrations))fail();
+   }
+   async function storageGuard(){
+    if(JSON.stringify(storagePins(await checkStorage(false,v.databaseVolumeIdentity,v.apiVolumeIdentities,v.caddyVolumeIdentities)))!==JSON.stringify(v))fail();
+    await verifyTls();await noLanListener();await continuity();
+   }
+   const exited={},active={};
+   // Observe the exact expected prefix of running services, and exact
+   // prior exit records for every remaining role. Never infer a new
+   // acceptable process or volume from arbitrary live metadata.
+   async function lifecycleGuard(startingRole=null){
+    await inventory(3,true);await storageGuard();
+    const members=roles.filter(r=>Object.hasOwn(active,r)||r===startingRole).map(r=>expected[r].id),network=await inspect('network',p.networkId);
+    if(!network.Containers||Object.keys(network.Containers).length!==members.length||members.some(id=>!Object.hasOwn(network.Containers,id)))fail();
+    if(verifyProvisionedNetwork({...network,Containers:{}},resources.network)!==p.networkId)fail();
+    const now={};
+    for(const role of roles){
+     const doc=await inspect('container',result[role].containerId);
+     if(members.includes(expected[role].id)){
+      const current=verifyRunningEndpoint(doc,expected[role],network,members);
+      if(active[role]&&JSON.stringify(current)!==JSON.stringify(active[role]))fail();
+      if(!active[role]&&(role!==startingRole||Date.parse(current.startedAt)<=Date.parse(exited[role].finishedAt)))fail();
+      now[role]=current;
+     }else{
+      const current=verifyExitedPrivateCandidate(doc,expected[role],pins[role]);
+      if(exited[role]&&JSON.stringify(current)!==JSON.stringify(exited[role]))fail();
+      exited[role]=current;
+     }
+    }
+    if(['ip','endpointId','pid'].some(k=>new Set(Object.values(now).map(r=>r[k])).size!==Object.keys(now).length))fail();
+    await storageGuard();return now;
+   }
+   async function checkHistory(ip,guard){
+    let c;
+    try{
+     await guard();c=await openPinnedFreshDatabaseConnection(ip,environments.db);
+     if((await verifyBoundRuntimeHistory(c,migrations.files,runtimeEnv)).status!=='BOUND_RUNTIME_HISTORY_VERIFIED')fail();
+     await c.end();c=undefined;await guard();
+    }finally{if(c)c.destroy()}
+   }
+   async function httpsReadiness(ip,guard,retry=false){
+    const target={confirmation:'PROBE_PINNED_EXISTING_PRIVATE_LAN_HTTPS_ONLY',address:ip,hostname:p.serverHost,port:443,rootPem:p.tls.rootPem,trustedRootSha256:tls.root_sha256,trustedLeafSha256:tls.leaf_sha256};
+    const deadline=performance.now()+30000;
+    while(true){
+     let custodyFailed=false;
+     const held=async()=>{try{await guard()}catch(e){custodyFailed=true;throw e}};
+     try{return await probeExistingPrivateLanHttps(target,held)}
+     catch{if(custodyFailed||!retry||performance.now()>deadline)fail();await sleep(500)}
+    }
+   }
+   if(lifecycle==='start'){
+    Object.assign(exited,p.stoppedPins);
+    await lifecycleGuard();await releaseGuard();await lifecycleGuard();
+    for(const role of roles){
+     await lifecycleGuard();
+     await run(['container','start',result[role].containerId],{},60000);
+     const deadline=performance.now()+120000;
+     let first;
+     while(true){
+      const current=(await lifecycleGuard(role))[role],{health:status,...process}=current;
+      if(first&&JSON.stringify(first)!==JSON.stringify(process))fail();first=process;
+      if(role==='caddy'||current.health==='healthy'){active[role]=current;break}
+      if(current.health!=='starting'||performance.now()>deadline)fail();
+      await sleep(1000);
+     }
+     await lifecycleGuard();
+     if(role==='db')await checkHistory(active.db.ip,lifecycleGuard);
+    }
+    const proof=await httpsReadiness(active.caddy.ip,lifecycleGuard,true);
+    if(!proof.application_readiness_verified||!proof.private_routes_denied||!proof.exact_leaf_verified)fail();
+    await checkHistory(active.db.ip,lifecycleGuard);await releaseGuard();await lifecycleGuard();
+    return Object.freeze({schema_version:1,operation:'start',project:p.project,release_sha256:p.release.trustedManifestSha256,configuration_sha256:p.configurationSha256,network_id:p.networkId,containers:result,installation_id:p.storage.identity.expectedInstallationId,identity_sha256:p.storage.identity.expectedIdentitySha256,private_ingress_address:active.caddy.ip,root_sha256:tls.root_sha256,leaf_sha256:tls.leaf_sha256,setup_state_observed:proof.setup_state_observed,running_pins:Object.freeze({volumes:v,processes:Object.freeze({...active})}),existing_stack_started:true,database_history_verified:true,private_https_readiness_verified:true,host_ports_published:false,lan_forwarder_started:false,fresh_initialization_performed:false,writer_quiescence_verified:false,production_accepted:false});
+   }
    async function liveGuard(){
     await inventory(3,true);
     const triple=verifyRunningFreshTriple(await inspect('container',result.db.containerId),await inspect('container',result.api.containerId),await inspect('container',result.caddy.containerId),expected,await inspect('network',p.networkId));
     if(JSON.stringify(triple)!==JSON.stringify(pins)||JSON.stringify(storagePins(await checkStorage(false,v.databaseVolumeIdentity,v.apiVolumeIdentities,v.caddyVolumeIdentities)))!==JSON.stringify(v))fail();
-    await verifyTls();await continuity();
+    await verifyTls();await noLanListener();await continuity();
    }
    await liveGuard();
    let conn;
    try{
     conn=await openPinnedFreshDatabaseConnection(pins.db.ip,environments.db);
     await liveGuard();
-    const runtimeEnv={...environments.api,AADITECH_IDENTITY_DIRECTORY:p.storage.identity.directoryPath};
     if((await verifyBoundRuntimeHistory(conn,migrations.files,runtimeEnv)).status!=='BOUND_RUNTIME_HISTORY_VERIFIED')fail();
     await liveGuard();
     const proof=await probeExistingPrivateLanHttps({confirmation:'PROBE_PINNED_EXISTING_PRIVATE_LAN_HTTPS_ONLY',address:pins.caddy.ip,hostname:p.serverHost,port:443,rootPem:p.tls.rootPem,trustedRootSha256:tls.root_sha256,trustedLeafSha256:tls.leaf_sha256},liveGuard);
@@ -411,6 +524,16 @@ async function stoppedCandidates(input,observeOnly,initializeDatabase=false,init
     await liveGuard();await verifyImages();
     if(JSON.stringify(await inspectBoundOfflineRuntime(p.release))!==JSON.stringify(bound)||JSON.stringify(await admitSignedFreshMigrations(migrationPins))!==JSON.stringify(migrations))fail();
     await liveGuard();
+    if(lifecycle==='stop'){
+     Object.assign(active,pins);await lifecycleGuard();
+     for(const role of [...roles].reverse()){
+      await lifecycleGuard();
+      await run(['container','stop','--time','30',result[role].containerId],{},60000);
+      delete active[role];await lifecycleGuard();
+     }
+     await releaseGuard();await lifecycleGuard();
+     return Object.freeze({schema_version:1,operation:'stop',project:p.project,release_sha256:p.release.trustedManifestSha256,configuration_sha256:p.configurationSha256,network_id:p.networkId,containers:result,installation_id:p.storage.identity.expectedInstallationId,identity_sha256:p.storage.identity.expectedIdentitySha256,root_sha256:tls.root_sha256,leaf_sha256:tls.leaf_sha256,running_pins:p.runningPins,stopped_pins:Object.freeze({...exited}),all_existing_containers_exited:true,prestop_database_history_verified:true,lan_listener_absence_observed:true,writer_quiescence_verified:false,application_graceful_shutdown_verified:false,automatic_restart_authorized:false,production_accepted:false});
+    }
     return Object.freeze({schema_version:1,project:p.project,release_sha256:p.release.trustedManifestSha256,configuration_sha256:p.configurationSha256,network_id:p.networkId,containers:result,installation_id:p.storage.identity.expectedInstallationId,identity_sha256:p.storage.identity.expectedIdentitySha256,private_ingress_address:pins.caddy.ip,root_sha256:tls.root_sha256,leaf_sha256:tls.leaf_sha256,setup_state_observed:proof.setup_state_observed,live_stack_verified:true,database_history_verified:true,private_https_readiness_verified:true,private_routes_denied:true,services_mutated:false,host_ports_published:false,installation_authorized:false,production_accepted:false});
    }finally{if(conn)conn.destroy()}
   }

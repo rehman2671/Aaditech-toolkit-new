@@ -121,3 +121,21 @@ node scripts/stage-offline-lan-bundle-cli.mjs --confirm-local-staging < staging-
 ```
 
 Successful output identifies a unique private staging directory, manifest digest and verified file count. 64 GiB reference cap and capacity check; no runtime import or execution. Ordinary failures clean the unique stage; crash remnants need operator reconciliation. Do not launch staged bytes on the basis of this receipt. No protection against hostile same-UID writers, no physical offline acceptance. Fresh CI required. Seven Windows read-only providers from #116 are also carried forward; both PowerShell versions passed 166 checks at that prior head, not this new head.
+
+## Reinspect an offline stage and supplied TLS material (2026-11-25)
+
+Use trusted local Linux storage and an existing owner-only 0700 staging parent. `stage-inspection.json` contains exactly `stagedDirectory`, `trustedManifestSha256`, `trustedPublicKeyPem`, `trustedSignerSpkiSha256`; use independently approved pins, not a receipt as trust authority.
+
+```sh
+node scripts/inspect-staged-lan-bundle-cli.mjs --confirm-local-read-only < stage-inspection.json
+```
+
+The stage must retain the generated release directory name, private 0700 directories, private 0600 single-link files and exactly manifest.json, manifest.sig and payload at its top level. Inspection re-verifies bytes and snapshots metadata; never proves subsequent immutability or permission to execute.
+
+`tls-material.json` contains exactly `address`, `hostname`, `port`, `rootPem` (public CA only), `trustedRootSha256`, `leafCertificatePath`, `privateKeyPath`. Use absolute canonical local paths, separate 0600 certificate/key files in 0700 owner-only directories. Unencrypted single PEM key only; direct-root serverAuth leaf only, intermediate chains unsupported. Never put private key bytes in JSON or logs.
+
+```sh
+node scripts/private-lan-tls-material-cli.mjs --confirm-local-read-only < tls-material.json
+```
+
+Checks local private custody, independent root pin, direct signature, exact DNS/IP SAN, dates, server EKU, matching key and local secure-context creation. No network, listener, certificate issuance, trust store changes, revocation proof or runtime install. Independent approved PKI, actual TLS handshake, physical LAN acceptance and fresh CI remain required.

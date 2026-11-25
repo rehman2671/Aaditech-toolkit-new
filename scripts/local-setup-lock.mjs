@@ -9,7 +9,7 @@ const fingerprint=s=>['dev','ino','uid','mode'].map(k=>s[k]);
 const equal=(a,b)=>a.every((x,i)=>x===b[i]);
 async function privateDir(path,expected){
  if(process.platform!=='linux'||typeof process.geteuid!=='function'||!constants.O_NOFOLLOW||
-    typeof path!=='string'||path.length>4096||!isAbsolute(path)||resolve(path)!==path||path.includes('\0'))fail('PRIVATE_SETUP_LOCK_ROOT_REQUIRED');
+    typeof path!=='string'||path.length>4096||!isAbsolute(path)||resolve(path)!==path||/[\x00-\x1f\x7f]/.test(path))fail('PRIVATE_SETUP_LOCK_ROOT_REQUIRED');
  const s=await lstat(path);
  if(!s.isDirectory()||s.uid!==process.geteuid()||(s.mode&0o7777)!==0o700||
     await realpath(path)!==path||(expected&&!equal(fingerprint(s),expected)))fail('PRIVATE_SETUP_LOCK_ROOT_REQUIRED');
@@ -35,6 +35,8 @@ export async function withLocalSetupLock({confirmation,lockRoot}={},operation){
  await syncDir(lock,identity);await syncDir(lockRoot,parent);
  async function assertHeld(){
   await privateDir(lockRoot,parent);await privateDir(lock,identity);
+  const siblings=await readdir(lockRoot);
+  if(siblings.length!==1||siblings[0]!=='setup.lock')fail('SETUP_LOCK_CHANGED');
   const names=await readdir(lock);
   if(names.length!==1||names[0]!=='owner.json')fail('SETUP_LOCK_CHANGED');
   const f=await open(marker,constants.O_RDONLY|constants.O_NOFOLLOW|constants.O_NONBLOCK);
@@ -51,7 +53,7 @@ export async function withLocalSetupLock({confirmation,lockRoot}={},operation){
   }finally{await f.close()}
  }
  await assertHeld();
- const result=await operation(Object.freeze({lock_sha256:createHash('sha256').update(bytes).digest('hex')}));
+ const result=await operation(Object.freeze({lock_sha256:createHash('sha256').update(bytes).digest('hex'),assertHeld}));
  await assertHeld();
  // No callback or other writer may alter this dedicated directory.
  await unlink(marker);await syncDir(lock,identity);

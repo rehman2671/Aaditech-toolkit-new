@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
-  "batch": "MASS-11",
+  "batch": "MASS-12",
   "date": "2026-11-26",
   "target": "20 implementation prompts planning target, 50–100 actual development tasks per batch aspirational; count only delivered functional work, not test cases",
-  "base_commit": "5624bc21f56aeea47f1d0b86d03023f91c1f52f9",
+  "base_commit": "3d1710d5debbd1359364a834e0d4a9885ca78310",
   "source_of_truth": [
     "docs/product/DELIVERY-TRACKER.json",
     "docs/product/TROUBLESHOOTING-WORK-REGISTER.json",
@@ -3238,6 +3238,44 @@
         "tests/unit/portal-session-response-boundaries.test.js",
         "Fresh exact-head full CI; browser, HTTP/SQL and physical acceptance pending"
       ]
+    },
+    {
+      "id": "MASS-12-01",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Read-only exact existing Compose service recovery, lock continuity and strict runtime state checks",
+      "dependencies": [
+        "MASS-10-03",
+        "M1",
+        "DEC-001"
+      ],
+      "paths": [
+        "scripts/local-compose-service-lifecycle.mjs",
+        "scripts/local-setup-lock.mjs",
+        "scripts/inspect-existing-compose-recovery-cli.mjs",
+        "docs/product/EXISTING-SERVICE-RECOVERY-AND-DB-TRANSACTION-CUSTODY.md"
+      ],
+      "regression": [
+        "tests/unit/local-compose-service-lifecycle.test.js",
+        "tests/unit/local-setup-lock-continuity.test.js",
+        "Actual disposable lifecycle partial-failure and physical acceptance pending"
+      ]
+    },
+    {
+      "id": "MASS-12-02",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Database identity double observation and transaction connection custody",
+      "dependencies": [
+        "MASS-10-01",
+        "M1"
+      ],
+      "paths": [
+        "installation-database-identity.js",
+        "docs/product/EXISTING-SERVICE-RECOVERY-AND-DB-TRANSACTION-CUSTODY.md"
+      ],
+      "regression": [
+        "tests/unit/installation-database-identity.test.js",
+        "Real persistent MySQL restart/restore and ambiguous commit injection pending"
+      ]
     }
   ],
   "unresolved": [
@@ -3396,6 +3434,17 @@
       "evidence": [
         "docs/product/PORTAL-SESSION-RESPONSE-BOUNDARIES.md",
         "tests/unit/portal-session-response-boundaries.test.js"
+      ]
+    },
+    {
+      "id": "MASS-12",
+      "base_commit": "3d1710d5debbd1359364a834e0d4a9885ca78310",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "evidence": [
+        "docs/product/EXISTING-SERVICE-RECOVERY-AND-DB-TRANSACTION-CUSTODY.md",
+        "tests/unit/local-compose-service-lifecycle.test.js",
+        "tests/unit/installation-database-identity.test.js",
+        "tests/unit/local-setup-lock-continuity.test.js"
       ]
     }
   ]

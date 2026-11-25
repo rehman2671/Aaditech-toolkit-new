@@ -17,7 +17,9 @@ function graph(architecture='amd64'){
  function put(path,doc){const bytes=Buffer.from(JSON.stringify(doc));files.set(path,bytes);docs.set(path,doc)}
  function blob(bytes,type){const digest='sha256:'+sha(bytes),path='runtime/blobs/sha256/'+digest.slice(7);files.set(path,bytes);return {mediaType:type,digest,size:bytes.length}}
  function jsonBlob(doc,type){const d=blob(Buffer.from(JSON.stringify(doc)),type);docs.set('runtime/blobs/sha256/'+d.digest.slice(7),doc);return d}
- const layerBytes=Buffer.alloc(1024),layer=blob(gzipSync(layerBytes),types.layer);
+ const h=Buffer.alloc(512);h.write('fixture.txt',0,'ascii');h.write('0000644\0',100,'ascii');h.write('0000000\0',108,'ascii');h.write('0000000\0',116,'ascii');h.write('00000000001\0',124,'ascii');h.write('00000000000\0',136,'ascii');h.fill(32,148,156);h[156]=48;h.write('ustar\0',257,'ascii');h.write('00',263,'ascii');h.write(h.reduce((n,b)=>n+b,0).toString(8).padStart(6,'0')+'\0 ',148,'ascii');
+ const data=Buffer.alloc(512);data[0]=65;
+ const layerBytes=Buffer.concat([h,data,Buffer.alloc(1024)]),layer=blob(gzipSync(layerBytes),types.layer);
  const index={schemaVersion:2,mediaType:types.index,manifests:[]};
  for(const role of roles){
   const config={architecture,os:'linux',config:{Env:['SECRET=fixture'],Labels:{role}},rootfs:{type:'layers',diff_ids:['sha256:'+sha(layerBytes)]}};
@@ -108,7 +110,7 @@ describe.skipIf(process.platform!=='linux')('real signed staged OCI release',()=
  it('verifies actual signed bytes and descriptor graph without import or execution',()=>staged(async({g,input})=>{
   const r=await inspectOfflineOciRuntime(input);
   expect(r.images.map(x=>x.image_config_id)).toEqual(g.manifests.map(x=>x.config.digest));
-  expect(r).toMatchObject({release_signature_verified:true,compressed_blob_integrity_verified:true,oci_descriptor_graph_verified:true,uncompressed_diff_ids_verified:true,image_imported:false,installation_authorized:false,production_accepted:false});
+  expect(r).toMatchObject({release_signature_verified:true,compressed_blob_integrity_verified:true,oci_descriptor_graph_verified:true,uncompressed_diff_ids_verified:true,strict_ustar_profile_verified:true,merged_rootfs_verified:false,image_imported:false,installation_authorized:false,production_accepted:false});
  }));
  it('inspects signed staged release through actual CLI',()=>staged(async({input})=>{
   const doc={...input};delete doc.confirmation;

@@ -32,3 +32,6 @@ Enterprise/agent/wix/*.msi
 Enterprise/api/agent-version.json
 Enterprise/deploy/backups/
 
+# Local secret-bearing runtime configuration candidates
+.env.candidate
+.env.candidate-*

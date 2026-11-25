@@ -29,6 +29,7 @@ import helmet from 'helmet';
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 import * as db from './db.js';
+import {registerTroubleshootingHelpRoutes} from './troubleshooting-help-routes.js';
 import { isValidSetupKey, isSeededDemoPasswordHash } from './setup-security.js';
 import { validateEnrollmentIdentity, validateFreshEnrollment, matchesEnrolledDeviceIdentifier, extractEnrolledDeviceHeaderToken, validateDeviceRevocationRequest, validatePendingCommandReconciliation } from './enrollment-security.js';
 import { resolveAgentOrigin } from './agent-origin.js';
@@ -1005,6 +1006,8 @@ app.get(['/api/v1/auth/me', '/api/me'], async (req, res) => {
     role: current.role, tenant_id: current.tenant_id
   });
 });
+
+registerTroubleshootingHelpRoutes(app);
 
 // Devices (Canonical v1 + Legacy aliases /api/devices and /api/agents)
 app.get(['/api/v1/devices', '/api/devices', '/api/agents'], async (req, res) => {

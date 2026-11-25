@@ -429,9 +429,6 @@ jobs:
           console.log('PASS: actual local Docker socket observation and missing image refusal.');
           NODE
 
-      - name: Rehearse signed fixture Docker archive load on disposable runner
-        run: node tests/ci-offline-docker-load-rehearsal.mjs
-
       - name: Run Vitest unit & integration test suite (enforcing 70%+ coverage)
         env:
           DB_HOST: 127.0.0.1
@@ -442,6 +439,19 @@ jobs:
           NODE_ENV: test
           VITEST: "true"
         run: npm run test:coverage
+
+  offline-docker-load-rehearsal:
+    name: Offline Docker load compatibility (disposable runner)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "20"
+      - name: Rehearse signed fixture Docker archive load on disposable runner
+        run: node tests/ci-offline-docker-load-rehearsal.mjs
 
   api-tests:
     name: API test suite (Node.js vs MySQL 8)

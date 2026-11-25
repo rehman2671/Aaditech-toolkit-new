@@ -1,0 +1,2380 @@
+{
+  "schema_version": 1,
+  "batch": "MASS-01",
+  "date": "2026-11-26",
+  "target": "20 implementation prompts planning target, 50–100 actual development tasks per batch aspirational; count only delivered functional work, not test cases",
+  "base_commit": "26f6dd7ad116e85e9fd52235f681c3d57f8f7a23",
+  "source_of_truth": [
+    "docs/product/DELIVERY-TRACKER.json",
+    "docs/product/TROUBLESHOOTING-WORK-REGISTER.json",
+    "docs/product/ORIGINAL-REQUIREMENTS-LINE-REGISTER.json",
+    "docs/product/ACCEPTANCE-TEST-MATRIX.md"
+  ],
+  "dependency_register": {
+    "parent_requirements": [
+      {
+        "id": "M0",
+        "requires": [],
+        "state": "IN_DEVELOPMENT"
+      },
+      {
+        "id": "M0A",
+        "requires": [
+          "M0",
+          "DEC-001",
+          "DEC-002",
+          "DEC-003"
+        ],
+        "state": "BLOCKED"
+      },
+      {
+        "id": "M1",
+        "requires": [
+          "M0",
+          "DEC-001"
+        ],
+        "state": "IN_DEVELOPMENT"
+      },
+      {
+        "id": "M2",
+        "requires": [
+          "M1"
+        ],
+        "state": "IN_DEVELOPMENT"
+      },
+      {
+        "id": "PR-004",
+        "requires": [
+          "M0"
+        ],
+        "state": "IN_DEVELOPMENT"
+      },
+      {
+        "id": "M3",
+        "requires": [
+          "M1",
+          "M2",
+          "PR-004"
+        ],
+        "state": "NOT_STARTED"
+      },
+      {
+        "id": "PR-005",
+        "requires": [
+          "M1",
+          "M2"
+        ],
+        "state": "CI_VERIFIED"
+      },
+      {
+        "id": "PR-006",
+        "requires": [],
+        "state": "CI_VERIFIED"
+      },
+      {
+        "id": "FE-01",
+        "requires": [],
+        "state": "IN_DEVELOPMENT"
+      },
+      {
+        "id": "FE-08",
+        "requires": [
+          "M1"
+        ],
+        "state": "CI_VERIFIED"
+      },
+      {
+        "id": "FE-09",
+        "requires": [
+          "M1"
+        ],
+        "state": "CI_VERIFIED"
+      },
+      {
+        "id": "AT-SEC-02",
+        "requires": [
+          "FE-09"
+        ],
+        "state": "CI_VERIFIED"
+      },
+      {
+        "id": "AT-SEC-03",
+        "requires": [
+          "AT-OPS-01",
+          "DEC-005"
+        ],
+        "state": "CI_VERIFIED"
+      },
+      {
+        "id": "AT-SEC-04",
+        "requires": [
+          "FE-09"
+        ],
+        "state": "CI_VERIFIED"
+      },
+      {
+        "id": "AT-SEC-05",
+        "requires": [
+          "AT-SEC-04",
+          "FE-09"
+        ],
+        "state": "CI_VERIFIED"
+      },
+      {
+        "id": "PR-007",
+        "requires": [
+          "M1"
+        ],
+        "state": "CI_VERIFIED"
+      },
+      {
+        "id": "AT-SEC-01",
+        "requires": [
+          "M1"
+        ],
+        "state": "IN_DEVELOPMENT"
+      },
+      {
+        "id": "FE-17",
+        "requires": [],
+        "state": "CI_VERIFIED"
+      },
+      {
+        "id": "FE-18",
+        "requires": [],
+        "state": "CI_VERIFIED"
+      },
+      {
+        "id": "FE-19",
+        "requires": [],
+        "state": "IN_DEVELOPMENT"
+      },
+      {
+        "id": "AT-OPS-01",
+        "requires": [
+          "FE-18",
+          "FE-19"
+        ],
+        "state": "BLOCKED"
+      },
+      {
+        "id": "FE-14",
+        "requires": [
+          "M3"
+        ],
+        "state": "IN_DEVELOPMENT"
+      },
+      {
+        "id": "FE-15",
+        "requires": [
+          "M3"
+        ],
+        "state": "IN_DEVELOPMENT"
+      },
+      {
+        "id": "FE-16",
+        "requires": [
+          "M4"
+        ],
+        "state": "IN_DEVELOPMENT"
+      },
+      {
+        "id": "M4",
+        "requires": [
+          "M3"
+        ],
+        "state": "IN_DEVELOPMENT"
+      },
+      {
+        "id": "M5",
+        "requires": [
+          "M4"
+        ],
+        "state": "IN_DEVELOPMENT"
+      },
+      {
+        "id": "FE-23",
+        "requires": [],
+        "state": "CODE_COMPLETE"
+      },
+      {
+        "id": "FE-24",
+        "requires": [
+          "M6"
+        ],
+        "state": "NOT_STARTED"
+      },
+      {
+        "id": "FE-25",
+        "requires": [
+          "M3"
+        ],
+        "state": "IN_DEVELOPMENT"
+      },
+      {
+        "id": "M6",
+        "requires": [
+          "M3"
+        ],
+        "state": "NOT_STARTED"
+      },
+      {
+        "id": "DEC-001",
+        "requires": [
+          "M0"
+        ],
+        "state": "BLOCKED"
+      },
+      {
+        "id": "DEC-002",
+        "requires": [
+          "M0"
+        ],
+        "state": "BLOCKED"
+      },
+      {
+        "id": "DEC-003",
+        "requires": [
+          "M0"
+        ],
+        "state": "BLOCKED"
+      },
+      {
+        "id": "M7",
+        "requires": [
+          "DEC-001",
+          "DEC-002",
+          "M3"
+        ],
+        "state": "NOT_STARTED"
+      },
+      {
+        "id": "PR-015",
+        "requires": [
+          "DEC-002"
+        ],
+        "state": "NOT_STARTED"
+      },
+      {
+        "id": "PR-016",
+        "requires": [
+          "DEC-003"
+        ],
+        "state": "NOT_STARTED"
+      },
+      {
+        "id": "PR-017",
+        "requires": [
+          "DEC-001"
+        ],
+        "state": "NOT_STARTED"
+      },
+      {
+        "id": "PR-018",
+        "requires": [
+          "DEC-001"
+        ],
+        "state": "IN_DEVELOPMENT"
+      },
+      {
+        "id": "PR-019",
+        "requires": [
+          "DEC-003"
+        ],
+        "state": "IN_DEVELOPMENT"
+      },
+      {
+        "id": "PR-020",
+        "requires": [
+          "DEC-001"
+        ],
+        "state": "NOT_STARTED"
+      },
+      {
+        "id": "PR-021",
+        "requires": [
+          "DEC-001"
+        ],
+        "state": "NOT_STARTED"
+      },
+      {
+        "id": "PR-022",
+        "requires": [
+          "DEC-001"
+        ],
+        "state": "NOT_STARTED"
+      },
+      {
+        "id": "PR-023",
+        "requires": [
+          "DEC-002"
+        ],
+        "state": "NOT_STARTED"
+      },
+      {
+        "id": "PR-024",
+        "requires": [
+          "DEC-001"
+        ],
+        "state": "NOT_STARTED"
+      },
+      {
+        "id": "PR-025",
+        "requires": [
+          "M4"
+        ],
+        "state": "NOT_STARTED"
+      },
+      {
+        "id": "PR-026",
+        "requires": [
+          "M0"
+        ],
+        "state": "NOT_STARTED"
+      },
+      {
+        "id": "PR-027",
+        "requires": [
+          "DEC-003"
+        ],
+        "state": "NOT_STARTED"
+      },
+      {
+        "id": "FE-38",
+        "requires": [],
+        "state": "CI_VERIFIED"
+      },
+      {
+        "id": "DEC-004",
+        "requires": [
+          "M0"
+        ],
+        "state": "BLOCKED"
+      },
+      {
+        "id": "DEC-005",
+        "requires": [
+          "M0"
+        ],
+        "state": "BLOCKED"
+      }
+    ],
+    "granular_requirements": [
+      {
+        "id": "TR-01-GUIDE",
+        "parent": "M4",
+        "requires": [],
+        "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+        "evidence": [
+          "troubleshooting-guidance.js",
+          "tests/unit/troubleshooting-guidance.test.js",
+          "troubleshooting-help-routes.js",
+          "Enterprise/portal/troubleshooting.html",
+          "Enterprise/portal/troubleshooting-help.js",
+          "tests/unit/troubleshooting-help-routes.test.js"
+        ],
+        "acceptance": null
+      },
+      {
+        "id": "TR-01-INTAKE",
+        "parent": "M4",
+        "requires": [
+          "TR-01-GUIDE"
+        ],
+        "state": "PARTIAL_REFERENCE_ONLY",
+        "evidence": [
+          "troubleshooting-incidents.js",
+          "database/migrations/020_troubleshooting_employee_bindings.sql",
+          "tests/unit/employee-troubleshooting.test.js",
+          "test-atomic-telemetry-batch-mysql.js"
+        ],
+        "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
+      },
+      {
+        "id": "TR-01-OUTCOME",
+        "parent": "M5",
+        "requires": [
+          "TR-01-INTAKE"
+        ],
+        "state": "PENDING",
+        "evidence": [],
+        "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
+      },
+      {
+        "id": "TR-02-GUIDE",
+        "parent": "M4",
+        "requires": [],
+        "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+        "evidence": [
+          "troubleshooting-guidance.js",
+          "tests/unit/troubleshooting-guidance.test.js",
+          "troubleshooting-help-routes.js",
+          "Enterprise/portal/troubleshooting.html",
+          "Enterprise/portal/troubleshooting-help.js",
+          "tests/unit/troubleshooting-help-routes.test.js"
+        ],
+        "acceptance": null
+      },
+      {
+        "id": "TR-02-INTAKE",
+        "parent": "M4",
+        "requires": [
+          "TR-02-GUIDE"
+        ],
+        "state": "PARTIAL_REFERENCE_ONLY",
+        "evidence": [
+          "troubleshooting-incidents.js",
+          "database/migrations/020_troubleshooting_employee_bindings.sql",
+          "tests/unit/employee-troubleshooting.test.js",
+          "test-atomic-telemetry-batch-mysql.js"
+        ],
+        "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
+      },
+      {
+        "id": "TR-02-OUTCOME",
+        "parent": "M5",
+        "requires": [
+          "TR-02-INTAKE"
+        ],
+        "state": "PENDING",
+        "evidence": [],
+        "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
+      },
+      {
+        "id": "TR-03-GUIDE",
+        "parent": "M4",
+        "requires": [],
+        "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+        "evidence": [
+          "troubleshooting-guidance.js",
+          "tests/unit/troubleshooting-guidance.test.js",
+          "troubleshooting-help-routes.js",
+          "Enterprise/portal/troubleshooting.html",
+          "Enterprise/portal/troubleshooting-help.js",
+          "tests/unit/troubleshooting-help-routes.test.js"
+        ],
+        "acceptance": null
+      },
+      {
+        "id": "TR-03-INTAKE",
+        "parent": "M4",
+        "requires": [
+          "TR-03-GUIDE"
+        ],
+        "state": "PARTIAL_REFERENCE_ONLY",
+        "evidence": [
+          "troubleshooting-incidents.js",
+          "database/migrations/020_troubleshooting_employee_bindings.sql",
+          "tests/unit/employee-troubleshooting.test.js",
+          "test-atomic-telemetry-batch-mysql.js"
+        ],
+        "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
+      },
+      {
+        "id": "TR-03-OUTCOME",
+        "parent": "M5",
+        "requires": [
+          "TR-03-INTAKE"
+        ],
+        "state": "PENDING",
+        "evidence": [],
+        "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
+      },
+      {
+        "id": "TR-04-GUIDE",
+        "parent": "M4",
+        "requires": [],
+        "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+        "evidence": [
+          "troubleshooting-guidance.js",
+          "tests/unit/troubleshooting-guidance.test.js",
+          "troubleshooting-help-routes.js",
+          "Enterprise/portal/troubleshooting.html",
+          "Enterprise/portal/troubleshooting-help.js",
+          "tests/unit/troubleshooting-help-routes.test.js"
+        ],
+        "acceptance": null
+      },
+      {
+        "id": "TR-04-INTAKE",
+        "parent": "M4",
+        "requires": [
+          "TR-04-GUIDE"
+        ],
+        "state": "PARTIAL_REFERENCE_ONLY",
+        "evidence": [
+          "troubleshooting-incidents.js",
+          "database/migrations/020_troubleshooting_employee_bindings.sql",
+          "tests/unit/employee-troubleshooting.test.js",
+          "test-atomic-telemetry-batch-mysql.js"
+        ],
+        "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
+      },
+      {
+        "id": "TR-04-OUTCOME",
+        "parent": "M5",
+        "requires": [
+          "TR-04-INTAKE"
+        ],
+        "state": "PENDING",
+        "evidence": [],
+        "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
+      },
+      {
+        "id": "TR-05-GUIDE",
+        "parent": "M4",
+        "requires": [],
+        "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+        "evidence": [
+          "troubleshooting-guidance.js",
+          "tests/unit/troubleshooting-guidance.test.js",
+          "troubleshooting-help-routes.js",
+          "Enterprise/portal/troubleshooting.html",
+          "Enterprise/portal/troubleshooting-help.js",
+          "tests/unit/troubleshooting-help-routes.test.js"
+        ],
+        "acceptance": null
+      },
+      {
+        "id": "TR-05-INTAKE",
+        "parent": "M4",
+        "requires": [
+          "TR-05-GUIDE"
+        ],
+        "state": "PARTIAL_REFERENCE_ONLY",
+        "evidence": [
+          "troubleshooting-incidents.js",
+          "database/migrations/020_troubleshooting_employee_bindings.sql",
+          "tests/unit/employee-troubleshooting.test.js",
+          "test-atomic-telemetry-batch-mysql.js"
+        ],
+        "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
+      },
+      {
+        "id": "TR-05-OUTCOME",
+        "parent": "M5",
+        "requires": [
+          "TR-05-INTAKE"
+        ],
+        "state": "PENDING",
+        "evidence": [],
+        "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
+      },
+      {
+        "id": "TR-06-GUIDE",
+        "parent": "M4",
+        "requires": [],
+        "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+        "evidence": [
+          "troubleshooting-guidance.js",
+          "tests/unit/troubleshooting-guidance.test.js",
+          "troubleshooting-help-routes.js",
+          "Enterprise/portal/troubleshooting.html",
+          "Enterprise/portal/troubleshooting-help.js",
+          "tests/unit/troubleshooting-help-routes.test.js"
+        ],
+        "acceptance": null
+      },
+      {
+        "id": "TR-06-INTAKE",
+        "parent": "M4",
+        "requires": [
+          "TR-06-GUIDE"
+        ],
+        "state": "PARTIAL_REFERENCE_ONLY",
+        "evidence": [
+          "troubleshooting-incidents.js",
+          "database/migrations/020_troubleshooting_employee_bindings.sql",
+          "tests/unit/employee-troubleshooting.test.js",
+          "test-atomic-telemetry-batch-mysql.js"
+        ],
+        "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
+      },
+      {
+        "id": "TR-06-OUTCOME",
+        "parent": "M5",
+        "requires": [
+          "TR-06-INTAKE"
+        ],
+        "state": "PENDING",
+        "evidence": [],
+        "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
+      },
+      {
+        "id": "TR-07-GUIDE",
+        "parent": "M4",
+        "requires": [],
+        "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+        "evidence": [
+          "troubleshooting-guidance.js",
+          "tests/unit/troubleshooting-guidance.test.js",
+          "troubleshooting-help-routes.js",
+          "Enterprise/portal/troubleshooting.html",
+          "Enterprise/portal/troubleshooting-help.js",
+          "tests/unit/troubleshooting-help-routes.test.js"
+        ],
+        "acceptance": null
+      },
+      {
+        "id": "TR-07-INTAKE",
+        "parent": "M4",
+        "requires": [
+          "TR-07-GUIDE"
+        ],
+        "state": "PARTIAL_REFERENCE_ONLY",
+        "evidence": [
+          "troubleshooting-incidents.js",
+          "database/migrations/020_troubleshooting_employee_bindings.sql",
+          "tests/unit/employee-troubleshooting.test.js",
+          "test-atomic-telemetry-batch-mysql.js"
+        ],
+        "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
+      },
+      {
+        "id": "TR-07-OUTCOME",
+        "parent": "M5",
+        "requires": [
+          "TR-07-INTAKE"
+        ],
+        "state": "PENDING",
+        "evidence": [],
+        "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
+      },
+      {
+        "id": "TR-08-GUIDE",
+        "parent": "M4",
+        "requires": [],
+        "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+        "evidence": [
+          "troubleshooting-guidance.js",
+          "tests/unit/troubleshooting-guidance.test.js",
+          "troubleshooting-help-routes.js",
+          "Enterprise/portal/troubleshooting.html",
+          "Enterprise/portal/troubleshooting-help.js",
+          "tests/unit/troubleshooting-help-routes.test.js"
+        ],
+        "acceptance": null
+      },
+      {
+        "id": "TR-08-INTAKE",
+        "parent": "M4",
+        "requires": [
+          "TR-08-GUIDE"
+        ],
+        "state": "PARTIAL_REFERENCE_ONLY",
+        "evidence": [
+          "troubleshooting-incidents.js",
+          "database/migrations/020_troubleshooting_employee_bindings.sql",
+          "tests/unit/employee-troubleshooting.test.js",
+          "test-atomic-telemetry-batch-mysql.js"
+        ],
+        "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
+      },
+      {
+        "id": "TR-08-OUTCOME",
+        "parent": "M5",
+        "requires": [
+          "TR-08-INTAKE"
+        ],
+        "state": "PENDING",
+        "evidence": [],
+        "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
+      },
+      {
+        "id": "TR-09-GUIDE",
+        "parent": "M4",
+        "requires": [],
+        "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+        "evidence": [
+          "troubleshooting-guidance.js",
+          "tests/unit/troubleshooting-guidance.test.js",
+          "troubleshooting-help-routes.js",
+          "Enterprise/portal/troubleshooting.html",
+          "Enterprise/portal/troubleshooting-help.js",
+          "tests/unit/troubleshooting-help-routes.test.js"
+        ],
+        "acceptance": null
+      },
+      {
+        "id": "TR-09-INTAKE",
+        "parent": "M4",
+        "requires": [
+          "TR-09-GUIDE"
+        ],
+        "state": "PARTIAL_REFERENCE_ONLY",
+        "evidence": [
+          "troubleshooting-incidents.js",
+          "database/migrations/020_troubleshooting_employee_bindings.sql",
+          "tests/unit/employee-troubleshooting.test.js",
+          "test-atomic-telemetry-batch-mysql.js"
+        ],
+        "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
+      },
+      {
+        "id": "TR-09-OUTCOME",
+        "parent": "M5",
+        "requires": [
+          "TR-09-INTAKE"
+        ],
+        "state": "PENDING",
+        "evidence": [],
+        "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
+      },
+      {
+        "id": "TR-10-GUIDE",
+        "parent": "M4",
+        "requires": [],
+        "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+        "evidence": [
+          "troubleshooting-guidance.js",
+          "tests/unit/troubleshooting-guidance.test.js",
+          "troubleshooting-help-routes.js",
+          "Enterprise/portal/troubleshooting.html",
+          "Enterprise/portal/troubleshooting-help.js",
+          "tests/unit/troubleshooting-help-routes.test.js"
+        ],
+        "acceptance": null
+      },
+      {
+        "id": "TR-10-INTAKE",
+        "parent": "M4",
+        "requires": [
+          "TR-10-GUIDE"
+        ],
+        "state": "PARTIAL_REFERENCE_ONLY",
+        "evidence": [
+          "troubleshooting-incidents.js",
+          "database/migrations/020_troubleshooting_employee_bindings.sql",
+          "tests/unit/employee-troubleshooting.test.js",
+          "test-atomic-telemetry-batch-mysql.js"
+        ],
+        "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
+      },
+      {
+        "id": "TR-10-OUTCOME",
+        "parent": "M5",
+        "requires": [
+          "TR-10-INTAKE"
+        ],
+        "state": "PENDING",
+        "evidence": [],
+        "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
+      },
+      {
+        "id": "TR-11-GUIDE",
+        "parent": "M4",
+        "requires": [],
+        "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+        "evidence": [
+          "troubleshooting-guidance.js",
+          "tests/unit/troubleshooting-guidance.test.js",
+          "troubleshooting-help-routes.js",
+          "Enterprise/portal/troubleshooting.html",
+          "Enterprise/portal/troubleshooting-help.js",
+          "tests/unit/troubleshooting-help-routes.test.js"
+        ],
+        "acceptance": null
+      },
+      {
+        "id": "TR-11-INTAKE",
+        "parent": "M4",
+        "requires": [
+          "TR-11-GUIDE"
+        ],
+        "state": "PARTIAL_REFERENCE_ONLY",
+        "evidence": [
+          "troubleshooting-incidents.js",
+          "database/migrations/020_troubleshooting_employee_bindings.sql",
+          "tests/unit/employee-troubleshooting.test.js",
+          "test-atomic-telemetry-batch-mysql.js"
+        ],
+        "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
+      },
+      {
+        "id": "TR-11-OUTCOME",
+        "parent": "M5",
+        "requires": [
+          "TR-11-INTAKE"
+        ],
+        "state": "PENDING",
+        "evidence": [],
+        "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
+      },
+      {
+        "id": "TR-12-GUIDE",
+        "parent": "M4",
+        "requires": [],
+        "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+        "evidence": [
+          "troubleshooting-guidance.js",
+          "tests/unit/troubleshooting-guidance.test.js",
+          "troubleshooting-help-routes.js",
+          "Enterprise/portal/troubleshooting.html",
+          "Enterprise/portal/troubleshooting-help.js",
+          "tests/unit/troubleshooting-help-routes.test.js"
+        ],
+        "acceptance": null
+      },
+      {
+        "id": "TR-12-INTAKE",
+        "parent": "M4",
+        "requires": [
+          "TR-12-GUIDE"
+        ],
+        "state": "PARTIAL_REFERENCE_ONLY",
+        "evidence": [
+          "troubleshooting-incidents.js",
+          "database/migrations/020_troubleshooting_employee_bindings.sql",
+          "tests/unit/employee-troubleshooting.test.js",
+          "test-atomic-telemetry-batch-mysql.js"
+        ],
+        "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
+      },
+      {
+        "id": "TR-12-OUTCOME",
+        "parent": "M5",
+        "requires": [
+          "TR-12-INTAKE"
+        ],
+        "state": "PENDING",
+        "evidence": [],
+        "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
+      },
+      {
+        "id": "TR-13-GUIDE",
+        "parent": "M4",
+        "requires": [],
+        "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+        "evidence": [
+          "troubleshooting-guidance.js",
+          "tests/unit/troubleshooting-guidance.test.js",
+          "troubleshooting-help-routes.js",
+          "Enterprise/portal/troubleshooting.html",
+          "Enterprise/portal/troubleshooting-help.js",
+          "tests/unit/troubleshooting-help-routes.test.js"
+        ],
+        "acceptance": null
+      },
+      {
+        "id": "TR-13-INTAKE",
+        "parent": "M4",
+        "requires": [
+          "TR-13-GUIDE"
+        ],
+        "state": "PARTIAL_REFERENCE_ONLY",
+        "evidence": [
+          "troubleshooting-incidents.js",
+          "database/migrations/020_troubleshooting_employee_bindings.sql",
+          "tests/unit/employee-troubleshooting.test.js",
+          "test-atomic-telemetry-batch-mysql.js"
+        ],
+        "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
+      },
+      {
+        "id": "TR-13-OUTCOME",
+        "parent": "M5",
+        "requires": [
+          "TR-13-INTAKE"
+        ],
+        "state": "PENDING",
+        "evidence": [],
+        "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
+      },
+      {
+        "id": "TR-14-GUIDE",
+        "parent": "M4",
+        "requires": [],
+        "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+        "evidence": [
+          "troubleshooting-guidance.js",
+          "tests/unit/troubleshooting-guidance.test.js",
+          "troubleshooting-help-routes.js",
+          "Enterprise/portal/troubleshooting.html",
+          "Enterprise/portal/troubleshooting-help.js",
+          "tests/unit/troubleshooting-help-routes.test.js"
+        ],
+        "acceptance": null
+      },
+      {
+        "id": "TR-14-INTAKE",
+        "parent": "M4",
+        "requires": [
+          "TR-14-GUIDE"
+        ],
+        "state": "PARTIAL_REFERENCE_ONLY",
+        "evidence": [
+          "troubleshooting-incidents.js",
+          "database/migrations/020_troubleshooting_employee_bindings.sql",
+          "tests/unit/employee-troubleshooting.test.js",
+          "test-atomic-telemetry-batch-mysql.js"
+        ],
+        "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
+      },
+      {
+        "id": "TR-14-OUTCOME",
+        "parent": "M5",
+        "requires": [
+          "TR-14-INTAKE"
+        ],
+        "state": "PENDING",
+        "evidence": [],
+        "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
+      },
+      {
+        "id": "TR-15-GUIDE",
+        "parent": "M4",
+        "requires": [],
+        "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+        "evidence": [
+          "troubleshooting-guidance.js",
+          "tests/unit/troubleshooting-guidance.test.js",
+          "troubleshooting-help-routes.js",
+          "Enterprise/portal/troubleshooting.html",
+          "Enterprise/portal/troubleshooting-help.js",
+          "tests/unit/troubleshooting-help-routes.test.js"
+        ],
+        "acceptance": null
+      },
+      {
+        "id": "TR-15-INTAKE",
+        "parent": "M4",
+        "requires": [
+          "TR-15-GUIDE"
+        ],
+        "state": "PARTIAL_REFERENCE_ONLY",
+        "evidence": [
+          "troubleshooting-incidents.js",
+          "database/migrations/020_troubleshooting_employee_bindings.sql",
+          "tests/unit/employee-troubleshooting.test.js",
+          "test-atomic-telemetry-batch-mysql.js"
+        ],
+        "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
+      },
+      {
+        "id": "TR-15-OUTCOME",
+        "parent": "M5",
+        "requires": [
+          "TR-15-INTAKE"
+        ],
+        "state": "PENDING",
+        "evidence": [],
+        "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
+      },
+      {
+        "id": "TR-16-GUIDE",
+        "parent": "M4",
+        "requires": [],
+        "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+        "evidence": [
+          "troubleshooting-guidance.js",
+          "tests/unit/troubleshooting-guidance.test.js",
+          "troubleshooting-help-routes.js",
+          "Enterprise/portal/troubleshooting.html",
+          "Enterprise/portal/troubleshooting-help.js",
+          "tests/unit/troubleshooting-help-routes.test.js"
+        ],
+        "acceptance": null
+      },
+      {
+        "id": "TR-16-INTAKE",
+        "parent": "M4",
+        "requires": [
+          "TR-16-GUIDE"
+        ],
+        "state": "PARTIAL_REFERENCE_ONLY",
+        "evidence": [
+          "troubleshooting-incidents.js",
+          "database/migrations/020_troubleshooting_employee_bindings.sql",
+          "tests/unit/employee-troubleshooting.test.js",
+          "test-atomic-telemetry-batch-mysql.js"
+        ],
+        "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
+      },
+      {
+        "id": "TR-16-OUTCOME",
+        "parent": "M5",
+        "requires": [
+          "TR-16-INTAKE"
+        ],
+        "state": "PENDING",
+        "evidence": [],
+        "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
+      },
+      {
+        "id": "TR-17-GUIDE",
+        "parent": "M4",
+        "requires": [],
+        "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+        "evidence": [
+          "troubleshooting-guidance.js",
+          "tests/unit/troubleshooting-guidance.test.js",
+          "troubleshooting-help-routes.js",
+          "Enterprise/portal/troubleshooting.html",
+          "Enterprise/portal/troubleshooting-help.js",
+          "tests/unit/troubleshooting-help-routes.test.js"
+        ],
+        "acceptance": null
+      },
+      {
+        "id": "TR-17-INTAKE",
+        "parent": "M4",
+        "requires": [
+          "TR-17-GUIDE"
+        ],
+        "state": "PARTIAL_REFERENCE_ONLY",
+        "evidence": [
+          "troubleshooting-incidents.js",
+          "database/migrations/020_troubleshooting_employee_bindings.sql",
+          "tests/unit/employee-troubleshooting.test.js",
+          "test-atomic-telemetry-batch-mysql.js"
+        ],
+        "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
+      },
+      {
+        "id": "TR-17-OUTCOME",
+        "parent": "M5",
+        "requires": [
+          "TR-17-INTAKE"
+        ],
+        "state": "PENDING",
+        "evidence": [],
+        "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
+      },
+      {
+        "id": "TR-18-GUIDE",
+        "parent": "M4",
+        "requires": [],
+        "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+        "evidence": [
+          "troubleshooting-guidance.js",
+          "tests/unit/troubleshooting-guidance.test.js",
+          "troubleshooting-help-routes.js",
+          "Enterprise/portal/troubleshooting.html",
+          "Enterprise/portal/troubleshooting-help.js",
+          "tests/unit/troubleshooting-help-routes.test.js"
+        ],
+        "acceptance": null
+      },
+      {
+        "id": "TR-18-INTAKE",
+        "parent": "M4",
+        "requires": [
+          "TR-18-GUIDE"
+        ],
+        "state": "PARTIAL_REFERENCE_ONLY",
+        "evidence": [
+          "troubleshooting-incidents.js",
+          "database/migrations/020_troubleshooting_employee_bindings.sql",
+          "tests/unit/employee-troubleshooting.test.js",
+          "test-atomic-telemetry-batch-mysql.js"
+        ],
+        "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
+      },
+      {
+        "id": "TR-18-OUTCOME",
+        "parent": "M5",
+        "requires": [
+          "TR-18-INTAKE"
+        ],
+        "state": "PENDING",
+        "evidence": [],
+        "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
+      },
+      {
+        "id": "TR-19-GUIDE",
+        "parent": "M4",
+        "requires": [],
+        "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+        "evidence": [
+          "troubleshooting-guidance.js",
+          "tests/unit/troubleshooting-guidance.test.js",
+          "troubleshooting-help-routes.js",
+          "Enterprise/portal/troubleshooting.html",
+          "Enterprise/portal/troubleshooting-help.js",
+          "tests/unit/troubleshooting-help-routes.test.js"
+        ],
+        "acceptance": null
+      },
+      {
+        "id": "TR-19-INTAKE",
+        "parent": "M4",
+        "requires": [
+          "TR-19-GUIDE"
+        ],
+        "state": "PARTIAL_REFERENCE_ONLY",
+        "evidence": [
+          "troubleshooting-incidents.js",
+          "database/migrations/020_troubleshooting_employee_bindings.sql",
+          "tests/unit/employee-troubleshooting.test.js",
+          "test-atomic-telemetry-batch-mysql.js"
+        ],
+        "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
+      },
+      {
+        "id": "TR-19-OUTCOME",
+        "parent": "M5",
+        "requires": [
+          "TR-19-INTAKE"
+        ],
+        "state": "PENDING",
+        "evidence": [],
+        "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
+      },
+      {
+        "id": "TR-20-GUIDE",
+        "parent": "M4",
+        "requires": [],
+        "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+        "evidence": [
+          "troubleshooting-guidance.js",
+          "tests/unit/troubleshooting-guidance.test.js",
+          "troubleshooting-help-routes.js",
+          "Enterprise/portal/troubleshooting.html",
+          "Enterprise/portal/troubleshooting-help.js",
+          "tests/unit/troubleshooting-help-routes.test.js"
+        ],
+        "acceptance": null
+      },
+      {
+        "id": "TR-20-INTAKE",
+        "parent": "M4",
+        "requires": [
+          "TR-20-GUIDE"
+        ],
+        "state": "PARTIAL_REFERENCE_ONLY",
+        "evidence": [
+          "troubleshooting-incidents.js",
+          "database/migrations/020_troubleshooting_employee_bindings.sql",
+          "tests/unit/employee-troubleshooting.test.js",
+          "test-atomic-telemetry-batch-mysql.js"
+        ],
+        "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
+      },
+      {
+        "id": "TR-20-OUTCOME",
+        "parent": "M5",
+        "requires": [
+          "TR-20-INTAKE"
+        ],
+        "state": "PENDING",
+        "evidence": [],
+        "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
+      },
+      {
+        "id": "TR-21-GUIDE",
+        "parent": "M4",
+        "requires": [],
+        "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+        "evidence": [
+          "troubleshooting-guidance.js",
+          "tests/unit/troubleshooting-guidance.test.js",
+          "troubleshooting-help-routes.js",
+          "Enterprise/portal/troubleshooting.html",
+          "Enterprise/portal/troubleshooting-help.js",
+          "tests/unit/troubleshooting-help-routes.test.js"
+        ],
+        "acceptance": null
+      },
+      {
+        "id": "TR-21-INTAKE",
+        "parent": "M4",
+        "requires": [
+          "TR-21-GUIDE"
+        ],
+        "state": "PARTIAL_REFERENCE_ONLY",
+        "evidence": [
+          "troubleshooting-incidents.js",
+          "database/migrations/020_troubleshooting_employee_bindings.sql",
+          "tests/unit/employee-troubleshooting.test.js",
+          "test-atomic-telemetry-batch-mysql.js"
+        ],
+        "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
+      },
+      {
+        "id": "TR-21-OUTCOME",
+        "parent": "M5",
+        "requires": [
+          "TR-21-INTAKE"
+        ],
+        "state": "PENDING",
+        "evidence": [],
+        "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
+      },
+      {
+        "id": "TR-22-GUIDE",
+        "parent": "M4",
+        "requires": [],
+        "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+        "evidence": [
+          "troubleshooting-guidance.js",
+          "tests/unit/troubleshooting-guidance.test.js",
+          "troubleshooting-help-routes.js",
+          "Enterprise/portal/troubleshooting.html",
+          "Enterprise/portal/troubleshooting-help.js",
+          "tests/unit/troubleshooting-help-routes.test.js"
+        ],
+        "acceptance": null
+      },
+      {
+        "id": "TR-22-INTAKE",
+        "parent": "M4",
+        "requires": [
+          "TR-22-GUIDE"
+        ],
+        "state": "PARTIAL_REFERENCE_ONLY",
+        "evidence": [
+          "troubleshooting-incidents.js",
+          "database/migrations/020_troubleshooting_employee_bindings.sql",
+          "tests/unit/employee-troubleshooting.test.js",
+          "test-atomic-telemetry-batch-mysql.js"
+        ],
+        "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
+      },
+      {
+        "id": "TR-22-OUTCOME",
+        "parent": "M5",
+        "requires": [
+          "TR-22-INTAKE"
+        ],
+        "state": "PENDING",
+        "evidence": [],
+        "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
+      },
+      {
+        "id": "TR-23-GUIDE",
+        "parent": "M4",
+        "requires": [],
+        "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+        "evidence": [
+          "troubleshooting-guidance.js",
+          "tests/unit/troubleshooting-guidance.test.js",
+          "troubleshooting-help-routes.js",
+          "Enterprise/portal/troubleshooting.html",
+          "Enterprise/portal/troubleshooting-help.js",
+          "tests/unit/troubleshooting-help-routes.test.js"
+        ],
+        "acceptance": null
+      },
+      {
+        "id": "TR-23-INTAKE",
+        "parent": "M4",
+        "requires": [
+          "TR-23-GUIDE"
+        ],
+        "state": "PARTIAL_REFERENCE_ONLY",
+        "evidence": [
+          "troubleshooting-incidents.js",
+          "database/migrations/020_troubleshooting_employee_bindings.sql",
+          "tests/unit/employee-troubleshooting.test.js",
+          "test-atomic-telemetry-batch-mysql.js"
+        ],
+        "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
+      },
+      {
+        "id": "TR-23-OUTCOME",
+        "parent": "M5",
+        "requires": [
+          "TR-23-INTAKE"
+        ],
+        "state": "PENDING",
+        "evidence": [],
+        "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
+      },
+      {
+        "id": "TR-24-GUIDE",
+        "parent": "M4",
+        "requires": [],
+        "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+        "evidence": [
+          "troubleshooting-guidance.js",
+          "tests/unit/troubleshooting-guidance.test.js",
+          "troubleshooting-help-routes.js",
+          "Enterprise/portal/troubleshooting.html",
+          "Enterprise/portal/troubleshooting-help.js",
+          "tests/unit/troubleshooting-help-routes.test.js"
+        ],
+        "acceptance": null
+      },
+      {
+        "id": "TR-24-INTAKE",
+        "parent": "M4",
+        "requires": [
+          "TR-24-GUIDE"
+        ],
+        "state": "PARTIAL_REFERENCE_ONLY",
+        "evidence": [
+          "troubleshooting-incidents.js",
+          "database/migrations/020_troubleshooting_employee_bindings.sql",
+          "tests/unit/employee-troubleshooting.test.js",
+          "test-atomic-telemetry-batch-mysql.js"
+        ],
+        "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
+      },
+      {
+        "id": "TR-24-OUTCOME",
+        "parent": "M5",
+        "requires": [
+          "TR-24-INTAKE"
+        ],
+        "state": "PENDING",
+        "evidence": [],
+        "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
+      },
+      {
+        "id": "TR-25-GUIDE",
+        "parent": "M4",
+        "requires": [],
+        "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+        "evidence": [
+          "troubleshooting-guidance.js",
+          "tests/unit/troubleshooting-guidance.test.js",
+          "troubleshooting-help-routes.js",
+          "Enterprise/portal/troubleshooting.html",
+          "Enterprise/portal/troubleshooting-help.js",
+          "tests/unit/troubleshooting-help-routes.test.js"
+        ],
+        "acceptance": null
+      },
+      {
+        "id": "TR-25-INTAKE",
+        "parent": "M4",
+        "requires": [
+          "TR-25-GUIDE"
+        ],
+        "state": "PARTIAL_REFERENCE_ONLY",
+        "evidence": [
+          "troubleshooting-incidents.js",
+          "database/migrations/020_troubleshooting_employee_bindings.sql",
+          "tests/unit/employee-troubleshooting.test.js",
+          "test-atomic-telemetry-batch-mysql.js"
+        ],
+        "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
+      },
+      {
+        "id": "TR-25-OUTCOME",
+        "parent": "M5",
+        "requires": [
+          "TR-25-INTAKE"
+        ],
+        "state": "PENDING",
+        "evidence": [],
+        "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
+      },
+      {
+        "id": "TR-26-GUIDE",
+        "parent": "M4",
+        "requires": [],
+        "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+        "evidence": [
+          "troubleshooting-guidance.js",
+          "tests/unit/troubleshooting-guidance.test.js",
+          "troubleshooting-help-routes.js",
+          "Enterprise/portal/troubleshooting.html",
+          "Enterprise/portal/troubleshooting-help.js",
+          "tests/unit/troubleshooting-help-routes.test.js"
+        ],
+        "acceptance": null
+      },
+      {
+        "id": "TR-26-INTAKE",
+        "parent": "M4",
+        "requires": [
+          "TR-26-GUIDE"
+        ],
+        "state": "PARTIAL_REFERENCE_ONLY",
+        "evidence": [
+          "troubleshooting-incidents.js",
+          "database/migrations/020_troubleshooting_employee_bindings.sql",
+          "tests/unit/employee-troubleshooting.test.js",
+          "test-atomic-telemetry-batch-mysql.js"
+        ],
+        "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
+      },
+      {
+        "id": "TR-26-OUTCOME",
+        "parent": "M5",
+        "requires": [
+          "TR-26-INTAKE"
+        ],
+        "state": "PENDING",
+        "evidence": [],
+        "acceptance": "Evidence-backed category-specific outcome, actual lifecycle and audit; no ACK-as-resolution."
+      },
+      {
+        "id": "DIAG-RESOURCE_PRESSURE-CONTRACT",
+        "parent": "FE-16",
+        "requires": [],
+        "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+        "evidence": [
+          "diagnostic-evidence.js",
+          "diagnostic-review-contracts.js",
+          "tests/unit/diagnostic-review-contracts.test.js"
+        ],
+        "acceptance": null
+      },
+      {
+        "id": "DIAG-RESOURCE_PRESSURE-LINUX",
+        "parent": "PR-015",
+        "requires": [
+          "DIAG-RESOURCE_PRESSURE-CONTRACT"
+        ],
+        "state": "PARTIAL_REFERENCE_ONLY",
+        "evidence": [
+          "scripts/local-resource-diagnostic.mjs",
+          "tests/unit/local-resource-diagnostic.test.js"
+        ],
+        "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+      },
+      {
+        "id": "DIAG-RESOURCE_PRESSURE-WINDOWS",
+        "parent": "PR-015",
+        "requires": [
+          "DIAG-RESOURCE_PRESSURE-CONTRACT"
+        ],
+        "state": "PARTIAL_REFERENCE_ONLY",
+        "evidence": [
+          "scripts/local-resource-diagnostic.mjs",
+          "tests/unit/local-resource-diagnostic.test.js"
+        ],
+        "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+      },
+      {
+        "id": "DIAG-RESOURCE_PRESSURE-MACOS",
+        "parent": "PR-015",
+        "requires": [
+          "DIAG-RESOURCE_PRESSURE-CONTRACT"
+        ],
+        "state": "PARTIAL_REFERENCE_ONLY",
+        "evidence": [
+          "scripts/local-resource-diagnostic.mjs",
+          "tests/unit/local-resource-diagnostic.test.js"
+        ],
+        "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+      },
+      {
+        "id": "DIAG-RESOURCE_PRESSURE-CUSTODY",
+        "parent": "FE-16",
+        "requires": [
+          "DIAG-RESOURCE_PRESSURE-CONTRACT"
+        ],
+        "state": "PENDING",
+        "evidence": [],
+        "acceptance": "Durable attempt, trusted scope/clock/key custody, approved retention, replay and independent review."
+      },
+      {
+        "id": "DIAG-APPROVED_NETWORK_STATUS-CONTRACT",
+        "parent": "FE-16",
+        "requires": [],
+        "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+        "evidence": [
+          "diagnostic-evidence.js",
+          "diagnostic-review-contracts.js",
+          "tests/unit/diagnostic-review-contracts.test.js"
+        ],
+        "acceptance": null
+      },
+      {
+        "id": "DIAG-APPROVED_NETWORK_STATUS-LINUX",
+        "parent": "PR-015",
+        "requires": [
+          "DIAG-APPROVED_NETWORK_STATUS-CONTRACT"
+        ],
+        "state": "PARTIAL_REFERENCE_ONLY",
+        "evidence": [
+          "scripts/local-categorical-diagnostics.mjs",
+          "tests/unit/local-categorical-diagnostics.test.js"
+        ],
+        "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+      },
+      {
+        "id": "DIAG-APPROVED_NETWORK_STATUS-WINDOWS",
+        "parent": "PR-015",
+        "requires": [
+          "DIAG-APPROVED_NETWORK_STATUS-CONTRACT"
+        ],
+        "state": "PENDING",
+        "evidence": [],
+        "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+      },
+      {
+        "id": "DIAG-APPROVED_NETWORK_STATUS-MACOS",
+        "parent": "PR-015",
+        "requires": [
+          "DIAG-APPROVED_NETWORK_STATUS-CONTRACT"
+        ],
+        "state": "PENDING",
+        "evidence": [],
+        "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+      },
+      {
+        "id": "DIAG-APPROVED_NETWORK_STATUS-CUSTODY",
+        "parent": "FE-16",
+        "requires": [
+          "DIAG-APPROVED_NETWORK_STATUS-CONTRACT"
+        ],
+        "state": "PENDING",
+        "evidence": [],
+        "acceptance": "Durable attempt, trusted scope/clock/key custody, approved retention, replay and independent review."
+      },
+      {
+        "id": "DIAG-UPDATE_STATUS-CONTRACT",
+        "parent": "FE-16",
+        "requires": [],
+        "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+        "evidence": [
+          "diagnostic-evidence.js",
+          "diagnostic-review-contracts.js",
+          "tests/unit/diagnostic-review-contracts.test.js"
+        ],
+        "acceptance": null
+      },
+      {
+        "id": "DIAG-UPDATE_STATUS-LINUX",
+        "parent": "PR-015",
+        "requires": [
+          "DIAG-UPDATE_STATUS-CONTRACT"
+        ],
+        "state": "PENDING",
+        "evidence": [],
+        "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+      },
+      {
+        "id": "DIAG-UPDATE_STATUS-WINDOWS",
+        "parent": "PR-015",
+        "requires": [
+          "DIAG-UPDATE_STATUS-CONTRACT"
+        ],
+        "state": "PARTIAL_REFERENCE_ONLY",
+        "evidence": [
+          "Enterprise/deploy/LocalWindowsDiagnostics.ps1",
+          "Enterprise/tests/Test-LocalWindowsDiagnostics.ps1"
+        ],
+        "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+      },
+      {
+        "id": "DIAG-UPDATE_STATUS-MACOS",
+        "parent": "PR-015",
+        "requires": [
+          "DIAG-UPDATE_STATUS-CONTRACT"
+        ],
+        "state": "PENDING",
+        "evidence": [],
+        "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+      },
+      {
+        "id": "DIAG-UPDATE_STATUS-CUSTODY",
+        "parent": "FE-16",
+        "requires": [
+          "DIAG-UPDATE_STATUS-CONTRACT"
+        ],
+        "state": "PENDING",
+        "evidence": [],
+        "acceptance": "Durable attempt, trusted scope/clock/key custody, approved retention, replay and independent review."
+      },
+      {
+        "id": "DIAG-DISK_CAPACITY_HEALTH-CONTRACT",
+        "parent": "FE-16",
+        "requires": [],
+        "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+        "evidence": [
+          "diagnostic-evidence.js",
+          "diagnostic-review-contracts.js",
+          "tests/unit/diagnostic-review-contracts.test.js"
+        ],
+        "acceptance": null
+      },
+      {
+        "id": "DIAG-DISK_CAPACITY_HEALTH-LINUX",
+        "parent": "PR-015",
+        "requires": [
+          "DIAG-DISK_CAPACITY_HEALTH-CONTRACT"
+        ],
+        "state": "PARTIAL_REFERENCE_ONLY",
+        "evidence": [
+          "scripts/local-categorical-diagnostics.mjs",
+          "tests/unit/local-categorical-diagnostics.test.js"
+        ],
+        "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+      },
+      {
+        "id": "DIAG-DISK_CAPACITY_HEALTH-WINDOWS",
+        "parent": "PR-015",
+        "requires": [
+          "DIAG-DISK_CAPACITY_HEALTH-CONTRACT"
+        ],
+        "state": "PARTIAL_REFERENCE_ONLY",
+        "evidence": [
+          "scripts/local-categorical-diagnostics.mjs",
+          "tests/unit/local-categorical-diagnostics.test.js"
+        ],
+        "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+      },
+      {
+        "id": "DIAG-DISK_CAPACITY_HEALTH-MACOS",
+        "parent": "PR-015",
+        "requires": [
+          "DIAG-DISK_CAPACITY_HEALTH-CONTRACT"
+        ],
+        "state": "PARTIAL_REFERENCE_ONLY",
+        "evidence": [
+          "scripts/local-categorical-diagnostics.mjs",
+          "tests/unit/local-categorical-diagnostics.test.js"
+        ],
+        "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+      },
+      {
+        "id": "DIAG-DISK_CAPACITY_HEALTH-CUSTODY",
+        "parent": "FE-16",
+        "requires": [
+          "DIAG-DISK_CAPACITY_HEALTH-CONTRACT"
+        ],
+        "state": "PENDING",
+        "evidence": [],
+        "acceptance": "Durable attempt, trusted scope/clock/key custody, approved retention, replay and independent review."
+      },
+      {
+        "id": "DIAG-AUDIO_STATUS-CONTRACT",
+        "parent": "FE-16",
+        "requires": [],
+        "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+        "evidence": [
+          "diagnostic-evidence.js",
+          "diagnostic-review-contracts.js",
+          "tests/unit/diagnostic-review-contracts.test.js"
+        ],
+        "acceptance": null
+      },
+      {
+        "id": "DIAG-AUDIO_STATUS-LINUX",
+        "parent": "PR-015",
+        "requires": [
+          "DIAG-AUDIO_STATUS-CONTRACT"
+        ],
+        "state": "PENDING",
+        "evidence": [],
+        "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+      },
+      {
+        "id": "DIAG-AUDIO_STATUS-WINDOWS",
+        "parent": "PR-015",
+        "requires": [
+          "DIAG-AUDIO_STATUS-CONTRACT"
+        ],
+        "state": "PENDING",
+        "evidence": [],
+        "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+      },
+      {
+        "id": "DIAG-AUDIO_STATUS-MACOS",
+        "parent": "PR-015",
+        "requires": [
+          "DIAG-AUDIO_STATUS-CONTRACT"
+        ],
+        "state": "PENDING",
+        "evidence": [],
+        "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+      },
+      {
+        "id": "DIAG-AUDIO_STATUS-CUSTODY",
+        "parent": "FE-16",
+        "requires": [
+          "DIAG-AUDIO_STATUS-CONTRACT"
+        ],
+        "state": "PENDING",
+        "evidence": [],
+        "acceptance": "Durable attempt, trusted scope/clock/key custody, approved retention, replay and independent review."
+      },
+      {
+        "id": "DIAG-BLUETOOTH_STATUS-CONTRACT",
+        "parent": "FE-16",
+        "requires": [],
+        "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+        "evidence": [
+          "diagnostic-evidence.js",
+          "diagnostic-review-contracts.js",
+          "tests/unit/diagnostic-review-contracts.test.js"
+        ],
+        "acceptance": null
+      },
+      {
+        "id": "DIAG-BLUETOOTH_STATUS-LINUX",
+        "parent": "PR-015",
+        "requires": [
+          "DIAG-BLUETOOTH_STATUS-CONTRACT"
+        ],
+        "state": "PARTIAL_REFERENCE_ONLY",
+        "evidence": [
+          "scripts/local-categorical-diagnostics.mjs",
+          "tests/unit/local-power-bluetooth-diagnostic.test.js"
+        ],
+        "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+      },
+      {
+        "id": "DIAG-BLUETOOTH_STATUS-WINDOWS",
+        "parent": "PR-015",
+        "requires": [
+          "DIAG-BLUETOOTH_STATUS-CONTRACT"
+        ],
+        "state": "PARTIAL_REFERENCE_ONLY",
+        "evidence": [
+          "Enterprise/deploy/LocalWindowsDiagnostics.ps1",
+          "Enterprise/tests/Test-LocalWindowsDiagnostics.ps1"
+        ],
+        "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+      },
+      {
+        "id": "DIAG-BLUETOOTH_STATUS-MACOS",
+        "parent": "PR-015",
+        "requires": [
+          "DIAG-BLUETOOTH_STATUS-CONTRACT"
+        ],
+        "state": "PENDING",
+        "evidence": [],
+        "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+      },
+      {
+        "id": "DIAG-BLUETOOTH_STATUS-CUSTODY",
+        "parent": "FE-16",
+        "requires": [
+          "DIAG-BLUETOOTH_STATUS-CONTRACT"
+        ],
+        "state": "PENDING",
+        "evidence": [],
+        "acceptance": "Durable attempt, trusted scope/clock/key custody, approved retention, replay and independent review."
+      },
+      {
+        "id": "DIAG-PRINT_STATUS-CONTRACT",
+        "parent": "FE-16",
+        "requires": [],
+        "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+        "evidence": [
+          "diagnostic-evidence.js",
+          "diagnostic-review-contracts.js",
+          "tests/unit/diagnostic-review-contracts.test.js"
+        ],
+        "acceptance": null
+      },
+      {
+        "id": "DIAG-PRINT_STATUS-LINUX",
+        "parent": "PR-015",
+        "requires": [
+          "DIAG-PRINT_STATUS-CONTRACT"
+        ],
+        "state": "PENDING",
+        "evidence": [],
+        "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+      },
+      {
+        "id": "DIAG-PRINT_STATUS-WINDOWS",
+        "parent": "PR-015",
+        "requires": [
+          "DIAG-PRINT_STATUS-CONTRACT"
+        ],
+        "state": "PARTIAL_REFERENCE_ONLY",
+        "evidence": [
+          "Enterprise/deploy/LocalWindowsDiagnostics.ps1",
+          "Enterprise/tests/Test-LocalWindowsDiagnostics.ps1"
+        ],
+        "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+      },
+      {
+        "id": "DIAG-PRINT_STATUS-MACOS",
+        "parent": "PR-015",
+        "requires": [
+          "DIAG-PRINT_STATUS-CONTRACT"
+        ],
+        "state": "PENDING",
+        "evidence": [],
+        "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+      },
+      {
+        "id": "DIAG-PRINT_STATUS-CUSTODY",
+        "parent": "FE-16",
+        "requires": [
+          "DIAG-PRINT_STATUS-CONTRACT"
+        ],
+        "state": "PENDING",
+        "evidence": [],
+        "acceptance": "Durable attempt, trusted scope/clock/key custody, approved retention, replay and independent review."
+      },
+      {
+        "id": "DIAG-BOOT_TIMING-CONTRACT",
+        "parent": "FE-16",
+        "requires": [],
+        "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+        "evidence": [
+          "diagnostic-evidence.js",
+          "diagnostic-review-contracts.js",
+          "tests/unit/diagnostic-review-contracts.test.js"
+        ],
+        "acceptance": null
+      },
+      {
+        "id": "DIAG-BOOT_TIMING-LINUX",
+        "parent": "PR-015",
+        "requires": [
+          "DIAG-BOOT_TIMING-CONTRACT"
+        ],
+        "state": "PENDING",
+        "evidence": [],
+        "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+      },
+      {
+        "id": "DIAG-BOOT_TIMING-WINDOWS",
+        "parent": "PR-015",
+        "requires": [
+          "DIAG-BOOT_TIMING-CONTRACT"
+        ],
+        "state": "PARTIAL_REFERENCE_ONLY",
+        "evidence": [
+          "Enterprise/deploy/LocalWindowsDiagnostics.ps1",
+          "Enterprise/tests/Test-LocalWindowsDiagnostics.ps1"
+        ],
+        "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+      },
+      {
+        "id": "DIAG-BOOT_TIMING-MACOS",
+        "parent": "PR-015",
+        "requires": [
+          "DIAG-BOOT_TIMING-CONTRACT"
+        ],
+        "state": "PENDING",
+        "evidence": [],
+        "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+      },
+      {
+        "id": "DIAG-BOOT_TIMING-CUSTODY",
+        "parent": "FE-16",
+        "requires": [
+          "DIAG-BOOT_TIMING-CONTRACT"
+        ],
+        "state": "PENDING",
+        "evidence": [],
+        "acceptance": "Durable attempt, trusted scope/clock/key custody, approved retention, replay and independent review."
+      },
+      {
+        "id": "DIAG-APPLICATION_HEALTH-CONTRACT",
+        "parent": "FE-16",
+        "requires": [],
+        "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+        "evidence": [
+          "diagnostic-evidence.js",
+          "diagnostic-review-contracts.js",
+          "tests/unit/diagnostic-review-contracts.test.js"
+        ],
+        "acceptance": null
+      },
+      {
+        "id": "DIAG-APPLICATION_HEALTH-LINUX",
+        "parent": "PR-015",
+        "requires": [
+          "DIAG-APPLICATION_HEALTH-CONTRACT"
+        ],
+        "state": "PENDING",
+        "evidence": [],
+        "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+      },
+      {
+        "id": "DIAG-APPLICATION_HEALTH-WINDOWS",
+        "parent": "PR-015",
+        "requires": [
+          "DIAG-APPLICATION_HEALTH-CONTRACT"
+        ],
+        "state": "PENDING",
+        "evidence": [],
+        "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+      },
+      {
+        "id": "DIAG-APPLICATION_HEALTH-MACOS",
+        "parent": "PR-015",
+        "requires": [
+          "DIAG-APPLICATION_HEALTH-CONTRACT"
+        ],
+        "state": "PENDING",
+        "evidence": [],
+        "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+      },
+      {
+        "id": "DIAG-APPLICATION_HEALTH-CUSTODY",
+        "parent": "FE-16",
+        "requires": [
+          "DIAG-APPLICATION_HEALTH-CONTRACT"
+        ],
+        "state": "PENDING",
+        "evidence": [],
+        "acceptance": "Durable attempt, trusted scope/clock/key custody, approved retention, replay and independent review."
+      },
+      {
+        "id": "DIAG-SHELL_STATUS-CONTRACT",
+        "parent": "FE-16",
+        "requires": [],
+        "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+        "evidence": [
+          "diagnostic-evidence.js",
+          "diagnostic-review-contracts.js",
+          "tests/unit/diagnostic-review-contracts.test.js"
+        ],
+        "acceptance": null
+      },
+      {
+        "id": "DIAG-SHELL_STATUS-LINUX",
+        "parent": "PR-015",
+        "requires": [
+          "DIAG-SHELL_STATUS-CONTRACT"
+        ],
+        "state": "PENDING",
+        "evidence": [],
+        "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+      },
+      {
+        "id": "DIAG-SHELL_STATUS-WINDOWS",
+        "parent": "PR-015",
+        "requires": [
+          "DIAG-SHELL_STATUS-CONTRACT"
+        ],
+        "state": "PENDING",
+        "evidence": [],
+        "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+      },
+      {
+        "id": "DIAG-SHELL_STATUS-MACOS",
+        "parent": "PR-015",
+        "requires": [
+          "DIAG-SHELL_STATUS-CONTRACT"
+        ],
+        "state": "PENDING",
+        "evidence": [],
+        "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+      },
+      {
+        "id": "DIAG-SHELL_STATUS-CUSTODY",
+        "parent": "FE-16",
+        "requires": [
+          "DIAG-SHELL_STATUS-CONTRACT"
+        ],
+        "state": "PENDING",
+        "evidence": [],
+        "acceptance": "Durable attempt, trusted scope/clock/key custody, approved retention, replay and independent review."
+      },
+      {
+        "id": "DIAG-BATTERY_HEALTH-CONTRACT",
+        "parent": "FE-16",
+        "requires": [],
+        "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+        "evidence": [
+          "diagnostic-evidence.js",
+          "diagnostic-review-contracts.js",
+          "tests/unit/diagnostic-review-contracts.test.js"
+        ],
+        "acceptance": null
+      },
+      {
+        "id": "DIAG-BATTERY_HEALTH-LINUX",
+        "parent": "PR-015",
+        "requires": [
+          "DIAG-BATTERY_HEALTH-CONTRACT"
+        ],
+        "state": "PARTIAL_REFERENCE_ONLY",
+        "evidence": [
+          "scripts/local-categorical-diagnostics.mjs",
+          "tests/unit/local-battery-diagnostic.test.js"
+        ],
+        "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+      },
+      {
+        "id": "DIAG-BATTERY_HEALTH-WINDOWS",
+        "parent": "PR-015",
+        "requires": [
+          "DIAG-BATTERY_HEALTH-CONTRACT"
+        ],
+        "state": "PARTIAL_REFERENCE_ONLY",
+        "evidence": [
+          "Enterprise/deploy/LocalWindowsDiagnostics.ps1",
+          "Enterprise/tests/Test-LocalWindowsDiagnostics.ps1"
+        ],
+        "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+      },
+      {
+        "id": "DIAG-BATTERY_HEALTH-MACOS",
+        "parent": "PR-015",
+        "requires": [
+          "DIAG-BATTERY_HEALTH-CONTRACT"
+        ],
+        "state": "PENDING",
+        "evidence": [],
+        "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+      },
+      {
+        "id": "DIAG-BATTERY_HEALTH-CUSTODY",
+        "parent": "FE-16",
+        "requires": [
+          "DIAG-BATTERY_HEALTH-CONTRACT"
+        ],
+        "state": "PENDING",
+        "evidence": [],
+        "acceptance": "Durable attempt, trusted scope/clock/key custody, approved retention, replay and independent review."
+      },
+      {
+        "id": "DIAG-MANAGED_POLICY_STATUS-CONTRACT",
+        "parent": "FE-16",
+        "requires": [],
+        "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+        "evidence": [
+          "diagnostic-evidence.js",
+          "diagnostic-review-contracts.js",
+          "tests/unit/diagnostic-review-contracts.test.js"
+        ],
+        "acceptance": null
+      },
+      {
+        "id": "DIAG-MANAGED_POLICY_STATUS-LINUX",
+        "parent": "PR-015",
+        "requires": [
+          "DIAG-MANAGED_POLICY_STATUS-CONTRACT"
+        ],
+        "state": "PENDING",
+        "evidence": [],
+        "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+      },
+      {
+        "id": "DIAG-MANAGED_POLICY_STATUS-WINDOWS",
+        "parent": "PR-015",
+        "requires": [
+          "DIAG-MANAGED_POLICY_STATUS-CONTRACT"
+        ],
+        "state": "PENDING",
+        "evidence": [],
+        "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+      },
+      {
+        "id": "DIAG-MANAGED_POLICY_STATUS-MACOS",
+        "parent": "PR-015",
+        "requires": [
+          "DIAG-MANAGED_POLICY_STATUS-CONTRACT"
+        ],
+        "state": "PENDING",
+        "evidence": [],
+        "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+      },
+      {
+        "id": "DIAG-MANAGED_POLICY_STATUS-CUSTODY",
+        "parent": "FE-16",
+        "requires": [
+          "DIAG-MANAGED_POLICY_STATUS-CONTRACT"
+        ],
+        "state": "PENDING",
+        "evidence": [],
+        "acceptance": "Durable attempt, trusted scope/clock/key custody, approved retention, replay and independent review."
+      },
+      {
+        "id": "DIAG-APPROVED_SOFTWARE_INVENTORY-CONTRACT",
+        "parent": "FE-16",
+        "requires": [],
+        "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+        "evidence": [
+          "diagnostic-evidence.js",
+          "diagnostic-review-contracts.js",
+          "tests/unit/diagnostic-review-contracts.test.js"
+        ],
+        "acceptance": null
+      },
+      {
+        "id": "DIAG-APPROVED_SOFTWARE_INVENTORY-LINUX",
+        "parent": "PR-015",
+        "requires": [
+          "DIAG-APPROVED_SOFTWARE_INVENTORY-CONTRACT"
+        ],
+        "state": "PENDING",
+        "evidence": [],
+        "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+      },
+      {
+        "id": "DIAG-APPROVED_SOFTWARE_INVENTORY-WINDOWS",
+        "parent": "PR-015",
+        "requires": [
+          "DIAG-APPROVED_SOFTWARE_INVENTORY-CONTRACT"
+        ],
+        "state": "PENDING",
+        "evidence": [],
+        "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+      },
+      {
+        "id": "DIAG-APPROVED_SOFTWARE_INVENTORY-MACOS",
+        "parent": "PR-015",
+        "requires": [
+          "DIAG-APPROVED_SOFTWARE_INVENTORY-CONTRACT"
+        ],
+        "state": "PENDING",
+        "evidence": [],
+        "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+      },
+      {
+        "id": "DIAG-APPROVED_SOFTWARE_INVENTORY-CUSTODY",
+        "parent": "FE-16",
+        "requires": [
+          "DIAG-APPROVED_SOFTWARE_INVENTORY-CONTRACT"
+        ],
+        "state": "PENDING",
+        "evidence": [],
+        "acceptance": "Durable attempt, trusted scope/clock/key custody, approved retention, replay and independent review."
+      },
+      {
+        "id": "DIAG-OS_SHELL_CONFIGURATION-CONTRACT",
+        "parent": "FE-16",
+        "requires": [],
+        "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+        "evidence": [
+          "diagnostic-evidence.js",
+          "diagnostic-review-contracts.js",
+          "tests/unit/diagnostic-review-contracts.test.js"
+        ],
+        "acceptance": null
+      },
+      {
+        "id": "DIAG-OS_SHELL_CONFIGURATION-LINUX",
+        "parent": "PR-015",
+        "requires": [
+          "DIAG-OS_SHELL_CONFIGURATION-CONTRACT"
+        ],
+        "state": "PENDING",
+        "evidence": [],
+        "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+      },
+      {
+        "id": "DIAG-OS_SHELL_CONFIGURATION-WINDOWS",
+        "parent": "PR-015",
+        "requires": [
+          "DIAG-OS_SHELL_CONFIGURATION-CONTRACT"
+        ],
+        "state": "PENDING",
+        "evidence": [],
+        "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+      },
+      {
+        "id": "DIAG-OS_SHELL_CONFIGURATION-MACOS",
+        "parent": "PR-015",
+        "requires": [
+          "DIAG-OS_SHELL_CONFIGURATION-CONTRACT"
+        ],
+        "state": "PENDING",
+        "evidence": [],
+        "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+      },
+      {
+        "id": "DIAG-OS_SHELL_CONFIGURATION-CUSTODY",
+        "parent": "FE-16",
+        "requires": [
+          "DIAG-OS_SHELL_CONFIGURATION-CONTRACT"
+        ],
+        "state": "PENDING",
+        "evidence": [],
+        "acceptance": "Durable attempt, trusted scope/clock/key custody, approved retention, replay and independent review."
+      },
+      {
+        "id": "DIAG-POWER_PLAN_STATUS-CONTRACT",
+        "parent": "FE-16",
+        "requires": [],
+        "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+        "evidence": [
+          "diagnostic-evidence.js",
+          "diagnostic-review-contracts.js",
+          "tests/unit/diagnostic-review-contracts.test.js"
+        ],
+        "acceptance": null
+      },
+      {
+        "id": "DIAG-POWER_PLAN_STATUS-LINUX",
+        "parent": "PR-015",
+        "requires": [
+          "DIAG-POWER_PLAN_STATUS-CONTRACT"
+        ],
+        "state": "PARTIAL_REFERENCE_ONLY",
+        "evidence": [
+          "scripts/local-categorical-diagnostics.mjs",
+          "tests/unit/local-power-bluetooth-diagnostic.test.js"
+        ],
+        "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+      },
+      {
+        "id": "DIAG-POWER_PLAN_STATUS-WINDOWS",
+        "parent": "PR-015",
+        "requires": [
+          "DIAG-POWER_PLAN_STATUS-CONTRACT"
+        ],
+        "state": "PARTIAL_REFERENCE_ONLY",
+        "evidence": [
+          "Enterprise/deploy/LocalWindowsDiagnostics.ps1",
+          "Enterprise/tests/Test-LocalWindowsDiagnostics.ps1"
+        ],
+        "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+      },
+      {
+        "id": "DIAG-POWER_PLAN_STATUS-MACOS",
+        "parent": "PR-015",
+        "requires": [
+          "DIAG-POWER_PLAN_STATUS-CONTRACT"
+        ],
+        "state": "PENDING",
+        "evidence": [],
+        "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+      },
+      {
+        "id": "DIAG-POWER_PLAN_STATUS-CUSTODY",
+        "parent": "FE-16",
+        "requires": [
+          "DIAG-POWER_PLAN_STATUS-CONTRACT"
+        ],
+        "state": "PENDING",
+        "evidence": [],
+        "acceptance": "Durable attempt, trusted scope/clock/key custody, approved retention, replay and independent review."
+      },
+      {
+        "id": "DIAG-FIREWALL_STATUS-CONTRACT",
+        "parent": "FE-16",
+        "requires": [],
+        "state": "IMPLEMENTED_PENDING_COMBINED_CI",
+        "evidence": [
+          "diagnostic-evidence.js",
+          "diagnostic-review-contracts.js",
+          "tests/unit/diagnostic-review-contracts.test.js"
+        ],
+        "acceptance": null
+      },
+      {
+        "id": "DIAG-FIREWALL_STATUS-LINUX",
+        "parent": "PR-015",
+        "requires": [
+          "DIAG-FIREWALL_STATUS-CONTRACT"
+        ],
+        "state": "PENDING",
+        "evidence": [],
+        "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+      },
+      {
+        "id": "DIAG-FIREWALL_STATUS-WINDOWS",
+        "parent": "PR-015",
+        "requires": [
+          "DIAG-FIREWALL_STATUS-CONTRACT"
+        ],
+        "state": "PARTIAL_REFERENCE_ONLY",
+        "evidence": [
+          "Enterprise/deploy/LocalWindowsDiagnostics.ps1",
+          "Enterprise/tests/Test-LocalWindowsDiagnostics.ps1"
+        ],
+        "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+      },
+      {
+        "id": "DIAG-FIREWALL_STATUS-MACOS",
+        "parent": "PR-015",
+        "requires": [
+          "DIAG-FIREWALL_STATUS-CONTRACT"
+        ],
+        "state": "PENDING",
+        "evidence": [],
+        "acceptance": "Approved measurement semantics, scoped consent, real platform evidence, unknown handling and no arbitrary execution."
+      },
+      {
+        "id": "DIAG-FIREWALL_STATUS-CUSTODY",
+        "parent": "FE-16",
+        "requires": [
+          "DIAG-FIREWALL_STATUS-CONTRACT"
+        ],
+        "state": "PENDING",
+        "evidence": [],
+        "acceptance": "Durable attempt, trusted scope/clock/key custody, approved retention, replay and independent review."
+      }
+    ]
+  },
+  "changes": [
+    {
+      "id": "MASS-01-01",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Authenticated troubleshooting catalog and help routes",
+      "dependencies": [
+        "M4",
+        "PR-015"
+      ],
+      "paths": [
+        "troubleshooting-help-routes.js",
+        "server.js"
+      ],
+      "regression": [
+        "tests/unit/troubleshooting-help-routes.test.js",
+        "test-auth-integration.js"
+      ]
+    },
+    {
+      "id": "MASS-01-02",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Portal problem search, hazard assessment, platform selection, advisory output and copy",
+      "dependencies": [
+        "MASS-01-01"
+      ],
+      "paths": [
+        "Enterprise/portal/index.html",
+        "Enterprise/portal/troubleshooting.html",
+        "Enterprise/portal/troubleshooting-help.js",
+        "Enterprise/portal/troubleshooting-help.css"
+      ],
+      "regression": [
+        "tests/unit/troubleshooting-help-routes.test.js",
+        "Manual browser: login, 26 categories, hazards, no session, no network, mobile, keyboard, clipboard; no mutation"
+      ]
+    },
+    {
+      "id": "MASS-01-03",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Separate independent Docker compatibility job; retain fail-visible rehearsal",
+      "dependencies": [
+        "M1",
+        "DEC-001"
+      ],
+      "paths": [
+        ".github/workflows/ci.yml"
+      ],
+      "regression": [
+        "tests/ci-offline-docker-load-rehearsal.mjs",
+        "tests/unit/prepared-docker-archive-admission.test.js"
+      ]
+    }
+  ],
+  "unresolved": [
+    {
+      "id": "BLOCK-DOCKER-123",
+      "source": "CI 45676377331",
+      "failure": "loaded image identity reconciliation failed",
+      "next": "Investigate daemon image-store behavior and exact config/diff IDs; no production load"
+    },
+    {
+      "id": "BLOCK-DOCKER-121",
+      "source": "CI 45677600074",
+      "failure": "image inventory mismatch",
+      "next": "Review alternate implementation, preserve tests, reconcile only verified changes"
+    },
+    {
+      "id": "BLOCK-DEC-001",
+      "next": "Owner architecture decision and real runtime acceptance"
+    },
+    {
+      "id": "BLOCK-EMPLOYEE",
+      "next": "DB-bound trusted installation ID, authenticated binding/report routes, consent, physical assignment and outcome lifecycle"
+    }
+  ],
+  "regression": {
+    "commands": [
+      "npm run lint",
+      "npm run test:coverage",
+      "npm run test:all",
+      "node test-atomic-telemetry-batch-mysql.js",
+      "pwsh -NoProfile -File Enterprise/tests/Test-LocalWindowsDiagnostics.ps1"
+    ],
+    "external": [
+      "GitHub Actions independent offline Docker compatibility",
+      "Windows PowerShell 5.1",
+      "Unsigned MSI rehearsal",
+      "Real disconnected LAN and restore acceptance"
+    ],
+    "policy": "No disabled checks, no synthetic pass claims, record exact commit and failure. Full regression at integration and before release; retain focused safety checks now."
+  },
+  "production_accepted": false
+}

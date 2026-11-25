@@ -27,7 +27,8 @@ const exact=(x,ks)=>x&&Object.getPrototypeOf(x)===Object.prototype&&Reflect.ownK
 const roles=['db','api','caddy'],releaseRoles={db:'database',api:'api',caddy:'ingress'};
 const targets={db:{mysqldata:'/var/lib/mysql'},api:{api_data:'/data',agent_artifacts:'/artifacts'},caddy:{caddy_data:'/data',caddy_config:'/config'}};
 export const freshDatabaseHealthCommand='MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host=127.0.0.1 --user="$MYSQL_USER" --database="$MYSQL_DATABASE" --batch --skip-column-names --execute="SELECT 1"';
-const health={db:freshDatabaseHealthCommand,api:"node -e \"fetch('http://localhost:3000/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""};
+export const freshApiHealthCommand="node -e \"fetch('http://localhost:3000/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\"";
+const health={db:freshDatabaseHealthCommand,api:freshApiHealthCommand};
 const secretKeys=['MYSQL_PASSWORD','MYSQL_ROOT_PASSWORD','API_TOKEN','JWT_SECRET','BOOTSTRAP_SECRET','HMAC_SECRET','COMMAND_SIGNING_KEY','SETUP_TOKEN','SESSION_SECRET','DB_PASSWORD'];
 const empty=x=>x===null||x===undefined||(Array.isArray(x)?x.length===0:typeof x==='object'&&Object.keys(x).length===0);
 const fields=['dev','ino','uid','mode','nlink','size','mtimeMs','ctimeMs'],dirFields=fields.slice(0,4);

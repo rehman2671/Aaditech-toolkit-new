@@ -1,22 +1,30 @@
-// Disposable GitHub-hosted runner only. Real MySQL container component
-// rehearsal, NOT a publisher-signed image or end-to-end installer activation.
+// Disposable GitHub-hosted runner only. Real MySQL and source-built API
+// component rehearsal, NOT publisher-signed image or end-to-end installer activation.
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
 import {randomUUID,randomBytes} from 'node:crypto';
 import {mkdtemp,mkdir,rm,readdir,readFile,realpath} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
+import {fileURLToPath} from 'node:url';
 import {setTimeout as sleep} from 'node:timers/promises';
-import {candidateLabels,candidateProcessSpec,freshDatabaseHealthCommand,verifyRunningFreshDatabase,openPinnedFreshDatabaseConnection} from '../scripts/create-stopped-compose-candidates.mjs';
+import {candidateLabels,candidateProcessSpec,freshDatabaseHealthCommand,freshApiHealthCommand,verifyStoppedCandidate,verifyRunningFreshDatabase,verifyRunningFreshPair,verifyFreshApiProbeReceipt,deriveCandidateRoleEnvironment,openPinnedFreshDatabaseConnection} from '../scripts/create-stopped-compose-candidates.mjs';
 import {expectedFreshResources} from '../scripts/provision-fresh-compose-resources.mjs';
+import {checkOrPrepareFreshRuntimeStorage,runtimeIdentityEnvironment} from '../scripts/fresh-runtime-storage.mjs';
 import {initializeFreshMySqlSchema,verifyInitializedFreshMySqlSchema} from '../scripts/initialize-fresh-mysql-schema.mjs';
 import {initializeLocalInstallationIdentity} from '../scripts/installation-identity-store-posix.mjs';
 import {withLocalSetupLock} from '../scripts/local-setup-lock.mjs';
 import {verifyBoundRuntimeHistory} from '../bound-runtime-schema.js';
 import {staged} from './fixtures/signed-offline-oci-fixture.mjs';
 if(process.argv.length!==2||process.env.GITHUB_ACTIONS!=='true'||process.env.RUNNER_ENVIRONMENT!=='github-hosted'||process.platform!=='linux'||process.arch!=='x64')throw Error('DISPOSABLE_GITHUB_RUNNER_REQUIRED');
-const docker=(args,env={})=>{
- const r=spawnSync('/usr/bin/docker',['--host','unix:///run/docker.sock',...args],{encoding:'utf8',timeout:120000,maxBuffer:1048576,env:{PATH:'/usr/bin:/bin',HOME:process.env.HOME,...env}});
+// Same isolated-runner root boundary as the existing offline storage rehearsal.
+// Root is needed for exact volume and non-root bind ownership, not for the API.
+if(process.geteuid()!==0){
+ const r=spawnSync('/usr/bin/sudo',['--non-interactive','--','/usr/bin/env','-i','PATH=/usr/bin:/bin','HOME=/root','GITHUB_ACTIONS=true','RUNNER_ENVIRONMENT=github-hosted',process.execPath,process.argv[1]],{stdio:'inherit',timeout:570000});
+ if(r.status!==0||r.error)throw Error('DISPOSABLE_ROOT_API_REHEARSAL_FAILED');process.exit(0);
+}
+const docker=(args,env={},timeout=120000)=>{
+ const r=spawnSync('/usr/bin/docker',['--host','unix:///run/docker.sock',...args],{encoding:'utf8',timeout,maxBuffer:1048576,env:{PATH:'/usr/bin:/bin',HOME:process.env.HOME,...env}});
  if(r.status!==0||r.error)throw Error('DISPOSABLE_DATABASE_COMMAND_FAILED');
  return r.stdout.trim();
 };
@@ -24,7 +32,8 @@ const inspect=(kind,key)=>{const a=JSON.parse(docker([kind,'inspect',key]));asse
 const asLabels=labels=>Object.entries(labels).flatMap(([k,v])=>['--label',k+'='+v]);
 const project='at_db_'+randomUUID().replaceAll('-',''),root=await mkdtemp(join(await realpath(tmpdir()),'at-db-bridge-'));
 const env={MYSQL_DATABASE:'it_toolkit',MYSQL_USER:'itk_user',MYSQL_PASSWORD:randomBytes(32).toString('hex'),MYSQL_ROOT_PASSWORD:randomBytes(32).toString('hex')};
-let networkId,volume,id,conn;
+let networkId,volume,id,conn,apiId,apiImageTag;
+const extraVolumes=[];
 try{
  const files=new Map();
  for(const f of (await readdir(new URL('../database/migrations/',import.meta.url))).filter(f=>f.endsWith('.sql')))files.set('database/migrations/'+f,await readFile(new URL('../database/migrations/'+f,import.meta.url)));
@@ -35,23 +44,41 @@ try{
  assert.match(image.Id,/^sha256:[a-f0-9]{64}$/);
  assert.equal(image.Os,'linux');assert.equal(image.Architecture,'amd64');
  const imageEnvironment=Object.fromEntries((image.Config.Env??[]).map(x=>{const i=x.indexOf('=');return [x.slice(0,i),x.slice(i+1)]}));
- const identityDirectory=join(root,'identity'),lockRoot=join(root,'lock');
- await mkdir(identityDirectory,{mode:0o700});await mkdir(lockRoot,{mode:0o700});
+ const identityDirectory=join(root,'identity'),lockRoot=join(root,'lock'),runtimeIdentityParent=join(root,'runtime');
+ await mkdir(identityDirectory,{mode:0o700});await mkdir(lockRoot,{mode:0o700});await mkdir(runtimeIdentityParent,{mode:0o700});
  const identity=await initializeLocalInstallationIdentity({confirmation:'INITIALIZE_EMPTY_IDENTITY_STORE_ONLY',directoryPath:identityDirectory,observed:{database:'absent',credentials:'absent',service:'absent'}});
  const pins={confirmation:'INSPECT_PINNED_IDENTITY_STORE_ONLY',directoryPath:identityDirectory,expectedInstallationId:identity.installation_id,expectedIdentitySha256:identity.identity_sha256};
  const lock=fn=>withLocalSetupLock({confirmation:'ACQUIRE_LOCAL_SETUP_LOCK_ONLY',lockRoot},fn);
+ // Build exactly the checked-out application Dockerfile with its locked npm
+ // graph. This is a disposable component image, never publisher approval.
+ apiImageTag=project.replaceAll('_','-')+':component';
+ docker(['build','--quiet','--tag',apiImageTag,fileURLToPath(new URL('../',import.meta.url))],{},240000);
+ const apiImage=inspect('image',apiImageTag);
+ assert.match(apiImage.Id,/^sha256:[a-f0-9]{64}$/);assert.equal(apiImage.Config.User,'1000:1000');
+ const apiImageEnvironment=Object.fromEntries((apiImage.Config.Env??[]).map(x=>{const i=x.indexOf('=');return [x.slice(0,i),x.slice(i+1)]}));
+ const host='fixture.example.com';
+ const secretKeys=['API_TOKEN','JWT_SECRET','BOOTSTRAP_SECRET','HMAC_SECRET','COMMAND_SIGNING_KEY','SETUP_TOKEN','SESSION_SECRET'];
+ const config={COMPOSE_PROJECT_NAME:project,MYSQL_DATABASE:env.MYSQL_DATABASE,MYSQL_USER:env.MYSQL_USER,MYSQL_PASSWORD:env.MYSQL_PASSWORD,MYSQL_ROOT_PASSWORD:env.MYSQL_ROOT_PASSWORD,SERVER_HOST:host,CADDY_HOST:host,ENVIRONMENT:'prod',...Object.fromEntries(secretKeys.map(k=>[k,randomBytes(32).toString('hex')]))};
+ const configText=Object.entries(config).map(([k,v])=>k+'='+v).join('\n')+'\n';
+ const apiEnv={...deriveCandidateRoleEnvironment(configText,project,host).api,...runtimeIdentityEnvironment({identity:pins})};
  await staged(async({input})=>{
   const resources=expectedFreshResources(project,input.trustedManifestSha256),dbVolume=resources.volumes.find(v=>v.name===project+'_mysqldata');
   const labels=candidateLabels(project,input.trustedManifestSha256,'a'.repeat(64),'db');
   networkId=docker(['network','create','--driver','bridge','--internal',...asLabels(resources.network.labels),resources.network.name]);
   volume=docker(['volume','create','--driver','local',...asLabels(dbVolume.labels),dbVolume.name]);
+  for(const v of resources.volumes.filter(v=>v.name!==volume))extraVolumes.push(docker(['volume','create','--driver','local',...asLabels(v.labels),v.name]));
   id=docker(['container','create','--pull','never','--name',project+'-db-1','--network',networkId,'--network-alias','db','--restart','no','--security-opt','no-new-privileges=true','--mount','type=volume,source='+volume+',target=/var/lib/mysql,volume-nocopy',...asLabels(labels),...Object.keys(env).flatMap(k=>['--env',k]),'--health-cmd',freshDatabaseHealthCommand,'--health-interval','5s','--health-timeout','5s','--health-retries','20',image.Id],env);
   const expected={id,imageId:image.Id,project,role:'db',networkId,labels,environment:env,imageEnvironment,imageProcess:candidateProcessSpec(image.Config),identityMount:null};
   assert.equal(inspect('container',id).State.Status,'created');
   const {architecture,...release}=input;
   const request={confirmation:'INITIALIZE_EMPTY_MYSQL_SCHEMA_ONLY_EXCLUSIVE_WRITER_CUSTODY',databaseName:'it_toolkit',release:{...release,confirmation:'ADMIT_SIGNED_FRESH_MYSQL_MIGRATIONS_ONLY'},identity:pins};
   const readRequest={...request,confirmation:'VERIFY_INITIALIZED_FRESH_MYSQL_SCHEMA_ONLY_EXCLUSIVE_WRITER_CUSTODY'};
+  let storage;
+  const storagePolicy={identity:pins,runtimeIdentityParent};
+  const storageCheck=(assertHeld,prepare,databaseVolumeIdentity,apiVolumeIdentities)=>checkOrPrepareFreshRuntimeStorage({storage:storagePolicy,volumes:resources.volumes,inspect,continuity:async()=>{await assertHeld();return {value:JSON.parse(docker(['info','--format','{{json .}}']))}},prepare,databaseVolumeIdentity,apiVolumeIdentities});
   await lock(async({assertHeld})=>{
+   storage=await storageCheck(assertHeld,true);
+   assert.equal(storage.identity_copy_verified,true);assert.equal(storage.api_volume_ownership_verified,true);
    await assertHeld();docker(['container','start',id]);
    let pin;
    function observe(){
@@ -61,7 +88,7 @@ try{
    }
    const deadline=performance.now()+180000;
    while(observe()!=='healthy'){if(performance.now()>deadline)throw Error('MYSQL_READINESS_TIMEOUT');await sleep(2000)}
-   const guard=async()=>{await assertHeld();assert.equal(observe(),'healthy');await assertHeld()};
+   const guard=async()=>{await assertHeld();assert.equal(observe(),'healthy');await storageCheck(assertHeld,false,storage.databaseVolumeIdentity);await assertHeld()};
    conn=await openPinnedFreshDatabaseConnection(pin.ip,env);
    const result=await initializeFreshMySqlSchema(conn,request,guard);
    assert.equal(result.migrations_applied,24);assert.equal(result.bootstrap_ready,true);assert.equal(result.database_binding_verified,true);
@@ -106,6 +133,68 @@ try{
   conn=await openPinnedFreshDatabaseConnection(endpoint.ip,env);
   await lock(async({assertHeld})=>{const ready=await verifyInitializedFreshMySqlSchema(conn,readRequest,assertHeld);assert.equal(ready.clean_bootstrap_verified,true)});
   await conn.end();conn=undefined;
+
+  // Actual non-root API component: use the same image, labels, no-copy
+  // mounts, pinned identity and exact network verifier as the new adapter.
+  const apiLabels=candidateLabels(project,input.trustedManifestSha256,'a'.repeat(64),'api');
+  apiLabels['org.aaditech.identity-sha256']=identity.identity_sha256;
+  const identityMount={source:storage.source,target:storage.target};
+  function createApi(environment){
+   return docker(['container','create','--pull','never','--name',project+'-api-1','--network',networkId,'--network-alias','api','--restart','no','--security-opt','no-new-privileges=true',
+    '--mount','type=volume,source='+project+'_api_data,target=/data,volume-nocopy',
+    '--mount','type=volume,source='+project+'_agent_artifacts,target=/artifacts,volume-nocopy',
+    '--mount','type=bind,source='+identityMount.source+',target='+identityMount.target+',readonly,bind-propagation=rprivate',
+    ...asLabels(apiLabels),...Object.keys(environment).flatMap(k=>['--env',k]),
+    '--health-cmd',freshApiHealthCommand,'--health-interval','5s','--health-timeout','5s','--health-retries','12',apiImage.Id],environment);
+  }
+  await lock(async({assertHeld})=>{
+   await storageCheck(assertHeld,false,storage.databaseVolumeIdentity);
+   // A wrong identity must not start a healthy HTTP service or replay migrations.
+   const badEnv={...apiEnv,AADITECH_IDENTITY_SHA256:'0'.repeat(64),DB_RETRY_DELAYS:'50,50'};
+   apiId=createApi(badEnv);
+   docker(['container','start',apiId]);
+   const badDeadline=performance.now()+30000;
+   while(true){
+    const state=inspect('container',apiId).State;
+    assert.notEqual(state.Health?.Status,'healthy');
+    if(state.Status==='exited'){assert.notEqual(state.ExitCode,0);break}
+    if(performance.now()>badDeadline)throw Error('WRONG_IDENTITY_API_DID_NOT_EXIT');
+    await sleep(500);
+   }
+   docker(['container','rm',apiId]);apiId=undefined;
+   assert.equal(verifyRunningFreshDatabase(inspect('container',id),expected,inspect('network',networkId)).ip,endpoint.ip);
+   await storageCheck(assertHeld,false,storage.databaseVolumeIdentity,storage.apiVolumeIdentities);
+   conn=await openPinnedFreshDatabaseConnection(endpoint.ip,env);
+   assert.equal((await verifyInitializedFreshMySqlSchema(conn,readRequest,assertHeld)).clean_bootstrap_verified,true);
+   await conn.end();conn=undefined;
+
+   apiId=createApi(apiEnv);
+   const apiExpected={id:apiId,imageId:apiImage.Id,project,role:'api',networkId,labels:apiLabels,environment:apiEnv,imageEnvironment:apiImageEnvironment,imageProcess:candidateProcessSpec(apiImage.Config),identityMount};
+   verifyStoppedCandidate(inspect('container',apiId),apiExpected);
+   await assertHeld();docker(['container','start',apiId]);
+   let pairPin;
+   async function observePair(){
+    await assertHeld();
+    const pair=verifyRunningFreshPair(inspect('container',id),inspect('container',apiId),{db:expected,api:apiExpected},inspect('network',networkId));
+    const {health:dbHealth,...dbPin}=pair.db,{health:apiHealth,...apiPin}=pair.api;
+    assert.equal(dbHealth,'healthy');assert.equal(dbPin.ip,endpoint.ip);assert.equal(dbPin.pid,endpoint.pid);assert.equal(dbPin.endpointId,endpoint.endpointId);
+    const current={db:dbPin,api:apiPin};if(pairPin)assert.deepEqual(current,pairPin);else pairPin=current;
+    await storageCheck(assertHeld,false,storage.databaseVolumeIdentity,storage.apiVolumeIdentities);
+    return apiHealth;
+   }
+   const deadline=performance.now()+90000;
+   while(await observePair()!=='healthy'){if(performance.now()>deadline)throw Error('FRESH_API_READINESS_TIMEOUT');await sleep(2000)}
+   const proof=JSON.parse(docker(['container','exec','--user','1000:1000',apiId,'node','/app/scripts/probe-fresh-api-runtime.mjs',endpoint.ip],{},30000));
+   assert.equal(verifyFreshApiProbeReceipt(proof),true);
+   assert.equal(await observePair(),'healthy');
+   // The mounted identity must stay read-only for the actual API user.
+   docker(['container','exec','--user','1000:1000',apiId,'node','-e',"try{require('node:fs').openSync('/run/aaditech-identity/installation-identity.json','r+');process.exit(1)}catch(e){process.exit(e.code==='EROFS'||e.code==='EACCES'?0:1)}"]);
+   assert.equal(await observePair(),'healthy');
+   // Scoped cleanup before the independent occupied-schema denial check.
+   docker(['container','rm','--force',apiId]);apiId=undefined;
+   await assertHeld();
+  });
+  console.log('PASS: actual source-built non-root API container, wrong identity startup refusal, exact DB/API private pair, read-only identity, in-container history/HTTP/clean setup probe; not signed end-to-end activation.');
   conn=await openPinnedFreshDatabaseConnection(endpoint.ip,env);
   await assert.rejects(()=>lock(({assertHeld})=>initializeFreshMySqlSchema(conn,request,assertHeld)));
   conn=undefined;
@@ -118,5 +207,5 @@ try{
 }finally{
  if(conn)conn.destroy();
  // Scoped fixture cleanup only; no shared image removal or prune.
- try{if(id)docker(['container','rm','--force',id])}finally{try{if(volume)docker(['volume','rm',volume])}finally{try{if(networkId)docker(['network','rm',networkId])}finally{await rm(root,{recursive:true,force:true})}}}
+ try{if(apiId)docker(['container','rm','--force',apiId])}finally{try{if(id)docker(['container','rm','--force',id])}finally{try{for(const v of [volume,...extraVolumes].filter(Boolean))docker(['volume','rm',v])}finally{try{if(networkId)docker(['network','rm',networkId])}finally{try{if(apiImageTag)docker(['image','rm',apiImageTag])}finally{await rm(root,{recursive:true,force:true})}}}}}
 }

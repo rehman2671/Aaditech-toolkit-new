@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
-  "batch": "MASS-30",
+  "batch": "MASS-31",
   "date": "2026-11-26",
   "target": "20 implementation prompts planning target, 50–100 actual development tasks per batch aspirational; count only delivered functional work, not test cases",
-  "base_commit": "b8ad6af77ccbf467e404e80f0dd1944a179a8889",
+  "base_commit": "2099aff6d988572254fad6ede026deae4897d822",
   "source_of_truth": [
     "docs/product/DELIVERY-TRACKER.json",
     "docs/product/TROUBLESHOOTING-WORK-REGISTER.json",
@@ -4506,7 +4506,32 @@
       ],
       "regression": [
         "Pair admission and explicit policy unit cases; actual signed combined activation pending"
-      ]
+      ],
+      "ci_evidence": {
+        "head": "2099aff6d988572254fad6ede026deae4897d822",
+        "run": 45713459098,
+        "jobs": [
+          {
+            "id": 139553613286,
+            "name": "Node.js Unit & Integration Tests (Vitest + MySQL 8)",
+            "status": "in_progress",
+            "conclusion": null
+          },
+          {
+            "id": 139553613658,
+            "name": "PowerShell validation",
+            "status": "in_progress",
+            "conclusion": null
+          },
+          {
+            "id": 139553613835,
+            "name": "Offline Docker load compatibility (disposable runner)",
+            "status": "in_progress",
+            "conclusion": null
+          }
+        ],
+        "scope": "Exact-head CI observation only; no signed end-to-end activation or production acceptance"
+      }
     },
     {
       "id": "MASS-30-02",
@@ -4522,7 +4547,32 @@
       ],
       "regression": [
         "Existing empty-volume tests; real rootful combined activation volume continuity pending"
-      ]
+      ],
+      "ci_evidence": {
+        "head": "2099aff6d988572254fad6ede026deae4897d822",
+        "run": 45713459098,
+        "jobs": [
+          {
+            "id": 139553613286,
+            "name": "Node.js Unit & Integration Tests (Vitest + MySQL 8)",
+            "status": "in_progress",
+            "conclusion": null
+          },
+          {
+            "id": 139553613658,
+            "name": "PowerShell validation",
+            "status": "in_progress",
+            "conclusion": null
+          },
+          {
+            "id": 139553613835,
+            "name": "Offline Docker load compatibility (disposable runner)",
+            "status": "in_progress",
+            "conclusion": null
+          }
+        ],
+        "scope": "Exact-head CI observation only; no signed end-to-end activation or production acceptance"
+      }
     },
     {
       "id": "MASS-30-03",
@@ -4541,6 +4591,92 @@
       ],
       "regression": [
         "Exact proof negative unit cases; actual rebuilt API image execution pending"
+      ],
+      "ci_evidence": {
+        "head": "2099aff6d988572254fad6ede026deae4897d822",
+        "run": 45713459098,
+        "jobs": [
+          {
+            "id": 139553613286,
+            "name": "Node.js Unit & Integration Tests (Vitest + MySQL 8)",
+            "status": "in_progress",
+            "conclusion": null
+          },
+          {
+            "id": 139553613658,
+            "name": "PowerShell validation",
+            "status": "in_progress",
+            "conclusion": null
+          },
+          {
+            "id": 139553613835,
+            "name": "Offline Docker load compatibility (disposable runner)",
+            "status": "in_progress",
+            "conclusion": null
+          }
+        ],
+        "scope": "Exact-head CI observation only; no signed end-to-end activation or production acceptance"
+      }
+    },
+    {
+      "id": "MASS-31-01",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Actual source-built non-root API image and rootful disposable pinned five-volume/identity preparation in mandatory real MySQL CI",
+      "dependencies": [
+        "MASS-30-01",
+        "MASS-30-02"
+      ],
+      "paths": [
+        "scripts/create-stopped-compose-candidates.mjs",
+        "tests/ci-fresh-database-bridge-rehearsal.mjs",
+        "docs/product/FRESH-VOLUME-OWNERSHIP-AND-IDENTITY-MOUNT.md",
+        "Dockerfile",
+        "scripts/fresh-runtime-storage.mjs",
+        "scripts/probe-fresh-api-runtime.mjs"
+      ],
+      "regression": [
+        "Mandatory Docker CI real source-built component; no signed publisher-image acceptance"
+      ]
+    },
+    {
+      "id": "MASS-31-02",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Actual wrong-identity startup refusal and clean schema reobservation before correct API startup",
+      "dependencies": [
+        "MASS-29-02",
+        "MASS-31-01"
+      ],
+      "paths": [
+        "scripts/create-stopped-compose-candidates.mjs",
+        "tests/ci-fresh-database-bridge-rehearsal.mjs",
+        "docs/product/FRESH-VOLUME-OWNERSHIP-AND-IDENTITY-MOUNT.md",
+        "Dockerfile",
+        "scripts/fresh-runtime-storage.mjs",
+        "scripts/probe-fresh-api-runtime.mjs"
+      ],
+      "regression": [
+        "Wrong identity nonzero exit, no healthy HTTP, schema unchanged; CI pending"
+      ]
+    },
+    {
+      "id": "MASS-31-03",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Actual private API/DB process and endpoint verification, mounted identity write denial and in-image readiness proof with scoped cleanup",
+      "dependencies": [
+        "MASS-30-03",
+        "MASS-31-01",
+        "MASS-31-02"
+      ],
+      "paths": [
+        "scripts/create-stopped-compose-candidates.mjs",
+        "tests/ci-fresh-database-bridge-rehearsal.mjs",
+        "docs/product/FRESH-VOLUME-OWNERSHIP-AND-IDENTITY-MOUNT.md",
+        "Dockerfile",
+        "scripts/fresh-runtime-storage.mjs",
+        "scripts/probe-fresh-api-runtime.mjs"
+      ],
+      "regression": [
+        "Real API probe, pair, no public ports, volume continuity and write denial; signed end-to-end orchestration still pending"
       ]
     }
   ],
@@ -5115,6 +5251,44 @@
         "docs/product/FRESH-VOLUME-OWNERSHIP-AND-IDENTITY-MOUNT.md",
         "scripts/probe-fresh-api-runtime.mjs",
         "scripts/initialize-stopped-candidate-database-and-api-cli.mjs"
+      ],
+      "exact_head_ci": {
+        "head": "2099aff6d988572254fad6ede026deae4897d822",
+        "run": 45713459098,
+        "jobs": [
+          {
+            "id": 139553613286,
+            "name": "Node.js Unit & Integration Tests (Vitest + MySQL 8)",
+            "status": "in_progress",
+            "conclusion": null
+          },
+          {
+            "id": 139553613658,
+            "name": "PowerShell validation",
+            "status": "in_progress",
+            "conclusion": null
+          },
+          {
+            "id": 139553613835,
+            "name": "Offline Docker load compatibility (disposable runner)",
+            "status": "in_progress",
+            "conclusion": null
+          }
+        ],
+        "scope": "Exact-head CI observation only; no signed end-to-end activation or production acceptance"
+      }
+    },
+    {
+      "id": "MASS-31",
+      "base_commit": "2099aff6d988572254fad6ede026deae4897d822",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "evidence": [
+        "scripts/create-stopped-compose-candidates.mjs",
+        "tests/ci-fresh-database-bridge-rehearsal.mjs",
+        "docs/product/FRESH-VOLUME-OWNERSHIP-AND-IDENTITY-MOUNT.md",
+        "Dockerfile",
+        "scripts/fresh-runtime-storage.mjs",
+        "scripts/probe-fresh-api-runtime.mjs"
       ]
     }
   ]

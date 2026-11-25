@@ -8415,6 +8415,48 @@
       "limitations": [
         "No verified full CI or real MySQL rehearsal for new head",
         "No exactly-once external delivery or forced process kill proof"
+      ],
+      "exact_head_ci": {
+        "head": "aa23201c53a4fffe060588ce6211e0cb74e9c548",
+        "run": 45720194293,
+        "jobs": [
+          {
+            "id": 139576298974,
+            "name": "Offline Docker load compatibility (disposable runner)",
+            "status": "in_progress",
+            "conclusion": null
+          },
+          {
+            "id": 139576299240,
+            "name": "PowerShell validation",
+            "status": "in_progress",
+            "conclusion": null
+          },
+          {
+            "id": 139576299495,
+            "name": "Node.js Unit & Integration Tests (Vitest + MySQL 8)",
+            "status": "in_progress",
+            "conclusion": null
+          }
+        ],
+        "scope": "Observed in-progress jobs only; no acceptance promotion"
+      }
+    },
+    {
+      "id": "MASS-50",
+      "base_commit": "aa23201c53a4fffe060588ce6211e0cb74e9c548",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "evidence": [
+        "cache-runtime-lifecycle.js",
+        "db.js",
+        "tests/unit/cache-runtime-lifecycle.test.js",
+        "test-network-db-fault-injection.js"
+      ],
+      "regression_definitions": 49,
+      "local_verification": "48/48 isolated helper cases executed; one real production worker crash/restart scenario not locally executed",
+      "limitations": [
+        "No actual Redis server or full Vitest run locally",
+        "No verified real process crash test on new head, no signed stack acceptance"
       ]
     }
   ]

@@ -17,6 +17,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 import {createTaskTracker} from './runtime-shutdown.js';
+import {createCacheLifecycle} from './cache-runtime-lifecycle.js';
 import {guardTransactionConnection} from './transaction-connection-custody.js';
 import {withDeviceAdvisoryLocks,observeMysqlPool} from './database-pool-custody.js';
 import {outboxLeaseParameters,confirmedLeaseRenewal,requireLegacyTelemetryTestProfile,requireConfirmedTelemetryInsert} from './durable-delivery-boundary.js';
@@ -25,79 +26,47 @@ const databaseTasks=createTaskTracker();
 let databaseStopping=false;
 let pool = null;
 let isConnected = false;
-let redisClient = null;
-let isRedisConnected = false;
+const cacheLifecycle=createCacheLifecycle();
 
 // ---------------- REDIS CACHE INITIALIZATION ----------------
 export function initRedisClient() {
-  const redisUrl = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
-  try {
-    redisClient = new Redis(redisUrl, {
-      maxRetriesPerRequest: 1,
-      connectTimeout: 2000,
-      retryStrategy: (times) => (times <= 3 ? 1000 : null),
-      lazyConnect: true
+  if(databaseStopping||cacheLifecycle.current)return;
+  const redisUrl=process.env.REDIS_URL||'redis://127.0.0.1:6379';
+  let client;
+  try{
+    client=new Redis(redisUrl,{
+      maxRetriesPerRequest:1,connectTimeout:2000,
+      retryStrategy:times=>times<=3?1000:null,lazyConnect:true
     });
-
-    redisClient.on('connect', () => {
-      isRedisConnected = true;
-      console.log('✅ Redis Cache connected successfully!');
-    });
-
-    redisClient.on('error', (err) => {
-      isRedisConnected = false;
-      // Silent warning for graceful degradation
-    });
-
-    redisClient.connect().catch(() => {
-      isRedisConnected = false;
-    });
-  } catch (err) {
-    isRedisConnected = false;
-  }
-}
-
-export async function cacheGet(key) {
-  if (!isRedisConnected || !redisClient) return null;
-  try {
-    const val = await redisClient.get(key);
-    return val ? JSON.parse(val) : null;
-  } catch (e) {
-    return null;
-  }
-}
-
-export async function cacheSet(key, value, ttlSec = 30) {
-  if (!isRedisConnected || !redisClient) return false;
-  try {
-    await redisClient.set(key, JSON.stringify(value), 'EX', ttlSec);
-    return true;
-  } catch (e) {
-    return false;
-  }
-}
-
-export async function cacheDel(key) {
-  if (!isRedisConnected || !redisClient) return false;
-  try {
-    await redisClient.del(key);
-    return true;
-  } catch (e) {
-    return false;
-  }
-}
-
-export async function cacheDelPattern(pattern) {
-  if (!isRedisConnected || !redisClient) return false;
-  try {
-    const keys = await redisClient.keys(pattern);
-    if (keys.length > 0) {
-      await redisClient.del(...keys);
+    cacheLifecycle.install(client);
+    client.on('ready',()=>cacheLifecycle.markReady(client));
+    for(const event of ['error','close','end','reconnecting']){
+      client.on(event,()=>cacheLifecycle.markUnavailable(client));
     }
-    return true;
-  } catch (e) {
-    return false;
+    void client.connect().catch(()=>cacheLifecycle.markUnavailable(client));
+  }catch{
+    if(client)cacheLifecycle.markUnavailable(client);
   }
+}
+export function cacheGet(key){
+  return cacheLifecycle.run(null,async client=>{
+    const value=await client.get(key);return value?JSON.parse(value):null;
+  });
+}
+export function cacheSet(key,value,ttlSec=30){
+  return cacheLifecycle.run(false,async client=>
+    (await client.set(key,JSON.stringify(value),'EX',ttlSec))==='OK');
+}
+export function cacheDel(key){
+  return cacheLifecycle.run(false,async client=>{await client.del(key);return true});
+}
+export function cacheDelPattern(pattern){
+  return cacheLifecycle.run(false,async(client,valid)=>{
+    const keys=await client.keys(pattern);
+    if(!valid())return false;
+    if(keys.length)await client.del(...keys);
+    return true;
+  });
 }
 
 // All real deployments must use persistent MySQL. Only an explicitly
@@ -3831,8 +3800,7 @@ export async function closeDatabaseResources(){
  if(!databaseStopping||telemetryQueue.length||flushInFlight)throw Error('DATABASE_DRAIN_UNCONFIRMED');
  await databaseTasks.drain();
  const active=pool;pool=null;isConnected=false;
- const cache=redisClient;redisClient=null;isRedisConnected=false;
- try{if(active)await active.end()}finally{if(cache)cache.disconnect()}
+ try{if(active)await active.end()}finally{cacheLifecycle.stop()}
 }
 
 // Tenant-specific integration settings must never inherit another tenant's

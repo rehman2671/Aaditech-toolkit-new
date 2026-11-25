@@ -45,8 +45,8 @@ async function readJson(path,expected,max=1024*1024){
 }
 // Hash both compressed bytes and exact uncompressed tar stream, without
 // materializing an archive or trusting the layer's declared gzip size.
-export async function verifyGzipLayerFile(path,entry,expectedDiffId,remainingBytes=8*1024**3,strictTar=false){
- if(!digest(expectedDiffId)||!Number.isSafeInteger(remainingBytes)||remainingBytes<1||remainingBytes>8*1024**3)fail();
+export async function verifyGzipLayerFile(path,entry,expectedDiffId,remainingBytes=8*1024**3,strictTar=false,onChunk=null){
+ if((onChunk!==null&&typeof onChunk!=='function')||!digest(expectedDiffId)||!Number.isSafeInteger(remainingBytes)||remainingBytes<1||remainingBytes>8*1024**3)fail();
  const st=await lstat(path);
  if(!st.isFile()||st.nlink!==1||st.uid!==process.geteuid()||(st.mode&0o7777)!==0o600||
     st.size!==entry.size||st.size<1)fail();
@@ -64,7 +64,7 @@ export async function verifyGzipLayerFile(path,entry,expectedDiffId,remainingByt
   const sink=new Writable({write(chunk,_encoding,cb){
    uncompressed+=chunk.length;
    if(uncompressed>remainingBytes)return cb(Error('OFFLINE_OCI_RUNTIME_UNVERIFIED'));
-   try{tar?.push(chunk);raw.update(chunk);cb()}catch(e){cb(e)}
+   try{tar?.push(chunk);raw.update(chunk);if(onChunk)Promise.resolve(onChunk(chunk)).then(()=>cb(),cb);else cb()}catch(e){cb(e)}
   }});
   await pipeline(fd.createReadStream({autoClose:false,start:0,end:entry.size-1}),measure,createGunzip(),sink,
    {signal:AbortSignal.timeout(120000)});
@@ -119,11 +119,13 @@ export async function verifyOfflineOciGraph({architecture,entries,readMetadata,v
    !exact(config.rootfs,['type','diff_ids'])||config.rootfs.type!=='layers'||
    !Array.isArray(config.rootfs.diff_ids)||config.rootfs.diff_ids.length!==m.layers.length||
    !config.rootfs.diff_ids.every(digest))fail();
+  const layerDescriptors=[];
   for(let n=0;n<m.layers.length;n++){
    const layer=descriptor(m.layers[n],types.layer),path=blobPath(layer.digest),entry=mark(path,layer);
-   if(verifyLayer)await verifyLayer(path,entry,config.rootfs.diff_ids[n]);
+   const bytes=verifyLayer?await verifyLayer(path,entry,config.rootfs.diff_ids[n]):null;
+   layerDescriptors.push(Object.freeze({blob_sha256:layer.digest.slice(7),compressed_bytes:layer.size,diff_id:config.rootfs.diff_ids[n],uncompressed_bytes:bytes}));
   }
-  result.push(Object.freeze({role,manifest_digest:item.digest,image_config_id:c.digest,layer_count:m.layers.length}));
+  result.push(Object.freeze({role,manifest_digest:item.digest,image_config_id:c.digest,config_bytes:c.size,layer_count:m.layers.length,layers:Object.freeze(layerDescriptors)}));
  }
  // Reject unreferenced runtime bytes, including unknown metadata and blobs.
  if([...files.keys()].some(k=>k.startsWith('runtime/')&&!used.has(k)))fail();
@@ -140,10 +142,10 @@ export async function inspectOfflineOciRuntime(input={}){
  const images=await verifyOfflineOciGraph({architecture,entries:manifest.doc.files,
   readMetadata:async(path,entry)=>(await readJson(join(stagedDirectory,'payload',path),entry)).doc,
   verifyLayer:async(path,entry,diffId)=>{
-   if(checkedLayers.has(path)){if(checkedLayers.get(path)!==diffId)fail();return}
+   if(checkedLayers.has(path)){const previous=checkedLayers.get(path);if(previous.diffId!==diffId)fail();return previous.bytes}
    const limit=Math.min(8*1024**3,32*1024**3-totalUncompressed);
-   totalUncompressed+=await verifyGzipLayerFile(join(stagedDirectory,'payload',path),entry,diffId,limit,true);
-   checkedLayers.set(path,diffId);
+   const bytes=await verifyGzipLayerFile(join(stagedDirectory,'payload',path),entry,diffId,limit,true);
+   totalUncompressed+=bytes;checkedLayers.set(path,{diffId,bytes});return bytes;
   }});
  const final=await inspectStagedLanBundle(pins);
  if(JSON.stringify(prior)!==JSON.stringify(final))fail();

@@ -160,3 +160,7 @@ node scripts/local-docker-runtime-preflight-cli.mjs --confirm-local-docker-read-
 ```
 
 Exit 0 means matching observed IDs and external review required, 2 means blocked, 1 means refusal. The fixed `/run/docker.sock` observer only sends allowlisted GET requests, does not use environment endpoint settings, and exports categorical state, not image config or daemon ID. Local root and host namespace must be trusted. Image config IDs are not registry digest or layer verification. No runtime import, install authorization, compatibility, resource absence or production acceptance. Fresh CI required.
+
+## 2026-11-25 — Signed staged OCI runtime binding
+
+Use `node scripts/inspect-offline-oci-runtime-cli.mjs --inspect-signed-oci < oci-policy.json` or `--observe-bound-local-runtime`. JSON requires stagedDirectory, trustedManifestSha256, trustedSignerSpkiSha256, trustedPublicKeyPem and architecture. Supported narrow OCI profile: runtime/oci-layout, runtime/index.json, runtime/blobs/sha256, exactly api/database/ingress manifests annotated with org.aaditech.role, Linux amd64 or arm64 and gzip layers. Independently pinned release and trusted local custody are required. Compressed and uncompressed digests checked, with 8 GiB per unique decompressed layer, 32 GiB aggregate and 120-second per-layer deadline. No extraction, import, daemon mutation or install authority. Fresh CI required.

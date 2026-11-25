@@ -65,3 +65,28 @@ describe.skipIf(process.platform==='win32')('bounded encrypted backup private st
   await expect(recoverEncryptedBackup(f.recover)).rejects.toThrow('PRIVATE_STAGING_REQUIRED');
  }));
 });
+
+
+describe.skipIf(process.platform!=='linux')('private recovery input and output custody',()=>{
+ const badNames=['','../outside','/absolute','name\n','name\r','name\u2028','name\0','name.','a'.repeat(129),'a/b','a\\b','-name','a b'];
+ it.each(badNames)('rejects unsafe output name %j',name=>fixture(async f=>{
+  await expect(recoverEncryptedBackup({...f.recover,outputName:name})).rejects.toThrow('LOCAL_STAGING_FILENAME_REQUIRED');
+  expect(await readdir(f.directory)).not.toContain('recovered.bin');
+ }));
+ it.each([0o644,0o1600,0o2600,0o4600])('rejects nonprivate payload mode %s',mode=>fixture(async f=>{
+  await chmod(f.backup.payloadPath,mode);
+  await expect(recoverEncryptedBackup(f.recover)).rejects.toThrow('PRIVATE_INPUT_OR_SIZE_INVALID');
+ }));
+ it.each([0o755,0o1700,0o2700,0o4700])('rejects nonprivate directory mode %s',mode=>fixture(async f=>{
+  await chmod(f.directory,mode);
+  try{await expect(recoverEncryptedBackup(f.recover)).rejects.toThrow('PRIVATE_STAGING_REQUIRED')}
+  finally{await chmod(f.directory,0o700)}
+ }));
+ it('does not read later-mutated backup trust inputs',()=>fixture(async f=>{
+  const backup={...f.backup};
+  const pending=recoverEncryptedBackup({...f.recover,backup});
+  backup.trustedSignerSpkiSha256='0'.repeat(64);
+  expect(await pending).toMatchObject({encryption_verified:true,restore_authorized:false});
+  expect(await readFile(join(f.directory,'recovered.bin'))).toEqual(f.plaintext);
+ }));
+});

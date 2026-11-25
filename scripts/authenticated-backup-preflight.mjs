@@ -4,7 +4,7 @@
 import { createHash, createPublicKey, verify } from 'node:crypto';
 import { constants } from 'node:fs';
 import { open, lstat, realpath } from 'node:fs/promises';
-import { resolve } from 'node:path';
+import { resolve,isAbsolute } from 'node:path';
 import { validateInstallationIdentity, planInstallationIdentity } from './installation-identity.mjs';
 
 const HEX = /^[a-f0-9]{64}$/;
@@ -13,10 +13,21 @@ const MAX_PAYLOAD = 1024 ** 4; // 1 TiB explicit safety ceiling for this referen
 const fail = code => { throw new Error(code); };
 const exactHex = s => typeof s === 'string' && s.length === 64 && HEX.test(s);
 const uuid = s => validateInstallationIdentity({schema_version:1,installation_id:s}).installation_id;
+const manifestFields=['schema_version','installation_id','backup_id','created_at','format','payload_size','payload_sha256'];
+const backupFields=['manifestPath','signaturePath','payloadPath','trustedPublicKeyPem','trustedSignerSpkiSha256','expectedInstallationId'];
+const ownData=(o,k)=>{const d=Object.getOwnPropertyDescriptor(o,k);return !!d&&d.enumerable&&Object.hasOwn(d,'value')};
+const exactRecord=(o,keys)=>!!o&&typeof o==='object'&&!Array.isArray(o)&&
+ [Object.prototype,null].includes(Object.getPrototypeOf(o))&&Reflect.ownKeys(o).length===keys.length&&keys.every(k=>ownData(o,k));
+const validPath=p=>typeof p==='string'&&p.length>0&&p.length<=4096&&!/[\x00-\x1f\x7f]/.test(p)&&isAbsolute(p)&&resolve(p)===p;
+export function snapshotBackupInputs(input){
+ if(!exactRecord(input,backupFields))fail('EXPLICIT_BACKUP_INPUT_REQUIRED');
+ const b={...input},paths=[b.manifestPath,b.signaturePath,b.payloadPath];
+ if(!paths.every(validPath)||new Set(paths).size!==3)fail('BACKUP_PATH_INVALID');
+ return Object.freeze(b);
+}
 
 export function canonicalBackupManifest(record) {
-  if (!record || typeof record !== 'object' || Array.isArray(record) ||
-      Object.keys(record).length !== 7 || record.schema_version !== 1 ||
+  if (!exactRecord(record,manifestFields) || record.schema_version !== 1 ||
       record.format !== 'encrypted-backup-container' ||
       typeof record.created_at !== 'string' || record.created_at.length !== 24 ||
       !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(record.created_at) ||
@@ -38,7 +49,7 @@ export function canonicalBackupManifest(record) {
 }
 
 async function openRegular(path, maximum) {
-  const full = resolve(path);
+  const full = path;
   // Reject aliases including symlinked ancestors. Caller must stage all
   // files in a private, immutable recovery directory and hold its lock.
   if (await realpath(full) !== full) fail('BACKUP_PATH_ALIAS');
@@ -51,7 +62,7 @@ async function openRegular(path, maximum) {
     const st = await fd.stat();
     if (!st.isFile() || st.nlink !== 1 || st.dev !== before.dev ||
         st.ino !== before.ino || st.size !== before.size ||
-        st.mtimeMs !== before.mtimeMs || st.ctimeMs !== before.ctimeMs) {
+        st.mtimeMs !== before.mtimeMs || st.ctimeMs !== before.ctimeMs || st.mode!==before.mode || st.uid!==before.uid) {
       fail('BACKUP_FILE_CHANGED');
     }
     return {fd, st, full};
@@ -62,7 +73,7 @@ async function unchanged({fd,st,full}) {
   if (!after.isFile() || after.nlink !== 1 || !current.isFile() ||
       current.isSymbolicLink() || current.nlink !== 1 ||
       [after,current].some(s => s.dev !== st.dev || s.ino !== st.ino ||
-        s.size !== st.size || s.mtimeMs !== st.mtimeMs || s.ctimeMs !== st.ctimeMs)) {
+        s.size !== st.size || s.mtimeMs !== st.mtimeMs || s.ctimeMs !== st.ctimeMs || s.mode!==st.mode || s.uid!==st.uid)) {
     fail('BACKUP_FILE_CHANGED');
   }
 }
@@ -103,15 +114,14 @@ async function verifyPayload(path, record) {
   } finally { await file.fd.close(); }
 }
 
-export async function verifyAuthenticatedBackup({
-  manifestPath, signaturePath, payloadPath, trustedPublicKeyPem,
-  trustedSignerSpkiSha256, expectedInstallationId
-}) {
+export async function verifyAuthenticatedBackup(input) {
+  const {manifestPath,signaturePath,payloadPath,trustedPublicKeyPem,
+    trustedSignerSpkiSha256,expectedInstallationId}=snapshotBackupInputs(input);
   if (!exactHex(trustedSignerSpkiSha256)) fail('TRUSTED_SIGNER_PIN_REQUIRED');
   const expected = uuid(expectedInstallationId);
   if (typeof trustedPublicKeyPem !== 'string' || trustedPublicKeyPem.length > 8192 ||
-      !trustedPublicKeyPem.startsWith('-----BEGIN PUBLIC KEY-----\n')) fail('TRUSTED_PUBLIC_KEY_REQUIRED');
-  const publicKey = createPublicKey(trustedPublicKeyPem);
+      !/^-----BEGIN PUBLIC KEY-----\r?\n[A-Za-z0-9+/=\r\n]+-----END PUBLIC KEY-----\r?\n?(?![\s\S])/.test(trustedPublicKeyPem)) fail('TRUSTED_PUBLIC_KEY_REQUIRED');
+  let publicKey;try{publicKey=createPublicKey(trustedPublicKeyPem)}catch{fail('TRUSTED_PUBLIC_KEY_REQUIRED')}
   if (publicKey.asymmetricKeyType !== 'ed25519') fail('UNSUPPORTED_BACKUP_SIGNER');
   const pin = createHash('sha256').update(publicKey.export({type:'spki',format:'der'})).digest('hex');
   if (pin !== trustedSignerSpkiSha256) fail('BACKUP_SIGNER_PIN_MISMATCH');
@@ -142,8 +152,11 @@ export async function verifyAuthenticatedBackup({
 export async function preflightAuthenticatedRestore({backup, observed, localIdentity=null,
   previousInstanceFenced=false, intent}) {
   if (intent !== 'restore-same' && intent !== 'clone-new') fail('EXPLICIT_RESTORE_INTENT_REQUIRED');
-  const evidence = await verifyAuthenticatedBackup(backup);
+  // Resolve the planning inputs synchronously so later caller mutation cannot
+  // turn an unfenced or cross-installation request into a different decision.
+  const snapshot=snapshotBackupInputs(backup);
   const decision = planInstallationIdentity({intent,observed,localIdentity,
-    backupIdentity:evidence.identity,previousInstanceFenced});
+    backupIdentity:{schema_version:1,installation_id:uuid(snapshot.expectedInstallationId)},previousInstanceFenced});
+  const evidence = await verifyAuthenticatedBackup(snapshot);
   return Object.freeze({evidence,decision,mutation_authorized:false});
 }

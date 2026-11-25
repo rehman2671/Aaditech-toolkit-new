@@ -1,5 +1,5 @@
 import {describe,it,expect} from 'vitest';
-import {validateStoppedCandidatePolicy as policy,deriveCandidateRoleEnvironment as derive,verifyCandidateImage as image,candidateProcessSpec as processSpec,freshDatabaseHealthCommand,openPinnedFreshDatabaseConnection as connectDb,verifyRunningFreshDatabase as verifyDb,validateFreshDatabaseActivationPolicy as dbPolicy,candidateLabels as labels,verifyStoppedCandidate as verify,validateStoppedObservationPolicy as observe} from '../../scripts/create-stopped-compose-candidates.mjs';
+import {validateStoppedCandidatePolicy as policy,deriveCandidateRoleEnvironment as derive,verifyCandidateImage as image,candidateProcessSpec as processSpec,freshDatabaseHealthCommand,openPinnedFreshDatabaseConnection as connectDb,verifyRunningFreshDatabase as verifyDb,verifyRunningFreshPair as verifyPair,verifyFreshApiProbeReceipt as probeReceipt,validateFreshApiActivationPolicy as apiPolicy,validateFreshDatabaseActivationPolicy as dbPolicy,candidateLabels as labels,verifyStoppedCandidate as verify,validateStoppedObservationPolicy as observe} from '../../scripts/create-stopped-compose-candidates.mjs';
 const sha='a'.repeat(64),networkId='c'.repeat(64),imageId='sha256:'+'d'.repeat(64),id='e'.repeat(64),project='aaditech',host='server.example.com';
 const release={confirmation:'INSPECT_SIGNED_OCI_RUNTIME_ONLY',stagedDirectory:'/private/stage',trustedManifestSha256:sha,trustedSignerSpkiSha256:'b'.repeat(64),trustedPublicKeyPem:'fixture',architecture:'amd64'};
 const input={confirmation:'CREATE_STOPPED_COMPOSE_CANDIDATES_ONLY_EXCLUSIVE_DAEMON_CUSTODY',project,lockRoot:'/private/lock',configDirectory:'/private/config',serverHost:host,release,configurationSha256:sha,networkId};
@@ -117,6 +117,31 @@ describe('explicit fresh database-only admission',()=>{
   const n={...network,Containers:{[id]:{...member,IPv4Address:ip+'/16'}}};
   expect(()=>verifyDb(d,dbExpected,n)).toThrow();
   await expect(connectDb(ip,env.db)).rejects.toThrow();
+ });
+ const apiId='1'.repeat(64),apiImage='sha256:'+'2'.repeat(64),apiLabels=labels(project,sha,sha,'api'),identityMount={source:'/private/runtime-id/runtime-identity',target:'/run/aaditech-identity'};
+ const apiEndpoint={...endpoint,Aliases:['api'],EndpointID:'3'.repeat(64),IPAddress:'172.20.0.3'};
+ const apiExpected={...e,id:apiId,imageId:apiImage,role:'api',labels:apiLabels,environment:env.api,imageProcess:processSpec({Cmd:['fixture'],User:'1000:1000'}),identityMount};
+ const apiDoc={
+  ...dbDoc,Id:apiId,Image:apiImage,Name:'/aaditech-api-1',State:{...dbDoc.State,Pid:124},
+  Config:{Cmd:['fixture'],User:'1000:1000',Labels:apiLabels,Env:['PATH=/usr/bin',...Object.entries(env.api).map(([k,v])=>k+'='+v)],Healthcheck:{Test:['CMD-SHELL',"node -e \"fetch('http://localhost:3000/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]}},
+  HostConfig:{...row.HostConfig,Mounts:[{Type:'volume',Source:'aaditech_api_data',Target:'/data',VolumeOptions:{NoCopy:true}},{Type:'volume',Source:'aaditech_agent_artifacts',Target:'/artifacts',VolumeOptions:{NoCopy:true}},{Type:'bind',Source:identityMount.source,Target:identityMount.target,ReadOnly:true}]},
+  Mounts:[{Type:'volume',Name:'aaditech_api_data',Destination:'/data',RW:true,Driver:'local'},{Type:'volume',Name:'aaditech_agent_artifacts',Destination:'/artifacts',RW:true,Driver:'local'},{Type:'bind',Source:identityMount.source,Destination:identityMount.target,RW:false,Propagation:'rprivate'}],
+  NetworkSettings:{Networks:{aaditech_ittoolkit:apiEndpoint}}
+ };
+ const apiMember={Name:'aaditech-api-1',EndpointID:apiEndpoint.EndpointID,IPv4Address:'172.20.0.3/16',IPv6Address:''};
+ const pairNetwork={...network,Containers:{[id]:member,[apiId]:apiMember}},pairExpected={db:dbExpected,api:apiExpected};
+ it('combined profile has independent explicit confirmation',()=>{
+  const both={...activation,confirmation:'INITIALIZE_PINNED_FRESH_DATABASE_AND_API_ONLY_EXCLUSIVE_DAEMON_AND_WRITER_CUSTODY'};
+  expect(apiPolicy(both).containers).toEqual(pins);expect(()=>apiPolicy(activation)).toThrow();expect(()=>dbPolicy(both)).toThrow();
+ });
+ it('accepts exactly the healthy DB and identity-bound API network pair',()=>expect(verifyPair(dbDoc,apiDoc,pairExpected,pairNetwork)).toMatchObject({db:{ip:endpoint.IPAddress},api:{ip:apiEndpoint.IPAddress}}));
+ it.each([{Containers:{[id]:member}},{Containers:{[id]:member,[apiId]:apiMember,foreign:{}}},{Containers:{[id]:member,[apiId]:{...apiMember,IPv4Address:'172.20.0.4/16'}}}])('rejects unexpected pair network membership %j',patch=>expect(()=>verifyPair(dbDoc,apiDoc,pairExpected,{...pairNetwork,...patch})).toThrow());
+ it.each([{Config:{...apiDoc.Config,User:'root'}},{RestartCount:1},{State:{...apiDoc.State,Pid:123}},{HostConfig:{...apiDoc.HostConfig,PublishAllPorts:true}}])('rejects API process or host drift %j',patch=>expect(()=>verifyPair(dbDoc,{...apiDoc,...patch},pairExpected,pairNetwork)).toThrow());
+ it('requires exact non-production API probe proof',()=>{
+  const receipt={schema_version:1,non_root_verified:true,identity_verified:true,database_history_verified:true,private_database_verified:true,http_readiness_verified:true,clean_setup_verified:true,production_accepted:false};
+  expect(probeReceipt(receipt)).toBe(true);
+  for(const key of Object.keys(receipt).filter(k=>k!=='schema_version'&&k!=='production_accepted'))expect(probeReceipt({...receipt,[key]:false})).toBe(false);
+  expect(probeReceipt({...receipt,production_accepted:true})).toBe(false);expect(probeReceipt({...receipt,extra:true})).toBe(false);
  });
  it.each([{MYSQL_USER:'root'},{MYSQL_DATABASE:'other'},{MYSQL_PASSWORD:'short'},{MYSQL_PASSWORD:env.db.MYSQL_ROOT_PASSWORD},{extra:true}])('rejects unsafe database connection parameters %j',async patch=>{
   await expect(connectDb('172.20.0.2',{...env.db,...patch})).rejects.toThrow();

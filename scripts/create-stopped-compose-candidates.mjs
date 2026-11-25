@@ -2,7 +2,8 @@
 // staged release. Optional rootful profile mounts only pinned identity read-only.
 // Create/inspect never start services. The separately confirmed fresh database
 // adapter starts ONLY the pinned database and initializes its signed schema.
-// No API/ingress start, published ports, or production authorization.
+// A distinct combined fresh-only profile can also start the pinned API.
+// No ingress start, published ports, or production authorization.
 import {execFile} from 'node:child_process';
 import {promisify} from 'node:util';
 import {constants} from 'node:fs';
@@ -133,17 +134,30 @@ function privateIPv4(ip){
 }
 export function verifyRunningFreshDatabase(doc,expected,network){
  if(expected.role!=='db')fail();
+ return verifyRunningEndpoint(doc,expected,network,[expected.id]);
+}
+function verifyRunningEndpoint(doc,expected,network,memberIds){
+ if(!['db','api'].includes(expected.role)||expected.role==='api'&&!expected.identityMount)fail();
  verifyCandidate(doc,expected,true);
  const s=doc.State;
  if(doc.RestartCount!==0||!Number.isSafeInteger(s.Pid)||s.Pid<=0||typeof s.StartedAt!=='string'||!Number.isFinite(Date.parse(s.StartedAt))||!['starting','healthy'].includes(s.Health?.Status))fail();
  const resources=expectedFreshResources(expected.project,expected.labels['org.aaditech.release-sha256']);
- if(!network?.Containers||Object.keys(network.Containers).length!==1||!Object.hasOwn(network.Containers,expected.id))fail();
+ if(!network?.Containers||Object.keys(network.Containers).length!==memberIds.length||memberIds.some(id=>!Object.hasOwn(network.Containers,id)))fail();
  if(verifyProvisionedNetwork({...network,Containers:{}},resources.network)!==expected.networkId)fail();
  const endpoint=doc.NetworkSettings.Networks[resources.network.name],member=network.Containers[expected.id],ip=privateIPv4(endpoint?.IPAddress);
- if(endpoint.NetworkID!==expected.networkId||!hex(endpoint.EndpointID)||member?.EndpointID!==endpoint.EndpointID||member.Name!==expected.project+'-db-1'||endpoint.GlobalIPv6Address!==''&&endpoint.GlobalIPv6Address!==undefined||member.IPv6Address!==''&&member.IPv6Address!==undefined)fail();
+ if(endpoint.NetworkID!==expected.networkId||!hex(endpoint.EndpointID)||member?.EndpointID!==endpoint.EndpointID||member.Name!==expected.project+'-'+expected.role+'-1'||endpoint.GlobalIPv6Address!==''&&endpoint.GlobalIPv6Address!==undefined||member.IPv6Address!==''&&member.IPv6Address!==undefined)fail();
  const prefix=endpoint.IPPrefixLen;
  if(!Number.isInteger(prefix)||prefix<8||prefix>30||member.IPv4Address!==ip+'/'+prefix)fail();
  return Object.freeze({ip,endpointId:endpoint.EndpointID,pid:s.Pid,startedAt:s.StartedAt,health:s.Health.Status});
+}
+// Exact pair only: no ingress or third endpoint. The independently verified
+// DB and API observations must agree with the same network membership.
+export function verifyRunningFreshPair(database,api,expected,network){
+ if(expected.db.role!=='db'||expected.api.role!=='api'||expected.db.id===expected.api.id||expected.db.project!==expected.api.project||expected.db.networkId!==expected.api.networkId)fail();
+ const ids=[expected.db.id,expected.api.id];
+ const db=verifyRunningEndpoint(database,expected.db,network,ids),app=verifyRunningEndpoint(api,expected.api,network,ids);
+ if(db.ip===app.ip||db.endpointId===app.endpointId||db.pid===app.pid||db.health!=='healthy')fail();
+ return Object.freeze({db,api:app});
 }
 // Called after local daemon/network/process admission under exclusive setup custody.
 export async function openPinnedFreshDatabaseConnection(ip,environment){
@@ -158,6 +172,10 @@ export async function openPinnedFreshDatabaseConnection(ip,environment){
   if(rows?.length!==1||rows[0].db!==environment.MYSQL_DATABASE||typeof rows[0].account!=='string'||!rows[0].account.startsWith(environment.MYSQL_USER+'@')||typeof rows[0].version!=='string'||!/^8\./.test(rows[0].version)||/MariaDB/i.test(rows[0].version))fail();
   return conn;
  }catch{if(conn)try{conn.destroy()}catch{}fail()}
+}
+export function verifyFreshApiProbeReceipt(receipt){
+ const keys=['schema_version','non_root_verified','identity_verified','database_history_verified','private_database_verified','http_readiness_verified','clean_setup_verified','production_accepted'];
+ return !!exact(receipt,keys)&&receipt.schema_version===1&&receipt.production_accepted===false&&keys.slice(1,-1).every(k=>receipt[k]===true);
 }
 async function binaryIdentity(){const s=await lstat(binary);if(!s.isFile()||s.uid!==0||(s.mode&0o022)!==0||(s.mode&0o111)===0||await realpath(binary)!==binary)fail();return [s.dev,s.ino,s.uid,s.mode,s.size,s.mtimeMs,s.ctimeMs]}
 async function privateDir(path,expected){const s=await lstat(path);if(!s.isDirectory()||s.uid!==process.geteuid()||(s.mode&0o7777)!==0o700||await realpath(path)!==path||expected&&!same(s,expected,dirFields))fail();return s}
@@ -193,7 +211,15 @@ export async function initializeStoppedCandidateDatabase(input){
  // exposed as a generic callback or arbitrary Docker command adapter.
  return stoppedCandidates({...input,confirmation:'INSPECT_IDENTITY_BOUND_STOPPED_CANDIDATES_ONLY'},true,true);
 }
-async function stoppedCandidates(input,observeOnly,initializeDatabase=false){
+export function validateFreshApiActivationPolicy(input){
+ if(input?.confirmation!=='INITIALIZE_PINNED_FRESH_DATABASE_AND_API_ONLY_EXCLUSIVE_DAEMON_AND_WRITER_CUSTODY'||!Object.hasOwn(input,'storage'))fail();
+ return validateStoppedObservationPolicy({...input,confirmation:'INSPECT_IDENTITY_BOUND_STOPPED_CANDIDATES_ONLY'});
+}
+export async function initializeStoppedCandidateDatabaseAndApi(input){
+ validateFreshApiActivationPolicy(input);
+ return stoppedCandidates({...input,confirmation:'INSPECT_IDENTITY_BOUND_STOPPED_CANDIDATES_ONLY'},true,true,true);
+}
+async function stoppedCandidates(input,observeOnly,initializeDatabase=false,initializeApi=false){
  if(process.platform!=='linux'||typeof process.geteuid!=='function')fail();
  const p=observeOnly?validateStoppedObservationPolicy(input):validateStoppedCandidatePolicy(input),dir=await privateDir(p.configDirectory);
  return withLocalSetupLock({confirmation:'ACQUIRE_LOCAL_SETUP_LOCK_ONLY',lockRoot:p.lockRoot},async({assertHeld})=>{
@@ -235,7 +261,7 @@ async function stoppedCandidates(input,observeOnly,initializeDatabase=false){
   const migrationPins={confirmation:'ADMIT_SIGNED_FRESH_MYSQL_MIGRATIONS_ONLY',stagedDirectory:p.release.stagedDirectory,trustedManifestSha256:p.release.trustedManifestSha256,trustedPublicKeyPem:p.release.trustedPublicKeyPem,trustedSignerSpkiSha256:p.release.trustedSignerSpkiSha256};
   const migrations=observeOnly||p.storage?await admitSignedFreshMigrations(migrationPins):null;
   await verifyImages();await inventory(observeOnly?3:0);
-  const checkStorage=(prepare,databaseVolumeIdentity)=>checkOrPrepareFreshRuntimeStorage({storage:p.storage,volumes:resources.volumes,inspect,continuity,prepare,databaseVolumeIdentity});
+  const checkStorage=(prepare,databaseVolumeIdentity,apiVolumeIdentities)=>checkOrPrepareFreshRuntimeStorage({storage:p.storage,volumes:resources.volumes,inspect,continuity,prepare,databaseVolumeIdentity,apiVolumeIdentities});
   const storage=p.storage?await checkStorage(!observeOnly):null;
   const result={},expected={};
   for(const role of roles){
@@ -315,7 +341,43 @@ async function stoppedCandidates(input,observeOnly,initializeDatabase=false){
     await guard();
     await conn.end();conn=undefined;
     await guard();
-    return Object.freeze({schema_version:1,project:p.project,release_sha256:p.release.trustedManifestSha256,configuration_sha256:p.configurationSha256,network_id:p.networkId,containers:result,database_started:true,database_initialized:true,signed_migrations_verified:true,migrations_applied:schema.migrations_applied,installation_id:schema.installation_id,identity_sha256:schema.identity_sha256,database_binding_verified:schema.database_binding_verified,bootstrap_ready:schema.bootstrap_ready,clean_bootstrap_reobserved:true,api_started:false,ingress_started:false,activation_blocked:true,tls_verified:false,installation_authorized:false,production_accepted:false});
+    let apiReady=false;
+    if(initializeApi){
+     if(!storage.apiVolumeIdentities||!admission.clean_bootstrap_verified)fail();
+     // The database-only guard stays in force until the explicit API start.
+     // No API start is reachable from the database-only confirmation.
+     const beforeApi=await checkStorage(false,storage.databaseVolumeIdentity);
+     if(JSON.stringify(beforeApi.apiVolumeIdentities)!==JSON.stringify(storage.apiVolumeIdentities))fail();
+     await guard();
+     await run(['container','start',result.api.containerId],{},60000);
+     let apiPin;
+     const pairGuard=async(requireHealthy)=>{
+      await inventory(3,true);
+      verifyStoppedCandidate(await inspect('container',result.caddy.containerId),expected.caddy);
+      const pair=verifyRunningFreshPair(await inspect('container',dbId),await inspect('container',result.api.containerId),expected,await inspect('network',p.networkId));
+      const {health:dbHealth,...dbPin}=pair.db,{health:apiHealth,...apiCurrent}=pair.api;
+      if(dbHealth!=='healthy'||JSON.stringify(dbPin)!==JSON.stringify(started)||apiPin&&JSON.stringify(apiCurrent)!==JSON.stringify(apiPin)||requireHealthy&&apiHealth!=='healthy')fail();
+      apiPin=apiCurrent;
+      await checkStorage(false,storage.databaseVolumeIdentity,storage.apiVolumeIdentities);
+      await continuity();
+      return apiHealth;
+     };
+     const apiDeadline=performance.now()+120000;
+     while(await pairGuard(false)!=='healthy'){
+      if(performance.now()>apiDeadline)fail();
+      await sleep(2000);
+     }
+     await pairGuard(true);
+     // Fixed signed API image program, no arbitrary shell or secret argv.
+     const proofRaw=await run(['container','exec','--user','1000:1000',result.api.containerId,'node','/app/scripts/probe-fresh-api-runtime.mjs',started.ip],{},30000);
+     rejectDuplicateJsonKeys(proofRaw);
+     if(!verifyFreshApiProbeReceipt(JSON.parse(proofRaw)))fail();
+     await pairGuard(true);await verifyImages();
+     if(JSON.stringify(await inspectBoundOfflineRuntime(p.release))!==JSON.stringify(bound)||JSON.stringify(await admitSignedFreshMigrations(migrationPins))!==JSON.stringify(migrations))fail();
+     await pairGuard(true);
+     apiReady=true;
+    }
+    return Object.freeze({schema_version:1,project:p.project,release_sha256:p.release.trustedManifestSha256,configuration_sha256:p.configurationSha256,network_id:p.networkId,containers:result,database_started:true,database_initialized:true,signed_migrations_verified:true,migrations_applied:schema.migrations_applied,installation_id:schema.installation_id,identity_sha256:schema.identity_sha256,database_binding_verified:schema.database_binding_verified,bootstrap_ready:schema.bootstrap_ready,clean_bootstrap_reobserved:true,api_started:apiReady,api_runtime_identity_verified:apiReady,api_private_database_verified:apiReady,api_http_readiness_verified:apiReady,ingress_started:false,activation_blocked:true,tls_verified:false,installation_authorized:false,production_accepted:false});
    }catch{fail()}finally{if(conn)try{conn.destroy()}catch{}}
   }
   return {schema_version:1,project:p.project,release_sha256:p.release.trustedManifestSha256,configuration_sha256:p.configurationSha256,network_id:p.networkId,containers:result,containers_created:!observeOnly,stopped_candidates_verified:true,signed_migrations_verified:!!migrations,activation_blocked:true,services_started:false,database_initialized:false,volume_contents_verified:!!storage,api_volume_ownership_verified:!!storage,identity_mount_verified:!!storage,tls_verified:false,installation_authorized:false,production_accepted:false};

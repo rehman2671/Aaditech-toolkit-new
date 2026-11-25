@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
-  "batch": "MASS-29",
+  "batch": "MASS-30",
   "date": "2026-11-26",
   "target": "20 implementation prompts planning target, 50–100 actual development tasks per batch aspirational; count only delivered functional work, not test cases",
-  "base_commit": "dfbaebc513f69f8d8e94230cb6f01b97bb3f6857",
+  "base_commit": "b8ad6af77ccbf467e404e80f0dd1944a179a8889",
   "source_of_truth": [
     "docs/product/DELIVERY-TRACKER.json",
     "docs/product/TROUBLESHOOTING-WORK-REGISTER.json",
@@ -4361,7 +4361,38 @@
       ],
       "regression": [
         "29 session input cases; actual MySQL admission rerun required"
-      ]
+      ],
+      "ci_evidence": {
+        "head": "b8ad6af77ccbf467e404e80f0dd1944a179a8889",
+        "run": 45713103367,
+        "jobs": [
+          {
+            "id": 139552236446,
+            "name": "Offline Docker load compatibility (disposable runner)",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 139552236829,
+            "name": "PowerShell validation",
+            "status": "in_progress",
+            "conclusion": null
+          },
+          {
+            "id": 139552236907,
+            "name": "Node.js Unit & Integration Tests (Vitest + MySQL 8)",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 139552808679,
+            "name": "API test suite (Node.js vs MySQL 8)",
+            "status": "in_progress",
+            "conclusion": null
+          }
+        ],
+        "scope": "Exact-head CI; actual disposable database read-only admission and marker/history drift refusal passed; no signed end-to-end activation or production acceptance"
+      }
     },
     {
       "id": "MASS-29-02",
@@ -4379,7 +4410,38 @@
       ],
       "regression": [
         "Unit history/binding refusals; actual MySQL runtime history component rehearsal; signed API container start pending"
-      ]
+      ],
+      "ci_evidence": {
+        "head": "b8ad6af77ccbf467e404e80f0dd1944a179a8889",
+        "run": 45713103367,
+        "jobs": [
+          {
+            "id": 139552236446,
+            "name": "Offline Docker load compatibility (disposable runner)",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 139552236829,
+            "name": "PowerShell validation",
+            "status": "in_progress",
+            "conclusion": null
+          },
+          {
+            "id": 139552236907,
+            "name": "Node.js Unit & Integration Tests (Vitest + MySQL 8)",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 139552808679,
+            "name": "API test suite (Node.js vs MySQL 8)",
+            "status": "in_progress",
+            "conclusion": null
+          }
+        ],
+        "scope": "Exact-head CI; actual disposable database read-only admission and marker/history drift refusal passed; no signed end-to-end activation or production acceptance"
+      }
     },
     {
       "id": "MASS-29-03",
@@ -4395,6 +4457,90 @@
       ],
       "regression": [
         "Verified session release, failed acquisition and wrong identity discard; full API runtime CI pending"
+      ],
+      "ci_evidence": {
+        "head": "b8ad6af77ccbf467e404e80f0dd1944a179a8889",
+        "run": 45713103367,
+        "jobs": [
+          {
+            "id": 139552236446,
+            "name": "Offline Docker load compatibility (disposable runner)",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 139552236829,
+            "name": "PowerShell validation",
+            "status": "in_progress",
+            "conclusion": null
+          },
+          {
+            "id": 139552236907,
+            "name": "Node.js Unit & Integration Tests (Vitest + MySQL 8)",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 139552808679,
+            "name": "API test suite (Node.js vs MySQL 8)",
+            "status": "in_progress",
+            "conclusion": null
+          }
+        ],
+        "scope": "Exact-head CI; actual disposable database read-only admission and marker/history drift refusal passed; no signed end-to-end activation or production acceptance"
+      }
+    },
+    {
+      "id": "MASS-30-01",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Explicit fresh database/API startup under original setup lock, exact private pair and stable process custody",
+      "dependencies": [
+        "MASS-29-01",
+        "MASS-29-02",
+        "MASS-28-02"
+      ],
+      "paths": [
+        "scripts/create-stopped-compose-candidates.mjs",
+        "tests/unit/create-stopped-compose-candidates.test.js",
+        "scripts/initialize-stopped-candidate-database-and-api-cli.mjs"
+      ],
+      "regression": [
+        "Pair admission and explicit policy unit cases; actual signed combined activation pending"
+      ]
+    },
+    {
+      "id": "MASS-30-02",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Pinned populated API volumes and unchanged read-only installation identity while Caddy remains stopped",
+      "dependencies": [
+        "MASS-24-01",
+        "MASS-30-01"
+      ],
+      "paths": [
+        "scripts/create-stopped-compose-candidates.mjs",
+        "scripts/fresh-runtime-storage.mjs"
+      ],
+      "regression": [
+        "Existing empty-volume tests; real rootful combined activation volume continuity pending"
+      ]
+    },
+    {
+      "id": "MASS-30-03",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Fixed non-root in-image API runtime probe for private DB, identity, full migration history, HTTP health and clean setup",
+      "dependencies": [
+        "MASS-29-02",
+        "MASS-29-03",
+        "MASS-30-01"
+      ],
+      "paths": [
+        "scripts/create-stopped-compose-candidates.mjs",
+        "scripts/probe-fresh-api-runtime.mjs",
+        "scripts/initialize-stopped-candidate-database-and-api-cli.mjs",
+        "tests/unit/create-stopped-compose-candidates.test.js"
+      ],
+      "regression": [
+        "Exact proof negative unit cases; actual rebuilt API image execution pending"
       ]
     }
   ],
@@ -4925,6 +5071,50 @@
         "docs/product/FRESH-VOLUME-OWNERSHIP-AND-IDENTITY-MOUNT.md",
         "bound-runtime-schema.js",
         "tests/unit/bound-runtime-schema.test.js"
+      ],
+      "exact_head_ci": {
+        "head": "b8ad6af77ccbf467e404e80f0dd1944a179a8889",
+        "run": 45713103367,
+        "jobs": [
+          {
+            "id": 139552236446,
+            "name": "Offline Docker load compatibility (disposable runner)",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 139552236829,
+            "name": "PowerShell validation",
+            "status": "in_progress",
+            "conclusion": null
+          },
+          {
+            "id": 139552236907,
+            "name": "Node.js Unit & Integration Tests (Vitest + MySQL 8)",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 139552808679,
+            "name": "API test suite (Node.js vs MySQL 8)",
+            "status": "in_progress",
+            "conclusion": null
+          }
+        ],
+        "scope": "Exact-head CI; actual disposable database read-only admission and marker/history drift refusal passed; no signed end-to-end activation or production acceptance"
+      }
+    },
+    {
+      "id": "MASS-30",
+      "base_commit": "b8ad6af77ccbf467e404e80f0dd1944a179a8889",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "evidence": [
+        "scripts/create-stopped-compose-candidates.mjs",
+        "scripts/fresh-runtime-storage.mjs",
+        "tests/unit/create-stopped-compose-candidates.test.js",
+        "docs/product/FRESH-VOLUME-OWNERSHIP-AND-IDENTITY-MOUNT.md",
+        "scripts/probe-fresh-api-runtime.mjs",
+        "scripts/initialize-stopped-candidate-database-and-api-cli.mjs"
       ]
     }
   ]

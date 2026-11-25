@@ -83,10 +83,16 @@ async function sourceIdentity(storage){
  await inspectLocalInstallationIdentity(storage.identity);
  return readIdentity(join(storage.identity.directoryPath,file),0,null,storage.identity);
 }
-export async function checkOrPrepareFreshRuntimeStorage({storage,volumes,inspect,continuity,prepare,databaseVolumeIdentity}){
+export async function checkOrPrepareFreshRuntimeStorage({storage,volumes,inspect,continuity,prepare,databaseVolumeIdentity,apiVolumeIdentities}){
  if(process.platform!=='linux'||process.geteuid?.()!==0||typeof inspect!=='function'||typeof continuity!=='function'||typeof prepare!=='boolean')fail();
  if(databaseVolumeIdentity&&(prepare||!exact(databaseVolumeIdentity,['path','dev','ino'])||typeof databaseVolumeIdentity.path!=='string'||!Number.isSafeInteger(databaseVolumeIdentity.dev)||!Number.isSafeInteger(databaseVolumeIdentity.ino)))fail();
+ if(apiVolumeIdentities&&(prepare||!databaseVolumeIdentity||!Array.isArray(apiVolumeIdentities)||apiVolumeIdentities.length!==2||apiVolumeIdentities.some(x=>!exact(x,['path','dev','ino'])||typeof x.path!=='string'||!Number.isSafeInteger(x.dev)||!Number.isSafeInteger(x.ino))||new Set(apiVolumeIdentities.map(x=>x.path)).size!==2))fail();
  async function observeVolume(path,api,prepared,isDatabase){
+  if(api&&apiVolumeIdentities){
+   const pin=apiVolumeIdentities.find(x=>x.path===path);if(!pin)fail();
+   await checkRootPath(path);const st=await directory(path,uid,gid,0o700);
+   if(st.dev!==pin.dev||st.ino!==pin.ino)fail();return st;
+  }
   if(!isDatabase||!databaseVolumeIdentity)return emptyVolume(path,api,prepared);
   // The pinned database alone may become populated and change owner after
   // its explicitly admitted first start. It must remain the same directory.
@@ -129,5 +135,5 @@ export async function checkOrPrepareFreshRuntimeStorage({storage,volumes,inspect
  }
  await guard();
  const db=records.find(x=>x.isDatabase);
- return Object.freeze({source:dest,target:'/run/aaditech-identity',volume_contents_verified:!databaseVolumeIdentity,api_volume_ownership_verified:true,identity_copy_verified:true,databaseVolumeIdentity:Object.freeze({path:db.path,dev:db.stat.dev,ino:db.stat.ino})});
+ return Object.freeze({source:dest,target:'/run/aaditech-identity',volume_contents_verified:!databaseVolumeIdentity,api_volume_ownership_verified:true,identity_copy_verified:true,databaseVolumeIdentity:Object.freeze({path:db.path,dev:db.stat.dev,ino:db.stat.ino}),apiVolumeIdentities:Object.freeze(records.filter(x=>x.api).map(x=>Object.freeze({path:x.path,dev:x.stat.dev,ino:x.stat.ino})))});
 }

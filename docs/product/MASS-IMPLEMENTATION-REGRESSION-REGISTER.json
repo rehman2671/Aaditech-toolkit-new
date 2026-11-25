@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
-  "batch": "MASS-19",
+  "batch": "MASS-20",
   "date": "2026-11-26",
   "target": "20 implementation prompts planning target, 50–100 actual development tasks per batch aspirational; count only delivered functional work, not test cases",
-  "base_commit": "3f5886689cb6b6ccd7ec1298d05a2e15f38952b4",
+  "base_commit": "a0b069747d0c73594413b31acf056cd01dada59f",
   "source_of_truth": [
     "docs/product/DELIVERY-TRACKER.json",
     "docs/product/TROUBLESHOOTING-WORK-REGISTER.json",
@@ -3576,6 +3576,47 @@
         "tests/unit/initialize-fresh-compose-environment.test.js",
         "Disposable fixture private file and resource provisioning CI pending"
       ]
+    },
+    {
+      "id": "MASS-20-01",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Apply verified compatible 74-entry dependency lock delta; record remaining moderate findings",
+      "dependencies": [
+        "MASS-19-01"
+      ],
+      "paths": [
+        "package-lock.json",
+        "docs/product/DEPENDENCY-ADVISORY-REGISTER-20261126.json",
+        "docs/product/STOPPED-CONTAINER-CANDIDATES-AND-DEPENDENCY-UPGRADE.md"
+      ],
+      "regression": [
+        "CI 45706188483 candidate audit zero high/critical; exact-head npm ci, full regression, production/full audit, PM2/platform binding review pending"
+      ]
+    },
+    {
+      "id": "MASS-20-02",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Actual stopped application candidate creation with signed image/configuration/resource pins and lifecycle activation denial",
+      "dependencies": [
+        "M1",
+        "DEC-001",
+        "MASS-18-02",
+        "MASS-19-02"
+      ],
+      "paths": [
+        "scripts/create-stopped-compose-candidates.mjs",
+        "scripts/create-stopped-compose-candidates-cli.mjs",
+        "tests/unit/create-stopped-compose-candidates.test.js",
+        "scripts/local-compose-service-lifecycle.mjs",
+        "tests/unit/local-compose-service-lifecycle.test.js",
+        "tests/fixtures/signed-offline-oci-fixture.mjs",
+        "tests/ci-offline-docker-load-rehearsal.mjs",
+        "docs/product/STOPPED-CONTAINER-CANDIDATES-AND-DEPENDENCY-UPGRADE.md"
+      ],
+      "regression": [
+        "tests/unit/create-stopped-compose-candidates.test.js",
+        "Disposable signed archive stopped creation and legacy start denial"
+      ]
     }
   ],
   "unresolved": [
@@ -3825,6 +3866,16 @@
         "docs/product/DEPENDENCY-ADVISORY-REGISTER-20261126.json",
         "tests/unit/dependency-upgrade-candidate.test.cjs",
         "tests/unit/initialize-fresh-compose-environment.test.js"
+      ]
+    },
+    {
+      "id": "MASS-20",
+      "base_commit": "a0b069747d0c73594413b31acf056cd01dada59f",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "evidence": [
+        "docs/product/STOPPED-CONTAINER-CANDIDATES-AND-DEPENDENCY-UPGRADE.md",
+        "docs/product/DEPENDENCY-ADVISORY-REGISTER-20261126.json",
+        "tests/unit/create-stopped-compose-candidates.test.js"
       ]
     }
   ]

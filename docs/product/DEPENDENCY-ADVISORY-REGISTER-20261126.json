@@ -29,10 +29,10 @@
       "via_packages": [],
       "locked_version": "2.0.7",
       "scope": "production",
-      "status": "OPEN",
+      "status": "CANDIDATE_AUDIT_NOT_REPORTED_PENDING_EXACT_HEAD_CI",
       "fix_available_reported": true,
-      "fix_version_verified": false,
-      "next": "Compatible candidate resolution, inspect lock delta, exact-head npm ci and full regression, verify production/full audit"
+      "fix_version_verified": true,
+      "next": "Verify installed graph and exact-head audit, no production closure yet"
     },
     {
       "package": "basic-ftp",
@@ -46,10 +46,10 @@
       "via_packages": [],
       "locked_version": "5.3.1",
       "scope": "production",
-      "status": "OPEN",
+      "status": "CANDIDATE_AUDIT_NOT_REPORTED_PENDING_EXACT_HEAD_CI",
       "fix_available_reported": true,
-      "fix_version_verified": false,
-      "next": "Compatible candidate resolution, inspect lock delta, exact-head npm ci and full regression, verify production/full audit"
+      "fix_version_verified": true,
+      "next": "Verify installed graph and exact-head audit, no production closure yet"
     },
     {
       "package": "body-parser",
@@ -61,10 +61,10 @@
       "via_packages": [],
       "locked_version": "1.20.6",
       "scope": "production",
-      "status": "OPEN",
+      "status": "CANDIDATE_AUDIT_NOT_REPORTED_PENDING_EXACT_HEAD_CI",
       "fix_available_reported": true,
-      "fix_version_verified": false,
-      "next": "Compatible candidate resolution, inspect lock delta, exact-head npm ci and full regression, verify production/full audit"
+      "fix_version_verified": true,
+      "next": "Verify installed graph and exact-head audit, no production closure yet"
     },
     {
       "package": "follow-redirects",
@@ -78,10 +78,10 @@
       "via_packages": [],
       "locked_version": "1.16.0",
       "scope": "production",
-      "status": "OPEN",
+      "status": "CANDIDATE_AUDIT_NOT_REPORTED_PENDING_EXACT_HEAD_CI",
       "fix_available_reported": true,
-      "fix_version_verified": false,
-      "next": "Compatible candidate resolution, inspect lock delta, exact-head npm ci and full regression, verify production/full audit"
+      "fix_version_verified": true,
+      "next": "Verify installed graph and exact-head audit, no production closure yet"
     },
     {
       "package": "get-uri",
@@ -93,10 +93,10 @@
       ],
       "locked_version": "6.0.5",
       "scope": "production",
-      "status": "OPEN",
+      "status": "CANDIDATE_AUDIT_NOT_REPORTED_PENDING_EXACT_HEAD_CI",
       "fix_available_reported": true,
-      "fix_version_verified": false,
-      "next": "Compatible candidate resolution, inspect lock delta, exact-head npm ci and full regression, verify production/full audit"
+      "fix_version_verified": true,
+      "next": "Verify installed graph and exact-head audit, no production closure yet"
     },
     {
       "package": "js-yaml",
@@ -108,10 +108,10 @@
       "via_packages": [],
       "locked_version": "4.3.1",
       "scope": "production",
-      "status": "OPEN",
+      "status": "CANDIDATE_AUDIT_NOT_REPORTED_PENDING_EXACT_HEAD_CI",
       "fix_available_reported": true,
-      "fix_version_verified": false,
-      "next": "Compatible candidate resolution, inspect lock delta, exact-head npm ci and full regression, verify production/full audit"
+      "fix_version_verified": true,
+      "next": "Verify installed graph and exact-head audit, no production closure yet"
     },
     {
       "package": "pac-proxy-agent",
@@ -123,10 +123,10 @@
       ],
       "locked_version": "7.2.0",
       "scope": "production",
-      "status": "OPEN",
+      "status": "CANDIDATE_AUDIT_NOT_REPORTED_PENDING_EXACT_HEAD_CI",
       "fix_available_reported": true,
-      "fix_version_verified": false,
-      "next": "Compatible candidate resolution, inspect lock delta, exact-head npm ci and full regression, verify production/full audit"
+      "fix_version_verified": true,
+      "next": "Verify installed graph and exact-head audit, no production closure yet"
     },
     {
       "package": "pm2",
@@ -139,10 +139,10 @@
       ],
       "locked_version": "7.0.4",
       "scope": "production",
-      "status": "OPEN",
+      "status": "CANDIDATE_AUDIT_NOT_REPORTED_PENDING_EXACT_HEAD_CI",
       "fix_available_reported": true,
-      "fix_version_verified": false,
-      "next": "Compatible candidate resolution, inspect lock delta, exact-head npm ci and full regression, verify production/full audit"
+      "fix_version_verified": true,
+      "next": "Verify installed graph and exact-head audit, no production closure yet"
     },
     {
       "package": "proxy-agent",
@@ -154,10 +154,10 @@
       ],
       "locked_version": "6.5.0",
       "scope": "production",
-      "status": "OPEN",
+      "status": "CANDIDATE_AUDIT_NOT_REPORTED_PENDING_EXACT_HEAD_CI",
       "fix_available_reported": true,
-      "fix_version_verified": false,
-      "next": "Compatible candidate resolution, inspect lock delta, exact-head npm ci and full regression, verify production/full audit"
+      "fix_version_verified": true,
+      "next": "Verify installed graph and exact-head audit, no production closure yet"
     },
     {
       "package": "zod",
@@ -169,10 +169,10 @@
       "via_packages": [],
       "locked_version": "4.6.5",
       "scope": "production",
-      "status": "OPEN",
+      "status": "CANDIDATE_AUDIT_NOT_REPORTED_PENDING_EXACT_HEAD_CI",
       "fix_available_reported": true,
-      "fix_version_verified": false,
-      "next": "Compatible candidate resolution, inspect lock delta, exact-head npm ci and full regression, verify production/full audit"
+      "fix_version_verified": true,
+      "next": "Verify installed graph and exact-head audit, no production closure yet"
     },
     {
       "package": "ip-address",
@@ -184,10 +184,10 @@
       "via_packages": [],
       "locked_version": "10.7.2",
       "scope": "production",
-      "status": "OPEN",
+      "status": "CANDIDATE_AUDIT_NOT_REPORTED_PENDING_EXACT_HEAD_CI",
       "fix_available_reported": true,
-      "fix_version_verified": false,
-      "next": "Compatible candidate resolution, inspect lock delta, exact-head npm ci and full regression, verify production/full audit"
+      "fix_version_verified": true,
+      "next": "Verify installed graph and exact-head audit, no production closure yet"
     },
     {
       "package": "qs",
@@ -201,10 +201,10 @@
       "via_packages": [],
       "locked_version": "6.15.3",
       "scope": "production",
-      "status": "OPEN",
+      "status": "OPEN_CANDIDATE_AUDIT",
       "fix_available_reported": true,
       "fix_version_verified": false,
-      "next": "Compatible candidate resolution, inspect lock delta, exact-head npm ci and full regression, verify production/full audit"
+      "next": "Resolve remaining compatible moderate advisory and verify exact head"
     },
     {
       "package": "source-map-js",
@@ -216,10 +216,10 @@
       "via_packages": [],
       "locked_version": "1.2.1",
       "scope": "development",
-      "status": "OPEN",
+      "status": "CANDIDATE_AUDIT_NOT_REPORTED_PENDING_EXACT_HEAD_CI",
       "fix_available_reported": true,
-      "fix_version_verified": false,
-      "next": "Compatible candidate resolution, inspect lock delta, exact-head npm ci and full regression, verify production/full audit"
+      "fix_version_verified": true,
+      "next": "Verify installed graph and exact-head audit, no production closure yet"
     },
     {
       "package": "vite",
@@ -236,10 +236,10 @@
       "via_packages": [],
       "locked_version": "8.3.0",
       "scope": "development",
-      "status": "OPEN",
+      "status": "CANDIDATE_AUDIT_NOT_REPORTED_PENDING_EXACT_HEAD_CI",
       "fix_available_reported": true,
-      "fix_version_verified": false,
-      "next": "Compatible candidate resolution, inspect lock delta, exact-head npm ci and full regression, verify production/full audit"
+      "fix_version_verified": true,
+      "next": "Verify installed graph and exact-head audit, no production closure yet"
     },
     {
       "package": "@vitest/coverage-v8",
@@ -251,10 +251,10 @@
       ],
       "locked_version": "5.0.1",
       "scope": "development",
-      "status": "OPEN",
+      "status": "OPEN_CANDIDATE_AUDIT",
       "fix_available_reported": true,
       "fix_version_verified": false,
-      "next": "Compatible candidate resolution, inspect lock delta, exact-head npm ci and full regression, verify production/full audit"
+      "next": "Resolve remaining compatible moderate advisory and verify exact head"
     },
     {
       "package": "@vitest/mocker",
@@ -267,10 +267,10 @@
       "via_packages": [],
       "locked_version": "5.0.1",
       "scope": "development",
-      "status": "OPEN",
+      "status": "OPEN_CANDIDATE_AUDIT",
       "fix_available_reported": true,
       "fix_version_verified": false,
-      "next": "Compatible candidate resolution, inspect lock delta, exact-head npm ci and full regression, verify production/full audit"
+      "next": "Resolve remaining compatible moderate advisory and verify exact head"
     },
     {
       "package": "vitest",
@@ -283,11 +283,144 @@
       ],
       "locked_version": "5.0.1",
       "scope": "development",
-      "status": "OPEN",
+      "status": "OPEN_CANDIDATE_AUDIT",
       "fix_available_reported": true,
       "fix_version_verified": false,
-      "next": "Compatible candidate resolution, inspect lock delta, exact-head npm ci and full regression, verify production/full audit"
+      "next": "Resolve remaining compatible moderate advisory and verify exact head"
+    },
+    {
+      "package": "express",
+      "severity": "moderate",
+      "direct": true,
+      "advisory_ids": [],
+      "via_packages": [
+        "qs"
+      ],
+      "scope": "production",
+      "locked_version": "4.22.2",
+      "status": "OPEN_CANDIDATE_AUDIT",
+      "fix_version_verified": false,
+      "next": "Resolve remaining moderate advisory and verify exact head"
     }
   ],
-  "release_authorized": false
+  "release_authorized": false,
+  "candidate": {
+    "source_head": "a0b069747d0c73594413b31acf056cd01dada59f",
+    "run_id": 45706188483,
+    "job_id": 139528656026,
+    "canonical_sha256": "76cc1245d3789ce8750e041bf87c619d53d108d92c7a91717242a4f4fec8a190",
+    "applied_lock_sha256": "a75710e84af4f0e610af5cf3e70a8c325f612abccd2ce05f582c2270892e0548",
+    "changed_entries": 74,
+    "added": 7,
+    "removed": 35,
+    "updated": 32,
+    "production": {
+      "status": "VERIFIED_REPORT",
+      "counts": {
+        "info": 0,
+        "low": 0,
+        "moderate": 2,
+        "high": 0,
+        "critical": 0,
+        "total": 2
+      },
+      "packages": [
+        {
+          "package": "express",
+          "severity": "moderate",
+          "direct": true,
+          "advisory_ids": [],
+          "via_packages": [
+            "qs"
+          ],
+          "fix_available": true,
+          "fix_candidate": null
+        },
+        {
+          "package": "qs",
+          "severity": "moderate",
+          "direct": false,
+          "advisory_ids": [
+            1158507,
+            1243687
+          ],
+          "via_packages": [],
+          "fix_available": true,
+          "fix_candidate": null
+        }
+      ]
+    },
+    "all": {
+      "status": "VERIFIED_REPORT",
+      "counts": {
+        "info": 0,
+        "low": 0,
+        "moderate": 5,
+        "high": 0,
+        "critical": 0,
+        "total": 5
+      },
+      "packages": [
+        {
+          "package": "@vitest/coverage-v8",
+          "severity": "moderate",
+          "direct": true,
+          "advisory_ids": [],
+          "via_packages": [
+            "vitest"
+          ],
+          "fix_available": true,
+          "fix_candidate": null
+        },
+        {
+          "package": "@vitest/mocker",
+          "severity": "moderate",
+          "direct": false,
+          "advisory_ids": [
+            1242766,
+            1242768
+          ],
+          "via_packages": [],
+          "fix_available": true,
+          "fix_candidate": null
+        },
+        {
+          "package": "express",
+          "severity": "moderate",
+          "direct": true,
+          "advisory_ids": [],
+          "via_packages": [
+            "qs"
+          ],
+          "fix_available": true,
+          "fix_candidate": null
+        },
+        {
+          "package": "qs",
+          "severity": "moderate",
+          "direct": false,
+          "advisory_ids": [
+            1158507,
+            1243687
+          ],
+          "via_packages": [],
+          "fix_available": true,
+          "fix_candidate": null
+        },
+        {
+          "package": "vitest",
+          "severity": "moderate",
+          "direct": true,
+          "advisory_ids": [],
+          "via_packages": [
+            "@vitest/coverage-v8",
+            "@vitest/mocker"
+          ],
+          "fix_available": true,
+          "fix_candidate": null
+        }
+      ]
+    },
+    "exact_head_verification_pending": true
+  }
 }

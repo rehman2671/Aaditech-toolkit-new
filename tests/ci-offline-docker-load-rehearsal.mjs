@@ -4,6 +4,8 @@
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
 import {mkdir,chmod,readFile,lstat} from 'node:fs/promises';
+import {createStoppedComposeCandidates} from '../scripts/create-stopped-compose-candidates.mjs';
+import {operateExistingComposeServices} from '../scripts/local-compose-service-lifecycle.mjs';
 import {initializeFreshComposeEnvironment,validateFreshEnvironmentText} from '../scripts/initialize-fresh-compose-environment.mjs';
 import {randomUUID} from 'node:crypto';
 import {provisionFreshComposeResources,expectedFreshResources} from '../scripts/provision-fresh-compose-resources.mjs';
@@ -77,16 +79,24 @@ await staged(async({input,g})=>{
   const resourcePolicy={confirmation:'PROVISION_EMPTY_COMPOSE_RESOURCES_ONLY_EXCLUSIVE_DAEMON_CUSTODY',project,lockRoot:resourceLock,release:input};
   const inventory=()=>inspectFreshComposeResources({confirmation:'INSPECT_FRESH_COMPOSE_RESOURCE_COLLISIONS_ONLY',project});
   assert.equal((await inventory()).resource_collision_free_observed,true);
-  let receipt;
+  let receipt,created;
   try{
    receipt=await provisionFreshComposeResources(resourcePolicy);
    assert.equal(receipt.resources_provisioned,true);assert.equal(receipt.containers_created,false);assert.deepEqual((await inventory()).collision_counts,{containers:0,networks:1,volumes:5});
    await assert.rejects(()=>provisionFreshComposeResources({...resourcePolicy,lockRoot:repeatLock}));
    assert.deepEqual((await inventory()).collision_counts,{containers:0,networks:1,volumes:5});
+   const createInput={...configInput,confirmation:'CREATE_STOPPED_COMPOSE_CANDIDATES_ONLY_EXCLUSIVE_DAEMON_CUSTODY',configurationSha256:config.configuration_sha256,networkId:receipt.network_id};
+   created=await createStoppedComposeCandidates(createInput);
+   assert.equal(created.activation_blocked,true);assert.equal(created.services_started,false);assert.deepEqual((await inventory()).collision_counts,{containers:3,networks:1,volumes:5});
+   for(const c of Object.values(created.containers))assert.equal(docker(['container','inspect','--format','{{.State.Status}}',c.containerId]).trim(),'created');
+   const blockedLock=join(dirname(destinationParent),'activation-blocked-lock');await mkdir(blockedLock,{mode:0o700});
+   await assert.rejects(()=>operateExistingComposeServices({confirmation:'START_PINNED_EXISTING_COMPOSE_CONTAINERS_ONLY',operation:'start',project,lockRoot:blockedLock,containers:created.containers}));
+   for(const c of Object.values(created.containers))assert.equal(docker(['container','inspect','--format','{{.State.Status}}',c.containerId]).trim(),'created');
   }finally{
    // Disposable runner only, names generated here and absence proved above.
    // On uncertain provisioning retain resources for runner teardown; never
    // remove resources in production adapter or guess IDs after failure.
+   if(created)for(const c of Object.values(created.containers))docker(['container','rm',c.containerId]);
    if(receipt){for(const name of receipt.volume_names)docker(['volume','rm',name]);docker(['network','rm',receipt.network_id]);assert.equal((await inventory()).resource_collision_free_observed,true)}
   }
  }finally{

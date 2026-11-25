@@ -18,3 +18,5 @@ it.each([[stopped,false,'ALL_EXISTING_CONTAINERS_STOPPED'],[running,false,'ALL_E
 it('rejects invalid recovery projections',()=>{for(const rows of [[...running].reverse(),running.slice(0,2),[{...running[0],health:'NOT_CONFIGURED'},...running.slice(1)],[{...stopped[0],health:'healthy'},...stopped.slice(1)]])expect(()=>classifyLifecycleRecovery(rows,false)).toThrow()});
 
 it('rejects sparse lifecycle projection',()=>expect(()=>classifyLifecycleRecovery(Array(3),false)).toThrow());
+
+it('legacy lifecycle cannot activate or classify activation-blocked candidates',()=>{for(const value of ['true','false'])expect(()=>classifyExistingContainer({...row,Config:{...row.Config,Labels:{...row.Config.Labels,'org.aaditech.activation-blocked':value}}},policy,'db')).toThrow()});

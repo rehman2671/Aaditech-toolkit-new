@@ -2336,6 +2336,25 @@
         "tests/ci-offline-docker-load-rehearsal.mjs",
         "tests/unit/prepared-docker-archive-admission.test.js"
       ]
+    },
+    {
+      "id": "MASS-01-04",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Preserve release gating on independent offline Docker compatibility; recognize new guide evidence paths in existing tracker regression",
+      "dependencies": [
+        "MASS-01-01",
+        "MASS-01-03"
+      ],
+      "paths": [
+        ".github/workflows/ci.yml",
+        "scripts/check-phase-n69-ci-release-gates.cjs",
+        "tests/unit/stage69-ci-release-gates.test.cjs",
+        "tests/unit/troubleshooting-work-register.test.js"
+      ],
+      "regression": [
+        "npm run lint",
+        "npm run test:coverage"
+      ]
     }
   ],
   "unresolved": [
@@ -2357,7 +2376,7 @@
     },
     {
       "id": "BLOCK-EMPLOYEE",
-      "next": "DB-bound trusted installation ID, authenticated binding/report routes, consent, physical assignment and outcome lifecycle"
+      "next": "Implement trusted local + persistent database identity binding; actual authenticated employee binding/report APIs and UI, consent, physical assignment and outcome lifecycle remain pending. No code from uncommitted draft counted."
     }
   ],
   "regression": {

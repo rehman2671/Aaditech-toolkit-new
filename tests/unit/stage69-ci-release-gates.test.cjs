@@ -17,9 +17,9 @@ test('actual locked CI and security-signing dependencies pass', () => {
   assert.equal(auditN69CIWorkflow(source), true);
 });
 deny('removed Windows validation prerequisite cannot sign an MSI', s =>
-  s.replace('needs: [powershell-validation, node-tests, api-tests]', 'needs: [node-tests, api-tests]'));
+  s.replace('needs: [powershell-validation, node-tests, api-tests, offline-docker-load-rehearsal]', 'needs: [node-tests, api-tests]'));
 deny('replaced Windows prerequisite with a different job cannot sign', s =>
-  s.replace('needs: [powershell-validation, node-tests, api-tests]', 'needs: [node-tests, api-tests, another-job]'));
+  s.replace('needs: [powershell-validation, node-tests, api-tests, offline-docker-load-rehearsal]', 'needs: [node-tests, api-tests, another-job]'));
 deny('PowerShell security job cannot become conditional', s =>
   s.replace('  powershell-validation:\n', "  powershell-validation:\n    if: github.event_name == 'push'\n"));
 deny('npm install fallback in Node unit tests is blocked', s =>

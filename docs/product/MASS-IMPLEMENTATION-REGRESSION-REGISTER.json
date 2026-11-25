@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
-  "batch": "MASS-18",
+  "batch": "MASS-19",
   "date": "2026-11-26",
   "target": "20 implementation prompts planning target, 50–100 actual development tasks per batch aspirational; count only delivered functional work, not test cases",
-  "base_commit": "a3a6f045e40eea35d8bf7972c44bf6de73c8cc4b",
+  "base_commit": "3f5886689cb6b6ccd7ec1298d05a2e15f38952b4",
   "source_of_truth": [
     "docs/product/DELIVERY-TRACKER.json",
     "docs/product/TROUBLESHOOTING-WORK-REGISTER.json",
@@ -3528,6 +3528,54 @@
         "tests/unit/provision-fresh-compose-resources.test.js",
         "Disposable signed archive resource creation/repeat denial CI pending"
       ]
+    },
+    {
+      "id": "MASS-19-01",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Correct Docker fixture shadowing and generate isolated compatible dependency upgrade candidate; retain exact verified findings",
+      "dependencies": [
+        "MASS-18-01",
+        "MASS-18-02"
+      ],
+      "paths": [
+        "tests/ci-offline-docker-load-rehearsal.mjs",
+        "scripts/prepare-dependency-upgrade-candidate.cjs",
+        "tests/unit/dependency-upgrade-candidate.test.cjs",
+        ".github/workflows/ci.yml",
+        "package.json",
+        "scripts/check-node-runtime-policy.cjs",
+        "docs/product/FRESH-ENVIRONMENT-AND-COMPATIBLE-DEPENDENCY-CANDIDATE.md",
+        "docs/product/DEPENDENCY-ADVISORY-REGISTER-20261126.json"
+      ],
+      "regression": [
+        "tests/unit/dependency-upgrade-candidate.test.cjs",
+        "MASS-18 CI 45705509399 failure retained; fresh exact-head candidate delta and re-audit required"
+      ]
+    },
+    {
+      "id": "MASS-19-02",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Signed-stage bound fresh private environment creation with independent random secrets and no overwrite",
+      "dependencies": [
+        "M1",
+        "DEC-001",
+        "MASS-17-02",
+        "MASS-18-02"
+      ],
+      "paths": [
+        "scripts/initialize-fresh-compose-environment.mjs",
+        "scripts/initialize-fresh-compose-environment-cli.mjs",
+        "tests/unit/initialize-fresh-compose-environment.test.js",
+        "tests/ci-offline-docker-load-rehearsal.mjs",
+        "scripts/prepare-runtime-configuration.mjs",
+        "scripts/prepare-runtime-configuration-cli.mjs",
+        "scripts/switch-runtime-configuration.mjs",
+        "docs/product/FRESH-ENVIRONMENT-AND-COMPATIBLE-DEPENDENCY-CANDIDATE.md"
+      ],
+      "regression": [
+        "tests/unit/initialize-fresh-compose-environment.test.js",
+        "Disposable fixture private file and resource provisioning CI pending"
+      ]
     }
   ],
   "unresolved": [
@@ -3766,6 +3814,17 @@
         "docs/product/FRESH-RESOURCE-PROVISIONING-AND-AUDIT-CONFIG-CORRECTION.md",
         "tests/unit/provision-fresh-compose-resources.test.js",
         "tests/unit/dependency-audit-policy.test.cjs"
+      ]
+    },
+    {
+      "id": "MASS-19",
+      "base_commit": "3f5886689cb6b6ccd7ec1298d05a2e15f38952b4",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "evidence": [
+        "docs/product/FRESH-ENVIRONMENT-AND-COMPATIBLE-DEPENDENCY-CANDIDATE.md",
+        "docs/product/DEPENDENCY-ADVISORY-REGISTER-20261126.json",
+        "tests/unit/dependency-upgrade-candidate.test.cjs",
+        "tests/unit/initialize-fresh-compose-environment.test.js"
       ]
     }
   ]

@@ -12,8 +12,9 @@ function check({pkg,lock,docker,version,workflow}){
  const steps=wf.jobs['node-tests'].steps;
  const report=steps.filter(s=>s.run==='node scripts/dependency-audit-policy.cjs --report');
  const release=steps.filter(s=>s.run==='node scripts/dependency-audit-policy.cjs --release');
+ const candidate=steps.filter(s=>s.run==='node scripts/prepare-dependency-upgrade-candidate.cjs');
  const tests=steps.findIndex(s=>s.run==='npm run test:coverage');
- if(report.length!==1||release.length!==1||tests<0||steps.indexOf(report[0])>=tests||steps.indexOf(release[0])<=tests||
+ if(candidate.length!==1||candidate[0].if!=="github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository"||candidate[0]['timeout-minutes']!==6||steps.indexOf(candidate[0])<=tests||candidate[0].env!==undefined||candidate[0].shell!==undefined||candidate[0]['working-directory']!==undefined||candidate[0]['continue-on-error']!==undefined||report.length!==1||release.length!==1||tests<0||steps.indexOf(report[0])>=tests||steps.indexOf(release[0])<=tests||
     report[0].if!==undefined||release[0].if!=="github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'"||
     [report[0],release[0]].some(s=>s['continue-on-error']!==undefined||s.env!==undefined||s.shell!==undefined||s['working-directory']!==undefined||s['timeout-minutes']!==3))fail();
  return true;

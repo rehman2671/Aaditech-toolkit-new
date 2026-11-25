@@ -1,0 +1,293 @@
+{
+  "schema_version": 1,
+  "source": {
+    "head": "3f5886689cb6b6ccd7ec1298d05a2e15f38952b4",
+    "run_id": 45705509399,
+    "job_id": 139526375070,
+    "lock_sha256": "4fb1339c5834ad3d54d74d97822c3cd350378f091fc0716aa18ceac0ab04207f"
+  },
+  "production": {
+    "critical": 1,
+    "high": 9,
+    "moderate": 2,
+    "total": 12
+  },
+  "full": {
+    "critical": 1,
+    "high": 11,
+    "moderate": 5,
+    "total": 17
+  },
+  "findings": [
+    {
+      "package": "proxy-addr",
+      "severity": "critical",
+      "direct": false,
+      "advisory_ids": [
+        1241210
+      ],
+      "via_packages": [],
+      "locked_version": "2.0.7",
+      "scope": "production",
+      "status": "OPEN",
+      "fix_available_reported": true,
+      "fix_version_verified": false,
+      "next": "Compatible candidate resolution, inspect lock delta, exact-head npm ci and full regression, verify production/full audit"
+    },
+    {
+      "package": "basic-ftp",
+      "severity": "high",
+      "direct": false,
+      "advisory_ids": [
+        1240853,
+        1246355,
+        1246367
+      ],
+      "via_packages": [],
+      "locked_version": "5.3.1",
+      "scope": "production",
+      "status": "OPEN",
+      "fix_available_reported": true,
+      "fix_version_verified": false,
+      "next": "Compatible candidate resolution, inspect lock delta, exact-head npm ci and full regression, verify production/full audit"
+    },
+    {
+      "package": "body-parser",
+      "severity": "high",
+      "direct": false,
+      "advisory_ids": [
+        1243073
+      ],
+      "via_packages": [],
+      "locked_version": "1.20.6",
+      "scope": "production",
+      "status": "OPEN",
+      "fix_available_reported": true,
+      "fix_version_verified": false,
+      "next": "Compatible candidate resolution, inspect lock delta, exact-head npm ci and full regression, verify production/full audit"
+    },
+    {
+      "package": "follow-redirects",
+      "severity": "high",
+      "direct": false,
+      "advisory_ids": [
+        1242604,
+        1242605,
+        1244003
+      ],
+      "via_packages": [],
+      "locked_version": "1.16.0",
+      "scope": "production",
+      "status": "OPEN",
+      "fix_available_reported": true,
+      "fix_version_verified": false,
+      "next": "Compatible candidate resolution, inspect lock delta, exact-head npm ci and full regression, verify production/full audit"
+    },
+    {
+      "package": "get-uri",
+      "severity": "high",
+      "direct": false,
+      "advisory_ids": [],
+      "via_packages": [
+        "basic-ftp"
+      ],
+      "locked_version": "6.0.5",
+      "scope": "production",
+      "status": "OPEN",
+      "fix_available_reported": true,
+      "fix_version_verified": false,
+      "next": "Compatible candidate resolution, inspect lock delta, exact-head npm ci and full regression, verify production/full audit"
+    },
+    {
+      "package": "js-yaml",
+      "severity": "high",
+      "direct": false,
+      "advisory_ids": [
+        1193727
+      ],
+      "via_packages": [],
+      "locked_version": "4.3.1",
+      "scope": "production",
+      "status": "OPEN",
+      "fix_available_reported": true,
+      "fix_version_verified": false,
+      "next": "Compatible candidate resolution, inspect lock delta, exact-head npm ci and full regression, verify production/full audit"
+    },
+    {
+      "package": "pac-proxy-agent",
+      "severity": "high",
+      "direct": false,
+      "advisory_ids": [],
+      "via_packages": [
+        "get-uri"
+      ],
+      "locked_version": "7.2.0",
+      "scope": "production",
+      "status": "OPEN",
+      "fix_available_reported": true,
+      "fix_version_verified": false,
+      "next": "Compatible candidate resolution, inspect lock delta, exact-head npm ci and full regression, verify production/full audit"
+    },
+    {
+      "package": "pm2",
+      "severity": "high",
+      "direct": true,
+      "advisory_ids": [],
+      "via_packages": [
+        "js-yaml",
+        "proxy-agent"
+      ],
+      "locked_version": "7.0.4",
+      "scope": "production",
+      "status": "OPEN",
+      "fix_available_reported": true,
+      "fix_version_verified": false,
+      "next": "Compatible candidate resolution, inspect lock delta, exact-head npm ci and full regression, verify production/full audit"
+    },
+    {
+      "package": "proxy-agent",
+      "severity": "high",
+      "direct": false,
+      "advisory_ids": [],
+      "via_packages": [
+        "pac-proxy-agent"
+      ],
+      "locked_version": "6.5.0",
+      "scope": "production",
+      "status": "OPEN",
+      "fix_available_reported": true,
+      "fix_version_verified": false,
+      "next": "Compatible candidate resolution, inspect lock delta, exact-head npm ci and full regression, verify production/full audit"
+    },
+    {
+      "package": "zod",
+      "severity": "high",
+      "direct": true,
+      "advisory_ids": [
+        1243066
+      ],
+      "via_packages": [],
+      "locked_version": "4.6.5",
+      "scope": "production",
+      "status": "OPEN",
+      "fix_available_reported": true,
+      "fix_version_verified": false,
+      "next": "Compatible candidate resolution, inspect lock delta, exact-head npm ci and full regression, verify production/full audit"
+    },
+    {
+      "package": "ip-address",
+      "severity": "moderate",
+      "direct": false,
+      "advisory_ids": [
+        1242883
+      ],
+      "via_packages": [],
+      "locked_version": "10.7.2",
+      "scope": "production",
+      "status": "OPEN",
+      "fix_available_reported": true,
+      "fix_version_verified": false,
+      "next": "Compatible candidate resolution, inspect lock delta, exact-head npm ci and full regression, verify production/full audit"
+    },
+    {
+      "package": "qs",
+      "severity": "moderate",
+      "direct": false,
+      "advisory_ids": [
+        1158506,
+        1158507,
+        1243687
+      ],
+      "via_packages": [],
+      "locked_version": "6.15.3",
+      "scope": "production",
+      "status": "OPEN",
+      "fix_available_reported": true,
+      "fix_version_verified": false,
+      "next": "Compatible candidate resolution, inspect lock delta, exact-head npm ci and full regression, verify production/full audit"
+    },
+    {
+      "package": "source-map-js",
+      "severity": "high",
+      "direct": false,
+      "advisory_ids": [
+        1241209
+      ],
+      "via_packages": [],
+      "locked_version": "1.2.1",
+      "scope": "development",
+      "status": "OPEN",
+      "fix_available_reported": true,
+      "fix_version_verified": false,
+      "next": "Compatible candidate resolution, inspect lock delta, exact-head npm ci and full regression, verify production/full audit"
+    },
+    {
+      "package": "vite",
+      "severity": "high",
+      "direct": false,
+      "advisory_ids": [
+        1242626,
+        1242655,
+        1242662,
+        1242728,
+        1242734,
+        1242737
+      ],
+      "via_packages": [],
+      "locked_version": "8.3.0",
+      "scope": "development",
+      "status": "OPEN",
+      "fix_available_reported": true,
+      "fix_version_verified": false,
+      "next": "Compatible candidate resolution, inspect lock delta, exact-head npm ci and full regression, verify production/full audit"
+    },
+    {
+      "package": "@vitest/coverage-v8",
+      "severity": "moderate",
+      "direct": true,
+      "advisory_ids": [],
+      "via_packages": [
+        "vitest"
+      ],
+      "locked_version": "5.0.1",
+      "scope": "development",
+      "status": "OPEN",
+      "fix_available_reported": true,
+      "fix_version_verified": false,
+      "next": "Compatible candidate resolution, inspect lock delta, exact-head npm ci and full regression, verify production/full audit"
+    },
+    {
+      "package": "@vitest/mocker",
+      "severity": "moderate",
+      "direct": false,
+      "advisory_ids": [
+        1242766,
+        1242768
+      ],
+      "via_packages": [],
+      "locked_version": "5.0.1",
+      "scope": "development",
+      "status": "OPEN",
+      "fix_available_reported": true,
+      "fix_version_verified": false,
+      "next": "Compatible candidate resolution, inspect lock delta, exact-head npm ci and full regression, verify production/full audit"
+    },
+    {
+      "package": "vitest",
+      "severity": "moderate",
+      "direct": true,
+      "advisory_ids": [],
+      "via_packages": [
+        "@vitest/coverage-v8",
+        "@vitest/mocker"
+      ],
+      "locked_version": "5.0.1",
+      "scope": "development",
+      "status": "OPEN",
+      "fix_available_reported": true,
+      "fix_version_verified": false,
+      "next": "Compatible candidate resolution, inspect lock delta, exact-head npm ci and full regression, verify production/full audit"
+    }
+  ],
+  "release_authorized": false
+}

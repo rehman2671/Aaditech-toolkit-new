@@ -445,6 +445,11 @@ jobs:
           VITEST: "true"
         run: npm run test:coverage
 
+      - name: Prepare compatible dependency upgrade candidate without modifying checkout
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        timeout-minutes: 6
+        run: node scripts/prepare-dependency-upgrade-candidate.cjs
+
       - name: Require verified production dependency audit before protected manual build
         if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
         timeout-minutes: 3

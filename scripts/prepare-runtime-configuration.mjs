@@ -50,8 +50,8 @@ export async function prepareRuntimeConfiguration(input){
  if(!keys.length||!own(input.changes,keys)||keys.some(k=>!['string','number'].includes(typeof input.changes[k])))fail();
  const changes=Object.freeze({...input.changes});
  const parent=dirname(activePath),candidate=join(parent,'.env.candidate');
+ if(parent===lockRoot)fail();
  return withLocalSetupLock({confirmation:'ACQUIRE_LOCAL_SETUP_LOCK_ONLY',lockRoot},async({assertHeld})=>{
-  if(parent===lockRoot)fail();
   const p=await lstat(parent);if(!p.isDirectory()||p.uid!==process.geteuid()||(p.mode&0o7777)!==0o700||await realpath(parent)!==parent)fail();
   const fd=await open(activePath,constants.O_RDONLY|constants.O_NOFOLLOW|constants.O_NONBLOCK);
   let bytes,st;

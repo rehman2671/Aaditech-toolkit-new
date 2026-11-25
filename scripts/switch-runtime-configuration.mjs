@@ -56,9 +56,9 @@ async function validateCandidate(old,next,profile,changes){
 }
 export async function switchRuntimeConfiguration(input){return switchFile(input,null)}
 export async function switchQuiescentComposeConfiguration(input){
- if(!own(input,['confirmation','configuration','containers','project'])||input.confirmation!=='SWITCH_PINNED_QUIESCENT_COMPOSE_FILE_ONLY'||input.configuration?.profile!=='compose')fail();
+ if(!own(input,['confirmation','configuration','containers','project'])||input.confirmation!=='SWITCH_PINNED_QUIESCENT_COMPOSE_FILE_ONLY')fail();
  const config=input.configuration;
- if(!own(config,['confirmation','operation','profile','activePath','lockRoot','originalSha256','candidateSha256','changes']))fail();
+ if(!own(config,['confirmation','operation','profile','activePath','lockRoot','originalSha256','candidateSha256','changes'])||config.profile!=='compose')fail();
  const policy=validateLifecyclePolicy({confirmation:'START_PINNED_EXISTING_COMPOSE_CONTAINERS_ONLY',operation:'start',lockRoot:config.lockRoot,project:input.project,containers:input.containers});
  const guard={confirmation:'VERIFY_PINNED_COMPOSE_QUIESCENCE_ONLY',lockRoot:policy.lockRoot,project:policy.project,containers:policy.containers};
  return switchFile(config,guard);

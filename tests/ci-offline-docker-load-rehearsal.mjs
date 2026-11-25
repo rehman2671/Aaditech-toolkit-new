@@ -3,7 +3,8 @@
 // Restricted to a disposable GitHub-hosted Linux x64 Actions runner.
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
-import {mkdir,chmod} from 'node:fs/promises';
+import {mkdir,chmod,readFile,lstat} from 'node:fs/promises';
+import {initializeFreshComposeEnvironment,validateFreshEnvironmentText} from '../scripts/initialize-fresh-compose-environment.mjs';
 import {randomUUID} from 'node:crypto';
 import {provisionFreshComposeResources,expectedFreshResources} from '../scripts/provision-fresh-compose-resources.mjs';
 import {inspectFreshComposeResources} from '../scripts/fresh-compose-resource-inventory.mjs';
@@ -67,14 +68,20 @@ await staged(async({input,g})=>{
   const project='at_res_'+randomUUID().replaceAll('-',''),resourceLock=join(dirname(destinationParent),'resource-lock'),repeatLock=join(dirname(destinationParent),'repeat-lock');
   await mkdir(resourceLock,{mode:0o700});await mkdir(repeatLock,{mode:0o700});
   const expected=expectedFreshResources(project,input.trustedManifestSha256);
-  const policy={confirmation:'PROVISION_EMPTY_COMPOSE_RESOURCES_ONLY_EXCLUSIVE_DAEMON_CUSTODY',project,lockRoot:resourceLock,release:input};
+  const configDirectory=join(dirname(destinationParent),'fresh-config');await mkdir(configDirectory,{mode:0o700});
+  const configInput={confirmation:'INITIALIZE_EMPTY_COMPOSE_ENVIRONMENT_ONLY_EXCLUSIVE_DAEMON_CUSTODY',project,lockRoot:resourceLock,configDirectory,serverHost:'fixture.example.com',release:input};
+  const config=await initializeFreshComposeEnvironment(configInput),configPath=join(configDirectory,'.env'),configBytes=await readFile(configPath,'utf8');
+  assert.equal(config.configuration_created,true);assert.equal(config.secret_count,9);assert.equal(config.installation_authorized,false);
+  assert.equal((await lstat(configPath)).mode&0o777,0o600);assert.equal(validateFreshEnvironmentText(configBytes,project,'fixture.example.com').configuration_sha256,config.configuration_sha256);
+  await assert.rejects(()=>initializeFreshComposeEnvironment(configInput));assert.equal(await readFile(configPath,'utf8'),configBytes);
+  const resourcePolicy={confirmation:'PROVISION_EMPTY_COMPOSE_RESOURCES_ONLY_EXCLUSIVE_DAEMON_CUSTODY',project,lockRoot:resourceLock,release:input};
   const inventory=()=>inspectFreshComposeResources({confirmation:'INSPECT_FRESH_COMPOSE_RESOURCE_COLLISIONS_ONLY',project});
   assert.equal((await inventory()).resource_collision_free_observed,true);
   let receipt;
   try{
-   receipt=await provisionFreshComposeResources(policy);
+   receipt=await provisionFreshComposeResources(resourcePolicy);
    assert.equal(receipt.resources_provisioned,true);assert.equal(receipt.containers_created,false);assert.deepEqual((await inventory()).collision_counts,{containers:0,networks:1,volumes:5});
-   await assert.rejects(()=>provisionFreshComposeResources({...policy,lockRoot:repeatLock}));
+   await assert.rejects(()=>provisionFreshComposeResources({...resourcePolicy,lockRoot:repeatLock}));
    assert.deepEqual((await inventory()).collision_counts,{containers:0,networks:1,volumes:5});
   }finally{
    // Disposable runner only, names generated here and absence proved above.

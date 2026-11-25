@@ -111,3 +111,13 @@ node scripts/local-diagnostic-cli.mjs bluetooth --radio rfkill0 --confirm-local-
 ```
 
 Select a known local rfkill index; do not scan or mutate radios. Kernel RF blocking does not establish controller power or service health. The existing private-directory custody CLI accepts these collector options with its separate explicit retention confirmation. No remote invocation or operational acceptance is implied.
+
+## Explicit offline release staging (2026-11-25)
+
+This operation **writes** a private local copy, unlike read-only preflight. Use an existing trusted Linux directory with mode 0700. Provide bounded JSON via stdin with exactly `destinationParent` and `bundle` (`root`, `manifest`, `signature`, `trustedManifestSha256`, `trustedPublicKeyPem`, `trustedSignerSpkiSha256`). All paths absolute, pins independently approved. Source and destination must be separate, trusted local storage.
+
+```sh
+node scripts/stage-offline-lan-bundle-cli.mjs --confirm-local-staging < staging-input.json
+```
+
+Successful output identifies a unique private staging directory, manifest digest and verified file count. 64 GiB reference cap and capacity check; no runtime import or execution. Ordinary failures clean the unique stage; crash remnants need operator reconciliation. Do not launch staged bytes on the basis of this receipt. No protection against hostile same-UID writers, no physical offline acceptance. Fresh CI required. Seven Windows read-only providers from #116 are also carried forward; both PowerShell versions passed 166 checks at that prior head, not this new head.

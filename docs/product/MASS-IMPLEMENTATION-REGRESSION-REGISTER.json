@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
-  "batch": "MASS-32",
+  "batch": "MASS-33",
   "date": "2026-11-26",
   "target": "20 implementation prompts planning target, 50–100 actual development tasks per batch aspirational; count only delivered functional work, not test cases",
-  "base_commit": "68cefe4c4307e54b6ba1053a55143324ede754c7",
+  "base_commit": "6670ed87aef5e25981e40b5682295431a3516cb6",
   "source_of_truth": [
     "docs/product/DELIVERY-TRACKER.json",
     "docs/product/TROUBLESHOOTING-WORK-REGISTER.json",
@@ -4710,17 +4710,29 @@
           {
             "id": 139554219199,
             "name": "PowerShell validation",
-            "status": "in_progress",
-            "conclusion": null
+            "status": "completed",
+            "conclusion": "cancelled"
           },
           {
             "id": 139554840442,
             "name": "API test suite (Node.js vs MySQL 8)",
-            "status": "in_progress",
-            "conclusion": null
+            "status": "completed",
+            "conclusion": "cancelled"
+          },
+          {
+            "id": 139555454481,
+            "name": "Phase O unsigned Windows MSI integration rehearsal",
+            "status": "completed",
+            "conclusion": "cancelled"
+          },
+          {
+            "id": 139555454607,
+            "name": "Build agent exe + MSI",
+            "status": "completed",
+            "conclusion": "cancelled"
           }
         ],
-        "scope": "Exact-head observation; no production or signed runtime acceptance"
+        "scope": "Exact-head CI observation; no production or signed end-to-end acceptance"
       }
     },
     {
@@ -4761,17 +4773,29 @@
           {
             "id": 139554219199,
             "name": "PowerShell validation",
-            "status": "in_progress",
-            "conclusion": null
+            "status": "completed",
+            "conclusion": "cancelled"
           },
           {
             "id": 139554840442,
             "name": "API test suite (Node.js vs MySQL 8)",
-            "status": "in_progress",
-            "conclusion": null
+            "status": "completed",
+            "conclusion": "cancelled"
+          },
+          {
+            "id": 139555454481,
+            "name": "Phase O unsigned Windows MSI integration rehearsal",
+            "status": "completed",
+            "conclusion": "cancelled"
+          },
+          {
+            "id": 139555454607,
+            "name": "Build agent exe + MSI",
+            "status": "completed",
+            "conclusion": "cancelled"
           }
         ],
-        "scope": "Exact-head observation; no production or signed runtime acceptance"
+        "scope": "Exact-head CI observation; no production or signed end-to-end acceptance"
       }
     },
     {
@@ -4813,17 +4837,29 @@
           {
             "id": 139554219199,
             "name": "PowerShell validation",
-            "status": "in_progress",
-            "conclusion": null
+            "status": "completed",
+            "conclusion": "cancelled"
           },
           {
             "id": 139554840442,
             "name": "API test suite (Node.js vs MySQL 8)",
-            "status": "in_progress",
-            "conclusion": null
+            "status": "completed",
+            "conclusion": "cancelled"
+          },
+          {
+            "id": 139555454481,
+            "name": "Phase O unsigned Windows MSI integration rehearsal",
+            "status": "completed",
+            "conclusion": "cancelled"
+          },
+          {
+            "id": 139555454607,
+            "name": "Build agent exe + MSI",
+            "status": "completed",
+            "conclusion": "cancelled"
           }
         ],
-        "scope": "Exact-head observation; no production or signed runtime acceptance"
+        "scope": "Exact-head CI observation; no production or signed end-to-end acceptance"
       }
     },
     {
@@ -4843,7 +4879,50 @@
       ],
       "regression": [
         "Actual OpenSSL command sequence tested in local disposable shell; complete generated PKI and loopback handshake Vitest pending CI"
-      ]
+      ],
+      "ci_evidence": {
+        "head": "6670ed87aef5e25981e40b5682295431a3516cb6",
+        "run": 45714009762,
+        "jobs": [
+          {
+            "id": 139555456863,
+            "name": "PowerShell validation",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 139555457312,
+            "name": "Offline Docker load compatibility (disposable runner)",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 139555457647,
+            "name": "Node.js Unit & Integration Tests (Vitest + MySQL 8)",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 139556094159,
+            "name": "API test suite (Node.js vs MySQL 8)",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 139557025141,
+            "name": "Build agent exe + MSI",
+            "status": "completed",
+            "conclusion": "skipped"
+          },
+          {
+            "id": 139557025162,
+            "name": "Phase O unsigned Windows MSI integration rehearsal",
+            "status": "completed",
+            "conclusion": "skipped"
+          }
+        ],
+        "scope": "Exact-head CI observation; no production or signed end-to-end acceptance"
+      }
     },
     {
       "id": "MASS-32-02",
@@ -4861,7 +4940,50 @@
       ],
       "regression": [
         "Exact canonical DNS name, no ACME/HTTP/admin, fixed upstream, no CA private key mount; actual Caddy validation pending"
-      ]
+      ],
+      "ci_evidence": {
+        "head": "6670ed87aef5e25981e40b5682295431a3516cb6",
+        "run": 45714009762,
+        "jobs": [
+          {
+            "id": 139555456863,
+            "name": "PowerShell validation",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 139555457312,
+            "name": "Offline Docker load compatibility (disposable runner)",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 139555457647,
+            "name": "Node.js Unit & Integration Tests (Vitest + MySQL 8)",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 139556094159,
+            "name": "API test suite (Node.js vs MySQL 8)",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 139557025141,
+            "name": "Build agent exe + MSI",
+            "status": "completed",
+            "conclusion": "skipped"
+          },
+          {
+            "id": 139557025162,
+            "name": "Phase O unsigned Windows MSI integration rehearsal",
+            "status": "completed",
+            "conclusion": "skipped"
+          }
+        ],
+        "scope": "Exact-head CI observation; no production or signed end-to-end acceptance"
+      }
     },
     {
       "id": "MASS-32-03",
@@ -4880,6 +5002,100 @@
       ],
       "regression": [
         "Invalid IP/hostname/path/pin, occupied material, symlink, permissions and TLS wrong hostname refusal; no live ingress or Windows trust"
+      ],
+      "ci_evidence": {
+        "head": "6670ed87aef5e25981e40b5682295431a3516cb6",
+        "run": 45714009762,
+        "jobs": [
+          {
+            "id": 139555456863,
+            "name": "PowerShell validation",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 139555457312,
+            "name": "Offline Docker load compatibility (disposable runner)",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 139555457647,
+            "name": "Node.js Unit & Integration Tests (Vitest + MySQL 8)",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 139556094159,
+            "name": "API test suite (Node.js vs MySQL 8)",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 139557025141,
+            "name": "Build agent exe + MSI",
+            "status": "completed",
+            "conclusion": "skipped"
+          },
+          {
+            "id": 139557025162,
+            "name": "Phase O unsigned Windows MSI integration rehearsal",
+            "status": "completed",
+            "conclusion": "skipped"
+          }
+        ],
+        "scope": "Exact-head CI observation; no production or signed end-to-end acceptance"
+      }
+    },
+    {
+      "id": "MASS-33-01",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Read-only private TLS runtime material admission with independent fingerprints and stable installation/lock custody",
+      "dependencies": [
+        "MASS-32-01",
+        "MASS-32-02"
+      ],
+      "paths": [
+        "scripts/provision-fresh-private-lan-tls.mjs",
+        "tests/unit/provision-fresh-private-lan-tls.test.js"
+      ],
+      "regression": [
+        "Generated material admission; root/leaf/config mismatch, extra file, mode and config drift refusal"
+      ]
+    },
+    {
+      "id": "MASS-33-02",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Pinned private HTTPS health/setup and blocked-route probe; fixed private Caddy process/mount and exact triple observation",
+      "dependencies": [
+        "MASS-30-01",
+        "MASS-32-02",
+        "MASS-33-01"
+      ],
+      "paths": [
+        "scripts/create-stopped-compose-candidates.mjs",
+        "scripts/probe-private-lan-https.mjs"
+      ],
+      "regression": [
+        "Actual Caddy TLS component rehearsal with wrong root/leaf/hostname denial; production startup orchestration pending"
+      ]
+    },
+    {
+      "id": "MASS-33-03",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Extend real disposable DB/API rehearsal with actual private Caddy and generated TLS material",
+      "dependencies": [
+        "MASS-31-03",
+        "MASS-33-02"
+      ],
+      "paths": [
+        "tests/ci-fresh-database-bridge-rehearsal.mjs",
+        "scripts/provision-fresh-private-lan-tls.mjs",
+        "scripts/create-stopped-compose-candidates.mjs",
+        "scripts/probe-private-lan-https.mjs"
+      ],
+      "regression": [
+        "Actual real Caddy source component proof and scoped cleanup pending exact-head CI; no host ports or signed image acceptance"
       ]
     }
   ],
@@ -5530,17 +5746,29 @@
           {
             "id": 139554219199,
             "name": "PowerShell validation",
-            "status": "in_progress",
-            "conclusion": null
+            "status": "completed",
+            "conclusion": "cancelled"
           },
           {
             "id": 139554840442,
             "name": "API test suite (Node.js vs MySQL 8)",
-            "status": "in_progress",
-            "conclusion": null
+            "status": "completed",
+            "conclusion": "cancelled"
+          },
+          {
+            "id": 139555454481,
+            "name": "Phase O unsigned Windows MSI integration rehearsal",
+            "status": "completed",
+            "conclusion": "cancelled"
+          },
+          {
+            "id": 139555454607,
+            "name": "Build agent exe + MSI",
+            "status": "completed",
+            "conclusion": "cancelled"
           }
         ],
-        "scope": "Exact-head observation; no production or signed runtime acceptance"
+        "scope": "Exact-head CI observation; no production or signed end-to-end acceptance"
       }
     },
     {
@@ -5553,6 +5781,63 @@
         "tests/unit/provision-fresh-private-lan-tls.test.js",
         "Enterprise/deploy/PRIVATE-LAN-TLS-PREFLIGHT.md",
         "docs/product/FRESH-VOLUME-OWNERSHIP-AND-IDENTITY-MOUNT.md"
+      ],
+      "exact_head_ci": {
+        "head": "6670ed87aef5e25981e40b5682295431a3516cb6",
+        "run": 45714009762,
+        "jobs": [
+          {
+            "id": 139555456863,
+            "name": "PowerShell validation",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 139555457312,
+            "name": "Offline Docker load compatibility (disposable runner)",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 139555457647,
+            "name": "Node.js Unit & Integration Tests (Vitest + MySQL 8)",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 139556094159,
+            "name": "API test suite (Node.js vs MySQL 8)",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 139557025141,
+            "name": "Build agent exe + MSI",
+            "status": "completed",
+            "conclusion": "skipped"
+          },
+          {
+            "id": 139557025162,
+            "name": "Phase O unsigned Windows MSI integration rehearsal",
+            "status": "completed",
+            "conclusion": "skipped"
+          }
+        ],
+        "scope": "Exact-head CI observation; no production or signed end-to-end acceptance"
+      }
+    },
+    {
+      "id": "MASS-33",
+      "base_commit": "6670ed87aef5e25981e40b5682295431a3516cb6",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "evidence": [
+        "scripts/provision-fresh-private-lan-tls.mjs",
+        "scripts/create-stopped-compose-candidates.mjs",
+        "tests/ci-fresh-database-bridge-rehearsal.mjs",
+        "tests/unit/provision-fresh-private-lan-tls.test.js",
+        "Enterprise/deploy/PRIVATE-LAN-TLS-PREFLIGHT.md",
+        "docs/product/FRESH-VOLUME-OWNERSHIP-AND-IDENTITY-MOUNT.md",
+        "scripts/probe-private-lan-https.mjs"
       ]
     }
   ]

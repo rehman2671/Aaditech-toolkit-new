@@ -8,7 +8,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {setTimeout as sleep} from 'node:timers/promises';
-import {candidateLabels,candidateProcessSpec,freshDatabaseHealthCommand,freshApiHealthCommand,verifyStoppedCandidate,verifyRunningFreshDatabase,verifyRunningFreshPair,verifyFreshApiProbeReceipt,deriveCandidateRoleEnvironment,openPinnedFreshDatabaseConnection} from '../scripts/create-stopped-compose-candidates.mjs';
+import {candidateLabels,candidateProcessSpec,freshDatabaseHealthCommand,freshApiHealthCommand,verifyStoppedCandidate,verifyRunningFreshDatabase,verifyRunningFreshPair,verifyRunningFreshTriple,privateCaddyCommand,privateCaddyProcessSpec,verifyFreshApiProbeReceipt,deriveCandidateRoleEnvironment,openPinnedFreshDatabaseConnection} from '../scripts/create-stopped-compose-candidates.mjs';
 import {expectedFreshResources} from '../scripts/provision-fresh-compose-resources.mjs';
 import {checkOrPrepareFreshRuntimeStorage,runtimeIdentityEnvironment} from '../scripts/fresh-runtime-storage.mjs';
 import {initializeFreshMySqlSchema,verifyInitializedFreshMySqlSchema} from '../scripts/initialize-fresh-mysql-schema.mjs';
@@ -16,6 +16,8 @@ import {initializeLocalInstallationIdentity} from '../scripts/installation-ident
 import {withLocalSetupLock} from '../scripts/local-setup-lock.mjs';
 import {verifyBoundRuntimeHistory} from '../bound-runtime-schema.js';
 import {staged} from './fixtures/signed-offline-oci-fixture.mjs';
+import {provisionFreshPrivateLanTls,inspectPinnedPrivateLanRuntime} from '../scripts/provision-fresh-private-lan-tls.mjs';
+import {probePrivateLanHttps} from '../scripts/probe-private-lan-https.mjs';
 if(process.argv.length!==2||process.env.GITHUB_ACTIONS!=='true'||process.env.RUNNER_ENVIRONMENT!=='github-hosted'||process.platform!=='linux'||process.arch!=='x64')throw Error('DISPOSABLE_GITHUB_RUNNER_REQUIRED');
 // Same isolated-runner root boundary as the existing offline storage rehearsal.
 // Root is needed for exact volume and non-root bind ownership, not for the API.
@@ -32,7 +34,7 @@ const inspect=(kind,key)=>{const a=JSON.parse(docker([kind,'inspect',key]));asse
 const asLabels=labels=>Object.entries(labels).flatMap(([k,v])=>['--label',k+'='+v]);
 const project='at_db_'+randomUUID().replaceAll('-',''),root=await mkdtemp(join(await realpath(tmpdir()),'at-db-bridge-'));
 const env={MYSQL_DATABASE:'it_toolkit',MYSQL_USER:'itk_user',MYSQL_PASSWORD:randomBytes(32).toString('hex'),MYSQL_ROOT_PASSWORD:randomBytes(32).toString('hex')};
-let networkId,volume,id,conn,apiId,apiImageTag;
+let networkId,volume,id,conn,apiId,apiImageTag,caddyId;
 const extraVolumes=[];
 try{
  const files=new Map();
@@ -56,7 +58,15 @@ try{
  const apiImage=inspect('image',apiImageTag);
  assert.match(apiImage.Id,/^sha256:[a-f0-9]{64}$/);assert.equal(apiImage.Config.User,'1000:1000');
  const apiImageEnvironment=Object.fromEntries((apiImage.Config.Env??[]).map(x=>{const i=x.indexOf('=');return [x.slice(0,i),x.slice(i+1)]}));
+ docker(['image','pull','caddy:2-alpine']);
+ const caddyImage=inspect('image','caddy:2-alpine');
+ assert.match(caddyImage.Id,/^sha256:[a-f0-9]{64}$/);assert.equal(caddyImage.Os,'linux');assert.equal(caddyImage.Architecture,'amd64');
+ const caddyImageEnvironment=Object.fromEntries((caddyImage.Config.Env??[]).map(x=>{const i=x.indexOf('=');return [x.slice(0,i),x.slice(i+1)]}));
  const host='fixture.example.com';
+ const caDirectory=join(root,'ca'),tlsDirectory=join(root,'tls');await mkdir(caDirectory,{mode:0o700});await mkdir(tlsDirectory,{mode:0o700});
+ const pki=await provisionFreshPrivateLanTls({confirmation:'PROVISION_EMPTY_PRIVATE_LAN_TLS_ONLY_EXCLUSIVE_WRITER_CUSTODY',lockRoot,caDirectory,runtimeDirectory:tlsDirectory,address:'127.0.0.1',hostname:host,identity:pins});
+ const rootPem=await readFile(join(caDirectory,'root.crt'),'utf8');
+ const tlsInput={confirmation:'INSPECT_PINNED_PRIVATE_LAN_RUNTIME_ONLY',runtimeDirectory:tlsDirectory,address:'127.0.0.1',hostname:host,identity:pins,rootPem,trustedRootSha256:pki.root_sha256,trustedLeafSha256:pki.leaf_sha256,trustedCaddyfileSha256:pki.caddyfile_sha256};
  const secretKeys=['API_TOKEN','JWT_SECRET','BOOTSTRAP_SECRET','HMAC_SECRET','COMMAND_SIGNING_KEY','SETUP_TOKEN','SESSION_SECRET'];
  const config={COMPOSE_PROJECT_NAME:project,MYSQL_DATABASE:env.MYSQL_DATABASE,MYSQL_USER:env.MYSQL_USER,MYSQL_PASSWORD:env.MYSQL_PASSWORD,MYSQL_ROOT_PASSWORD:env.MYSQL_ROOT_PASSWORD,SERVER_HOST:host,CADDY_HOST:host,ENVIRONMENT:'prod',...Object.fromEntries(secretKeys.map(k=>[k,randomBytes(32).toString('hex')]))};
  const configText=Object.entries(config).map(([k,v])=>k+'='+v).join('\n')+'\n';
@@ -190,6 +200,44 @@ try{
    // The mounted identity must stay read-only for the actual API user.
    docker(['container','exec','--user','1000:1000',apiId,'node','-e',"try{require('node:fs').openSync('/run/aaditech-identity/installation-identity.json','r+');process.exit(1)}catch(e){process.exit(e.code==='EROFS'||e.code==='EACCES'?0:1)}"]);
    assert.equal(await observePair(),'healthy');
+   // Real private Caddy component, pinned image ID and exact TLS directory,
+   // never mount the CA directory or publish host ports.
+   const tls=await inspectPinnedPrivateLanRuntime(tlsInput,assertHeld),tlsMount={source:tls.source,target:tls.target};
+   const caddyLabels=candidateLabels(project,input.trustedManifestSha256,'a'.repeat(64),'caddy'),caddyEnv={CADDY_HOST:host};
+   caddyLabels['org.aaditech.tls-leaf-sha256']=pki.leaf_sha256;
+   caddyLabels['org.aaditech.caddyfile-sha256']=pki.caddyfile_sha256;
+   caddyId=docker(['container','create','--pull','never','--name',project+'-caddy-1','--network',networkId,'--network-alias','caddy','--restart','no','--security-opt','no-new-privileges=true',
+    '--mount','type=volume,source='+project+'_caddy_data,target=/data,volume-nocopy',
+    '--mount','type=volume,source='+project+'_caddy_config,target=/config,volume-nocopy',
+    '--mount','type=bind,source='+tlsMount.source+',target='+tlsMount.target+',readonly,bind-propagation=rprivate',
+    ...asLabels(caddyLabels),...Object.keys(caddyEnv).flatMap(k=>['--env',k]),'--no-healthcheck',caddyImage.Id,...privateCaddyCommand],caddyEnv);
+   const caddyExpected={id:caddyId,imageId:caddyImage.Id,project,role:'caddy',networkId,labels:caddyLabels,environment:caddyEnv,imageEnvironment:caddyImageEnvironment,imageProcess:privateCaddyProcessSpec(caddyImage.Config),identityMount:null,tlsMount};
+   verifyStoppedCandidate(inspect('container',caddyId),caddyExpected);
+   assert.equal(await observePair(),'healthy');await assertHeld();
+   docker(['container','start',caddyId]);
+   let triplePin;
+   async function observeTriple(){
+    await assertHeld();
+    const triple=verifyRunningFreshTriple(inspect('container',id),inspect('container',apiId),inspect('container',caddyId),{db:expected,api:apiExpected,caddy:caddyExpected},inspect('network',networkId));
+    const {health:dbHealth,...dbPin}=triple.db,{health:apiHealth,...apiPin}=triple.api;
+    assert.deepEqual({db:dbPin,api:apiPin},pairPin);
+    if(triplePin)assert.deepEqual(triple,triplePin);else triplePin=triple;
+    assert.deepEqual(await inspectPinnedPrivateLanRuntime(tlsInput,assertHeld),tls);
+    await assertHeld();return triple.caddy.ip;
+   }
+   const ingressIp=await observeTriple();
+   const httpsInput={confirmation:'PROBE_PINNED_PRIVATE_LAN_HTTPS_ONLY',address:ingressIp,hostname:host,port:443,rootPem,trustedRootSha256:pki.root_sha256,trustedLeafSha256:pki.leaf_sha256};
+   // Retry readiness only on this disposable fixture; production adapter
+   // must retain the setup lock on failed activation, not retry writes.
+   let httpsProof;const httpsDeadline=performance.now()+30000;
+   while(!httpsProof){try{httpsProof=await probePrivateLanHttps(httpsInput,async()=>{await observeTriple()})}catch{if(performance.now()>httpsDeadline)throw Error('CADDY_HTTPS_READINESS_TIMEOUT');await sleep(500)}}
+   assert.equal(httpsProof.exact_leaf_verified,true);assert.equal(httpsProof.application_readiness_verified,true);assert.equal(httpsProof.private_routes_denied,true);
+   await assert.rejects(()=>probePrivateLanHttps({...httpsInput,trustedLeafSha256:'b'.repeat(64)},assertHeld));
+   await assert.rejects(()=>probePrivateLanHttps({...httpsInput,hostname:'wrong.example.com'},assertHeld));
+   await assert.rejects(()=>probePrivateLanHttps({...httpsInput,trustedRootSha256:'b'.repeat(64)},assertHeld));
+   await observeTriple();
+   console.log('PASS: real Caddy private HTTPS, pinned direct leaf and root, clean API readiness, private route denial and wrong hostname/root/leaf refusal; no published host port or signed runtime activation.');
+   docker(['container','rm','--force',caddyId]);caddyId=undefined;
    // Scoped cleanup before the independent occupied-schema denial check.
    docker(['container','rm','--force',apiId]);apiId=undefined;
    await assertHeld();
@@ -207,5 +255,6 @@ try{
 }finally{
  if(conn)conn.destroy();
  // Scoped fixture cleanup only; no shared image removal or prune.
- try{if(apiId)docker(['container','rm','--force',apiId])}finally{try{if(id)docker(['container','rm','--force',id])}finally{try{for(const v of [volume,...extraVolumes].filter(Boolean))docker(['volume','rm',v])}finally{try{if(networkId)docker(['network','rm',networkId])}finally{try{if(apiImageTag)docker(['image','rm',apiImageTag])}finally{await rm(root,{recursive:true,force:true})}}}}}
+ try{if(caddyId)docker(['container','rm','--force',caddyId])}finally{try{if(apiId)docker(['container','rm','--force',apiId])}finally{try{if(id)docker(['container','rm','--force',id])}finally{try{for(const v of [volume,...extraVolumes].filter(Boolean))docker(['volume','rm',v])}finally{try{if(networkId)docker(['network','rm',networkId])}finally{try{if(apiImageTag)docker(['image','rm',apiImageTag])}finally{await rm(root,{recursive:true,force:true})}}}}}
+ }
 }

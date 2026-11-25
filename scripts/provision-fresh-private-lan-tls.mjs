@@ -131,3 +131,44 @@ export async function provisionFreshPrivateLanTls(input){
   }catch{fail()}
  });
 }
+
+// Re-admit exact local runtime files using independently recorded public
+// fingerprints. Do not read or mount the CA signing key. The caller must
+// retain exclusive writer custody across inspection and activation.
+export async function inspectPinnedPrivateLanRuntime(input,assertHeld){
+ try{
+  if(!exact(input,['confirmation','runtimeDirectory','address','hostname','identity','rootPem','trustedRootSha256','trustedLeafSha256','trustedCaddyfileSha256'])||input.confirmation!=='INSPECT_PINNED_PRIVATE_LAN_RUNTIME_ONLY'||typeof assertHeld!=='function'||process.platform!=='linux'||typeof process.geteuid!=='function'||!pathOk(input.runtimeDirectory)||!privateAddress(input.address)||!validHost(input.hostname)||!hex(input.trustedRootSha256)||!hex(input.trustedLeafSha256)||!hex(input.trustedCaddyfileSha256))fail();
+  const identity=input.identity;
+  if(!exact(identity,['confirmation','directoryPath','expectedInstallationId','expectedIdentitySha256'])||identity.confirmation!=='INSPECT_PINNED_IDENTITY_STORE_ONLY'||!pathOk(identity.directoryPath)||within(input.runtimeDirectory,identity.directoryPath)||within(identity.directoryPath,input.runtimeDirectory)||!hex(identity.expectedIdentitySha256))fail();
+  const p=Object.freeze({...input,identity:Object.freeze({...identity})});
+  const uid=process.geteuid(),dir=await privateDir(p.runtimeDirectory,uid);
+  const names=['Caddyfile','leaf.crt','leaf.key'],records=new Map();
+  async function guard(){
+   await assertHeld();await privateDir(p.runtimeDirectory,uid,dir);
+   if(JSON.stringify((await readdir(p.runtimeDirectory)).sort())!==JSON.stringify(names))fail();
+   for(const [path,record] of records)await checkFile(path,record,uid);
+   await inspectLocalInstallationIdentity(p.identity);
+   await assertHeld();
+  }
+  await guard();
+  for(const name of names){
+   const path=join(p.runtimeDirectory,name),f=await open(path,constants.O_RDONLY|constants.O_NOFOLLOW|constants.O_NONBLOCK);
+   let bytes;
+   try{
+    const s=await f.stat();
+    if(!s.isFile()||s.uid!==uid||s.nlink!==1||(s.mode&0o7777)!==0o600||s.size<1||s.size>16384)fail();
+    bytes=Buffer.alloc(s.size+1);let n=0;
+    while(n<bytes.length){const r=await f.read(bytes,n,bytes.length-n,n);if(!r.bytesRead)break;n+=r.bytesRead}
+    if(n!==s.size||!same(s,await f.stat(),fileFields)||!same(s,await lstat(path),fileFields))fail();
+    const content=bytes.subarray(0,n),digest=sha(content);
+    if(name==='Caddyfile'&&(digest!==p.trustedCaddyfileSha256||!content.equals(Buffer.from(renderPrivateLanCaddyfile(p.hostname)))))fail();
+    records.set(path,{stat:s,digest});
+   }finally{if(bytes)bytes.fill(0);await f.close()}
+  }
+  await guard();
+  const proof=await inspectPrivateLanTlsMaterial({confirmation:'INSPECT_PRIVATE_TLS_MATERIAL_ONLY',address:p.address,hostname:p.hostname,port:443,rootPem:p.rootPem,trustedRootSha256:p.trustedRootSha256,leafCertificatePath:join(p.runtimeDirectory,'leaf.crt'),privateKeyPath:join(p.runtimeDirectory,'leaf.key')});
+  if(proof.leaf_sha256!==p.trustedLeafSha256||!proof.direct_root_signature_verified||!proof.key_match_verified||!proof.exact_san_verified||!proof.server_auth_eku_verified)fail();
+  await guard();
+  return Object.freeze({schema_version:1,source:p.runtimeDirectory,target:'/run/aaditech-tls',dev:dir.dev,ino:dir.ino,root_sha256:p.trustedRootSha256,leaf_sha256:p.trustedLeafSha256,caddyfile_sha256:p.trustedCaddyfileSha256,identity_sha256:p.identity.expectedIdentitySha256,private_material_verified:true,ingress_started:false,production_accepted:false});
+ }catch{fail()}
+}

@@ -90,11 +90,13 @@ export function candidateLabels(project,releaseSha,configSha,role){
 }
 export function verifyStoppedCandidate(doc,expected){return verifyCandidate(doc,expected,false)}
 function verifyCandidate(doc,expected,runningDb){
- const {id,imageId,project,role,networkId,labels,environment,imageEnvironment,imageProcess,identityMount}=expected;
+ const {id,imageId,project,role,networkId,labels,environment,imageEnvironment,imageProcess,identityMount,tlsMount}=expected;
  if(identityMount&&(role!=='api'||doc?.Config?.User!=='1000:1000'))fail();
+ if(tlsMount&&(role!=='caddy'||identityMount||tlsMount.target!=='/run/aaditech-tls'||typeof tlsMount.source!=='string'||!['','0','0:0','root'].includes(imageProcess?.user)))fail();
+ const privateMount=identityMount||tlsMount;
  const state=doc?.State,c=doc?.Config,h=doc?.HostConfig;
  if(doc?.Id!==id||doc.Image!==imageId||doc.Name!=='/'+project+'-'+role+'-1'||state?.Status!==(runningDb?'running':'created')||state.Running!==runningDb||state.Paused!==false||state.Restarting!==false||state.Dead!==false||!c||!h||Object.entries(labels).some(([k,v])=>c.Labels?.[k]!==v))fail();
- if(!imageProcess||JSON.stringify(candidateProcessSpec(c))!==JSON.stringify(imageProcess))fail();
+ if(!imageProcess||JSON.stringify(candidateProcessSpec(c))!==JSON.stringify(imageProcess)||tlsMount&&(imageProcess.entrypoint.length!==0||JSON.stringify(imageProcess.cmd)!==JSON.stringify(privateCaddyCommand)))fail();
  if(Object.keys(c.Labels??{}).some(k=>(k.startsWith('com.docker.compose.')||k.startsWith('org.aaditech.'))&&!Object.hasOwn(labels,k)))fail();
  if(h.Privileged!==false||h.PublishAllPorts!==false||!empty(h.PortBindings)||!empty(h.Binds)||!empty(h.CapAdd)||!empty(h.Devices)||!empty(h.DeviceRequests)||h.RestartPolicy?.Name!=='no'||!Array.isArray(h.SecurityOpt)||h.SecurityOpt.length!==1||!['no-new-privileges','no-new-privileges:true','no-new-privileges=true'].includes(h.SecurityOpt[0]))fail();
  // The creator supplies no alternate namespaces, group grants, host lookup,
@@ -102,7 +104,7 @@ function verifyCandidate(doc,expected,runningDb){
  if((h.AutoRemove!==undefined&&h.AutoRemove!==false)||[h.PidMode,h.UTSMode,h.UsernsMode,h.CgroupParent].some(v=>v!==undefined&&v!==null&&v!=='')||(h.IpcMode!==undefined&&h.IpcMode!==null&&!['','private'].includes(h.IpcMode))||[h.GroupAdd,h.Links,h.VolumesFrom,h.ExtraHosts,h.Dns,h.DnsOptions,h.DnsSearch,h.Sysctls].some(v=>!empty(v)))fail();
  const actual=envMap(c.Env??[]),wanted={...imageEnvironment,...environment};
  if(Object.entries(wanted).some(([k,v])=>actual[k]!==v)||Object.keys(actual).some(k=>!Object.hasOwn(wanted,k)&&k!=='PATH')||secretKeys.some(k=>Object.hasOwn(actual,k)&&!Object.hasOwn(environment,k)))fail();
- const mounts=doc.Mounts;if(!Array.isArray(mounts)||mounts.length!==Object.keys(targets[role]).length+(identityMount?1:0))fail();
+ const mounts=doc.Mounts;if(!Array.isArray(mounts)||mounts.length!==Object.keys(targets[role]).length+(privateMount?1:0))fail();
  for(const [name,dest] of Object.entries(targets[role])){
   const matches=mounts.filter(x=>x.Type==='volume'&&x.Name===project+'_'+name&&x.Destination===dest&&x.RW===true&&x.Driver==='local');
   if(matches.length!==1)fail();
@@ -115,9 +117,9 @@ function verifyCandidate(doc,expected,runningDb){
   const mount=matches[0],options=mount.VolumeOptions;
   if(options?.NoCopy!==true||(mount.ReadOnly!==undefined&&mount.ReadOnly!==false)||!empty(options.DriverConfig)||!empty(options.Labels)||(options.Subpath!==undefined&&options.Subpath!==null&&options.Subpath!==''))fail();
  }
- if(identityMount){
+ if(privateMount){
   const binds=mounts.filter(x=>x.Type==='bind'),options=h.Mounts.filter(x=>x.Type==='bind');
-  if(binds.length!==1||options.length!==1||binds[0].Source!==identityMount.source||binds[0].Destination!==identityMount.target||binds[0].RW!==false||binds[0].Propagation!=='rprivate'||options[0].Source!==identityMount.source||options[0].Target!==identityMount.target||options[0].ReadOnly!==true)fail();
+  if(binds.length!==1||options.length!==1||binds[0].Source!==privateMount.source||binds[0].Destination!==privateMount.target||binds[0].RW!==false||binds[0].Propagation!=='rprivate'||options[0].Source!==privateMount.source||options[0].Target!==privateMount.target||options[0].ReadOnly!==true)fail();
  }else if(h.Mounts.some(x=>x.Type!=='volume'))fail();
  const networks=doc.NetworkSettings?.Networks,networkName=project+'_ittoolkit';
  if(!networks||Object.keys(networks).length!==1||!Object.hasOwn(networks,networkName)||![networkName,networkId].includes(h.NetworkMode)||!['',networkId].includes(networks[networkName]?.NetworkID)||!Array.isArray(networks[networkName]?.Aliases)||!networks[networkName].Aliases.includes(role))fail();
@@ -138,10 +140,10 @@ export function verifyRunningFreshDatabase(doc,expected,network){
  return verifyRunningEndpoint(doc,expected,network,[expected.id]);
 }
 function verifyRunningEndpoint(doc,expected,network,memberIds){
- if(!['db','api'].includes(expected.role)||expected.role==='api'&&!expected.identityMount)fail();
+ if(!['db','api','caddy'].includes(expected.role)||expected.role==='api'&&!expected.identityMount||expected.role==='caddy'&&!expected.tlsMount)fail();
  verifyCandidate(doc,expected,true);
  const s=doc.State;
- if(doc.RestartCount!==0||!Number.isSafeInteger(s.Pid)||s.Pid<=0||typeof s.StartedAt!=='string'||!Number.isFinite(Date.parse(s.StartedAt))||!['starting','healthy'].includes(s.Health?.Status))fail();
+ if(doc.RestartCount!==0||!Number.isSafeInteger(s.Pid)||s.Pid<=0||typeof s.StartedAt!=='string'||!Number.isFinite(Date.parse(s.StartedAt))||(expected.role==='caddy'?s.Health!==undefined&&s.Health!==null:!['starting','healthy'].includes(s.Health?.Status)))fail();
  const resources=expectedFreshResources(expected.project,expected.labels['org.aaditech.release-sha256']);
  if(!network?.Containers||Object.keys(network.Containers).length!==memberIds.length||memberIds.some(id=>!Object.hasOwn(network.Containers,id)))fail();
  if(verifyProvisionedNetwork({...network,Containers:{}},resources.network)!==expected.networkId)fail();
@@ -149,7 +151,7 @@ function verifyRunningEndpoint(doc,expected,network,memberIds){
  if(endpoint.NetworkID!==expected.networkId||!hex(endpoint.EndpointID)||member?.EndpointID!==endpoint.EndpointID||member.Name!==expected.project+'-'+expected.role+'-1'||endpoint.GlobalIPv6Address!==''&&endpoint.GlobalIPv6Address!==undefined||member.IPv6Address!==''&&member.IPv6Address!==undefined)fail();
  const prefix=endpoint.IPPrefixLen;
  if(!Number.isInteger(prefix)||prefix<8||prefix>30||member.IPv4Address!==ip+'/'+prefix)fail();
- return Object.freeze({ip,endpointId:endpoint.EndpointID,pid:s.Pid,startedAt:s.StartedAt,health:s.Health.Status});
+ return Object.freeze({ip,endpointId:endpoint.EndpointID,pid:s.Pid,startedAt:s.StartedAt,health:expected.role==='caddy'?'requires_https_probe':s.Health.Status});
 }
 // Exact pair only: no ingress or third endpoint. The independently verified
 // DB and API observations must agree with the same network membership.
@@ -159,6 +161,22 @@ export function verifyRunningFreshPair(database,api,expected,network){
  const db=verifyRunningEndpoint(database,expected.db,network,ids),app=verifyRunningEndpoint(api,expected.api,network,ids);
  if(db.ip===app.ip||db.endpointId===app.endpointId||db.pid===app.pid||db.health!=='healthy')fail();
  return Object.freeze({db,api:app});
+}
+// Fixed Caddy command, independent from the image's public ACME default.
+// This only describes the private candidate. No Docker mutations here.
+export const privateCaddyCommand=Object.freeze(['caddy','run','--config','/run/aaditech-tls/Caddyfile','--adapter','caddyfile']);
+export function privateCaddyProcessSpec(config){
+ const original=candidateProcessSpec(config);
+ if(original.entrypoint.length||!['','0','0:0','root'].includes(original.user))fail();
+ return {...original,cmd:[...privateCaddyCommand]};
+}
+export function verifyRunningFreshTriple(database,api,caddy,expected,network){
+ const roles=['db','api','caddy'];
+ if(roles.some(role=>expected[role]?.role!==role||expected[role].project!==expected.db.project||expected[role].networkId!==expected.db.networkId)||new Set(roles.map(role=>expected[role].id)).size!==3)fail();
+ const ids=roles.map(role=>expected[role].id),docs={db:database,api,caddy};
+ const result=Object.fromEntries(roles.map(role=>[role,verifyRunningEndpoint(docs[role],expected[role],network,ids)]));
+ if(result.db.health!=='healthy'||result.api.health!=='healthy'||['ip','endpointId','pid'].some(key=>new Set(roles.map(role=>result[role][key])).size!==3))fail();
+ return Object.freeze(result);
 }
 // Called after local daemon/network/process admission under exclusive setup custody.
 export async function openPinnedFreshDatabaseConnection(ip,environment){

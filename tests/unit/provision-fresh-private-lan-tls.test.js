@@ -1,11 +1,11 @@
 import {it,expect,describe} from 'vitest';
-import {mkdtemp,mkdir,readdir,readFile,rm,realpath,lstat,writeFile,chmod,symlink} from 'node:fs/promises';
+import {mkdtemp,mkdir,readdir,readFile,rm,realpath,lstat,writeFile,chmod,symlink,unlink} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {createHash,X509Certificate} from 'node:crypto';
 import {createServer} from 'node:tls';
 import {initializeLocalInstallationIdentity} from '../../scripts/installation-identity-store-posix.mjs';
-import {validateFreshPrivateLanTlsPolicy as validate,renderPrivateLanCaddyfile as render,provisionFreshPrivateLanTls as provision} from '../../scripts/provision-fresh-private-lan-tls.mjs';
+import {validateFreshPrivateLanTlsPolicy as validate,renderPrivateLanCaddyfile as render,provisionFreshPrivateLanTls as provision,inspectPinnedPrivateLanRuntime as admit} from '../../scripts/provision-fresh-private-lan-tls.mjs';
 import {probePrivateTls} from '../../scripts/private-lan-tls-preflight.mjs';
 const policy={confirmation:'PROVISION_EMPTY_PRIVATE_LAN_TLS_ONLY_EXCLUSIVE_WRITER_CUSTODY',lockRoot:'/private/lock',caDirectory:'/private/ca',runtimeDirectory:'/private/runtime',address:'127.0.0.1',hostname:'office.internal',identity:{confirmation:'INSPECT_PINNED_IDENTITY_STORE_ONLY',directoryPath:'/private/identity',expectedInstallationId:'12345678-1234-4234-8234-123456789abc',expectedIdentitySha256:'a'.repeat(64)}};
 it('admits separate private storage and freezes identity pins',()=>{expect(validate(policy)).toEqual(policy);expect(Object.isFrozen(validate(policy).identity)).toBe(true)});
@@ -52,6 +52,17 @@ describe.skipIf(process.platform!=='linux')('actual disposable local PKI provisi
    expect(await probePrivateTls(target)).toMatchObject({chain_verified:true,exact_san_verified:true,server_auth_eku_verified:true,application_readiness_verified:false});
    await expect(probePrivateTls({...target,hostname:'other.internal'})).rejects.toThrow();
   }finally{key.fill(0);await new Promise(ok=>server.close(ok))}
+  const input={confirmation:'INSPECT_PINNED_PRIVATE_LAN_RUNTIME_ONLY',runtimeDirectory:opts.runtimeDirectory,address:opts.address,hostname:opts.hostname,identity:opts.identity,rootPem,trustedRootSha256:proof.root_sha256,trustedLeafSha256:proof.leaf_sha256,trustedCaddyfileSha256:proof.caddyfile_sha256};
+  const guard=async()=>{};
+  expect(await admit(input,guard)).toMatchObject({private_material_verified:true,target:'/run/aaditech-tls',production_accepted:false});
+  for(const field of ['trustedRootSha256','trustedLeafSha256','trustedCaddyfileSha256'])await expect(admit({...input,[field]:'b'.repeat(64)},guard)).rejects.toThrow();
+  const extra=join(opts.runtimeDirectory,'unexpected');await writeFile(extra,'sentinel',{mode:0o600});
+  await expect(admit(input,guard)).rejects.toThrow();await unlink(extra);
+  const config=join(opts.runtimeDirectory,'Caddyfile');await writeFile(config,render(opts.hostname)+'# drift\n');
+  await expect(admit(input,guard)).rejects.toThrow();
+  await writeFile(config,render(opts.hostname));
+  await chmod(join(opts.runtimeDirectory,'leaf.key'),0o644);
+  await expect(admit(input,guard)).rejects.toThrow();await chmod(join(opts.runtimeDirectory,'leaf.key'),0o600);
   await expect(provision(opts)).rejects.toThrow();
   expect(await readdir(opts.lockRoot)).toEqual([]);
  }),30000);

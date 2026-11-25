@@ -2,9 +2,9 @@
 // claim. Caller must hold the trusted installer lock and verify observed
 // service/database/credential state. Never create or replace a live DB.
 import { constants } from 'node:fs';
-import { lstat, realpath, open, link, unlink } from 'node:fs/promises';
+import { lstat, realpath, open, link, unlink, readdir } from 'node:fs/promises';
 import { resolve, join, isAbsolute } from 'node:path';
-import { randomUUID } from 'node:crypto';
+import { randomUUID, createHash } from 'node:crypto';
 import { planInstallationIdentity, validateInstallationIdentity } from './installation-identity.mjs';
 import { rejectDuplicateJsonKeys } from './verify-lan-bundle.mjs';
 
@@ -29,7 +29,7 @@ async function assertDirectory(record){
   const current=await privateDirectory(record.full);
   if(!same(current.stat,record.stat,dirFields))fail('IDENTITY_DIRECTORY_CHANGED');
 }
-async function readAt(directory){
+async function readAt(directory,withDigest=false){
   const file=join(directory.full,FILE);
   let st;
   try{st=await lstat(file)}catch(e){
@@ -56,7 +56,8 @@ async function readAt(directory){
       if(bytes[0]===0xef&&bytes[1]===0xbb&&bytes[2]===0xbf)fail('INVALID_INSTALLATION_IDENTITY');
       const source=new TextDecoder('utf-8',{fatal:true}).decode(bytes.subarray(0,n));
       rejectDuplicateJsonKeys(source);
-      return validateInstallationIdentity(JSON.parse(source));
+      const identity=validateInstallationIdentity(JSON.parse(source));
+      return withDigest?Object.freeze({identity,sha256:createHash('sha256').update(bytes.subarray(0,n)).digest('hex')}):identity;
     }catch{fail('INVALID_INSTALLATION_IDENTITY')}
   }finally{await fd.close()}
 }
@@ -100,4 +101,42 @@ export async function initializeFreshInstallationIdentity(directory, observed) {
   const stored=await readAt(record);
   if(!stored||stored.installation_id!==identity.installation_id)fail('IDENTITY_FILE_CHANGED');
   return stored;
+}
+
+// Dedicated setup metadata entrypoints. Caller observations remain planning
+// inputs, not proof of runtime absence. The CLI holds a cooperative lock.
+function receipt(record,created){
+  return Object.freeze({schema_version:1,installation_id:record.identity.installation_id,
+    identity_sha256:record.sha256,identity_created:created,local_identity_verified:true,
+    database_binding_verified:false,existing_installation_reconciled:false,
+    restore_authorized:false,installation_authorized:false,production_accepted:false});
+}
+async function readDedicated(record){
+  const names=await readdir(record.full);
+  if(names.length!==1||names[0]!==FILE)fail('IDENTITY_DIRECTORY_RECONCILIATION_REQUIRED');
+  const result=await readAt(record,true);
+  const after=await readdir(record.full);
+  if(!result||after.length!==1||after[0]!==FILE)fail('IDENTITY_DIRECTORY_RECONCILIATION_REQUIRED');
+  await assertDirectory(record);return result;
+}
+export async function initializeLocalInstallationIdentity({confirmation,directoryPath,observed}={}){
+  if(confirmation!=='INITIALIZE_EMPTY_IDENTITY_STORE_ONLY')fail('EXPLICIT_IDENTITY_INITIALIZATION_REQUIRED');
+  const plan=planInstallationIdentity({intent:'fresh',observed});
+  if(plan.reason!=='GENERATE_NEW_IDENTITY')fail(plan.reason);
+  const snapshot={database:observed.database,credentials:observed.credentials,service:observed.service};
+  const record=await privateDirectory(directoryPath);
+  if((await readdir(record.full)).length)fail('IDENTITY_DIRECTORY_NOT_EMPTY');
+  const identity=await initializeFreshInstallationIdentity(record.full,snapshot);
+  const stored=await readDedicated(record);
+  if(stored.identity.installation_id!==identity.installation_id)fail('IDENTITY_FILE_CHANGED');
+  return receipt(stored,true);
+}
+export async function inspectLocalInstallationIdentity({confirmation,directoryPath,expectedInstallationId,expectedIdentitySha256}={}){
+  if(confirmation!=='INSPECT_PINNED_IDENTITY_STORE_ONLY'||typeof expectedIdentitySha256!=='string'||
+    expectedIdentitySha256.length!==64||!/^[a-f0-9]{64}$/.test(expectedIdentitySha256)||/^0+$/.test(expectedIdentitySha256))
+    fail('EXPLICIT_PINNED_IDENTITY_REQUIRED');
+  const expected=validateInstallationIdentity({schema_version:1,installation_id:expectedInstallationId});
+  const record=await privateDirectory(directoryPath),stored=await readDedicated(record);
+  if(stored.sha256!==expectedIdentitySha256||stored.identity.installation_id!==expected.installation_id)fail('IDENTITY_PIN_MISMATCH');
+  return receipt(stored,false);
 }

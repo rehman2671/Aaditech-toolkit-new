@@ -5,7 +5,7 @@ import {fileURLToPath} from 'node:url';
 import {resolve,isAbsolute} from 'node:path';
 import {runLocalDiagnosticCli} from './local-diagnostic-cli.mjs';
 import {retainLocalDiagnosticArtifact,readRetainedLocalDiagnosticArtifact} from './local-diagnostic-artifact-store.mjs';
-const usage='Usage: node scripts/local-diagnostic-custody-cli.mjs collect --directory ABSOLUTE_PATH --confirm-local-retention -- resource|disk|network|battery [collector options] --confirm-local-read-only; or read --directory ABSOLUTE_PATH --sha256 DIGEST --confirm-local-read-only';
+const usage='Usage: node scripts/local-diagnostic-custody-cli.mjs collect --directory ABSOLUTE_PATH --confirm-local-retention -- resource|disk|network|battery|power|bluetooth [collector options] --confirm-local-read-only; or read --directory ABSOLUTE_PATH --sha256 DIGEST --confirm-local-read-only';
 const fail=()=>{throw Error(usage)};
 const absolute=x=>typeof x==='string'&&isAbsolute(x)&&!x.includes('\0');
 export async function runLocalDiagnosticCustodyCli(argv){

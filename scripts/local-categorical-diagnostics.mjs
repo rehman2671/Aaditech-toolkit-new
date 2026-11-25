@@ -126,3 +126,63 @@ export async function collectLocalBatteryDiagnostic({confirmation,batteryId}={})
  }
  return result({schema:'aaditech-battery-diagnostic-v1',...parseBatteryObservations(observations)});
 }
+
+// Fixed Linux kernel observation sources. Never invoke a command, scan radios,
+// infer service health, or change a profile. An unblocked radio is not proof
+// that a controller is powered on; absent or inconsistent evidence stays null.
+async function readSysfsScalar(path){
+ let fd;
+ try{
+  fd=await open(path,constants.O_RDONLY|constants.O_NOFOLLOW|constants.O_NONBLOCK);
+  const before=await fd.stat();
+  if(!before.isFile())return null;
+  const bytes=Buffer.alloc(129);let n=0;
+  while(n<bytes.length){const {bytesRead}=await fd.read(bytes,n,bytes.length-n,null);if(!bytesRead)break;n+=bytesRead}
+  if(n>128||bytes.subarray(0,n).some(x=>x>127))return null;
+  const after=await fd.stat(),current=await lstat(path);
+  if([after,current].some(st=>!st.isFile()||st.dev!==before.dev||st.ino!==before.ino))return null;
+  return bytes.subarray(0,n).toString('ascii').replace(/\n$/,'');
+ }catch{return null}
+ finally{if(fd)await fd.close()}
+}
+const profiles=new Map([['low-power','POWER_SAVER'],['balanced','BALANCED'],['performance','PERFORMANCE'],
+ ['quiet','OTHER'],['cool','OTHER'],['balanced-performance','OTHER'],['custom','OTHER']]);
+export function parseLinuxPowerProfile(raw){
+ return {power_mode:profiles.get(raw)??null,sleep_policy_state:null};
+}
+export async function collectLocalPowerDiagnostic({confirmation}={}){
+ if(confirmation!=='COLLECT_LOCAL_POWER_ONLY')fail();
+ let raw=null;
+ if(process.platform==='linux'){
+  const path='/sys/firmware/acpi/platform_profile';
+  try{
+   const first=await readSysfsScalar(path),second=await readSysfsScalar(path);
+   if(first===second)raw=first;
+  }catch{}
+ }
+ return result({schema:'aaditech-power-diagnostic-v1',...parseLinuxPowerProfile(raw)});
+}
+const rfkillName=x=>typeof x==='string'&&x.length<=12&&/^rfkill[0-9]{1,6}$/.test(x)&&!/\s/.test(x);
+export function parseLinuxBluetoothBlock({type,soft,hard}={}){
+ const bit=x=>x==='0'||x==='1';
+ return {radio_state:type==='bluetooth'&&bit(soft)&&bit(hard)&&(soft==='1'||hard==='1')?'OFF':null,
+  service_state:null};
+}
+export async function collectLocalBluetoothDiagnostic({confirmation,radioId}={}){
+ if(confirmation!=='COLLECT_LOCAL_BLUETOOTH_ONLY'||!rfkillName(radioId))fail();
+ let observations={};
+ if(process.platform==='linux'){
+  const path='/sys/class/rfkill/'+radioId;
+  try{
+   const dir=await realpath(path);
+   if(!dir.startsWith('/sys/devices/'))throw Error('LOCAL_OBSERVATION_UNAVAILABLE');
+   const before=await lstat(dir);
+   if(!before.isDirectory())throw Error('LOCAL_OBSERVATION_UNAVAILABLE');
+   const observe=async()=>({type:await readSysfsScalar(dir+'/type'),soft:await readSysfsScalar(dir+'/soft'),hard:await readSysfsScalar(dir+'/hard')});
+   const first=await observe(),second=await observe(),after=await lstat(dir);
+   if(after.isDirectory()&&before.dev===after.dev&&before.ino===after.ino&&await realpath(path)===dir&&
+      first.type===second.type&&first.soft===second.soft&&first.hard===second.hard)observations=first;
+  }catch{}
+ }
+ return result({schema:'aaditech-bluetooth-diagnostic-v1',...parseLinuxBluetoothBlock(observations)});
+}

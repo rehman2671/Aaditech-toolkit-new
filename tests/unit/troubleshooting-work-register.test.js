@@ -26,7 +26,7 @@ const allowedEvidence=new Set([
  'diagnostic-evidence.js','diagnostic-review-contracts.js','tests/unit/diagnostic-review-contracts.test.js',
  'scripts/local-resource-diagnostic.mjs','tests/unit/local-resource-diagnostic.test.js',
  'scripts/local-categorical-diagnostics.mjs','tests/unit/local-categorical-diagnostics.test.js',
- 'tests/unit/local-battery-diagnostic.test.js'
+ 'tests/unit/local-battery-diagnostic.test.js','tests/unit/local-power-bluetooth-diagnostic.test.js'
 ]);
 describe('Troubleshooting register is a traceable source-level work inventory',()=>{
  it('contains exactly the catalog-derived task identities and existing parent tracker',()=>{

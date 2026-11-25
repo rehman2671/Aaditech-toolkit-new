@@ -12,7 +12,9 @@ const contracts=Object.freeze({
  'aaditech-resource-diagnostic-v1':{cpu_percent:percent,ram_percent:percent,disk_percent:percent},
  'aaditech-network-diagnostic-v1':{link_state:category('UP','DOWN'),default_route_state:category('PRESENT','ABSENT'),approved_probe_state:category('NOT_RUN')},
  'aaditech-disk-diagnostic-v1':{free_percent:percent,health_state:category(),read_only_state:category()},
- 'aaditech-battery-diagnostic-v1':{charge_percent:percent,charging_state:category('CHARGING','DISCHARGING','FULL','NOT_CHARGING'),capacity_percent:percent}
+ 'aaditech-battery-diagnostic-v1':{charge_percent:percent,charging_state:category('CHARGING','DISCHARGING','FULL','NOT_CHARGING'),capacity_percent:percent},
+ 'aaditech-power-diagnostic-v1':{power_mode:category('POWER_SAVER','BALANCED','PERFORMANCE','OTHER'),sleep_policy_state:category()},
+ 'aaditech-bluetooth-diagnostic-v1':{radio_state:category('OFF'),service_state:category()}
 });
 function validate(bytes){
  if(!Buffer.isBuffer(bytes)||bytes.length<1||bytes.length>512)fail('LOCAL_ARTIFACT_INVALID');

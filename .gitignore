@@ -35,3 +35,5 @@ Enterprise/deploy/backups/
 # Local secret-bearing runtime configuration candidates
 .env.candidate
 .env.candidate-*
+.env.previous-*
+.env.switch-*

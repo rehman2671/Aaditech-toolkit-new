@@ -18,6 +18,7 @@ const __dirname = path.dirname(__filename);
 
 import {createTaskTracker} from './runtime-shutdown.js';
 import {guardTransactionConnection} from './transaction-connection-custody.js';
+import {withDeviceAdvisoryLocks,observeMysqlPool} from './database-pool-custody.js';
 const databaseTasks=createTaskTracker();
 let databaseStopping=false;
 let pool = null;
@@ -102,6 +103,7 @@ export async function cacheDelPattern(pattern) {
 // Unset/development/staging NODE_ENV is never proof of a safe test harness.
 // ---------------- MYSQL INITIALIZATION & RESILIENCE ----------------
 let isConnecting = false;
+let activeIdentitySessions=0;
 let dbHealthCheckTimer = null;
 
 export function attemptConnection(){
@@ -109,7 +111,7 @@ export function attemptConnection(){
   return databaseTasks.track(connectDatabase());
 }
 async function connectDatabase() {
-  if (isConnecting) return isConnected;
+  if (isConnecting||activeIdentitySessions>0) return false;
   // Read/validate configuration BEFORE setting isConnecting. A validation
   // failure must not poison all future health-check/reconnect attempts.
   if (process.env.NODE_ENV !== 'test') {
@@ -137,16 +139,19 @@ async function connectDatabase() {
     }
   }
   isConnecting = true;
-
-  if (pool) {
-    try {
-      await pool.end();
-    } catch (_) {}
-    pool = null;
-  }
-
+  isConnected=false;
+  let newPool=null;
   try {
-    const newPool = mysql.createPool({
+    const oldPool=pool;
+    if(oldPool){
+      // Fail closed on an unconfirmed retirement; never install a new pool
+      // on top of an old pool whose close failed.
+      await oldPool.end();
+      if(pool!==oldPool)throw Error('DATABASE_POOL_CHANGED');
+      pool=null;
+    }
+    if(databaseStopping)return false;
+    newPool = mysql.createPool({
       host,
       port,
       user,
@@ -164,10 +169,13 @@ async function connectDatabase() {
     isConnected = false;
 
     // Handle unexpected pool errors to log and attempt reconnection instead of crashing
+    let candidateFailed=false;
     newPool.on('error', (err) => {
-      console.error('⚠️ MySQL pool runtime error:', err.message);
+      if(pool!==newPool)return;
+      candidateFailed=true;
+      console.error('⚠️ MySQL pool runtime error:', err.code || 'DATABASE_UNAVAILABLE');
       isConnected = false;
-      attemptConnection().catch(e => console.error('Reconnection after pool error failed:', e.message));
+      if(!isConnecting&&!databaseStopping)attemptConnection().catch(e => console.error('Reconnection after pool error failed:', e.code || 'DATABASE_UNAVAILABLE'));
     });
 
     try {
@@ -190,46 +198,42 @@ async function connectDatabase() {
     // Keep the service unavailable until the locked migration history and
     // all pending migrations are verified. A TCP connection alone is not ready.
     await runDatabaseMigrationsOnPool(newPool);
+    if(pool!==newPool||candidateFailed||databaseStopping)throw Error('DATABASE_CANDIDATE_UNCONFIRMED');
     isConnected = true;
-    isConnecting = false;
     console.log(`✅ Connected successfully to MySQL Database (${host}:${port}/${database}) [Pool size: ${poolSize}]!`);
     return true;
   } catch (err) {
-    isConnected = false;
-    isConnecting = false;
-    if (pool) {
-      try { await pool.end(); } catch (_) {}
-      pool = null;
+    if(newPool&&pool===newPool){
+      isConnected=false;
+      try{await newPool.end();if(pool===newPool)pool=null}
+      catch{console.error('DATABASE_POOL_RETIREMENT_UNCONFIRMED')}
     }
     throw err;
-  }
+  }finally{isConnecting=false}
 }
 
 export function startDbHealthCheck(intervalMs = 30000) {
   if(databaseStopping)return null;
   if (dbHealthCheckTimer) return dbHealthCheckTimer;
+  let tickActive=false;
   const tick=async()=>{
     if(databaseStopping)return;
     if (!isConnected) {
       console.log('🔄 Periodic DB health-check: retrying MySQL connection...');
       try {
-        await attemptConnection();
-        console.log('✅ DB recovered! Connected to MySQL Database.');
+        if(await attemptConnection())console.log('✅ DB recovered! Connected to MySQL Database.');
       } catch (err) {
         // Still down; will retry on next interval
       }
     } else if (pool) {
-      try {
-        if(process.env.AADITECH_BOUND_REPORTS==='enabled'){
-          if(!await probeBoundRuntimeIdentity(pool,process.env))isConnected=false;
-        }else await pool.query('SELECT 1');
-      } catch (pingErr) {
-        console.warn('⚠️ DB health-check ping failed, marking disconnected:', pingErr.message);
-        isConnected = false;
-      }
+      await probeDbReadiness();
     }
   };
-  dbHealthCheckTimer=setInterval(()=>{if(!databaseStopping)databaseTasks.track(tick())},intervalMs);
+  dbHealthCheckTimer=setInterval(()=>{
+    if(databaseStopping||tickActive)return;
+    tickActive=true;
+    databaseTasks.track(tick()).catch(()=>console.error('DATABASE_HEALTH_CHECK_FAILED')).finally(()=>{tickActive=false});
+  },intervalMs);
   if (dbHealthCheckTimer.unref) dbHealthCheckTimer.unref();
   return dbHealthCheckTimer;
 }
@@ -486,17 +490,16 @@ export function isMysqlConnected() {
 // background health flag. Fail closed immediately after a network partition.
 // The periodic worker owns reconnect attempts; never query demo state here.
 export async function probeDbReadiness() {
-  if (!isMysqlConnected()) return false;
-  try {
-    if(process.env.AADITECH_BOUND_REPORTS==='enabled'){
-      if(!await probeBoundRuntimeIdentity(pool,process.env)){isConnected=false;return false;}
-    }else await pool.query('SELECT 1');
-    return true;
-  } catch (error) {
-    isConnected = false;
-    console.warn('[DB Readiness] MySQL probe failed:', error.code || error.message);
-    return false;
-  }
+  if(databaseStopping)return false;
+  return observeMysqlPool(pool,{
+    isCurrent:candidate=>pool===candidate,
+    isReady:()=>isMysqlConnected()&&!databaseStopping,
+    probe:async candidate=>{
+      if(process.env.AADITECH_BOUND_REPORTS==='enabled')return probeBoundRuntimeIdentity(candidate,process.env);
+      await candidate.query('SELECT 1');return true;
+    },
+    onFailure:()=>{isConnected=false;console.warn('[DB Readiness] MySQL probe failed')}
+  });
 }
 
 export function getPool() {
@@ -574,14 +577,15 @@ let monotonicInsertId = Date.now() * 1000;
 
 export async function executeQuery(sql, params = []) {
   if (isMysqlConnected()) {
+    const observedPool=pool;
     try {
-      const [results] = await pool.query(sql, params);
+      const [results] = await observedPool.query(sql, params);
       return results;
     } catch (err) {
       if (process.env.NODE_ENV !== 'test') {
         console.error("MySQL query execution error in production:", err.message);
         if (err.fatal || ['ECONNRESET', 'ECONNREFUSED', 'EPIPE', 'ETIMEDOUT', 'PROTOCOL_CONNECTION_LOST'].includes(err.code)) {
-          isConnected = false;
+          if(pool===observedPool)isConnected = false;
         }
         throw err;
       }
@@ -1376,26 +1380,16 @@ export async function withDeviceIdentityLock(hostname, deviceUid, fn) {
   ])].sort();
 
   if (isMysqlConnected() && pool && typeof pool.getConnection === 'function') {
-    return withMysqlIdentityAdmission(async () => {
-    const connection = await pool.getConnection();
-    const held = [];
-    try {
-      for (const key of keys) {
-        const [rows] = await connection.query('SELECT GET_LOCK(?, 10) AS acquired', [key]);
-        if (Number(rows?.[0]?.acquired) !== 1) {
-          throw new Error('Device identity lock acquisition timed out');
-        }
-        held.push(key);
-      }
-      return await fn();
-    } finally {
-      for (const key of held.reverse()) {
-        try { await connection.query('SELECT RELEASE_LOCK(?)', [key]); }
-        catch (error) { console.error('Failed to release MySQL device lock:', error.message); }
-      }
-      connection.release();
-    }
-    });
+    const admittedPool=pool;
+    return databaseTasks.track(withMysqlIdentityAdmission(async () => {
+      const current=()=>pool===admittedPool&&isMysqlConnected()&&!isConnecting;
+      if(databaseStopping||!current())throw Error('DEVICE_LOCK_POOL_CHANGED');
+      activeIdentitySessions++;
+      try{
+        const connection=await admittedPool.getConnection();
+        return await withDeviceAdvisoryLocks(connection,keys,fn,current);
+      }finally{activeIdentitySessions--}
+    }));
   }
   if (process.env.NODE_ENV !== 'test') {
     throw new Error('Refusing device identity operation without MySQL advisory locks');

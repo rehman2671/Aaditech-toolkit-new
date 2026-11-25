@@ -8279,6 +8279,47 @@
       "limitations": [
         "No independent commit outcome reconciliation",
         "Six db.js paths only; raw connection and pool generation coverage pending"
+      ],
+      "exact_head_ci": {
+        "head": "2a39b722e4b587d1935f6dbafcb02e4a396553f7",
+        "run": 45719150070,
+        "jobs": [
+          {
+            "id": 139572902049,
+            "name": "Offline Docker load compatibility (disposable runner)",
+            "status": "in_progress",
+            "conclusion": null
+          },
+          {
+            "id": 139572902233,
+            "name": "PowerShell validation",
+            "status": "in_progress",
+            "conclusion": null
+          },
+          {
+            "id": 139572902313,
+            "name": "Node.js Unit & Integration Tests (Vitest + MySQL 8)",
+            "status": "in_progress",
+            "conclusion": null
+          }
+        ],
+        "scope": "Observed in-progress jobs only; no acceptance promotion"
+      }
+    },
+    {
+      "id": "MASS-47",
+      "base_commit": "2a39b722e4b587d1935f6dbafcb02e4a396553f7",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "evidence": [
+        "database-pool-custody.js",
+        "db.js",
+        "tests/unit/database-pool-custody.test.js"
+      ],
+      "regression_definitions": 79,
+      "local_verification": "79/79 isolated JavaScript cases executed against exact helpers; repository Vitest and real MySQL pending",
+      "limitations": [
+        "No full pool lease custody for other consumers",
+        "No forced-crash or durable reconciliation proof"
       ]
     }
   ]

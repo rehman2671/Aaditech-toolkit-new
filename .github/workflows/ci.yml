@@ -370,7 +370,7 @@ jobs:
 
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
-          node-version: "20"
+          node-version: "24"
           cache: 'npm'
 
       - name: Install dependencies
@@ -394,6 +394,7 @@ jobs:
           for (const name of names) {
             const value = crypto.randomBytes(32).toString('hex');
 
+            console.log('::add-mask::' + value);
             fs.appendFileSync(
               process.env.GITHUB_ENV,
               `${name}=${value}\n`
@@ -440,6 +441,15 @@ jobs:
           VITEST: "true"
         run: npm run test:coverage
 
+      - name: Report production and development dependency audit
+        timeout-minutes: 3
+        run: node scripts/dependency-audit-policy.cjs --report
+
+      - name: Require verified production dependency audit before protected manual build
+        if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+        timeout-minutes: 3
+        run: node scripts/dependency-audit-policy.cjs --release
+
   offline-docker-load-rehearsal:
     name: Offline Docker load compatibility (disposable runner)
     runs-on: ubuntu-latest
@@ -451,7 +461,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
-          node-version: "20"
+          node-version: "24"
       - name: Rehearse signed fixture Docker archive load on disposable runner
         run: node tests/ci-offline-docker-load-rehearsal.mjs
       - name: Rehearse existing service lifecycle and quiescent configuration on disposable runner
@@ -482,7 +492,7 @@ jobs:
 
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
-          node-version: "20"
+          node-version: "24"
           cache: 'npm'
 
       - name: Install dependencies
@@ -506,6 +516,7 @@ jobs:
           for (const name of names) {
             const value = crypto.randomBytes(32).toString('hex');
 
+            console.log('::add-mask::' + value);
             fs.appendFileSync(
               process.env.GITHUB_ENV,
               `${name}=${value}\n`

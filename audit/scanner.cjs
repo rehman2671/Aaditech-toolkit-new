@@ -231,7 +231,7 @@ const archData = {
       ]
     },
     backend: {
-      framework: "Express.js 4 on Node.js v20",
+      framework: "Express.js 4 on Node.js v24 (candidate runtime)",
       entry_point: "/server.js",
       modules: [
         "Authentication & Multi-Tenancy (Argon2 / Session Tokens)",
@@ -444,7 +444,7 @@ const testingMd = `# Enterprise Platform Testing Audit (Rule #13)
 
 **Generated:** ${new Date().toISOString()}
 **Basis:** \`Enterprise_Audit_Prompt.md\` (Rule #13 - Empirical Discovery)
-**Environment:** Linux Node.js v20.x, MariaDB 10.11 / MySQL 8.0, Redis Cache
+**Environment:** Linux Node.js v24.x candidate, MariaDB 10.11 / MySQL 8.0, Redis Cache
 
 ---
 

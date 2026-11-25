@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
-  "batch": "MASS-14",
+  "batch": "MASS-15",
   "date": "2026-11-26",
   "target": "20 implementation prompts planning target, 50–100 actual development tasks per batch aspirational; count only delivered functional work, not test cases",
-  "base_commit": "902e0c6f7296d12c2011e1032f23780d784d1bdb",
+  "base_commit": "791d63a6be2d4f46b004aebe905cb84ed0f8279e",
   "source_of_truth": [
     "docs/product/DELIVERY-TRACKER.json",
     "docs/product/TROUBLESHOOTING-WORK-REGISTER.json",
@@ -3358,6 +3358,48 @@
         "tests/unit/offline-oci-runtime.test.js",
         "Disposable offline Docker load job before/after signed-stage observation"
       ]
+    },
+    {
+      "id": "MASS-15-01",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Node 24 candidate runtime consistency across package, lock, CI, Docker and local version",
+      "dependencies": [
+        "MASS-14-01",
+        "M1",
+        "DEC-001"
+      ],
+      "paths": [
+        "package.json",
+        "package-lock.json",
+        "Dockerfile",
+        ".github/workflows/ci.yml",
+        ".node-version",
+        "scripts/check-node-runtime-policy.cjs",
+        "docs/product/NODE-RUNTIME-AND-DEPENDENCY-AUDIT-POLICY.md"
+      ],
+      "regression": [
+        "tests/unit/node-runtime-policy.test.cjs",
+        "Node 24 full CI and actual Docker build pending"
+      ]
+    },
+    {
+      "id": "MASS-15-02",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Redacted production/full npm audit evidence, protected manual release gate and CI ephemeral credential masking",
+      "dependencies": [
+        "MASS-14-01"
+      ],
+      "paths": [
+        "scripts/dependency-audit-policy.cjs",
+        ".github/workflows/ci.yml",
+        "scripts/check-phase-n70-workflow-safety.cjs",
+        "docs/product/NODE-RUNTIME-AND-DEPENDENCY-AUDIT-POLICY.md"
+      ],
+      "regression": [
+        "tests/unit/dependency-audit-policy.test.cjs",
+        "tests/unit/node-runtime-policy.test.cjs",
+        "Actual registry audit and advisory remediation pending"
+      ]
     }
   ],
   "unresolved": [
@@ -3556,6 +3598,16 @@
         "docs/product/STORE-BOUND-RUNTIME-AND-CI-GOVERNANCE.md",
         "tests/unit/stage70-workflow-safety.test.cjs",
         "tests/unit/offline-oci-runtime.test.js"
+      ]
+    },
+    {
+      "id": "MASS-15",
+      "base_commit": "791d63a6be2d4f46b004aebe905cb84ed0f8279e",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "evidence": [
+        "docs/product/NODE-RUNTIME-AND-DEPENDENCY-AUDIT-POLICY.md",
+        "tests/unit/dependency-audit-policy.test.cjs",
+        "tests/unit/node-runtime-policy.test.cjs"
       ]
     }
   ]

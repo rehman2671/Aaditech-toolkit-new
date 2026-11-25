@@ -1,4 +1,4 @@
-import {classifyDeviceObservation} from './device-observations.js';
+import {classifyDeviceObservation,DEVICE_OBSERVATION_FRESHNESS_SECONDS} from './device-observations.js';
 import {identityPolicy,assertDatabaseIdentity,boundReportPool} from './installation-database-identity.js';
 import {createObservationIncident} from './troubleshooting-incidents.js';
 export {classifyDeviceObservation};
@@ -12,7 +12,7 @@ export async function listDeviceObservations(db,principal,after=''){
  const [rows]=await pool.query('SELECT id,tenant_id,hostname,status,agent_token_revoked,cpu_usage,memory_usage,disk_free_gb,disk_total_gb,TIMESTAMPDIFF(SECOND,telemetry_reported_at,NOW(3)) AS telemetry_age_seconds FROM devices WHERE tenant_id=?'+(after?' AND id>?':'')+' ORDER BY id LIMIT 51',[tenant,...(after?[after]:[])]);
  if(!Array.isArray(rows)||rows.length>51||new Set(rows.map(r=>r.id)).size!==rows.length)fail();
  const items=rows.slice(0,50).map(r=>classifyDeviceObservation(r,tenant));
- return {items,next_cursor:rows.length===51?items.at(-1).device_id:null,freshness_seconds:freshness,scope:'CURRENT_WORKSPACE',health_verified:false,production_accepted:false};
+ return {items,next_cursor:rows.length===51?items.at(-1).device_id:null,freshness_seconds:DEVICE_OBSERVATION_FRESHNESS_SECONDS,scope:'CURRENT_WORKSPACE',health_verified:false,production_accepted:false};
 }
 export function registerDeviceObservationRoutes(app,db,env=process.env){
  app.get('/api/v1/monitoring/device-observations',async(req,res)=>{

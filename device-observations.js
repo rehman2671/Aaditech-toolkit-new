@@ -5,13 +5,13 @@ const deviceId=x=>typeof x==='string'&&/^[a-zA-Z0-9_-]{1,64}$/.test(x);
 const num=x=>typeof x==='number'?x:typeof x==='string'&&/^(0|[1-9][0-9]*)(?:\.[0-9]+)?%?$/.test(x)?Number(x.replace('%','')):NaN;
 const percent=x=>{const n=num(x);return Number.isFinite(n)&&n>=0&&n<=100?n:null};
 const capacity=x=>{const n=num(x);return Number.isFinite(n)&&n>=0?n:null};
-const freshness=3600;
+export const DEVICE_OBSERVATION_FRESHNESS_SECONDS=3600;
 const fail=()=>{throw Error('MONITORING_UNVERIFIED')};
 export function classifyDeviceObservation(r,tenant){
  if(!r||r.tenant_id!==tenant||!deviceId(r.id)||typeof r.hostname!=='string'||r.hostname.length<1||r.hostname.length>128)fail();
  const age=r.telemetry_age_seconds===null?null:num(r.telemetry_age_seconds);
  const negative=typeof r.telemetry_age_seconds==='number'&&r.telemetry_age_seconds<0||typeof r.telemetry_age_seconds==='string'&&/^-[0-9]+$/.test(r.telemetry_age_seconds);
- const state=r.telemetry_age_seconds===null?'NO_TELEMETRY':negative?'CLOCK_UNVERIFIED':!Number.isFinite(age)?'CLOCK_UNVERIFIED':age>freshness?'STALE':'RECENT';
+ const state=r.telemetry_age_seconds===null?'NO_TELEMETRY':negative?'CLOCK_UNVERIFIED':!Number.isFinite(age)?'CLOCK_UNVERIFIED':age>DEVICE_OBSERVATION_FRESHNESS_SECONDS?'STALE':'RECENT';
  const active=['online','active'].includes(String(r.status).toLowerCase());
  const revoked=[true,1,'1'].includes(r.agent_token_revoked);
  const usable=state==='RECENT'&&active&&!revoked;

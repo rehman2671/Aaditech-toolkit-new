@@ -1,6 +1,7 @@
 // Tenant-scoped human review, distinct from diagnosis, repair and resolution.
 import {randomUUID} from 'node:crypto';
 import {planTroubleshooting,troubleshootingCatalog} from './troubleshooting-policy.js';
+import {projectHazardAssessment} from './troubleshooting-hazard-assessment.js';
 const uuid=x=>typeof x==='string'&&x.length===36&&/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(x);
 const integer=x=>typeof x==='number'&&Number.isSafeInteger(x)&&x>=0&&x<=2147483647;
 const number=x=>typeof x==='string'&&/^(0|[1-9][0-9]*)$/.test(x)?Number(x):x;
@@ -34,9 +35,10 @@ function project(r,s){
  const state=r.review_state??'UNREVIEWED',revision=number(r.revision??0);
  if(!states.includes(state)||!integer(revision)||(state==='UNREVIEWED')!==(revision===0))fail('REVIEW_STATE_INVALID');
  return {incident_id:r.incident_id,device_id:r.device_id,category_id:r.category_id,hazard:r.hazard,intake_status:r.status,review_state:state,revision,
+  hazard_assessment:projectHazardAssessment(r.assessment_id?{assessment_id:r.assessment_id,incident_id:r.assessment_incident_id,installation_id:r.assessment_installation_id,tenant_id:r.assessment_tenant_id,device_id:r.assessment_device_id,actor_user_id:r.assessment_actor_id,request_id:r.assessment_request_id,assessment:r.assessment}:null,r),
   allowed_transitions:allowedReviewTransitions(state,r.status),diagnostic_authorized:false,repair_authorized:false,verified_resolved:false};
 }
-const select="SELECT i.incident_id,i.installation_id,i.tenant_id,i.device_id,i.actor_user_id,i.category_id,i.hazard,i.status,r.review_state,r.revision FROM troubleshooting_incidents i LEFT JOIN troubleshooting_incident_reviews r ON r.incident_id=i.incident_id AND r.installation_id=i.installation_id AND r.tenant_id=i.tenant_id AND r.device_id=i.device_id JOIN devices d ON d.id=i.device_id AND d.tenant_id=i.tenant_id WHERE i.installation_id=? AND i.tenant_id=?";
+const select="SELECT i.incident_id,i.installation_id,i.tenant_id,i.device_id,i.actor_user_id,i.category_id,i.hazard,i.status,r.review_state,r.revision,h.assessment_id,h.incident_id AS assessment_incident_id,h.installation_id AS assessment_installation_id,h.tenant_id AS assessment_tenant_id,h.device_id AS assessment_device_id,h.actor_user_id AS assessment_actor_id,h.request_id AS assessment_request_id,h.assessment FROM troubleshooting_incidents i LEFT JOIN troubleshooting_incident_reviews r ON r.incident_id=i.incident_id AND r.installation_id=i.installation_id AND r.tenant_id=i.tenant_id AND r.device_id=i.device_id LEFT JOIN troubleshooting_hazard_assessments h ON h.incident_id=i.incident_id JOIN devices d ON d.id=i.device_id AND d.tenant_id=i.tenant_id WHERE i.installation_id=? AND i.tenant_id=?";
 export async function listIncidentReviews(pool,input){
  const s=scope(pool,input,'SUPER_ADMIN');
  const {after='',category='',status='',deviceId=''}=input;

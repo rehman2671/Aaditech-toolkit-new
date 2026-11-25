@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import crypto from 'node:crypto';
 import { signDeviceCommand, verifyDeviceCommand } from '../../command-signing.js';
 
 const dev = { id: 'dev-1', tenant_id: 'tenant-A', hostname: 'CI-HOST' };
@@ -48,5 +49,29 @@ describe('per-device remote command signatures', () => {
       signed_content: '{bad-json', signature: '0'.repeat(64),
       deviceToken: token, commandId: command.id, device: dev, now
     })).toBe(false);
+  });
+});
+
+describe('historical Phase I signed-envelope verifier boundary', () => {
+  const signed = signDeviceCommand({ device: dev, command, deviceToken: token, now });
+  const envelope = JSON.parse(signed.signed_content);
+  const mac = (content, key = token) => crypto.createHmac('sha256', key)
+    .update('aaditech:agent-command:v1\n' + content, 'utf8').digest('hex');
+  const verify = (content, signature = mac(content), overrides = {}) =>
+    verifyDeviceCommand({ signed_content: content, signature, deviceToken: token,
+      commandId: command.id, device: dev, now, ...overrides });
+  it('returns false for MAC-valid malformed JSON values and coercible fields', () => {
+    for (const value of [null, [], true, 1, 'x', { ...envelope, hostname: ['CI-HOST'] },
+      { ...envelope, device_id: ['dev-1'] }, { ...envelope, kind: ' ' },
+      { ...envelope, issued_at: null }]) {
+      expect(verify(JSON.stringify(value))).toBe(false);
+    }
+    expect(verify(signed.signed_content)).toBe(true);
+  });
+  it('rejects non-string signatures, non-device signing keys and invalid clock', () => {
+    expect(verify(signed.signed_content, [signed.signature])).toBe(false);
+    expect(verify(signed.signed_content, mac(signed.signed_content, 'fleet-key'),
+      { deviceToken: 'fleet-key' })).toBe(false);
+    expect(verify(signed.signed_content, signed.signature, { now: NaN })).toBe(false);
   });
 });

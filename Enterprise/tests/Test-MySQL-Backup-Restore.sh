@@ -32,10 +32,16 @@ if [[ "$command_text" == *mysqldump* ]]; then
     '-- Host: localhost    Database: it_toolkit' \
     'CREATE TABLE example (id INT);' \
     'INSERT INTO example VALUES (1);' \
-    "-- fixture padding $(printf '%0300d' 0)" \
-    '-- Dump completed on 2026-11-15 12:00:00'
+    "-- fixture padding $(printf '%0300d' 0)"
+  if [ "${FAKE_DUMP_TRUNCATED:-0}" != 1 ]; then
+    printf '%s\n' '-- Dump completed on 2026-11-15 12:00:00'
+  fi
+elif [[ "$command_text" == *'stop caddy api'* ]]; then
+  if [ -n "${FAKE_REPLACE_SOURCE:-}" ]; then
+    printf '%s\n' 'UNVERIFIED REPLACEMENT' > "$FAKE_REPLACE_SOURCE"
+  fi
 elif [[ "$command_text" == *'--binary-mode=1'* ]]; then
-  cat > /dev/null
+  if [ -n "${FAKE_IMPORTED_FILE:-}" ]; then cat > "$FAKE_IMPORTED_FILE"; else cat > /dev/null; fi
   if [ "${FAKE_IMPORT_FAIL:-0}" = 1 ]; then exit 19; fi
 elif [[ "$command_text" == *'SELECT COUNT('* ]]; then
   printf '1\n'
@@ -48,9 +54,12 @@ RESTORE="$TEMP/Enterprise/deploy/restore.sh"
 BACKUP_DIR="$TEMP/Enterprise/deploy/backups"
 
 # Bad retention input must be rejected before attempting Docker actions.
-if BACKUP_KEEP=not-a-number bash "$BACKUP" > "$TEMP/out" 2>&1; then
-  echo "Expected invalid BACKUP_KEEP failure" >&2; exit 1
-fi
+for keep in not-a-number 08 000 1000000; do
+  if BACKUP_KEEP="$keep" bash "$BACKUP" > "$TEMP/out" 2>&1; then
+    echo "Expected invalid BACKUP_KEEP failure" >&2; exit 1
+  fi
+done
+[ ! -s "$FAKE_DOCKER_LOG" ] || { echo "Invalid retention touched Docker" >&2; exit 1; }
 
 bash "$BACKUP"
 shopt -s nullglob
@@ -122,6 +131,15 @@ grep -q 'stop caddy api' "$FAKE_DOCKER_LOG"
 grep -q 'DROP DATABASE' "$FAKE_DOCKER_LOG"
 grep -q -- '--binary-mode=1' "$FAKE_DOCKER_LOG"
 
+# Replacing the original after validation must not affect imported bytes.
+mkdir -p "$TEMP/replace"
+cp "$FILE" "$TEMP/replace/$(basename "$FILE")"
+cp "$FILE.sha256" "$TEMP/replace/$(basename "$FILE").sha256"
+candidate="$TEMP/replace/$(basename "$FILE")"
+FAKE_REPLACE_SOURCE="$candidate" FAKE_IMPORTED_FILE="$TEMP/imported.sql" bash "$RESTORE" --yes --db-only "$candidate"
+cmp "$TEMP/imported.sql" "$FILE"
+grep -q 'UNVERIFIED REPLACEMENT' "$candidate"
+
 # Failed import must return nonzero and leave application services stopped.
 : > "$FAKE_DOCKER_LOG"
 if FAKE_IMPORT_FAIL=1 bash "$RESTORE" --yes "$FILE" > "$TEMP/out" 2>&1; then
@@ -139,4 +157,11 @@ fi
 after=$(find "$BACKUP_DIR" -maxdepth 1 -name 'ittoolkit-*.sql' | wc -l)
 [ "$before" -eq "$after" ] || { echo "Failed dump published a file" >&2; exit 1; }
 
+# Even a successful mysqldump exit must not publish a truncated dump.
+if FAKE_DUMP_TRUNCATED=1 bash "$BACKUP" > "$TEMP/out" 2>&1; then
+  echo "Incomplete dump reported success" >&2; exit 1
+fi
+[ "$(find "$BACKUP_DIR" -maxdepth 1 -name 'ittoolkit-*.sql' | wc -l)" -eq "$after" ] || {
+  echo "Incomplete dump published a file" >&2; exit 1;
+}
 echo "MySQL backup/restore offline safety tests passed."

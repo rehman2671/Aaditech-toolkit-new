@@ -1,5 +1,8 @@
 # Master Remediation Roadmap & Execution Schedule
 
+> **HISTORICAL SECURITY/AUDIT PHASE TRACKING (2026-11-23):** "COMPLETED" below refers to earlier code tasks, **not** fully accepted intranet-first enterprise deployment or 26 auto-fix scenarios. For actual product milestones, dependencies and status use [current roadmap](../product/DELIVERY-ROADMAP.md) and [tracker](../product/DELIVERY-TRACKER.json). Optional cloud/Hostinger must not be treated as core LAN deployment prerequisite.
+
+
 ---
 
 ## Phase 0 — Critical Security Remediation (COMPLETED)

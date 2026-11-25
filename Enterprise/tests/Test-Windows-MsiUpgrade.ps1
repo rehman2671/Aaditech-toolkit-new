@@ -14,7 +14,9 @@ $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
 if ($env:OS -ne 'Windows_NT' -or $env:GITHUB_ACTIONS -ne 'true' -or
-    -not $env:RUNNER_TEMP) { throw 'MSI upgrade rehearsal requires a disposable Windows Actions runner.' }
+    -not $env:RUNNER_TEMP -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted') {
+    throw 'MSI upgrade rehearsal requires a disposable GitHub-hosted Windows Actions runner.'
+}
 $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
 $principal = [Security.Principal.WindowsPrincipal]::new($identity)
 if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
@@ -83,6 +85,39 @@ $endpoint = 'https://upgrade-test.invalid.example'
 $installed = $false
 $cleanupMsi = $baseMsi.FullName
 $cleanupFailure = ''
+# O1/O2: use a disabled, triggerless, inert fixture, never the original
+# privileged helper. Refuse to touch any pre-existing task on the runner.
+$legacyTaskName = 'ITToolkitAgentElevated'
+$fixtureDescription = 'AadiTech disposable MSI test ' + [guid]::NewGuid().ToString('N')
+function Get-RootLegacyTask {
+    Get-ScheduledTask -TaskPath '\' -ErrorAction Stop |
+        Where-Object { $_.TaskName -ieq $legacyTaskName }
+}
+function Assert-LegacyTaskAbsent([string]$Phase) {
+    if (@(Get-RootLegacyTask).Count -ne 0) {
+        throw "${Phase}: legacy root privileged task is still registered."
+    }
+}
+function New-InertLegacyTaskFixture {
+    Assert-LegacyTaskAbsent 'before fixture registration'
+    $action = New-ScheduledTaskAction -Execute (Join-Path $env:SystemRoot 'System32\cmd.exe') -Argument '/d /c exit 0'
+    $taskPrincipal = New-ScheduledTaskPrincipal -UserId 'SYSTEM' -LogonType ServiceAccount -RunLevel Highest
+    $settings = New-ScheduledTaskSettingsSet -Disable
+    Register-ScheduledTask -TaskName $legacyTaskName -TaskPath '\' -Action $action `
+        -Principal $taskPrincipal -Settings $settings -Description $fixtureDescription -ErrorAction Stop | Out-Null
+    $fixture = @(Get-RootLegacyTask)
+    if ($fixture.Count -ne 1 -or $fixture[0].Description -cne $fixtureDescription -or
+        $fixture[0].State -ne 'Disabled' -or @($fixture[0].Triggers | Where-Object { $_ }).Count -ne 0) {
+        throw 'Legacy-task fixture was not registered as an inert disabled task.'
+    }
+}
+function Assert-RoutineTaskPrincipal([string]$Phase) {
+    $tasks = @(Get-ScheduledTask -TaskPath '\' -ErrorAction Stop |
+        Where-Object { $_.TaskName -ieq 'ITToolkitAgent' })
+    if ($tasks.Count -ne 1 -or [string]$tasks[0].Principal.UserId -notmatch '^(NT AUTHORITY\\)?NETWORK SERVICE$|^S-1-5-20$') {
+        throw "${Phase}: routine task missing or unexpected principal."
+    }
+}
 function Invoke-Msi([string]$mode, [string]$msi, [string]$logFile) {
     $args = "$mode `"$msi`" /qn /norestart REBOOT=ReallySuppress /l*v `"$logFile`""
     $proc = Start-Process msiexec.exe -ArgumentList $args -Wait -PassThru
@@ -91,8 +126,12 @@ function Invoke-Msi([string]$mode, [string]$msi, [string]$logFile) {
     }
 }
 try {
+    New-InertLegacyTaskFixture
     Invoke-Msi '/i' $baseMsi.FullName (Join-Path $logs 'install-base.log')
     $installed = $true
+    Assert-LegacyTaskAbsent 'after fresh install'
+    Assert-RoutineTaskPrincipal 'after fresh install'
+    Write-Host 'PASS: real MSI fresh installation retired the disabled legacy task.'
     if (-not (Test-Path -LiteralPath $installedWizard -PathType Leaf)) {
         throw 'Base MSI did not install the expected setup wizard.'
     }
@@ -203,8 +242,12 @@ SELECT json_object(
         throw 'N32 synthetic offline snapshot redaction/identity incorrect'
     }
 
+    New-InertLegacyTaskFixture
     Invoke-Msi '/i' $upgradeMsi (Join-Path $logs 'upgrade.log')
     $cleanupMsi = $upgradeMsi
+    Assert-LegacyTaskAbsent 'after major upgrade'
+    Assert-RoutineTaskPrincipal 'after major upgrade'
+    Write-Host 'PASS: genuine major upgrade removed the seeded legacy task without recreating it.'
 
     $after = Get-Content -LiteralPath $configPath -Raw | ConvertFrom-Json
     if ($after.endpoint -cne $before.endpoint -or $after.token -cne $token -or
@@ -270,9 +313,21 @@ finally {
             if (Get-ScheduledTask -TaskName 'ITToolkitAgent' -ErrorAction SilentlyContinue) {
                 $cleanupFailure = 'Major-upgrade uninstall left scheduled task registered.'
             }
+            Assert-LegacyTaskAbsent 'after uninstall'
         } catch {
             $cleanupFailure = $_.Exception.Message
         }
+    }
+    # Cleanup only our uniquely identified fixture if setup/upgrade failed.
+    # Never unregister an unrelated task and never execute the fixture.
+    try {
+        foreach ($task in @(Get-RootLegacyTask)) {
+            if ($task.Description -ceq $fixtureDescription) {
+                Unregister-ScheduledTask -InputObject $task -Confirm:$false -ErrorAction Stop
+            }
+        }
+    } catch {
+        $cleanupFailure = 'Legacy-task fixture cleanup failed: ' + $_.Exception.Message
     }
 }
 if ($cleanupFailure) { throw $cleanupFailure }

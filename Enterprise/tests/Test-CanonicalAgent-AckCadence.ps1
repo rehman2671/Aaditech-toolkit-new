@@ -74,22 +74,33 @@ function Get-AgentIP { return '127.0.0.1' }
 function Get-InstalledAgentVersion { return '1.1.2' }
 function Get-AgentToken { param($Config); return 'itk_dev_mock_only' }
 function Get-RestCertificate { param($Config); return $null }
-function Write-AgentLog { param([string]$Message) }
+function Write-AgentLog { param([string]$Message) Write-Host $Message }
 function Get-NextBackoffSleepSeconds { param([int]$FailedConsecutive); return 0 }
 function Invoke-QueueSleep { param($SleepSeconds) }
 function Invoke-RestMethod {
-    param($Uri, $Method, $Headers, $ContentType, $Body, $Certificate)
+    [CmdletBinding()]
+    param($Uri, $Method, $Headers, $ContentType, $Body, $Certificate, $MaximumRedirection, $TimeoutSec)
+    if ($MaximumRedirection -ne 0 -or $TimeoutSec -ne 15) { throw 'Unsafe telemetry transport options' }
     $script:Sent += [string]$Body
     if ($script:Mode -eq 'offline') { throw 'Simulated network partition' }
     $sent = $Body | ConvertFrom-Json
+    $reply = @{ status = 'OK'; accepted = @($sent.events).Count; batch_id = $sent.batch_id
+        duplicate = $false; recorded_at = '2026-11-17T00:00:00.000Z' }
     switch ($script:Mode) {
-        'partial' { return [pscustomobject]@{ status = 'OK'; accepted = -1; batch_id = $sent.batch_id } }
-        'wrongBatch' { return [pscustomobject]@{ status = 'OK'; accepted = @($sent.events).Count; batch_id = 'different' } }
-        'missingBatch' { return [pscustomobject]@{ status = 'OK'; accepted = @($sent.events).Count } }
-        'missingCount' { return [pscustomobject]@{ status = 'OK'; batch_id = $sent.batch_id } }
-        'badStatus' { return [pscustomobject]@{ status = 'RETRY'; accepted = @($sent.events).Count; batch_id = $sent.batch_id } }
-        default { return [pscustomobject]@{ status = 'OK'; accepted = @($sent.events).Count; batch_id = $sent.batch_id } }
+        'partial' { $reply.accepted = -1 }
+        'wrongBatch' { $reply.batch_id = 'different' }
+        'missingBatch' { $reply.Remove('batch_id') }
+        'missingCount' { $reply.Remove('accepted') }
+        'badStatus' { $reply.status = 'RETRY' }
+        'stringCount' { $reply.accepted = [string]$reply.accepted }
+        'arrayId' { $reply.batch_id = @($reply.batch_id) }
+        'missingDuplicate' { $reply.Remove('duplicate') }
+        'stringDuplicate' { $reply.duplicate = 'false' }
+        'missingRecorded' { $reply.Remove('recorded_at') }
+        'badRecorded' { $reply.recorded_at = 'not-a-date' }
+        'duplicate' { $reply.duplicate = $true }
     }
+    return [pscustomobject]$reply
 }
 function Send-AgentHeartbeat { param($Config); $script:Hearts++; return $true }
 function Start-Sleep { param([int]$Seconds); $script:Sleeps += $Seconds }
@@ -127,6 +138,25 @@ $storedEvent = $script:Sent[-1] | ConvertFrom-Json
 Assert-True ($storedEvent.events[0].client_msg_id -eq '0123456789abcdef0123456789abcdef:17') 'N28 stable event ID preserved'
 Assert-True ($null -eq $script:PendingSnapshot) 'matching ACK retires snapshot'
 
+# Explicit multi-row and empty JSON arrays exercise both Windows PS5.1 and PS7.
+$script:QueryRows = '[{"id":21,"kind":"health","payload":"{}","sanitized":1,"created_at":"2026-11-17 00:00:00"},{"id":22,"kind":"health","payload":"{}","sanitized":1,"created_at":"2026-11-17 00:00:01"}]'
+$script:Mode = 'offline'
+$null = Send-AgentBatch -Config $cfg
+$multiBody = $script:PendingSnapshot.body_json
+$multiIds = $script:PendingSnapshot.event_ids
+$script:Mode = 'duplicate'
+$before = $script:Sent.Count
+foreach ($badIds in @('[21,21]', '[21,23]', '21', '["21",22]', '[null,22]')) {
+    $script:PendingSnapshot.event_ids = $badIds
+    $null = Send-AgentBatch -Config $cfg
+    Assert-True ($script:Sent.Count -eq $before) 'corrupt local IDs never sent'
+    Assert-True ($null -ne $script:PendingSnapshot) 'corrupt local snapshot retained'
+}
+$script:PendingSnapshot.event_ids = $multiIds
+Assert-True ((Send-AgentBatch -Config $cfg) -eq 2) 'multi-event replay succeeds'
+Assert-True ($script:Sent[-1] -ceq $multiBody) 'multi-event replay exact bytes'
+Assert-True ($script:Updates[-1] -match 'id IN \(21,22\)') 'both exact event IDs retired'
+
 # Bad HTTP 2xx and partial ACKs must keep one durable pending snapshot; the
 # saved payload must survive every error until an exact matching response.
 $script:QueryRows = ''
@@ -135,7 +165,8 @@ $result = Send-AgentBatch -Config $cfg
 Assert-True ($result -eq 0) 'missing batch ID is failure'
 $pendingBody = $script:PendingSnapshot.body_json
 $priorSamples = $script:Snapshots
-foreach ($mode in @('partial', 'wrongBatch', 'missingCount', 'badStatus', 'offline')) {
+foreach ($mode in @('partial', 'wrongBatch', 'missingCount', 'badStatus', 'stringCount', 'arrayId',
+    'missingDuplicate', 'stringDuplicate', 'missingRecorded', 'badRecorded', 'offline')) {
     $script:Mode = $mode
     $result = Send-AgentBatch -Config $cfg
     Assert-True ($result -eq 0) "bad ACK $mode is failure"
@@ -143,9 +174,10 @@ foreach ($mode in @('partial', 'wrongBatch', 'missingCount', 'badStatus', 'offli
     Assert-True ($script:Sent[-1] -ceq $pendingBody) 'every retry resends exact bytes'
     Assert-True ($script:Snapshots -eq $priorSamples) 'no remeasurement on retry'
 }
-$script:Mode = 'valid'
+$script:Mode = 'duplicate'
 $null = Send-AgentBatch -Config $cfg
-Assert-True ($null -eq $script:PendingSnapshot) 'eventual complete ACK retires batch'
+Assert-True ($null -eq $script:PendingSnapshot) 'eventual complete duplicate ACK retires batch'
+$script:Mode = 'valid'
 
 # Every 5 min of a long inventory interval, create a newly sampled snapshot.
 $script:QueryRows = ''

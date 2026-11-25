@@ -1,0 +1,60 @@
+import {describe,it,expect} from 'vitest';
+import {createHash,X509Certificate} from 'node:crypto';
+import {createServer} from 'node:tls';
+import {execFileSync} from 'node:child_process';
+import {mkdtemp,writeFile,readFile,rm} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {probePrivateTls,validatePrivateTlsInputs} from '../../scripts/private-lan-tls-preflight.mjs';
+
+describe('private LAN TLS handshake reference',()=>{
+  it('rejects public IPs, ambiguous names and probes without explicit consent before connecting',async()=>{
+    for(const address of ['8.8.8.8','169.254.169.254','::ffff:127.0.0.1','example.com'])
+      expect(()=>validatePrivateTlsInputs({address,hostname:'office.internal',port:443})).toThrow('PRIVATE_TLS_TARGET_REQUIRED');
+    await expect(probePrivateTls({address:'127.0.0.1'})).rejects.toThrow('EXPLICIT_PRIVATE_TLS_PROBE_REQUIRED');
+  });
+  // Linux CI uses its installed OpenSSL only to generate disposable fixture
+  // keys/certificates. No external service or production trust key.
+  it.skipIf(process.platform!=='linux')('validates actual loopback TLS chain and exact DNS/IP SAN; rejects wrong root and wildcard/CN-only',async()=>{
+    const dir=await mkdtemp(join(tmpdir(),'itk-lan-tls-'));
+    const run=(...args)=>execFileSync('openssl',args,{cwd:dir,stdio:'ignore',timeout:10000});
+    const root=(prefix)=>run('req','-x509','-newkey','rsa:2048','-nodes','-days','2','-subj','/CN=Fixture '+prefix,
+      '-addext','basicConstraints=critical,CA:TRUE','-addext','keyUsage=critical,keyCertSign,cRLSign',
+      '-keyout',prefix+'.key','-out',prefix+'.crt');
+    let server;
+    try{
+      root('ca');root('wrong');
+      const issue=async (name,san)=>{
+        run('req','-newkey','rsa:2048','-nodes','-subj','/CN=office.internal','-keyout',name+'.key','-out',name+'.csr');
+        await writeFile(join(dir,name+'.ext'),'basicConstraints=critical,CA:FALSE\nkeyUsage=critical,digitalSignature,keyEncipherment\nextendedKeyUsage=serverAuth\n'+(san?'subjectAltName='+san+'\n':''));
+        run('x509','-req','-in',name+'.csr','-CA','ca.crt','-CAkey','ca.key','-CAcreateserial','-days','1','-extfile',name+'.ext','-out',name+'.crt');
+      };
+      await issue('good','DNS:office.internal,IP:127.0.0.1');
+      await issue('wild','DNS:*.internal');
+      await issue('cn','');
+      const pem=await readFile(join(dir,'ca.crt'),'utf8');
+      const wrong=await readFile(join(dir,'wrong.crt'),'utf8');
+      const pin=p=>createHash('sha256').update(new X509Certificate(p).raw).digest('hex');
+      const start=async name=>{
+        if(server)await new Promise(resolve=>server.close(resolve));
+        server=createServer({key:await readFile(join(dir,name+'.key')),cert:await readFile(join(dir,name+'.crt'))},s=>s.end());
+        server.on('tlsClientError',()=>{});
+        await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(0,'127.0.0.1',resolve)});
+        return {address:'127.0.0.1',hostname:'office.internal',port:server.address().port,rootPem:pem,
+          trustedRootSha256:pin(pem),confirmation:'PROBE_PRIVATE_TLS_ONLY'};
+      };
+      const good=await start('good');
+      expect(await probePrivateTls(good)).toMatchObject({chain_verified:true,exact_san_verified:true,
+        revocation_verified:false,installation_authorized:false});
+      expect(await probePrivateTls({...good,hostname:'127.0.0.1'})).toMatchObject({exact_san_verified:true});
+      await expect(probePrivateTls({...good,hostname:'other.internal'})).rejects.toThrow('PRIVATE_TLS_CHAIN_OR_SAN_INVALID');
+      await expect(probePrivateTls({...good,rootPem:wrong})).rejects.toThrow('PRIVATE_ROOT_PIN_OR_CA_INVALID');
+      await expect(probePrivateTls({...good,rootPem:wrong,trustedRootSha256:pin(wrong)})).rejects.toThrow('PRIVATE_TLS_CHAIN_OR_SAN_INVALID');
+      await expect(probePrivateTls(await start('wild'))).rejects.toThrow('PRIVATE_TLS_CHAIN_OR_SAN_INVALID');
+      await expect(probePrivateTls(await start('cn'))).rejects.toThrow('PRIVATE_TLS_CHAIN_OR_SAN_INVALID');
+    }finally{
+      if(server)await new Promise(resolve=>server.close(resolve));
+      await rm(dir,{recursive:true,force:true});
+    }
+  },30000);
+});

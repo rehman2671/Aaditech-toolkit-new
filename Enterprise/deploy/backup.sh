@@ -23,7 +23,7 @@ compose() { docker compose -f "$COMPOSE_FILE" "$@"; }
 grep -Eq '^[[:space:]]*image:[[:space:]]*mysql:' "$COMPOSE_FILE" || die "This script only supports the MySQL Docker Compose database service."
 command -v docker >/dev/null 2>&1 || die "Docker is required."
 command -v sha256sum >/dev/null 2>&1 || die "sha256sum is required for backup integrity."
-[[ "$BACKUP_KEEP" =~ ^[0-9]+$ ]] || die "BACKUP_KEEP must be a non-negative integer."
+[[ "$BACKUP_KEEP" =~ ^(0|[1-9][0-9]{0,5})$ ]] || die "BACKUP_KEEP must be a canonical integer from 0 to 999999."
 
 # shellcheck disable=SC1090
 set -a; source "$ENV_FILE"; set +a
@@ -84,6 +84,7 @@ done
 
 [ "$(wc -c < "$TEMP_FILE")" -gt 256 ] || die "Dump is unexpectedly small; refusing to publish it."
 grep -q '^-- MySQL dump' "$TEMP_FILE" || die "Invalid MySQL dump header; refusing to publish it."
+grep -q '^-- Dump completed on ' "$TEMP_FILE" || die "Incomplete MySQL dump; refusing to publish it."
 chmod 600 "$TEMP_FILE"
 # Write the digest before promoting the backup. If interrupted between the two
 # atomic renames, restore refuses the orphaned .sql (no approved sidecar).

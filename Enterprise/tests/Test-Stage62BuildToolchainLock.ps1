@@ -54,8 +54,21 @@ $psSource=[IO.File]::ReadAllText($exeBuilder)
 $wixSource=[IO.File]::ReadAllText($msiBuilder)
 $installPs='Install-Module -Name ps2exe -RequiredVersion '+$lock.ps2exe+' -Repository PSGallery -Force -Scope CurrentUser'
 $installWix='dotnet tool install --global wix --version '+$lock.wix
-if ([regex]::Matches($ci,[regex]::Escape($installPs)).Count -ne 1 -or
-    [regex]::Matches($ci,[regex]::Escape($installWix)).Count -ne 1 -or
+# Both diagnostic jobs must have exactly one reviewed compiler pin each.
+foreach ($jobName in @('agent-build','phase-o-msi-diagnostic')) {
+    $jobPattern='(?ms)^  '+[regex]::Escape($jobName)+':\r?$\n(?<body>.*?)(?=^  [a-z0-9-]+:\r?$|\z)'
+    $jobMatches=[regex]::Matches($ci,$jobPattern)
+    if ($jobMatches.Count -ne 1) { throw 'N62 expected exactly one named diagnostic job.' }
+    $body=$jobMatches[0].Groups['body'].Value
+    foreach ($command in @($installPs,$installWix)) {
+        $commandPattern='(?m)^\s*run: '+[regex]::Escape($command)+'\r?$'
+        if ([regex]::Matches($body,$commandPattern).Count -ne 1) {
+            throw 'N62 named Windows build job lacks the exact approved compiler pin.'
+        }
+    }
+}
+if ([regex]::Matches($ci,[regex]::Escape($installPs)).Count -ne 2 -or
+    [regex]::Matches($ci,[regex]::Escape($installWix)).Count -ne 2 -or
     $ci.IndexOf('Install-Module ps2exe -Force',[StringComparison]::Ordinal) -ge 0 -or
     $ci.IndexOf('wix --version "5.*"',[StringComparison]::Ordinal) -ge 0) {
     throw 'N62 Windows CI may have an unpinned EXE or MSI compiler.'

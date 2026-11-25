@@ -59,6 +59,20 @@ if [ -z "$FILE" ]; then
   FILE="${files[${#files[@]}-1]}"
 fi
 [ -f "$FILE" ] && [ -r "$FILE" ] || die "Backup is not a readable file: $FILE"
+# Import only the privately staged bytes that were actually validated.
+# The operator-supplied path can be replaced while the safety backup runs.
+SOURCE_FILE="$FILE"
+STAGE_DIR="$(mktemp -d)"
+chmod 700 "$STAGE_DIR"
+trap 'rm -rf -- "$STAGE_DIR"' EXIT
+FILE="$STAGE_DIR/$(basename "$SOURCE_FILE")"
+cp -- "$SOURCE_FILE" "$FILE"
+chmod 600 "$FILE"
+if [ -e "$SOURCE_FILE.sha256" ] || [ -L "$SOURCE_FILE.sha256" ]; then
+  [ -f "$SOURCE_FILE.sha256" ] && [ -r "$SOURCE_FILE.sha256" ] || die "Backup SHA-256 sidecar is not readable."
+  cp -- "$SOURCE_FILE.sha256" "$FILE.sha256"
+  chmod 600 "$FILE.sha256"
+fi
 # Validate bytes BEFORE stopping any service or dropping a database. SHA-256
 # detects damaged/incomplete backups, not malicious re-signing by an attacker.
 # The override permits explicitly reviewed old dumps with no digest sidecar;
@@ -83,11 +97,12 @@ fi
 [ "$(head -n 1 "$FILE")" = "-- aaditech-mysql-backup-v1 database=$DB_NAME" ] || die "Backup signature or database name does not match $DB_NAME."
 grep -q '^-- MySQL dump' "$FILE" || die "Not a valid MySQL dump."
 grep -q '^-- Dump completed on ' "$FILE" || die "Backup is truncated (missing completion marker)."
-log "Validated MySQL backup: $FILE"
+log "Validated staged MySQL backup from: $SOURCE_FILE"
 log "Stopping API and Caddy to prevent writes during the restore."
 STOPPED=0
 on_exit() {
   status=$?
+  rm -rf -- "$STAGE_DIR"
   if [ "$status" -ne 0 ] && [ "$STOPPED" -eq 1 ]; then
     compose stop caddy api >/dev/null 2>&1 || true
     printf '%s\n' '[restore][ERROR] Restore did not complete. API/Caddy are stopped to protect the database. Inspect logs and recover from the safety backup before restarting.' >&2

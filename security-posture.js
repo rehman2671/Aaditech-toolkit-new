@@ -3,6 +3,14 @@
 // These observations are device-reported, never MDM/cloud attestation.
 const FRESHNESS_MS = 24 * 60 * 60 * 1000;
 
+// Generic enrolled-agent antivirus evidence must not be misreported as
+// Microsoft Defender telemetry. Names are agent assertions, not MDM proof.
+function observedMicrosoftDefenderName(name) {
+  return typeof name === 'string' &&
+    ['windows defender', 'windows defender antivirus', 'microsoft defender antivirus']
+      .includes(name.trim().toLowerCase());
+}
+
 function status(raw, allowed) {
   const value = typeof raw === 'string' ? raw.trim().toUpperCase() : '';
   return allowed.includes(value) ? value : null;
@@ -47,7 +55,11 @@ export function normalizeAgentPosture(row, now = Date.now()) {
     local_admins_count: null, // No measured privileged local user inventory.
     security_score: score,
     bitlocker_encrypted: encrypted === null ? null : ['PROTECTED', 'ENCRYPTED'].includes(encrypted),
-    defender_realtime_on: antivirus === null ? null : antivirus === 'ACTIVE',
+    antivirus_active: antivirus === null ? null : antivirus === 'ACTIVE',
+    // Only label agent antivirus status "Defender" when the reported product
+    // explicitly names Microsoft Defender; other AVs are unknown, not false.
+    defender_realtime_on: antivirus === null || !observedMicrosoftDefenderName(antivirusName)
+      ? null : antivirus === 'ACTIVE',
     compliance_status: !fresh || !allMeasured ? 'Not verified' :
       healthy ? 'Agent-reported compliant' : 'Agent-reported noncompliant'
   };

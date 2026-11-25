@@ -9,6 +9,7 @@ export function belongsToCurrentTenant(principal, resource) {
 const secretFields = new Set([
   'device_token', 'device_token_hash', 'device_token_prefix',
   'agent_token', 'agent_token_hash', 'agent_token_prefix',
+  'auth_token', 'auth_token_hash', 'auth_token_prefix',
   'bootstrap_token', 'bootstrap_token_hash',
   'api_token', 'password_hash', 'command_signing_key',
   'hmac_secret', 'private_key'

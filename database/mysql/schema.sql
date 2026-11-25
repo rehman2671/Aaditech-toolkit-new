@@ -530,3 +530,91 @@ CREATE TABLE IF NOT EXISTS `notification_outbox` (
   INDEX `idx_notification_ready` (`status`, `available_at`, `lease_expires_at`),
   INDEX `idx_notification_tenant` (`tenant_id`, `status`, `id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Phase O: one bounded, credential-bound app-usage snapshot per device.
+-- Existing Redis data is not imported: its provenance cannot be established.
+CREATE TABLE IF NOT EXISTS device_app_usage_snapshots (
+  device_id VARCHAR(64) NOT NULL,
+  tenant_id VARCHAR(36) NOT NULL,
+  credential_fingerprint CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  payload_json JSON NOT NULL,
+  recorded_at DATETIME(3) NOT NULL,
+  PRIMARY KEY (device_id),
+  INDEX idx_app_usage_tenant (tenant_id, recorded_at),
+  CONSTRAINT fk_app_usage_snapshot_device FOREIGN KEY (device_id) REFERENCES devices(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Phase O review-only recovery reservations. Not an activation grant.
+-- Retain review tombstones; do not cascade them on device deletion.
+CREATE TABLE IF NOT EXISTS device_recovery_reviews (
+  request_id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  tenant_id VARCHAR(36) NOT NULL,
+  device_id VARCHAR(64) NOT NULL,
+  requester_id INT NOT NULL,
+  reviewer_id INT NULL,
+  challenge_sha256 CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  credential_fingerprint CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  evidence_sha256 CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NULL,
+  reviewer_spki_sha256 CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NULL,
+  state ENUM('PENDING','REVIEW_RESERVED') NOT NULL DEFAULT 'PENDING',
+  created_at_ms BIGINT UNSIGNED NOT NULL,
+  expires_at_ms BIGINT UNSIGNED NOT NULL,
+  reviewed_at_ms BIGINT UNSIGNED NULL,
+  review_expires_at_ms BIGINT UNSIGNED NULL,
+  PRIMARY KEY (request_id),
+  UNIQUE KEY uq_recovery_challenge (challenge_sha256),
+  UNIQUE KEY uq_recovery_evidence (evidence_sha256),
+  KEY idx_recovery_device (tenant_id,device_id,expires_at_ms)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- M4 internal technician intake foundation; no employee intake, consent,
+-- diagnosis, attempt execution, repair or resolution is authorized here.
+CREATE TABLE IF NOT EXISTS troubleshooting_incidents (
+  incident_id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  installation_id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  tenant_id VARCHAR(36) NOT NULL,
+  device_id VARCHAR(64) NOT NULL,
+  actor_user_id INT NOT NULL,
+  intake_request_id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  category_id CHAR(5) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  hazard ENUM('UNKNOWN','NONE','PHYSICAL_HAZARD','SUSPECTED_COMPROMISE','DATA_LOSS_RISK','BOOT_OR_ENCRYPTION_DAMAGE') NOT NULL,
+  status ENUM('OPEN','ESCALATED') NOT NULL,
+  opened_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (incident_id),
+  UNIQUE KEY uq_incident_intake (installation_id,tenant_id,actor_user_id,intake_request_id),
+  KEY idx_incident_scope (installation_id,tenant_id,device_id,opened_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Internal diagnostic planning records only; NOT executed attempts.
+CREATE TABLE IF NOT EXISTS troubleshooting_diagnostic_plans (
+  plan_id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  incident_id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  installation_id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  tenant_id VARCHAR(36) NOT NULL,
+  device_id VARCHAR(64) NOT NULL,
+  actor_user_id INT NOT NULL,
+  request_id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  diagnostic_id VARCHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (plan_id),
+  UNIQUE KEY uq_diagnostic_plan_request (incident_id,request_id),
+  KEY idx_diagnostic_plan_scope (installation_id,tenant_id,device_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Internal report-only assignment. No endpoint execution or diagnostic consent.
+-- No inferred ownership, no historical backfill, no automatic reactivation.
+CREATE TABLE IF NOT EXISTS troubleshooting_employee_bindings (
+  binding_id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  installation_id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  tenant_id VARCHAR(36) NOT NULL,
+  device_id VARCHAR(64) NOT NULL,
+  employee_user_id INT NOT NULL,
+  granted_by INT NOT NULL,
+  state ENUM('ACTIVE','REVOKED') NOT NULL,
+  revoked_by INT NULL,
+  created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  revoked_at DATETIME(3) NULL,
+  PRIMARY KEY (binding_id),
+  UNIQUE KEY uq_employee_device_binding (installation_id,tenant_id,device_id,employee_user_id),
+  KEY idx_employee_binding_scope (tenant_id,employee_user_id,state)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

@@ -155,6 +155,7 @@ export const telemetryIngestSchema = z.object({
     client_msg_id: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$/).optional()
   }).passthrough()).max(50).optional(),
   processes: z.array(z.record(z.any())).optional(),
+  app_usage: z.array(z.record(z.any())).max(100).optional(),
   posture: z.object({
     bitlocker_status: z.string().max(32).optional(),
     antivirus_name: z.string().max(128).nullable().optional(),
@@ -182,6 +183,12 @@ export const commandDispatchSchema = z.object({
   path: ["hostname"]
 }).refine(data => data.kind || data.command_type, {
   message: "Command kind or command_type is required",
+  path: ["kind"]
+}).refine(data => ![data.kind, data.command_type].some(value =>
+  typeof value === 'string' && value.trim().toLowerCase() === 'reboot'), {
+  // A queued reboot is not independent device-owner consent or an approved
+  // maintenance window. Deny until a reviewed authorization flow exists.
+  message: "REBOOT_APPROVAL_REQUIRED: direct reboot dispatch is disabled",
   path: ["kind"]
 });
 

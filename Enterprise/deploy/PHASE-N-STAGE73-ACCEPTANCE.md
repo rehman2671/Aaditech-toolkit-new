@@ -1,0 +1,30 @@
+# Phase N Stage 73 — Complete GitHub governance ruleset enumeration
+
+**Status: CODE PROPOSED / PR validation pending (2026-11-23 IST). Production signing and deployment NOT APPROVED.**
+
+## Gap and security boundary
+
+N71's live production-signing verifier previously read only the first default GitHub REST ruleset page. A repository with enough policies to paginate could hide an additional effective `main` ruleset (including a bypass actor) beyond the first page. Passing N71 on incomplete policy enumeration is not a valid production authorization.
+
+N73 requires an exact positive `main` branch policy (`refs/heads/main`, `~DEFAULT_BRANCH`, or `~ALL`) to prove safeguards: otherwise a fully strict rule for `refs/heads/release/*` could falsely authorize production signing on a separately protected `main`. Ambiguous wildcard patterns remain candidates for bypass/exclusion audit, but their safeguards do not contribute to the positive authorization.
+
+N73 also rejects hidden active branch-scope rulesets, including conservative glob and symbolic-ref patterns, additional exclusions and malformed scope alongside an otherwise compliant policy. This may require administrator review of unrelated wildcard rulesets instead of assuming they cannot apply to main.
+
+N73 replaces first-page-only reads with bounded, exact GitHub REST pagination: 100 entries per page, no implicit truncation, per-page and page parameters explicit, fail-closed on an unexpected page response, invalid or repeated ruleset IDs, more than ten full pages, HTTP permission failures, and mismatched details. Rule details are fetched in groups of ten to avoid unlimited parallel API calls. The full paginated inventory and its detailed rules are read twice; any drift, mismatch, or changed main branch SHA/protected flag or repository identity during the check fails closed. This mitigates check-time drift; GitHub cannot offer an atomic policy snapshot or prevent changes immediately after verification. Existing N71 strict independent reviewer and all-five-check policy remains unchanged.
+
+Offline `node --test tests/unit/stage73-ruleset-pagination.test.cjs` verifies a hidden second-page bypass denial, duplicates/malformed IDs, inconsistent details, 403 on a subsequent page, over-limit refusal, wildcard-only positive-proof denial, wildcard/exclusion bypass denial, malformed adjacent policy denial, branch/policy race denial, and a complete valid single-page policy. `npm run lint` includes these tests so the existing Node CI jobs execute them.
+
+## Live acceptance (not satisfied by this code change)
+
+- [ ] Exact PR head full CI and deployment-safety jobs green; merge only after review.
+- [ ] Fresh merged-main diagnostic Windows MSI and safety checks green.
+- [ ] Authorized repository administrator applies an independently reviewed **active** `main` ruleset with no bypass and five strictly current official Actions checks.
+- [ ] A release-security owner resolves privileged read access to `bypass_actors` without sharing an administration-write token with general CI.
+- [ ] Independently approved signing archives, real signed release, Hostinger HTTPS + MySQL, physical Windows enrollment and encrypted offsite restore are verified with operator receipts.
+
+N73 deliberately does not change GitHub settings, provision credentials, claim signed artifacts, or trigger a production deployment. See [admin handoff](MAIN-RULESET-ADMIN-HANDOFF.md) and [production checklist](PHASE-N-PRODUCTION-RELEASE-CHECKLIST.md).
+
+
+### Phase O residual transport hardening (2026-11-25 IST)
+
+The active #109 integration baseline already contains the two complete policy reads. This follow-up retains them and adds fixed-origin continuation on a short page with a `Link` next relation (never follows the provided URL), redirect refusal, uncached requests, empty nonterminal-page refusal, complete ruleset detail shape checks and summary/detail target/enforcement consistency. Four additional offline regression tests cover these boundaries. Exact-head CI and independent review remain pending; no live policy or production approval is asserted.

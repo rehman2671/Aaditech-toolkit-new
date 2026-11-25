@@ -67,8 +67,8 @@ export async function postPinnedWebhook(url, options, resolver = dns.lookup) {
 
 export function scopedAlertRules(tenantId, rules) {
   if (typeof tenantId !== 'string' || tenantId.trim() === '' || !Array.isArray(rules)) return [];
-  return rules.filter(rule => rule && Boolean(rule.enabled) &&
-    String(rule.tenant_id || '') === tenantId);
+  return rules.filter(rule => rule && (rule.enabled === true || rule.enabled === 1) &&
+    rule.tenant_id === tenantId);
 }
 
 export function isApprovedWebhookUrl(rawUrl, allowedHosts = process.env.WEBHOOK_ALLOWED_HOSTS || '') {
@@ -87,7 +87,7 @@ export async function deliverTenantWebhook(
   tenantId, config, event, fetcher = postPinnedWebhook,
   allowedHosts = process.env.WEBHOOK_ALLOWED_HOSTS || ''
 ) {
-  if (!tenantId || !config?.enabled) return { dispatched: false, reason: 'DISABLED' };
+  if (typeof tenantId !== 'string' || !tenantId.trim() || config?.enabled !== true) return { dispatched: false, reason: 'DISABLED' };
   if (!isApprovedWebhookUrl(config.url, allowedHosts)) {
     return { dispatched: false, reason: 'WEBHOOK_URL_NOT_APPROVED' };
   }
@@ -114,5 +114,6 @@ export async function deliverTenantWebhook(
     redirect: 'error',
     signal: AbortSignal.timeout(5000)
   });
-  return { dispatched: Boolean(response.ok), status_code: response.status };
+  const status = Number.isInteger(response?.status) ? response.status : null;
+  return { dispatched: response?.ok === true && status !== null && status >= 200 && status < 300, status_code: status };
 }

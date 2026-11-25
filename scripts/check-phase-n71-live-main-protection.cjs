@@ -17,8 +17,27 @@ function mainTarget(rule) {
   const ref = rule.conditions?.ref_name;
   if (!Array.isArray(ref?.include) || !Array.isArray(ref?.exclude)) return false;
   const needles = ['~DEFAULT_BRANCH', '~ALL', 'refs/heads/main'];
-  // Fail closed on ANY exclude: it may be a glob matching main (e.g. refs/heads/*).
-  return ref.include.some(x => needles.includes(x)) && ref.exclude.length === 0;
+  // N73: a wildcard/unknown symbolic ref might match main. Treat it as
+  // potentially applicable instead of silently ignoring an additional
+  // policy with bypass actors. Deliberately conservative: unrelated glob
+  // policies can block signing until reviewed, but never authorize it.
+  // Do not filter exclusions here: any exclusion on a candidate is a blocker.
+  return ref.include.some(x =>
+    typeof x === 'string' &&
+    (needles.includes(x) || /[*?\[\]{}\\]/.test(x) || x.startsWith('~')));
+}
+// Only an EXACT, GitHub-documented scope is affirmative evidence of a
+// protected main branch. A wildcard *may* match main and therefore must
+// be audited for bypass, but cannot itself establish enforcement: e.g.
+// refs/heads/release/* never covers main even if branch.protected is true
+// due to a weaker, unrelated protection mechanism.
+function confirmedMainTarget(rule) {
+  if (!rule || rule.enforcement !== 'active' || rule.target !== 'branch') return false;
+  const ref = rule.conditions?.ref_name;
+  if (!Array.isArray(ref?.include) || !Array.isArray(ref?.exclude) ||
+      ref.exclude.length !== 0) return false;
+  return ref.include.some(x =>
+    x === '~DEFAULT_BRANCH' || x === '~ALL' || x === 'refs/heads/main');
 }
 function evaluate(snapshot, expectedSha, repoName) {
   const blockers = [];
@@ -35,11 +54,28 @@ function evaluate(snapshot, expectedSha, repoName) {
   }
   const rulesets = Array.isArray(snapshot?.rulesets) ? snapshot.rulesets : [];
   const applicable = rulesets.filter(mainTarget);
-  if (applicable.length === 0) blockers.push('no effective active main branch ruleset');
+  const confirmed = applicable.filter(confirmedMainTarget);
+  if (confirmed.length === 0) {
+    blockers.push('no confirmed active main branch ruleset with exact main scope');
+  }
+  // Incomplete active branch metadata is not evidence that a ruleset is
+  // unrelated to main. Neither are unreviewed excludes or malformed globs.
+  if (rulesets.some(r => r?.enforcement === 'active' && r?.target === 'branch' &&
+      (!Array.isArray(r.conditions?.ref_name?.include) ||
+       !Array.isArray(r.conditions?.ref_name?.exclude) ||
+       r.conditions.ref_name.include.some(x => typeof x !== 'string') ||
+       r.conditions.ref_name.exclude.some(x => typeof x !== 'string')))) {
+    blockers.push('active branch ruleset scope is incomplete or unverifiable');
+  }
+  if (applicable.some(r => r.conditions.ref_name.exclude.length !== 0)) {
+    blockers.push('potential main ruleset has unapproved branch exclusions');
+  }
   if (applicable.some(r => !Array.isArray(r.bypass_actors) || r.bypass_actors.length !== 0)) {
     blockers.push('missing bypass evidence or bypass actor is allowed');
   }
-  const all = applicable.flatMap(r => Array.isArray(r.rules) ? r.rules : []);
+  // Only rulesets known to cover main may satisfy mandatory PR/review/status
+  // safeguards; ambiguous wildcard policies are still audited for bypasses.
+  const all = confirmed.flatMap(r => Array.isArray(r.rules) ? r.rules : []);
   if (!all.some(r => r.type === 'non_fast_forward') || !all.some(r => r.type === 'deletion')) {
     blockers.push('force-push and deletion prevention are incomplete');
   }
@@ -70,9 +106,11 @@ function evaluate(snapshot, expectedSha, repoName) {
   }
   return Object.freeze({ allowed: blockers.length === 0, blockers });
 }
-async function github(path, token) {
+async function github(path, token, pageMetadata = {}) {
   const resp = await fetch('https://api.github.com' + path, {
     method: 'GET',
+    redirect: 'error',
+    cache: 'no-store',
     headers: {
       Accept: 'application/vnd.github+json',
       'User-Agent': 'aaditech-n71-readonly-governance-audit',
@@ -82,20 +120,93 @@ async function github(path, token) {
     signal: AbortSignal.timeout(15000)
   });
   if (!resp.ok) throw new Error('N71 cannot verify required GitHub governance metadata (HTTP ' + resp.status + ')');
+  // Never follow an arbitrary URL supplied in a pagination Link header.
+  // Its next relation only instructs the caller to request the next fixed page.
+  const link = resp.headers.get('link') || '';
+  pageMetadata.hasNext = /;\s*rel\s*=\s*"?next"?(?:\s*[,;]|\s*$)/i.test(link);
   return resp.json();
 }
-async function readLiveSnapshot(repo, token) {
+// GitHub paginates repository rulesets. A first-page-only inspection is not
+// admissible for protected signing: a later page could hide a main bypass.
+// Reject truncated/duplicate/inconsistent responses instead of assuming safety.
+const RULESET_PAGE_SIZE = 100;
+const MAX_RULESET_PAGES = 10;
+// A ruleset list and individual rule details are not an atomic GitHub
+// snapshot. Read them twice; do not bless a policy changed mid-verification.
+// Both passes are bounded and any disagreement denies production admission.
+async function readPolicyInventory(prefix, token, request) {
+  const summaries = [];
+  const seenIds = new Set();
+  for (let page = 1; page <= MAX_RULESET_PAGES; page++) {
+    const pageMetadata = {};
+    const batch = await request(prefix +
+      '/rulesets?includes_parents=true&per_page=' + RULESET_PAGE_SIZE + '&page=' + page, token, pageMetadata);
+    if (!Array.isArray(batch) || batch.length > RULESET_PAGE_SIZE) {
+      throw new Error('N73 incomplete or invalid GitHub ruleset page');
+    }
+    for (const item of batch) {
+      if (!Number.isSafeInteger(item?.id) || item.id <= 0 || seenIds.has(item.id)) {
+        throw new Error('N73 missing or duplicate GitHub ruleset identifier');
+      }
+      seenIds.add(item.id);
+      summaries.push(item);
+    }
+    if (batch.length === 0 && pageMetadata.hasNext === true) {
+      throw new Error('N73 empty nonterminal GitHub ruleset page');
+    }
+    if (batch.length < RULESET_PAGE_SIZE && pageMetadata.hasNext !== true) break;
+    if (page === MAX_RULESET_PAGES) {
+      throw new Error('N73 GitHub ruleset page limit exceeded; governance cannot be proven');
+    }
+  }
+  const rulesets = [];
+  // Bounded fetch concurrency avoids unbounded fan-out on large repositories.
+  for (let offset = 0; offset < summaries.length; offset += 10) {
+    const part = summaries.slice(offset, offset + 10);
+    const details = await Promise.all(part.map(item =>
+      request(prefix + '/rulesets/' + item.id, token)));
+    for (let i = 0; i < part.length; i++) {
+      if (!details[i] || details[i].id !== part[i].id) {
+        throw new Error('N73 ruleset details do not match enumerated policy identity');
+      }
+      const detail = details[i];
+      if (!['branch', 'tag', 'push'].includes(detail.target) ||
+          !['active', 'evaluate', 'disabled'].includes(detail.enforcement) ||
+          !Array.isArray(detail.rules) || detail.rules.some(rule =>
+            !rule || typeof rule.type !== 'string' || !rule.type.trim()) ||
+          (part[i].target !== undefined && part[i].target !== detail.target) ||
+          (part[i].enforcement !== undefined && part[i].enforcement !== detail.enforcement)) {
+        throw new Error('N73 incomplete or inconsistent ruleset detail metadata');
+      }
+      rulesets.push(detail);
+    }
+  }
+  return { summaries, rulesets };
+}
+async function readLiveSnapshot(repo, token, request = github) {
   if (!REPO.test(repo || '')) throw new Error('N71 requires an exact owner/repository identity');
   const prefix = '/repos/' + repo;
-  const repository = await github(prefix, token);
-  const branch = await github(prefix + '/branches/main', token);
-  const summaries = await github(prefix + '/rulesets?includes_parents=true', token);
-  if (!Array.isArray(summaries)) throw new Error('N71 invalid GitHub ruleset response');
-  const rulesets = await Promise.all(summaries.map(async r => {
-    if (!Number.isInteger(r.id)) throw new Error('N71 invalid ruleset identifier');
-    return github(prefix + '/rulesets/' + r.id, token);
-  }));
-  return { repository, branch, rulesets };
+  const originalRepository = await request(prefix, token);
+  const originalBranch = await request(prefix + '/branches/main', token);
+  const initial = await readPolicyInventory(prefix, token, request);
+  const confirmed = await readPolicyInventory(prefix, token, request);
+  // GitHub responses are JSON; compare complete policy evidence rather than
+  // just IDs or a few approved settings. Even reordering fails closed.
+  if (JSON.stringify(initial) !== JSON.stringify(confirmed)) {
+    throw new Error('N73 main governance ruleset inventory changed during verification');
+  }
+  // Check the branch last so a main push or protection change during the
+  // policy reads is not accepted based on the initial branch snapshot.
+  const branch = await request(prefix + '/branches/main', token);
+  const repository = await request(prefix, token);
+  if (originalRepository?.full_name !== repository?.full_name ||
+      originalRepository?.default_branch !== repository?.default_branch ||
+      originalBranch?.name !== branch?.name ||
+      originalBranch?.protected !== branch?.protected ||
+      originalBranch?.commit?.sha !== branch?.commit?.sha) {
+    throw new Error('N73 main branch or repository changed during governance verification');
+  }
+  return { repository, branch, rulesets: confirmed.rulesets };
 }
 async function live(repo, sha, token) {
   if (!REPO.test(repo || '') || !SHA.test(sha || '') ||
@@ -128,4 +239,4 @@ async function main(argv = process.argv) {
 if (require.main === module) {
   main().then(code => { process.exitCode = code; }).catch(() => { process.exitCode = 1; });
 }
-module.exports = { REQUIRED_CHECKS, GH_APP_ID, mainTarget, evaluate, readLiveSnapshot, live, main };
+module.exports = { REQUIRED_CHECKS, GH_APP_ID, mainTarget, confirmedMainTarget, evaluate, readLiveSnapshot, live, main };

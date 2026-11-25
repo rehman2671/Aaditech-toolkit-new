@@ -6,7 +6,7 @@ import { deliverTenantEmail } from './smtp-alerts.js';
 import { matchesQueuedDestination } from './notification-destination.js';
 
 export async function deliverOutboxEntry(row, adapters = {}) {
-  if (!row?.tenant_id || !['webhook', 'email'].includes(row.channel)) {
+  if (typeof row?.tenant_id !== 'string' || !row.tenant_id.trim() || !['webhook', 'email'].includes(row.channel)) {
     return { outcome: 'SKIPPED', reason: 'INVALID_OUTBOX_TARGET' };
   }
   let event;
@@ -22,31 +22,31 @@ export async function deliverOutboxEntry(row, adapters = {}) {
 
   if (row.channel === 'webhook') {
     const config = await (adapters.getWebhookConfig || db.getTenantWebhookConfig)(row.tenant_id);
-    if (!config?.enabled) return { outcome: 'SKIPPED', reason: 'DISABLED' };
+    if (config?.enabled !== true) return { outcome: 'SKIPPED', reason: 'DISABLED' };
     // Historical NULL rows and reconfigured destinations must never be sent
     // to the new tenant endpoint, even with a fresh opt-in.
-    if (!(adapters.verifyDestination || matchesQueuedDestination)(row, config)) {
+    if ((adapters.verifyDestination || matchesQueuedDestination)(row, config) !== true) {
       return { outcome: 'SKIPPED', reason: 'DESTINATION_CHANGED_OR_UNBOUND' };
     }
     const result = await (adapters.sendWebhook || deliverTenantWebhook)(
       row.tenant_id, config, event
     );
-    if (result.dispatched) return { outcome: 'DELIVERED' };
+    if (result?.dispatched === true) return { outcome: 'DELIVERED' };
     if (['WEBHOOK_URL_NOT_APPROVED', 'WEBHOOK_PAYLOAD_TOO_LARGE', 'DISABLED']
-      .includes(result.reason)) return { outcome: 'SKIPPED', reason: result.reason };
+      .includes(result?.reason)) return { outcome: 'SKIPPED', reason: result.reason };
     return { outcome: 'RETRY', reason: 'WEBHOOK_DELIVERY_FAILED' };
   }
 
   const config = await (adapters.getEmailConfig || db.getTenantEmailConfig)(row.tenant_id);
-  if (!config?.enabled) return { outcome: 'SKIPPED', reason: 'DISABLED' };
-  if (!(adapters.verifyDestination || matchesQueuedDestination)(row, config)) {
+  if (config?.enabled !== true) return { outcome: 'SKIPPED', reason: 'DISABLED' };
+  if ((adapters.verifyDestination || matchesQueuedDestination)(row, config) !== true) {
     return { outcome: 'SKIPPED', reason: 'DESTINATION_CHANGED_OR_UNBOUND' };
   }
   const result = await (adapters.sendEmail || deliverTenantEmail)(
     row.tenant_id, config, event
   );
-  if (result.accepted) return { outcome: 'DELIVERED' };
-  if (['RECIPIENT_NOT_APPROVED', 'DISABLED'].includes(result.reason)) {
+  if (result?.accepted === true) return { outcome: 'DELIVERED' };
+  if (['RECIPIENT_NOT_APPROVED', 'DISABLED'].includes(result?.reason)) {
     return { outcome: 'SKIPPED', reason: result.reason };
   }
   return { outcome: 'RETRY', reason: 'SMTP_DELIVERY_FAILED' };
@@ -60,8 +60,8 @@ export async function runNotificationOutboxBatch(adapters = {}) {
   const empty = { processed: 0, delivered: 0, skipped: 0, retried: 0, lostLease: 0 };
   if (!Array.isArray(rows) || !rows.length) return empty;
   const counts = { ...empty };
-  // Five concurrent messages => max ~25 seconds per 20-item batch under
-  // per-recipient 5/12 sec timeouts; DB lease is 90 seconds.
+  // Five concurrent messages per group; DB claim lease is 300 seconds.
+  // External delivery remains at-least-once if a crash occurs before the ACK.
   for (let i = 0; i < rows.length; i += 5) {
     await Promise.all(rows.slice(i, i + 5).map(async row => {
       let outcome;

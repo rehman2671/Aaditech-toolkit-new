@@ -78,7 +78,7 @@ describe('Stage N25 device metric provenance and non-synthetic predictions', () 
     });
     expect(analyzeMeasuredTelemetry(samples([110, 108, 106]), device, now)
       .projected_days_until_full).toBeNull();
-    const stable = analyzeMeasuredTelemetry(samples([100, 101, 102, 103, 105]), device, now);
+    const stable = analyzeMeasuredTelemetry(samples([100, 101, 102, 103, 105]), {...device,disk_free:'105 GB'}, now);
     expect(stable.status).toBe('NO_DEPLETION_TREND');
     expect(stable.projected_days_until_full).toBeNull();
     expect(stable.daily_growth_gb).toBe(0);
@@ -212,4 +212,24 @@ describe('Stage N25 device metric provenance and non-synthetic predictions', () 
     expect(server).toContain('now - observed <= 15 * 60_000');
   });
 
+});
+
+describe('Phase O predictive evidence integrity',()=>{
+  const device={...measuredDevice,disk_free:'100 GB',cpu_usage:'20%',memory_usage:'50%'};
+  const good=samples([110,108,106,103,100]);
+  it('counts unique observations rather than duplicate rows',()=>{
+    const repeated=[...good.slice(0,3),...good.slice(0,3)];
+    expect(analyzeMeasuredTelemetry(repeated,device,now)).toMatchObject({sample_count:3,status:'INSUFFICIENT_DATA',anomaly_score:null});
+    expect(analyzeMeasuredTelemetry([...good,...good],device,now)).toMatchObject({sample_count:5,status:'ANALYZED',conflicting_sample_times:0});
+  });
+  it('refuses conflicting timestamps and revoked credential predictions',()=>{
+    expect(analyzeMeasuredTelemetry([...good,{...good[0],disk_free_gb:999}],device,now)).toMatchObject({status:'INSUFFICIENT_DATA',conflicting_sample_times:1,projected_days_until_full:null});
+    expect(analyzeMeasuredTelemetry(good,{...device,agent_token_revoked:true},now)).toMatchObject({status:'INSUFFICIENT_DATA',health_rating:'Unrated',anomaly_score:null});
+  });
+  it('keeps disk forecast separate from incomplete composite health',()=>{
+    const r=analyzeMeasuredTelemetry(good,{...device,memory_usage:null},now);
+    expect(r.status).toBe('ANALYZED');expect(r.projected_days_until_full).toBeGreaterThan(0);
+    expect(r.anomaly_score).toBeNull();expect(r.health_rating).toBe('Unrated');
+    expect(analyzeMeasuredTelemetry(good,{...device,cpu_usage:null},now).health_rating).toBe('Unrated');
+  });
 });

@@ -1,5 +1,8 @@
 # Enterprise Deployment & Operations Guide
 
+> **HISTORICAL OPERATIONS GUIDE — NOT A ONE-CLICK LAN INSTALLER (2026-11-23):** Confirmed current stack is Node.js/Express + MySQL 8. Supported code path `Enterprise/deploy/deploy-mysql.sh` currently targets a real public DNS/ACME Docker host; legacy LAN deployment scripts intentionally refuse incompatible PostgreSQL/FastAPI assumptions. See [intranet-first architecture](../product/INTRANET-ARCHITECTURE.md) and [target installer/acceptance specification](../product/INSTALLER-AND-SETUP-ACCEPTANCE.md) before any office deployment. No real-office LAN acceptance has been certified.
+
+
 ---
 
 ## 1. Prerequisites & Hosting Environment

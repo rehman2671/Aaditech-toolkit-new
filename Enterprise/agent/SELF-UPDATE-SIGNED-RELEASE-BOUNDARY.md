@@ -1,0 +1,9 @@
+# P0: Disable unverified elevated MSI self-update
+
+The installed `Agent-Collect.ps1` worker previously downloaded `/api/agent/msi?hostname=...` to `$env:TEMP/IT-Toolkit-Agent-update.msi` then executed elevated `msiexec` without SHA-256, Authenticode or trusted publisher pin checks. This bypassed the direct installer gates proposed in PR #95. Under NETWORK SERVICE the worker could stage a job and report success even though no signed update was installed.
+
+`Update-AgentIfNeeded` is now **fail-closed** and does not download, stage, execute or claim successful unattended update. Every automatic attempt logs `AUTO_UPDATE_RELEASE_APPROVAL_REQUIRED`. Any historical privileged update task invoking the function also refuses automatically. This intentionally disables an insecure capability, NOT completion of auto-updates.
+
+Proper future updates require: independently authenticated publisher-signed MSI; matching out-of-band release hash/cert identity; secure immutable privileged staging with no TOCTOU; version/rollback and explicit tenant/device approval; real signed Windows MSI install/upgrade witness; release governance [#62](https://github.com/rehman2671/Aaditech-toolkit-new/issues/62). A signed telemetry transport or server-supplied matching checksum is NOT release approval. Offline LAN [#80](https://github.com/rehman2671/Aaditech-toolkit-new/issues/80) and stack ADR [#79](https://github.com/rehman2671/Aaditech-toolkit-new/issues/79) remain blockers. Manual signed MSI verification and protected enrollment remain separate review tasks.
+
+Native Windows `Enterprise/tests/Test-SelfUpdateDefaultDeny.ps1` extracts and executes only the self-update function, stubs install/download/delegation to throw and ensures default-deny. Node contract `tests/unit/agent-self-update-default-deny.test.js` disallows reintroduction of elevated `msiexec` or temp MSI download. No real Windows endpoint was changed.

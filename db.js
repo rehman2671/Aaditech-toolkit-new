@@ -7,6 +7,10 @@ import { extractMeasurements, deviceMetricView } from './device-metrics.js';
 import bcrypt from 'bcrypt';
 import { fileURLToPath } from 'url';
 import { getAgentVersion } from './agent-artifacts.js';
+import { classifyDeviceCredentialRecovery, isCredentialDeviceId, credentialDbCount } from './enrollment-security.js';
+import { appUsageCredentialCacheKey } from './telemetry-security.js';
+import { withSchemaMigrationLock } from './schema-migration-lock.js';
+import { planMigrationHistory } from './schema-migration-integrity.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -88,6 +92,9 @@ export async function cacheDelPattern(pattern) {
   }
 }
 
+// All real deployments must use persistent MySQL. Only an explicitly
+// isolated automated test profile may use the demo/memory SQL emulator.
+// Unset/development/staging NODE_ENV is never proof of a safe test harness.
 // ---------------- MYSQL INITIALIZATION & RESILIENCE ----------------
 let isConnecting = false;
 let dbHealthCheckTimer = null;
@@ -96,7 +103,7 @@ export async function attemptConnection() {
   if (isConnecting) return isConnected;
   // Read/validate configuration BEFORE setting isConnecting. A validation
   // failure must not poison all future health-check/reconnect attempts.
-  if (process.env.NODE_ENV === 'production') {
+  if (process.env.NODE_ENV !== 'test') {
     for (const name of ['DB_HOST', 'DB_USER', 'DB_PASSWORD', 'DB_NAME']) {
       if (!process.env[name] || !process.env[name].trim()) {
         throw new Error(`${name} must be explicitly configured in production`);
@@ -112,7 +119,7 @@ export async function attemptConnection() {
   const poolSize = parseInt(process.env.DB_POOL_SIZE || '20', 10);
   // Device identity advisory locks pin one connection temporarily; require
   // at least one additional connection for the protected DB operations.
-  if (process.env.NODE_ENV === 'production') {
+  if (process.env.NODE_ENV !== 'test') {
     if (!Number.isInteger(port) || port < 1 || port > 65535) {
       throw new Error('DB_PORT must be a valid TCP port in production');
     }
@@ -153,7 +160,7 @@ export async function attemptConnection() {
     try {
       await newPool.query('SELECT 1 + 1 AS solution');
     } catch (conErr) {
-      if (process.env.NODE_ENV !== 'production' && (conErr.code === 'ECONNREFUSED' || conErr.message?.includes('ECONNREFUSED')) && (host === '127.0.0.1' || host === 'localhost')) {
+      if (process.env.NODE_ENV === 'test' && (conErr.code === 'ECONNREFUSED' || conErr.message?.includes('ECONNREFUSED')) && (host === '127.0.0.1' || host === 'localhost')) {
         try {
           const { execSync } = await import('node:child_process');
           execSync('/etc/init.d/mariadb start', { stdio: 'ignore' });
@@ -168,12 +175,13 @@ export async function attemptConnection() {
     }
 
     pool = newPool;
+    isConnected = false;
+    // Keep the service unavailable until the locked migration history and
+    // all pending migrations are verified. A TCP connection alone is not ready.
+    await runDatabaseMigrationsOnPool(newPool);
     isConnected = true;
     isConnecting = false;
     console.log(`✅ Connected successfully to MySQL Database (${host}:${port}/${database}) [Pool size: ${poolSize}]!`);
-
-    // Automatically synchronize schema & ensure seed records
-    await runMigrationsAndSeed();
     return true;
   } catch (err) {
     isConnected = false;
@@ -241,8 +249,8 @@ export async function initDbPool(options = {}) {
   for (let attempt = 1; attempt <= attempts; attempt++) {
     try {
       console.log(`[DB Boot] Connection attempt ${attempt}/${attempts}...`);
-      await attemptConnection();
-      return true;
+      if (await attemptConnection()) return true;
+      throw new Error('DB_SCHEMA_INITIALIZATION_IN_PROGRESS');
     } catch (err) {
       console.log(`[DB Boot] MySQL connection attempt ${attempt}/${attempts} not ready: ${err.message}`);
       if (attempt < attempts) {
@@ -255,10 +263,6 @@ export async function initDbPool(options = {}) {
 
   console.log('[DB Boot] Initial DB connection attempts finished. Operating in resilient fallback mode; periodic background health-check active.');
   return false;
-}
-
-async function runMigrationsAndSeed() {
-  return runDatabaseMigrations();
 }
 
 // ---------------- ENTERPRISE SCHEMA MIGRATION RUNNER ----------------
@@ -280,28 +284,23 @@ export async function runDatabaseMigrations() {
       memAppliedMigrations.add('013');
       memAppliedMigrations.add('014');
       memAppliedMigrations.add('015');
+      memAppliedMigrations.add('016');
+      memAppliedMigrations.add('017');
+      memAppliedMigrations.add('018');
+      memAppliedMigrations.add('019');
+      memAppliedMigrations.add('020');
     }
-    return { applied: [], skipped: ['001_init_schema.sql', '002_partitioning.sql', '003_rbac_and_audit.sql', '004_workspace_memberships.sql', '005_remediation_tenant_logs.sql', '006_notification_outbox.sql', '007_scrub_legacy_github_pat.sql', '008_scrub_legacy_ticket_keys.sql', '009_notification_destination_binding.sql', '010_events_tenant_device_identity.sql', '011_security_posture_provenance.sql', '012_measured_device_telemetry.sql', '013_events_idempotency.sql', '014_telemetry_batches.sql', '015_batch_receipt_retention_index.sql'], status: 'FALLBACK_MODE' };
+    return { applied: [], skipped: ['001_init_schema.sql', '002_partitioning.sql', '003_rbac_and_audit.sql', '004_workspace_memberships.sql', '005_remediation_tenant_logs.sql', '006_notification_outbox.sql', '007_scrub_legacy_github_pat.sql', '008_scrub_legacy_ticket_keys.sql', '009_notification_destination_binding.sql', '010_events_tenant_device_identity.sql', '011_security_posture_provenance.sql', '012_measured_device_telemetry.sql', '013_events_idempotency.sql', '014_telemetry_batches.sql', '015_batch_receipt_retention_index.sql', '016_app_usage_snapshot.sql', '017_device_recovery_reviews.sql', '018_troubleshooting_incidents.sql', '019_troubleshooting_diagnostic_plans.sql', '020_troubleshooting_employee_bindings.sql'], status: 'FALLBACK_MODE' };
   }
 
-  let lockAcquired = false;
-  const result = { applied: [], skipped: [] };
+  return runDatabaseMigrationsOnPool(pool);
+}
 
-  try {
-    // 1. Acquire distributed advisory lock to prevent concurrent execution across instances
-    try {
-      const [lockRows] = await pool.query("SELECT GET_LOCK('itk_schema_migrations_lock', 15) AS locked");
-      lockAcquired = lockRows && lockRows[0] && lockRows[0].locked === 1;
-      if (!lockAcquired) {
-        console.warn('⚠️ [Migrations] Advisory lock timeout (15s); another instance is currently migrating.');
-        return { applied: [], skipped: [], error: 'LOCK_TIMEOUT' };
-      }
-    } catch (lockErr) {
-      console.warn('⚠️ [Migrations] Advisory lock check note:', lockErr.message);
-    }
-
+async function runDatabaseMigrationsOnPool(activePool) {
+  return withSchemaMigrationLock(activePool, async connection => {
+    const result = { applied: [], skipped: [] };
     // 2. Ensure schema_migrations tracking table exists
-    await pool.query(`
+    await connection.query(`
       CREATE TABLE IF NOT EXISTS \`schema_migrations\` (
         \`version\` VARCHAR(64) NOT NULL,
         \`name\` VARCHAR(255) NOT NULL,
@@ -313,85 +312,71 @@ export async function runDatabaseMigrations() {
     `);
 
     // 3. Fetch already applied versions
-    const [appliedRows] = await pool.query("SELECT version FROM `schema_migrations`");
-    const appliedVersions = new Set((appliedRows || []).map(r => String(r.version)));
+    const [appliedRows] = await connection.query("SELECT version, name, checksum FROM `schema_migrations`");
 
     // 4. Discover and order migration files
     const migrationsDir = path.join(__dirname, 'database', 'migrations');
     if (!fs.existsSync(migrationsDir)) {
       console.warn('⚠️ [Migrations] Directory not found:', migrationsDir);
-      return result;
+      throw new Error('MIGRATION_DIRECTORY_MISSING');
     }
 
     const migrationFiles = fs.readdirSync(migrationsDir)
       .filter(f => f.endsWith('.sql') && !f.startsWith('.'))
       .sort();
 
-    for (const file of migrationFiles) {
-      const version = file.split('_')[0];
-      if (appliedVersions.has(version)) {
-        result.skipped.push(file);
-        continue;
-      }
-
+    const history = planMigrationHistory(migrationFiles.map(name => ({
+      name, sql: fs.readFileSync(path.join(migrationsDir, name), 'utf8')
+    })), appliedRows);
+    result.skipped.push(...history.applied.map(f => f.name));
+    for (const prior of history.applied) memAppliedMigrations.add(prior.version);
+    for (const { version, name: file, sql, checksum: hash } of history.pending) {
       console.log(`[Migrations] Applying migration: ${file}...`);
-      const filePath = path.join(migrationsDir, file);
-      const sql = fs.readFileSync(filePath, 'utf8');
-      const hash = crypto.createHash('sha256').update(sql).digest('hex');
 
       const t0 = Date.now();
-      await pool.query(sql);
+      await connection.query(sql);
       const elapsed = Date.now() - t0;
 
-      await pool.query(
+      await connection.query(
         "INSERT INTO `schema_migrations` (`version`, `name`, `execution_time_ms`, `checksum`, `applied_at`) VALUES (?, ?, ?, ?, NOW(3))",
         [version, file, elapsed, hash]
       );
 
       result.applied.push({ version, name: file, execution_time_ms: elapsed });
-      appliedVersions.add(version);
       memAppliedMigrations.add(version);
       console.log(`[Migrations] ✅ Applied ${file} in ${elapsed}ms (checksum: ${hash.slice(0, 8)})`);
     }
 
     // 5. Ensure device_uid column and indexes are present
     try {
-      await pool.query("ALTER TABLE devices ADD COLUMN device_uid VARCHAR(128) NULL AFTER hostname");
+      await connection.query("ALTER TABLE devices ADD COLUMN device_uid VARCHAR(128) NULL AFTER hostname");
     } catch (_) {}
     try {
-      await pool.query("CREATE INDEX idx_devices_uid ON devices (device_uid)");
+      await connection.query("CREATE INDEX idx_devices_uid ON devices (device_uid)");
     } catch (_) {}
     try {
-      await pool.query("CREATE INDEX idx_cmd_dev_status_disp ON command_queue (device_id, status, dispatched_at)");
+      await connection.query("CREATE INDEX idx_cmd_dev_status_disp ON command_queue (device_id, status, dispatched_at)");
     } catch (_) {}
 
     // 6. Pre-create upcoming monthly partitions and prune expired partitions
-    await maintainTelemetryPartitions();
+    await maintainTelemetryPartitions(30, connection);
 
     console.log(`[Migrations] Migration status: ${result.applied.length} applied, ${result.skipped.length} up to date.`);
     return result;
-  } catch (err) {
-    console.error('❌ [Migrations] Migration execution failed:', err.message);
-    throw err;
-  } finally {
-    if (lockAcquired && pool) {
-      try {
-        await pool.query("SELECT RELEASE_LOCK('itk_schema_migrations_lock')");
-      } catch (_) {}
-    }
-  }
+  });
 }
 
 // ---------------- TELEMETRY PARTITION MAINTENANCE ----------------
-export async function maintainTelemetryPartitions(retentionDays = 30) {
-  if (!isMysqlConnected() || !pool) {
+export async function maintainTelemetryPartitions(retentionDays = 30, migrationConnection = null) {
+  if (!migrationConnection && (!isMysqlConnected() || !pool)) {
     return { created: [], dropped: [] };
   }
   const results = { created: [], dropped: [] };
+  const connection = migrationConnection || pool;
 
   try {
     // 1. Fetch current partitions
-    const [partitions] = await pool.query(`
+    const [partitions] = await connection.query(`
       SELECT PARTITION_NAME, PARTITION_DESCRIPTION 
       FROM INFORMATION_SCHEMA.PARTITIONS 
       WHERE TABLE_SCHEMA = DATABASE() 
@@ -419,14 +404,14 @@ export async function maintainTelemetryPartitions(retentionDays = 30) {
 
         try {
           if (hasFuture) {
-            await pool.query(`
+            await connection.query(`
               ALTER TABLE telemetry_history REORGANIZE PARTITION p_future INTO (
                 PARTITION ${partName} VALUES LESS THAN (TO_DAYS('${upperBoundStr}')),
                 PARTITION p_future VALUES LESS THAN MAXVALUE
               )
             `);
           } else {
-            await pool.query(`
+            await connection.query(`
               ALTER TABLE telemetry_history ADD PARTITION (
                 PARTITION ${partName} VALUES LESS THAN (TO_DAYS('${upperBoundStr}'))
               )
@@ -452,7 +437,7 @@ export async function maintainTelemetryPartitions(retentionDays = 30) {
       const partVal = parseInt(p.PARTITION_DESCRIPTION, 10);
       if (!isNaN(partVal) && partVal < cutoffToDays) {
         try {
-          await pool.query(`ALTER TABLE telemetry_history DROP PARTITION ${p.PARTITION_NAME}`);
+          await connection.query(`ALTER TABLE telemetry_history DROP PARTITION ${p.PARTITION_NAME}`);
           results.dropped.push(p.PARTITION_NAME);
           console.log(`[Partition Maintenance] 🗑️ Dropped expired partition ${p.PARTITION_NAME}`);
         } catch (dropErr) {
@@ -565,7 +550,7 @@ export async function executeQuery(sql, params = []) {
       const [results] = await pool.query(sql, params);
       return results;
     } catch (err) {
-      if (process.env.NODE_ENV === 'production') {
+      if (process.env.NODE_ENV !== 'test') {
         console.error("MySQL query execution error in production:", err.message);
         if (err.fatal || ['ECONNRESET', 'ECONNREFUSED', 'EPIPE', 'ETIMEDOUT', 'PROTOCOL_CONNECTION_LOST'].includes(err.code)) {
           isConnected = false;
@@ -578,7 +563,7 @@ export async function executeQuery(sql, params = []) {
 
   // Production must never enter the demo/in-memory datastore, even when a
   // stale ALLOW_FALLBACK_DB setting is present on a deployed machine.
-  if (process.env.NODE_ENV === 'production') {
+  if (process.env.NODE_ENV !== 'test') {
     throw new Error('Database connection unavailable in production environment: cannot execute query on memory fallback');
   }
 
@@ -1315,7 +1300,7 @@ export async function getDeviceById(id) {
   if (!id) return null;
   const key = `id:${id}`;
 
-  const production = process.env.NODE_ENV === 'production';  const cached = deviceLookupCache.get(key);
+  const production = process.env.NODE_ENV !== 'test';  const cached = deviceLookupCache.get(key);
   if (!production && cached && Date.now() < cached.expiresAt) return cached.record;
 
   const rows = await executeQuery('SELECT * FROM devices WHERE id = ? LIMIT 1', [String(id)]);
@@ -1384,7 +1369,7 @@ export async function withDeviceIdentityLock(hostname, deviceUid, fn) {
     }
     });
   }
-  if (process.env.NODE_ENV === 'production') {
+  if (process.env.NODE_ENV !== 'test') {
     throw new Error('Refusing device identity operation without MySQL advisory locks');
   }
 
@@ -1423,7 +1408,7 @@ export async function getEnrollmentIdentityMatches(hostname, deviceUid) {
     );
     return rows.map(formatDeviceRecord);
   }
-  if (process.env.NODE_ENV === 'production') {
+  if (process.env.NODE_ENV !== 'test') {
     throw new Error('Cannot check enrollment ownership without MySQL.');
   }
   // Test/development fallback uses all matching devices, not .find().
@@ -1438,7 +1423,7 @@ export async function getDeviceByHostname(hostname) {
   const hTrim = String(hostname).trim();
   const key = `host:${hTrim.toLowerCase()}`;
 
-  const production = process.env.NODE_ENV === 'production';  const cached = deviceLookupCache.get(key);
+  const production = process.env.NODE_ENV !== 'test';  const cached = deviceLookupCache.get(key);
   if (!production && cached && Date.now() < cached.expiresAt) return cached.record;
 
   const rows = await executeQuery('SELECT * FROM devices WHERE hostname = ? LIMIT 1', [hTrim]);
@@ -1462,7 +1447,7 @@ export async function getDeviceByUid(deviceUid) {
   const uTrim = String(deviceUid).trim();
   const key = `uid:${uTrim.toLowerCase()}`;
 
-  const production = process.env.NODE_ENV === 'production';  const cached = deviceLookupCache.get(key);
+  const production = process.env.NODE_ENV !== 'test';  const cached = deviceLookupCache.get(key);
   if (!production && cached && Date.now() < cached.expiresAt) return cached.record;
 
   const rows = await executeQuery('SELECT * FROM devices WHERE device_uid = ? LIMIT 1', [uTrim]);
@@ -1481,9 +1466,26 @@ export async function getDeviceByUid(deviceUid) {
   return rec;
 }
 
+// Resolve cache visibility from a fresh authoritative row, never a stale
+// formatted device or Redis value. Ambiguous credentials are not authoritative.
+export async function getActiveDeviceAppUsageCacheKey(deviceId, tenantId) {
+  if (typeof deviceId !== 'string' || !deviceId || typeof tenantId !== 'string' || !tenantId) return null;
+  if (!isMysqlConnected() || !pool?.query) throw new Error('APP_USAGE_DATABASE_UNAVAILABLE');
+  const [rows] = await pool.query(
+    'SELECT d.id, d.tenant_id, d.device_token_hash, d.agent_token_revoked, ' +
+    '(SELECT COUNT(*) FROM devices x WHERE x.device_token_hash = d.device_token_hash) AS hash_matches ' +
+    'FROM devices d WHERE d.id = ? AND d.tenant_id = ? LIMIT 2',
+    [deviceId, tenantId]);
+  if (!Array.isArray(rows) || rows.length !== 1 || rows[0].id !== deviceId ||
+      rows[0].tenant_id !== tenantId || Number(rows[0].hash_matches) !== 1) return null;
+  const row = rows[0];
+  return appUsageCredentialCacheKey({tenantId,deviceId,tokenHash:row.device_token_hash,revoked:row.agent_token_revoked});
+}
+
 export async function getDeviceByTokenHash(hash) {
   if (!hash) return null;
-  const production = process.env.NODE_ENV === 'production';
+  const production = process.env.NODE_ENV !== 'test';
+  if (production && (typeof hash !== 'string' || hash.length !== 64 || !/^[a-f0-9]{64}$/.test(hash))) return null;
   const key = `hash:${hash}`;
   // Revocation on other API workers must invalidate authentication immediately.
   if (!production) {
@@ -1491,6 +1493,17 @@ export async function getDeviceByTokenHash(hash) {
     if (cached && Date.now() < cached.expiresAt) return cached.record;
   }
 
+  // Only the current enrolled credential is authoritative outside tests.
+  // A stale legacy hash must never become valid again after token rotation.
+  // LIMIT 2 detects ambiguous rows without exposing an arbitrary owner.
+  if (production) {
+    const rows = await executeQuery(
+      'SELECT * FROM devices WHERE device_token_hash = ? LIMIT 2',
+      [hash]
+    );
+    if (rows.length !== 1 || rows[0].device_token_hash !== hash) return null;
+    return formatDeviceRecord(rows[0]);
+  }
   const rows = await executeQuery(
     'SELECT * FROM devices WHERE device_token_hash = ? OR auth_token_hash = ? LIMIT 1',
     [hash, hash]
@@ -1625,6 +1638,147 @@ export async function updateDevice(id, updates) {
   return true;
 }
 
+// Administrative revocation is durable and audited in the same transaction.
+// No demo fallback, no credential issuance, and no synthetic check-in update.
+export async function revokeDeviceCredential({ principal, deviceId, reasonCode, ipAddress }) {
+  if (!principal?.id || !principal?.tenant_id || principal.role !== 'SUPER_ADMIN' ||
+      !isCredentialDeviceId(deviceId) ||
+      !['COMPROMISED','DEVICE_LOST','DECOMMISSIONED','ADMINISTRATIVE_HOLD'].includes(reasonCode)) {
+    throw new Error('DEVICE_REVOCATION_INVALID');
+  }
+  if (!isMysqlConnected() || !pool?.getConnection) throw new Error('DEVICE_REVOCATION_MYSQL_REQUIRED');
+  const conn = await pool.getConnection();
+  let committed = false;
+  let discard = false;
+  try {
+    await conn.beginTransaction();
+    const [rows] = await conn.query(
+      'SELECT id, tenant_id, agent_token_revoked FROM devices WHERE id = ? AND tenant_id = ? FOR UPDATE',
+      [deviceId, principal.tenant_id]
+    );
+    if (!Array.isArray(rows) || rows.length !== 1 || String(rows[0].tenant_id) !== String(principal.tenant_id) ||
+        String(rows[0].id).toLowerCase() !== deviceId.toLowerCase()) {
+      await conn.rollback();
+      committed = true;
+      return { status: 'not_found' };
+    }
+    if ([true, 1, '1'].includes(rows[0].agent_token_revoked)) {
+      await conn.commit();
+      committed = true;
+      return { status: 'already_revoked' };
+    }
+    if (![false,0,'0'].includes(rows[0].agent_token_revoked)) throw new Error('DEVICE_REVOCATION_STATE_UNVERIFIED');
+    const [changed] = await conn.query(
+      'UPDATE devices SET agent_token_revoked = 1 WHERE id = ? AND tenant_id = ?',
+      [deviceId, principal.tenant_id]
+    );
+    if (changed.affectedRows !== 1) throw new Error('DEVICE_REVOCATION_WRITE_FAILED');
+    // Claim and dispatch acquire this same device row first. Retire only
+    // commands with no evidence of delivery or execution. Never fabricate
+    // a terminal execution outcome for an already claimed/uncertain row.
+    const [quarantine] = await conn.query(
+      "UPDATE command_queue SET status = 'CANCELLED' WHERE device_id = ? AND status = 'PENDING' " +
+      "AND picked_up_at IS NULL AND executed_at IS NULL AND completed_at IS NULL",
+      [rows[0].id]
+    );
+    const cancelled = quarantine?.affectedRows;
+    if (!Number.isSafeInteger(cancelled) || cancelled < 0) throw new Error('DEVICE_REVOCATION_QUARANTINE_UNCONFIRMED');
+    const [audit] = await conn.query(
+      'INSERT INTO audit_logs (id, tenant_id, actor_id, actor_email, actor, action, target_resource, details, ip_address, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(3))',
+      [crypto.randomUUID(), principal.tenant_id, principal.id, principal.email || null,
+       principal.username || principal.id, 'DEVICE_CREDENTIAL_REVOKED', 'Device:' + deviceId,
+       JSON.stringify({device_id:deviceId,reason_code:reasonCode,cancelled_pending_commands:cancelled}), ipAddress || '127.0.0.1']
+    );
+    if (audit.affectedRows !== 1) throw new Error('DEVICE_REVOCATION_AUDIT_FAILED');
+    await conn.commit();
+    committed = true;
+    invalidateDeviceCache();
+    await cacheDel('cache:devices:list');
+    return { status: 'revoked', cancelled_pending_commands: cancelled };
+  } finally {
+    if (!committed) {
+      try { await conn.rollback(); }
+      catch (_) { discard = true; if (typeof conn.destroy === 'function') conn.destroy(); }
+    }
+    if (!discard) conn.release();
+  }
+}
+
+// Separate, explicit reconciliation for devices revoked before quarantine
+// was deployed. This never changes a credential or claims endpoint execution.
+export async function reconcileRevokedDevicePendingCommands({principal,deviceId,action,ipAddress}) {
+  if (!principal?.id || !principal?.tenant_id || principal.role !== 'SUPER_ADMIN' ||
+      !isCredentialDeviceId(deviceId) ||
+      action !== 'CANCEL_NEVER_CLAIMED_PENDING') throw new Error('DEVICE_RECONCILIATION_INVALID');
+  if (!isMysqlConnected() || !pool?.getConnection) throw new Error('DEVICE_RECONCILIATION_MYSQL_REQUIRED');
+  const conn=await pool.getConnection();
+  let settled=false,discard=false;
+  try {
+    await conn.beginTransaction();
+    const [rows]=await conn.query(
+      'SELECT id,tenant_id,agent_token_revoked FROM devices WHERE id=? AND tenant_id=? FOR UPDATE',
+      [deviceId,principal.tenant_id]);
+    const owner=Array.isArray(rows)&&rows.length===1?rows[0]:null;
+    if (!owner || String(owner.id).toLowerCase()!==deviceId.toLowerCase() ||
+        String(owner.tenant_id)!==String(principal.tenant_id)) {
+      await conn.rollback(); settled=true; return {status:'not_found'};
+    }
+    if (![true,1,'1'].includes(owner.agent_token_revoked)) {
+      await conn.rollback(); settled=true; return {status:'not_revoked'};
+    }
+    const [changed]=await conn.query(
+      "UPDATE command_queue SET status='CANCELLED' WHERE device_id=? AND status='PENDING' "+
+      "AND picked_up_at IS NULL AND executed_at IS NULL AND completed_at IS NULL",[owner.id]);
+    const cancelled=changed?.affectedRows;
+    if (!Number.isSafeInteger(cancelled)||cancelled<0) throw new Error('DEVICE_RECONCILIATION_UNCONFIRMED');
+    // Count uncertain work while holding the same lock as claim/dispatch.
+    const [counts]=await conn.query(
+      "SELECT COUNT(*) AS outstanding FROM command_queue WHERE device_id=? "+
+      "AND (status IS NULL OR UPPER(status) NOT IN ('COMPLETED','FAILED','CANCELLED','EXPIRED'))",[owner.id]);
+    const count=counts?.[0]?.outstanding;
+    const outstanding=credentialDbCount(count);
+    if (counts?.length!==1||outstanding===null) throw new Error('DEVICE_RECONCILIATION_UNCONFIRMED');
+    if (cancelled>0) {
+      const [audit]=await conn.query(
+        'INSERT INTO audit_logs (id,tenant_id,actor_id,actor_email,actor,action,target_resource,details,ip_address,created_at) VALUES (?,?,?,?,?,?,?,?,?,NOW(3))',
+        [crypto.randomUUID(),principal.tenant_id,principal.id,principal.email||null,
+         principal.username||principal.id,'REVOKED_DEVICE_PENDING_COMMANDS_RECONCILED','Device:'+owner.id,
+         JSON.stringify({device_id:owner.id,cancelled_pending_commands:cancelled,remaining_outstanding_commands:outstanding}),
+         ipAddress||'127.0.0.1']);
+      if(audit?.affectedRows!==1) throw new Error('DEVICE_RECONCILIATION_AUDIT_FAILED');
+    }
+    await conn.commit(); settled=true;
+    return {status:'reconciled',cancelled_pending_commands:cancelled,remaining_outstanding_commands:outstanding,replacement_allowed:false};
+  } finally {
+    if(!settled) {
+      try{await conn.rollback();}
+      catch(_){discard=true;if(typeof conn.destroy==='function')conn.destroy();}
+    }
+    if(!discard)conn.release();
+  }
+}
+
+// A single persistent tenant-scoped snapshot; no cache/demo fallback and
+// no write, audit mutation, raw token or hash in the returned object.
+export async function getDeviceCredentialRecoveryPreflight({ principal, deviceId }) {
+  if (!principal?.id || !principal?.tenant_id || principal.role !== 'SUPER_ADMIN' ||
+      !isCredentialDeviceId(deviceId)) {
+    throw new Error('DEVICE_RECOVERY_PREFLIGHT_INVALID');
+  }
+  if (!isMysqlConnected() || !pool?.query) throw new Error('DEVICE_RECOVERY_MYSQL_REQUIRED');
+  const [rows] = await pool.query(
+    "SELECT d.id, d.tenant_id, d.device_token_hash, d.auth_token_hash, d.agent_token_revoked, " +
+    "(SELECT COUNT(*) FROM devices x WHERE x.device_token_hash = d.device_token_hash) AS current_hash_matches, " +
+    "(SELECT COUNT(*) FROM command_queue c WHERE c.device_id = d.id AND " +
+    "(c.status IS NULL OR UPPER(c.status) NOT IN ('COMPLETED','FAILED','CANCELLED','EXPIRED'))) AS outstanding_commands " +
+    "FROM devices d WHERE d.id = ? AND d.tenant_id = ? LIMIT 2",
+    [deviceId, principal.tenant_id]);
+  if (!Array.isArray(rows) || rows.length !== 1 ||
+      String(rows[0].tenant_id) !== String(principal.tenant_id) ||
+      String(rows[0].id).toLowerCase() !== deviceId.toLowerCase()) return null;
+  return { device_id: rows[0].id, ...classifyDeviceCredentialRecovery(rows[0]) };
+}
+
 export async function deleteDevice(id) {
   const memIdx = memDevices.findIndex(d => String(d.id) === String(id));
   if (memIdx >= 0) {
@@ -1641,18 +1795,35 @@ export async function deleteDevice(id) {
 // N29: keyed telemetry requests are ONE atomic MySQL transaction.
 // MySQL's tenant/device/batch unique key serializes parallel workers and
 // an immutable receipt makes ACK-loss replay a read-only operation.
-export async function ingestTelemetryBatchOnce(batch) {
+export async function ingestTelemetryBatchOnce(batch, credential = undefined) {
   const { tenant_id: tenantId, device_id: deviceId, batch_id: batchId,
     request_hash: hash, device_updates: updates = {},
-    metrics: measured, processes = [], events = [], alerts = [] } = batch || {};
+    metrics: measured, processes = [], events = [], alerts = [], app_usage: appUsage } = batch || {};
   if (!tenantId || !deviceId ||
       !/^[A-Za-z0-9][A-Za-z0-9:._-]{0,63}$/.test(String(batchId || '')) ||
       !/^[0-9a-f]{64}$/.test(String(hash || ''))) throw new Error('TELEMETRY_BATCH_INVALID');
   if (!isMysqlConnected() || !pool?.getConnection) throw new Error('TELEMETRY_BATCH_MYSQL_REQUIRED');
   const conn = await pool.getConnection();
   let committed = false;
+  let discard = false;
   try {
     await conn.beginTransaction();
+    // Device first, batch second: serialize new batches and ACK replays
+    // with revocation before any receipt or evidence write.
+    const [owners] = await conn.query(
+      'SELECT id, tenant_id, device_token_hash, agent_token_revoked FROM devices WHERE id = ? AND tenant_id = ? FOR UPDATE',
+      [deviceId, tenantId]
+    );
+    const owner = Array.isArray(owners) && owners.length === 1 ? owners[0] : null;
+    if (!owner || String(owner.id) !== String(deviceId) ||
+        String(owner.tenant_id) !== String(tenantId)) throw new Error('TELEMETRY_DEVICE_OWNER_MISMATCH');
+    if (!(process.env.NODE_ENV === 'test' && credential === undefined)) {
+      if (typeof credential?.tokenHash !== 'string' || !/^[a-f0-9]{64}$/.test(credential.tokenHash) ||
+          owner.device_token_hash !== credential.tokenHash ||
+          ![false, 0, '0'].includes(owner.agent_token_revoked)) {
+        throw new Error('TELEMETRY_CREDENTIAL_CHANGED');
+      }
+    }
     const nonce = crypto.randomBytes(16).toString('hex');
     await conn.query(
       'INSERT INTO telemetry_batches (tenant_id, device_id, batch_id, request_hash, insert_nonce, accepted_count) ' +
@@ -1675,11 +1846,23 @@ export async function ingestTelemetryBatchOnce(batch) {
         recorded_at: claim.recorded_at, batch_id: batchId };
     }
 
-    const [owners] = await conn.query(
-      'SELECT id FROM devices WHERE id = ? AND tenant_id = ? FOR UPDATE',
-      [deviceId, tenantId]
-    );
-    if (owners.length !== 1) throw new Error('TELEMETRY_DEVICE_OWNER_MISMATCH');
+    if (appUsage !== undefined) {
+      const payload = JSON.stringify(appUsage);
+      if (!Array.isArray(appUsage) || appUsage.length > 100 ||
+          appUsage.some(item => !item || typeof item !== 'object' || Array.isArray(item)) ||
+          typeof payload !== 'string' || Buffer.byteLength(payload,'utf8') > 65536) {
+        throw new Error('TELEMETRY_APP_USAGE_INVALID');
+      }
+      if (typeof owner.device_token_hash !== 'string' || !/^[a-f0-9]{64}$/.test(owner.device_token_hash) ||
+          ![false,0,'0'].includes(owner.agent_token_revoked)) throw new Error('TELEMETRY_CREDENTIAL_CHANGED');
+      const fingerprint=crypto.createHash('sha256').update('aaditech:app-usage:v1:'+owner.device_token_hash).digest('hex');
+      await conn.query(
+        'INSERT INTO device_app_usage_snapshots (device_id,tenant_id,credential_fingerprint,payload_json,recorded_at) ' +
+        'VALUES (?,?,?,?,?) ON DUPLICATE KEY UPDATE tenant_id=VALUES(tenant_id), ' +
+        'credential_fingerprint=VALUES(credential_fingerprint),payload_json=VALUES(payload_json),recorded_at=VALUES(recorded_at)',
+        [deviceId,tenantId,fingerprint,payload,claim.recorded_at]);
+    }
+
     const safeColumns = new Set(['status','os_version','ip_address','cpu_usage',
       'memory_usage','disk_free','disk_free_gb','telemetry_reported_at',
       'bitlocker_status','antivirus_status','firewall_status','antivirus_name',
@@ -1777,9 +1960,34 @@ export async function ingestTelemetryBatchOnce(batch) {
     return { duplicate: false, accepted: events.length,
       recorded_at: claim.recorded_at, batch_id: batchId };
   } catch (err) {
-    if (!committed) { try { await conn.rollback(); } catch (_) {} }
+    if (!committed) {
+      try { await conn.rollback(); }
+      catch (_) { discard = true; if (typeof conn.destroy === 'function') conn.destroy(); }
+    }
     throw err;
-  } finally { conn.release(); }
+  } finally { if (!discard) conn.release(); }
+}
+
+export async function getCurrentAppUsageSnapshot(deviceId, tenantId) {
+  if (!deviceId || !tenantId) return null;
+  if (!isMysqlConnected() || !pool?.query) throw new Error('APP_USAGE_DATABASE_UNAVAILABLE');
+  const [rows]=await pool.query(
+    "SELECT s.device_id,s.tenant_id,s.payload_json,s.recorded_at FROM device_app_usage_snapshots s " +
+    "INNER JOIN devices d ON d.id=s.device_id AND d.tenant_id=s.tenant_id " +
+    "WHERE s.device_id=? AND s.tenant_id=? AND d.agent_token_revoked=0 " +
+    "AND (SELECT COUNT(*) FROM devices x WHERE x.device_token_hash=d.device_token_hash)=1 " +
+    "AND BINARY s.credential_fingerprint=BINARY SHA2(CONCAT('aaditech:app-usage:v1:',d.device_token_hash),256) " +
+    "AND s.recorded_at BETWEEN DATE_SUB(NOW(3),INTERVAL 15 MINUTE) AND NOW(3) LIMIT 2",
+    [String(deviceId),String(tenantId)]);
+  if (!Array.isArray(rows) || rows.length!==1 || String(rows[0].device_id)!==String(deviceId) ||
+      String(rows[0].tenant_id)!==String(tenantId)) return null;
+  const row=rows[0];
+  let payload;
+  try {payload=typeof row.payload_json==='string'?JSON.parse(row.payload_json):row.payload_json;} catch (_) {return null;}
+  const recorded=new Date(row.recorded_at);
+  if (!Array.isArray(payload) || payload.length>100 || payload.some(x=>!x||typeof x!=='object'||Array.isArray(x)) ||
+      !row.recorded_at || !Number.isFinite(recorded.getTime())) return null;
+  return {app_usage:payload,recorded_at:recorded.toISOString()};
 }
 
 // N30: sealed request receipts are tiny, security-relevant tombstones.
@@ -1869,7 +2077,7 @@ export async function flushTelemetryQueue() {
       await pool.query(sql, [rows]);
     } catch (err) {
       telemetryQueue.unshift(...batch);
-      if (process.env.NODE_ENV === 'production') {
+      if (process.env.NODE_ENV !== 'test') {
         console.error('Fatal: Failed to flush batched telemetry in production:', err.message);
         throw err;
       }
@@ -1915,7 +2123,7 @@ export async function insertTelemetryBatch(records) {
       `;
       await pool.query(sql, [rows]);
     } catch (err) {
-      if (process.env.NODE_ENV === 'production') {
+      if (process.env.NODE_ENV !== 'test') {
         console.error('insertTelemetryBatch error in production:', err.message);
         throw err;
       }
@@ -2043,7 +2251,7 @@ export async function getDeviceProcesses(deviceId) {
     'SELECT * FROM device_processes WHERE device_id = ? ORDER BY cpu_pct DESC LIMIT 100',
     [String(deviceId)]
   );
-  if (process.env.NODE_ENV === 'production') {
+  if (process.env.NODE_ENV !== 'test') {
     // Persistent DB is the only production authority; never export a stale
     // in-process snapshot after MySQL has no corresponding rows.
     return Array.isArray(rows) ? rows : [];
@@ -2055,7 +2263,7 @@ export async function getDeviceProcesses(deviceId) {
 // ---------------- COMMANDS ----------------
 // The database is the authority for remote command dispatch. Never mark an
 // uncommitted command accepted or retain a shadow queue in production.
-export async function queueCommandInDb(cmd) {
+export async function queueCommandInDb(cmd, credential = undefined) {
   try {
     const cmdId = cmd.id ? String(cmd.id) : crypto.randomUUID();
     cmd.id = cmdId;
@@ -2080,19 +2288,19 @@ export async function queueCommandInDb(cmd) {
         id, device_id, hostname, command_type, payload, hmac_signature, signed_content, status, dispatched_by, dispatched_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(3))
     `;
-    const result = await executeQuery(sql, [
+    const result = await executeCredentialBoundCommandWrite(memCmd.device_id, credential, sql, [
       cmdId, memCmd.device_id, memCmd.hostname,
       memCmd.command_type, JSON.stringify(payload),
       memCmd.hmac_signature, memCmd.signed_content,
       memCmd.status.toUpperCase(), memCmd.dispatched_by
     ]);
     if (result?.affectedRows !== 1) throw new Error('COMMAND_QUEUE_INSERT_NOT_COMMITTED');
-    if (process.env.NODE_ENV !== 'production') memCommands.push(memCmd);
+    if (process.env.NODE_ENV === 'test') memCommands.push(memCmd);
     return true;
   } catch (err) {
     // No client-supplied command payload, script name, or SQL credentials in logs.
     console.error('queueCommandInDb failed:', err.code || 'COMMAND_QUEUE_INSERT_FAILED');
-    if (process.env.NODE_ENV === 'production') throw err;
+    if (process.env.NODE_ENV !== 'test' || credential !== undefined) throw err;
     return false;
   }
 }
@@ -2130,7 +2338,7 @@ export async function getCommands(filters = {}) {
 
   const rows = await executeQuery(sql, params);
   // Empty production SQL results are authoritative; no in-memory fallback.
-  if (rows && (rows.length > 0 || process.env.NODE_ENV === 'production')) {
+  if (rows && (rows.length > 0 || process.env.NODE_ENV !== 'test')) {
     return rows.map(r => ({
       ...r,
       agent_id: r.device_id,
@@ -2159,7 +2367,7 @@ export async function getCommands(filters = {}) {
 }
 
 export async function getCommandById(id) {
-  const c = process.env.NODE_ENV === 'production' ? null :
+  const c = process.env.NODE_ENV !== 'test' ? null :
     memCommands.find(x => String(x.id) === String(id));
   if (c) {
     return {
@@ -2196,7 +2404,7 @@ export async function getPendingCommandsForDevice(deviceId, limit = 50) {
       payload: typeof r.payload === 'string' ? JSON.parse(r.payload || '{}') : (r.payload || {})
     }));
   }
-  if (process.env.NODE_ENV === 'production') return [];
+  if (process.env.NODE_ENV !== 'test') return [];
   const memResults = memCommands.filter(c => 
     (String(c.device_id).toLowerCase() === String(deviceId).toLowerCase() || 
      (c.hostname && String(c.hostname).toLowerCase() === String(deviceId).toLowerCase())) &&
@@ -2214,12 +2422,60 @@ export async function getPendingCommandsForDevice(deviceId, limit = 50) {
 // pending command, but only ONE can claim it for an enrolled device.
 // No automatic expiry/replay: destructive operations need human review when
 // the result is lost; the endpoint agent's local dedup is defense in depth.
-export async function markCommandPickedUp(id, deviceId = null) {
-  const c = process.env.NODE_ENV === 'production' ? null :
+// Serialize command mutations with administrative revocation using the
+// same persistent device row lock. Authentication before entering the
+// database is not sufficient: the credential may have changed meanwhile.
+// Only explicit historical test fixtures may omit the credential argument.
+async function executeCredentialBoundCommandWrite(owner, credential, sql, params) {
+  if (process.env.NODE_ENV === 'test' && credential === undefined) return executeQuery(sql, params);
+  if (!owner || typeof credential?.tenantId !== 'string' || !credential.tenantId ||
+      typeof credential?.tokenHash !== 'string' || !/^[a-f0-9]{64}$/.test(credential.tokenHash)) {
+    throw new Error('COMMAND_CREDENTIAL_CHANGED');
+  }
+  if (!isMysqlConnected() || !pool?.getConnection) throw new Error('COMMAND_CREDENTIAL_DATABASE_UNAVAILABLE');
+  const conn = await pool.getConnection();
+  let committed = false;
+  let discard = false;
+  try {
+    await conn.beginTransaction();
+    const [rows] = await conn.query(
+      'SELECT id, tenant_id, device_token_hash, agent_token_revoked FROM devices WHERE id = ? AND tenant_id = ? FOR UPDATE',
+      [String(owner), credential.tenantId]);
+    const row = Array.isArray(rows) && rows.length === 1 ? rows[0] : null;
+    if (!row || String(row.id) !== String(owner) || row.tenant_id !== credential.tenantId ||
+        row.device_token_hash !== credential.tokenHash ||
+        ![false, 0, '0'].includes(row.agent_token_revoked)) {
+      throw new Error('COMMAND_CREDENTIAL_CHANGED');
+    }
+    const [updated] = await conn.query(sql, params);
+    await conn.commit();
+    committed = true;
+    return updated;
+  } finally {
+    if (!committed) {
+      try { await conn.rollback(); }
+      catch (_) { discard = true; if (typeof conn.destroy === 'function') conn.destroy(); }
+    }
+    if (!discard) conn.release();
+  }
+}
+
+// Heartbeat is a liveness mutation, not proof of successful recovery.
+export async function recordCredentialBoundHeartbeat(deviceId, credential) {
+  if (!credential) throw new Error('COMMAND_CREDENTIAL_CHANGED');
+  await executeCredentialBoundCommandWrite(deviceId, credential,
+    "UPDATE devices SET status = 'online', last_seen_at = NOW(3) WHERE id = ? AND tenant_id = ?",
+    [String(deviceId), credential.tenantId]);
+  invalidateDeviceCache(deviceId);
+  await cacheDel('cache:devices:list');
+}
+
+export async function markCommandPickedUp(id, deviceId = null, credential = undefined) {
+  const c = process.env.NODE_ENV !== 'test' ? null :
     memCommands.find(x => String(x.id) === String(id));
   const owner = deviceId || c?.device_id;
   if (!owner) return false;
-  const updated = await executeQuery(
+  const updated = await executeCredentialBoundCommandWrite(owner, credential,
     "UPDATE command_queue SET status = 'IN_PROGRESS', picked_up_at = NOW(3) " +
     "WHERE id = ? AND device_id = ? AND status = 'PENDING'",
     [String(id), String(owner)]
@@ -2234,9 +2490,9 @@ export async function markCommandPickedUp(id, deviceId = null) {
 
 // Only the enrolled owning agent can commit a result, once, after a successful
 // claim. Duplicate, pre-poll, or stale reports MUST NOT overwrite final history.
-export async function completeCommandInDb(cmdId, status, stdout, stderr, exitCode, deviceId = null) {
+export async function completeCommandInDb(cmdId, status, stdout, stderr, exitCode, deviceId = null, credential = undefined) {
   if (!['completed', 'failed'].includes(status)) return false;
-  const c = process.env.NODE_ENV === 'production' ? null :
+  const c = process.env.NODE_ENV !== 'test' ? null :
     memCommands.find(x => String(x.id) === String(cmdId));
   const owner = deviceId || c?.device_id;
   if (!owner) return false;
@@ -2246,7 +2502,7 @@ export async function completeCommandInDb(cmdId, status, stdout, stderr, exitCod
       SET status = ?, stdout = ?, stderr = ?, exit_code = ?, executed_at = NOW(3), completed_at = NOW(3)
       WHERE id = ? AND device_id = ? AND status = 'IN_PROGRESS'
     `;
-    const updated = await executeQuery(sql, [
+    const updated = await executeCredentialBoundCommandWrite(owner, credential, sql, [
       status.toUpperCase(), stdout, stderr, exitCode, String(cmdId), String(owner)
     ]);
     if (updated?.affectedRows !== 1) return false;
@@ -2261,9 +2517,40 @@ export async function completeCommandInDb(cmdId, status, stdout, stderr, exitCod
     return true;
   } catch (err) {
     console.error('completeCommandInDb failed:', err.code || 'COMMAND_RESULT_WRITE_FAILED');
-    if (process.env.NODE_ENV === 'production') throw err;
+    if (process.env.NODE_ENV !== 'test' || credential !== undefined) throw err;
     return false;
   }
+}
+
+// Read-only exact receipt for a previously committed terminal command. A
+// collation-insensitive SQL string comparison would allow changed output;
+// compare the persisted UTF-8-decoded values byte-for-byte in JavaScript.
+// Never acknowledge from a non-test process's demonstration datastore.
+export async function getExactCommandResultReceipt(cmdId, deviceId, status, stdout, stderr, exitCode) {
+  if (!cmdId || !deviceId || !['completed', 'failed'].includes(status)) return null;
+  let rows;
+  if (isMysqlConnected()) {
+    [rows] = await pool.query(
+      'SELECT id, device_id, status, stdout, stderr, exit_code, completed_at FROM command_queue WHERE id = ? AND device_id = ? LIMIT 1',
+      [String(cmdId), String(deviceId)]
+    );
+  } else if (process.env.NODE_ENV === 'test') {
+    rows = memCommands.filter(c => String(c.id) === String(cmdId) &&
+      String(c.device_id) === String(deviceId));
+  } else {
+    throw new Error('COMMAND_RESULT_RECEIPT_DATABASE_UNAVAILABLE');
+  }
+  if (!Array.isArray(rows) || rows.length !== 1) return null;
+  const row = rows[0];
+  if (String(row.id) !== String(cmdId) || String(row.device_id) !== String(deviceId) ||
+      String(row.status).toLowerCase() !== status ||
+      typeof row.stdout !== 'string' || row.stdout !== stdout ||
+      typeof row.stderr !== 'string' || row.stderr !== stderr ||
+      row.exit_code == null || Number(row.exit_code) !== exitCode ||
+      !row.completed_at) return null;
+  const completed = new Date(row.completed_at);
+  if (!Number.isFinite(completed.getTime())) return null;
+  return { id: String(row.id), status, completed_at: completed.toISOString() };
 }
 
 // ---------------- ALERTS ----------------
@@ -2304,7 +2591,7 @@ export async function getAlertById(id) {
 }
 
 export async function createAlert(alt, notifications = []) {
-  if (process.env.NODE_ENV === 'production' && !alt?.tenant_id) {
+  if (process.env.NODE_ENV !== 'test' && !alt?.tenant_id) {
     throw new Error('TENANT_REQUIRED');
   }
   const sql = `
@@ -2328,7 +2615,7 @@ export async function createAlert(alt, notifications = []) {
     }
   }
   let res;
-  if (process.env.NODE_ENV === 'production' && jobs.length) {
+  if (process.env.NODE_ENV !== 'test' && jobs.length) {
     if (!isMysqlConnected() || !pool?.getConnection) throw new Error('OUTBOX_DATABASE_UNAVAILABLE');
     const conn = await pool.getConnection();
     try {
@@ -2404,7 +2691,7 @@ export async function finishNotificationOutbox(id, lease, status) {
   }
   const result = await executeQuery(
     "UPDATE notification_outbox SET status = ?, lease_token = NULL, lease_expires_at = NULL, last_error = NULL " +
-    "WHERE id = ? AND lease_token = ? AND status = 'PROCESSING'",
+    "WHERE id = ? AND lease_token = ? AND status = 'PROCESSING' AND lease_expires_at > UTC_TIMESTAMP(3)",
     [status, id, lease]
   );
   return result?.affectedRows === 1;
@@ -2412,13 +2699,14 @@ export async function finishNotificationOutbox(id, lease, status) {
 
 export async function retryNotificationOutbox(row, code = 'DELIVERY_FAILED') {
   if (!row?.id || !row?.lease_token) throw new Error('OUTBOX_LEASE_REQUIRED');
-  const attempts = Math.max(1, Number(row.attempts || 1));
-  const safe = /^[A-Z0-9_]{1,64}$/.test(String(code)) ? code : 'DELIVERY_FAILED';
+  const attempts = row.attempts;
+  if (!Number.isInteger(attempts) || attempts < 1 || attempts > 5) throw new Error('INVALID_OUTBOX_ATTEMPTS');
+  const safe = typeof code === 'string' && code.length <= 64 && /^[A-Z0-9_]+$/.test(code) && !/\s/.test(code) ? code : 'DELIVERY_FAILED';
   const delay = Math.min(3600, 15 * (2 ** Math.min(10, attempts - 1)));
   const updated = await executeQuery(
     "UPDATE notification_outbox SET status = ?, lease_token = NULL, lease_expires_at = NULL, " +
     "available_at = DATE_ADD(UTC_TIMESTAMP(3), INTERVAL ? SECOND), last_error = ? " +
-    "WHERE id = ? AND lease_token = ? AND status = 'PROCESSING'",
+    "WHERE id = ? AND lease_token = ? AND status = 'PROCESSING' AND lease_expires_at > UTC_TIMESTAMP(3)",
     [attempts >= 5 ? 'DEAD' : 'PENDING', delay, safe, row.id, row.lease_token]
   );
   return updated?.affectedRows === 1;
@@ -2479,17 +2767,21 @@ export function invalidateAlertRulesCache() {
 
 export async function getAlertRules() {
   const now = Date.now();
-  if (alertRulesCache && now < alertRulesCacheExpires) {
+  // Only explicit test fixtures may reuse local rule state. Deployed replicas
+  // read the authoritative SQL rules on every call.
+  if (process.env.NODE_ENV === 'test' && alertRulesCache && now < alertRulesCacheExpires) {
     return alertRulesCache;
   }
   const rows = await executeQuery('SELECT * FROM alert_rules ORDER BY created_at ASC');
   const rules = rows.map(r => ({
     ...r,
-    enabled: Boolean(r.enabled),
+    enabled: r.enabled === true || r.enabled === 1,
     condition: r.condition_json ? (typeof r.condition_json === 'string' ? JSON.parse(r.condition_json) : r.condition_json) : { threshold_gb: r.threshold, memory_pct: r.threshold, cpu_pct: r.threshold }
   }));
-  alertRulesCache = rules;
-  alertRulesCacheExpires = now + 30000; // 30 seconds TTL
+  if (process.env.NODE_ENV === 'test') {
+    alertRulesCache = rules;
+    alertRulesCacheExpires = now + 30000;
+  }
   return rules;
 }
 
@@ -2499,7 +2791,7 @@ export async function getAlertRuleById(id) {
   const r = rows[0];
   return {
     ...r,
-    enabled: Boolean(r.enabled),
+    enabled: r.enabled === true || r.enabled === 1,
     condition: r.condition_json ? (typeof r.condition_json === 'string' ? JSON.parse(r.condition_json) : r.condition_json) : { threshold: r.threshold }
   };
 }
@@ -2510,12 +2802,13 @@ export async function getAlertRuleByName(name) {
   const r = rows[0];
   return {
     ...r,
-    enabled: Boolean(r.enabled),
+    enabled: r.enabled === true || r.enabled === 1,
     condition: r.condition_json ? (typeof r.condition_json === 'string' ? JSON.parse(r.condition_json) : r.condition_json) : { threshold: r.threshold }
   };
 }
 
 export async function createAlertRule(rule) {
+  if (rule.enabled !== undefined && typeof rule.enabled !== 'boolean') throw new Error('INVALID_ALERT_RULE_ENABLED');
   const ruleId = rule.id || `rule-${crypto.randomUUID()}`;
   const sql = `
     INSERT INTO alert_rules (id, tenant_id, name, description, metric, condition_op, threshold, duration_mins, severity, enabled, condition_json, created_at)
@@ -2528,13 +2821,13 @@ export async function createAlertRule(rule) {
     rule.description || '',
     rule.metric || 'cpu',
     rule.condition_op || '>=',
-    rule.threshold || 80,
+    rule.threshold ?? 80,
     rule.duration_mins || 5,
     rule.severity || 'warning',
     rule.enabled !== false ? 1 : 0,
     JSON.stringify(rule.condition || {})
   ]);
-  if (!isMysqlConnected() && process.env.NODE_ENV !== 'production') {
+  if (!isMysqlConnected() && process.env.NODE_ENV === 'test') {
     // Test-only data store must mirror MySQL writes so tenant ownership can
     // be checked in subsequent read/update/delete requests.
     memAlertRules.push({ ...rule, id: ruleId,
@@ -2546,6 +2839,7 @@ export async function createAlertRule(rule) {
 }
 
 export async function updateAlertRule(id, updates) {
+  if (updates.enabled !== undefined && typeof updates.enabled !== 'boolean') throw new Error('INVALID_ALERT_RULE_ENABLED');
   const fields = [];
   const params = [];
   if (updates.name !== undefined) { fields.push('name = ?'); params.push(updates.name); }
@@ -2560,7 +2854,7 @@ export async function updateAlertRule(id, updates) {
   if (fields.length === 0) return false;
   params.push(id);
   await executeQuery(`UPDATE alert_rules SET ${fields.join(', ')} WHERE id = ?`, params);
-  if (!isMysqlConnected() && process.env.NODE_ENV !== 'production') {
+  if (!isMysqlConnected() && process.env.NODE_ENV === 'test') {
     const fixture = memAlertRules.find(r => String(r.id) === String(id));
     if (fixture) Object.assign(fixture, updates);
   }
@@ -2570,7 +2864,7 @@ export async function updateAlertRule(id, updates) {
 
 export async function deleteAlertRule(id) {
   await executeQuery('DELETE FROM alert_rules WHERE id = ?', [id]);
-  if (!isMysqlConnected() && process.env.NODE_ENV !== 'production') {
+  if (!isMysqlConnected() && process.env.NODE_ENV === 'test') {
     const idx = memAlertRules.findIndex(r => String(r.id) === String(id));
     if (idx >= 0) memAlertRules.splice(idx, 1);
   }
@@ -3042,7 +3336,7 @@ export async function getRemediationLogs(limit = 100, tenantId) {
 // Event ownership is persisted at ingest using authenticated device ID.
 // Hostname joins are forbidden for tenant-facing reads; hostnames repeat.
 export async function addEvent(event) {
-  if (process.env.NODE_ENV === 'production' &&
+  if (process.env.NODE_ENV !== 'test' &&
       (!event?.tenant_id || !event?.device_id)) {
     throw new Error('EVENT_DEVICE_TENANT_REQUIRED');
   }

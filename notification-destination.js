@@ -8,7 +8,7 @@ import { smtpTransportConfig, isApprovedEmailRecipient } from './smtp-alerts.js'
 
 export function destinationFingerprint(tenantId, channel, config, env = process.env) {
   if (typeof tenantId !== 'string' || !tenantId.trim() ||
-      !['email', 'webhook'].includes(channel) || !config?.enabled) return null;
+      !['email', 'webhook'].includes(channel) || config?.enabled !== true) return null;
   const secret = String(env.HMAC_SECRET || '');
   if (secret.length < 16) return null;
   let destination = null;
@@ -28,7 +28,7 @@ export function destinationFingerprint(tenantId, channel, config, env = process.
 }
 
 export function matchesQueuedDestination(row, config, env = process.env) {
-  if (!row || !/^[0-9a-f]{64}$/.test(String(row.destination_hash || ''))) return false;
+  if (!row || typeof row.destination_hash !== 'string' || row.destination_hash.length !== 64 || !/^[0-9a-f]{64}$/.test(row.destination_hash)) return false;
   const current = destinationFingerprint(row.tenant_id, row.channel, config, env);
   if (!current) return false;
   const a = Buffer.from(row.destination_hash, 'hex');

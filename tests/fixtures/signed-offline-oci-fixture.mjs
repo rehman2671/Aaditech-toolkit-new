@@ -15,11 +15,12 @@ function graph(architecture='amd64',layerOverride=null){
  function jsonBlob(doc,type){const d=blob(Buffer.from(JSON.stringify(doc)),type);docs.set('runtime/blobs/sha256/'+d.digest.slice(7),doc);return d}
  const h=Buffer.alloc(512);h.write('fixture.txt',0,'ascii');h.write('0000644\0',100,'ascii');h.write('0000000\0',108,'ascii');h.write('0000000\0',116,'ascii');h.write('00000000001\0',124,'ascii');h.write('00000000000\0',136,'ascii');h.fill(32,148,156);h[156]=48;h.write('ustar\0',257,'ascii');h.write('00',263,'ascii');h.write(h.reduce((n,b)=>n+b,0).toString(8).padStart(6,'0')+'\0 ',148,'ascii');
  const data=Buffer.alloc(512);data[0]=65;
- const layerBytes=layerOverride??Buffer.concat([h,data,Buffer.alloc(1024)]),layer=blob(gzipSync(layerBytes),types.layer);
+ const layerBytes=Array.isArray(layerOverride)?layerOverride:[layerOverride??Buffer.concat([h,data,Buffer.alloc(1024)])];
+ const layers=layerBytes.map(bytes=>blob(gzipSync(bytes),types.layer));
  const index={schemaVersion:2,mediaType:types.index,manifests:[]};
  for(const role of roles){
-  const config={architecture,os:'linux',config:{Env:['SECRET=fixture'],Labels:{role,fixture:randomUUID()}},rootfs:{type:'layers',diff_ids:['sha256:'+sha(layerBytes)]}};
-  const c=jsonBlob(config,types.config),manifest={schemaVersion:2,mediaType:types.manifest,config:c,layers:[{...layer}]};
+  const config={architecture,os:'linux',config:{Env:['SECRET=fixture'],Labels:{role,fixture:randomUUID()}},rootfs:{type:'layers',diff_ids:layerBytes.map(bytes=>'sha256:'+sha(bytes))}};
+  const c=jsonBlob(config,types.config),manifest={schemaVersion:2,mediaType:types.manifest,config:c,layers:layers.map(layer=>({...layer}))};
   const m=jsonBlob(manifest,types.manifest);configs.push(config);manifests.push(manifest);
   index.manifests.push({...m,platform:{architecture,os:'linux'},annotations:{'org.aaditech.role':role}});
  }

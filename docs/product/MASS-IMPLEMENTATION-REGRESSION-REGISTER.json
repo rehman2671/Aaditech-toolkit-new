@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "batch": "MASS-09",
+  "batch": "MASS-10",
   "date": "2026-11-26",
   "target": "20 implementation prompts planning target, 50–100 actual development tasks per batch aspirational; count only delivered functional work, not test cases",
   "base_commit": "26f6dd7ad116e85e9fd52235f681c3d57f8f7a23",
@@ -3159,6 +3159,61 @@
         "tests/unit/troubleshooting-incident-review.test.js",
         "Real MySQL/HTTP concurrency, role scope, historical replay and browser referral; no reassessment or verified handoff"
       ]
+    },
+    {
+      "id": "MASS-10-01",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Atomic persistent first-run bootstrap and fail-closed graphical setup",
+      "dependencies": [
+        "MASS-03-03",
+        "M1"
+      ],
+      "paths": [
+        "initial-setup-transaction.js",
+        "server.js",
+        "Enterprise/portal/index.html"
+      ],
+      "regression": [
+        "tests/unit/initial-setup-transaction.test.js",
+        "Production-mode real HTTP/MySQL concurrent setup, rollback, seed identity/membership and login, browser/session verification"
+      ]
+    },
+    {
+      "id": "MASS-10-02",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Pinned private LAN HTTPS health probe on same TLS connection",
+      "dependencies": [
+        "MASS-04-02",
+        "M1",
+        "DEC-001"
+      ],
+      "paths": [
+        "scripts/private-lan-health.mjs",
+        "scripts/private-lan-health-cli.mjs"
+      ],
+      "regression": [
+        "tests/unit/private-lan-tls-preflight.test.js",
+        "Physical LAN TLS root/leaf custody, ingress, database identity and Windows system trust"
+      ]
+    },
+    {
+      "id": "MASS-10-03",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Explicit pinned existing Compose container lifecycle start/stop",
+      "dependencies": [
+        "MASS-09-02",
+        "MASS-05-01",
+        "M1",
+        "DEC-001"
+      ],
+      "paths": [
+        "scripts/local-compose-service-lifecycle.mjs",
+        "scripts/local-compose-service-lifecycle-cli.mjs"
+      ],
+      "regression": [
+        "tests/unit/local-compose-service-lifecycle.test.js",
+        "Disposable actual start/stop, partial failure, health order, recovery and identity continuity; fresh creation and reconfiguration still pending"
+      ]
     }
   ],
   "unresolved": [
@@ -3192,7 +3247,7 @@
     },
     {
       "id": "BLOCK-SETUP-EXECUTION",
-      "next": "Native archive preparation, independent admission and explicit local import source adapter now available. Fresh disposable CI, actual approved production release, installer and service lifecycle, TLS/DB continuity and physical acceptance pending."
+      "next": "Batch 09 exact disposable OCI import passed. Batch 10 atomic first-run bootstrap, pinned private LAN health and existing-container lifecycle sources added. Fresh exact-head CI, real concurrent bootstrap and lifecycle rehearsal, approved fresh installer, config recreation, private TLS ingress, DB continuity, physical Windows and DEC-001 pending."
     },
     {
       "id": "BLOCK-DIAGNOSTIC-EXECUTION",
@@ -3298,6 +3353,15 @@
         "74c2bacc13ace6744b98fe79f69ae696ee80640b",
         "72f83c76a23d67959d8655096846fd4c49e80740",
         "bfdc0356abbf4d10226c0f0b2d23cb875c94d43f"
+      ],
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI"
+    },
+    {
+      "id": "MASS-10",
+      "source_commits": [
+        "e164de321178676e34abdc235133a17eacdb3fc3",
+        "9de8e52b32c195bbf76c5b91e52f3bd037ad8c2a",
+        "8be2ce722dcddad7ffbaec72827aeb7efee68038"
       ],
       "status": "SOURCE_IMPLEMENTED_PENDING_CI"
     }

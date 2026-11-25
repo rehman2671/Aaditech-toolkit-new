@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
-  "batch": "MASS-40",
+  "batch": "MASS-41",
   "date": "2026-11-26",
   "target": "20 implementation prompts planning target, 50–100 actual development tasks per batch aspirational; count only delivered functional work, not test cases",
-  "base_commit": "c5ce620d8ec7932cf8444617530f6faf2228ff5b",
+  "base_commit": "9d799abe989dd186578cd60f219aa8f52977db4e",
   "source_of_truth": [
     "docs/product/DELIVERY-TRACKER.json",
     "docs/product/TROUBLESHOOTING-WORK-REGISTER.json",
@@ -6148,23 +6148,41 @@
           {
             "id": 139565119082,
             "name": "PowerShell validation",
-            "status": "in_progress",
-            "conclusion": null
+            "status": "completed",
+            "conclusion": "cancelled"
           },
           {
             "id": 139565119482,
             "name": "Offline Docker load compatibility (disposable runner)",
-            "status": "in_progress",
-            "conclusion": null
+            "status": "completed",
+            "conclusion": "cancelled"
           },
           {
             "id": 139565119540,
             "name": "Node.js Unit & Integration Tests (Vitest + MySQL 8)",
-            "status": "in_progress",
-            "conclusion": null
+            "status": "completed",
+            "conclusion": "cancelled"
+          },
+          {
+            "id": 139565679671,
+            "name": "API test suite (Node.js vs MySQL 8)",
+            "status": "completed",
+            "conclusion": "cancelled"
+          },
+          {
+            "id": 139565763075,
+            "name": "Phase O unsigned Windows MSI integration rehearsal",
+            "status": "completed",
+            "conclusion": "cancelled"
+          },
+          {
+            "id": 139565763550,
+            "name": "Build agent exe + MSI",
+            "status": "completed",
+            "conclusion": "cancelled"
           }
         ],
-        "scope": "Exact-head CI observations; no production or signed end-to-end acceptance"
+        "scope": "Exact-head observation, not deployment acceptance"
       }
     },
     {
@@ -6189,23 +6207,41 @@
           {
             "id": 139565119082,
             "name": "PowerShell validation",
-            "status": "in_progress",
-            "conclusion": null
+            "status": "completed",
+            "conclusion": "cancelled"
           },
           {
             "id": 139565119482,
             "name": "Offline Docker load compatibility (disposable runner)",
-            "status": "in_progress",
-            "conclusion": null
+            "status": "completed",
+            "conclusion": "cancelled"
           },
           {
             "id": 139565119540,
             "name": "Node.js Unit & Integration Tests (Vitest + MySQL 8)",
-            "status": "in_progress",
-            "conclusion": null
+            "status": "completed",
+            "conclusion": "cancelled"
+          },
+          {
+            "id": 139565679671,
+            "name": "API test suite (Node.js vs MySQL 8)",
+            "status": "completed",
+            "conclusion": "cancelled"
+          },
+          {
+            "id": 139565763075,
+            "name": "Phase O unsigned Windows MSI integration rehearsal",
+            "status": "completed",
+            "conclusion": "cancelled"
+          },
+          {
+            "id": 139565763550,
+            "name": "Build agent exe + MSI",
+            "status": "completed",
+            "conclusion": "cancelled"
           }
         ],
-        "scope": "Exact-head CI observations; no production or signed end-to-end acceptance"
+        "scope": "Exact-head observation, not deployment acceptance"
       }
     },
     {
@@ -6232,23 +6268,41 @@
           {
             "id": 139565119082,
             "name": "PowerShell validation",
-            "status": "in_progress",
-            "conclusion": null
+            "status": "completed",
+            "conclusion": "cancelled"
           },
           {
             "id": 139565119482,
             "name": "Offline Docker load compatibility (disposable runner)",
-            "status": "in_progress",
-            "conclusion": null
+            "status": "completed",
+            "conclusion": "cancelled"
           },
           {
             "id": 139565119540,
             "name": "Node.js Unit & Integration Tests (Vitest + MySQL 8)",
-            "status": "in_progress",
-            "conclusion": null
+            "status": "completed",
+            "conclusion": "cancelled"
+          },
+          {
+            "id": 139565679671,
+            "name": "API test suite (Node.js vs MySQL 8)",
+            "status": "completed",
+            "conclusion": "cancelled"
+          },
+          {
+            "id": 139565763075,
+            "name": "Phase O unsigned Windows MSI integration rehearsal",
+            "status": "completed",
+            "conclusion": "cancelled"
+          },
+          {
+            "id": 139565763550,
+            "name": "Build agent exe + MSI",
+            "status": "completed",
+            "conclusion": "cancelled"
           }
         ],
-        "scope": "Exact-head CI observations; no production or signed end-to-end acceptance"
+        "scope": "Exact-head observation, not deployment acceptance"
       }
     },
     {
@@ -6265,7 +6319,38 @@
       ],
       "regression": [
         "All 15 prefixes, wrong order/digest/identity, duplicate JSON and independently pinned head denial"
-      ]
+      ],
+      "ci_evidence": {
+        "head": "9d799abe989dd186578cd60f219aa8f52977db4e",
+        "run": 45717044236,
+        "jobs": [
+          {
+            "id": 139565765802,
+            "name": "Offline Docker load compatibility (disposable runner)",
+            "status": "in_progress",
+            "conclusion": null
+          },
+          {
+            "id": 139565766217,
+            "name": "PowerShell validation",
+            "status": "in_progress",
+            "conclusion": null
+          },
+          {
+            "id": 139565766227,
+            "name": "Node.js Unit & Integration Tests (Vitest + MySQL 8)",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 139566339774,
+            "name": "API test suite (Node.js vs MySQL 8)",
+            "status": "in_progress",
+            "conclusion": null
+          }
+        ],
+        "scope": "Exact-head observation, not deployment acceptance"
+      }
     },
     {
       "id": "MASS-40-02",
@@ -6281,7 +6366,38 @@
       ],
       "regression": [
         "Actual local Linux fixture, partial/complete history and retained locks, tampered files, unsafe permissions, symlink and hardlink denial; CI pending"
-      ]
+      ],
+      "ci_evidence": {
+        "head": "9d799abe989dd186578cd60f219aa8f52977db4e",
+        "run": 45717044236,
+        "jobs": [
+          {
+            "id": 139565765802,
+            "name": "Offline Docker load compatibility (disposable runner)",
+            "status": "in_progress",
+            "conclusion": null
+          },
+          {
+            "id": 139565766217,
+            "name": "PowerShell validation",
+            "status": "in_progress",
+            "conclusion": null
+          },
+          {
+            "id": 139565766227,
+            "name": "Node.js Unit & Integration Tests (Vitest + MySQL 8)",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 139566339774,
+            "name": "API test suite (Node.js vs MySQL 8)",
+            "status": "in_progress",
+            "conclusion": null
+          }
+        ],
+        "scope": "Exact-head observation, not deployment acceptance"
+      }
     },
     {
       "id": "MASS-40-03",
@@ -6298,6 +6414,86 @@
       ],
       "regression": [
         "No resume/rollback/execution authorization; actual resource reconciliation and signed checkpoint integration pending"
+      ],
+      "ci_evidence": {
+        "head": "9d799abe989dd186578cd60f219aa8f52977db4e",
+        "run": 45717044236,
+        "jobs": [
+          {
+            "id": 139565765802,
+            "name": "Offline Docker load compatibility (disposable runner)",
+            "status": "in_progress",
+            "conclusion": null
+          },
+          {
+            "id": 139565766217,
+            "name": "PowerShell validation",
+            "status": "in_progress",
+            "conclusion": null
+          },
+          {
+            "id": 139565766227,
+            "name": "Node.js Unit & Integration Tests (Vitest + MySQL 8)",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 139566339774,
+            "name": "API test suite (Node.js vs MySQL 8)",
+            "status": "in_progress",
+            "conclusion": null
+          }
+        ],
+        "scope": "Exact-head observation, not deployment acceptance"
+      }
+    },
+    {
+      "id": "MASS-41-01",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Actual read-only Docker recovery resource inventory and redacted shape classification",
+      "dependencies": [
+        "MASS-34-01",
+        "MASS-40-02"
+      ],
+      "paths": [
+        "scripts/fresh-compose-resource-inventory.mjs",
+        "tests/unit/fresh-compose-resource-inventory.test.js",
+        "tests/ci-offline-docker-load-rehearsal.mjs"
+      ],
+      "regression": [
+        "Empty/resources-only/created real fixture; conflicting labels, published ports, foreign endpoints and partial state unit cases"
+      ]
+    },
+    {
+      "id": "MASS-41-02",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Guided journal and actual resource correlation with retained-lock and interrupted-stage decisions",
+      "dependencies": [
+        "MASS-40-03",
+        "MASS-41-01"
+      ],
+      "paths": [
+        "scripts/inspect-guided-resource-recovery.mjs",
+        "tests/unit/inspect-guided-resource-recovery.test.js"
+      ],
+      "regression": [
+        "History/shape mismatch, retained lock, no authorization; actual full signed deployment reconciliation pending"
+      ]
+    },
+    {
+      "id": "MASS-41-03",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Bounded local resource recovery diagnostic CLI and mandatory disposable Docker fixture integration",
+      "dependencies": [
+        "MASS-41-01",
+        "MASS-41-02"
+      ],
+      "paths": [
+        "scripts/inspect-guided-resource-recovery-cli.mjs",
+        "tests/ci-offline-docker-load-rehearsal.mjs"
+      ],
+      "regression": [
+        "Actual read-only resource observations before and after fixture provisioning; CI pending"
       ]
     }
   ],
@@ -7432,23 +7628,41 @@
           {
             "id": 139565119082,
             "name": "PowerShell validation",
-            "status": "in_progress",
-            "conclusion": null
+            "status": "completed",
+            "conclusion": "cancelled"
           },
           {
             "id": 139565119482,
             "name": "Offline Docker load compatibility (disposable runner)",
-            "status": "in_progress",
-            "conclusion": null
+            "status": "completed",
+            "conclusion": "cancelled"
           },
           {
             "id": 139565119540,
             "name": "Node.js Unit & Integration Tests (Vitest + MySQL 8)",
-            "status": "in_progress",
-            "conclusion": null
+            "status": "completed",
+            "conclusion": "cancelled"
+          },
+          {
+            "id": 139565679671,
+            "name": "API test suite (Node.js vs MySQL 8)",
+            "status": "completed",
+            "conclusion": "cancelled"
+          },
+          {
+            "id": 139565763075,
+            "name": "Phase O unsigned Windows MSI integration rehearsal",
+            "status": "completed",
+            "conclusion": "cancelled"
+          },
+          {
+            "id": 139565763550,
+            "name": "Build agent exe + MSI",
+            "status": "completed",
+            "conclusion": "cancelled"
           }
         ],
-        "scope": "Exact-head CI observations; no production or signed end-to-end acceptance"
+        "scope": "Exact-head observation, not deployment acceptance"
       }
     },
     {
@@ -7462,6 +7676,50 @@
         "tests/unit/guided-operation-journal.test.js",
         "Enterprise/deploy/GUIDED-SERVER-SETUP-PLAN.md",
         "Enterprise/deploy/SETUP-JOURNAL-REFERENCE.md"
+      ],
+      "exact_head_ci": {
+        "head": "9d799abe989dd186578cd60f219aa8f52977db4e",
+        "run": 45717044236,
+        "jobs": [
+          {
+            "id": 139565765802,
+            "name": "Offline Docker load compatibility (disposable runner)",
+            "status": "in_progress",
+            "conclusion": null
+          },
+          {
+            "id": 139565766217,
+            "name": "PowerShell validation",
+            "status": "in_progress",
+            "conclusion": null
+          },
+          {
+            "id": 139565766227,
+            "name": "Node.js Unit & Integration Tests (Vitest + MySQL 8)",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 139566339774,
+            "name": "API test suite (Node.js vs MySQL 8)",
+            "status": "in_progress",
+            "conclusion": null
+          }
+        ],
+        "scope": "Exact-head observation, not deployment acceptance"
+      }
+    },
+    {
+      "id": "MASS-41",
+      "base_commit": "9d799abe989dd186578cd60f219aa8f52977db4e",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "evidence": [
+        "scripts/fresh-compose-resource-inventory.mjs",
+        "tests/unit/fresh-compose-resource-inventory.test.js",
+        "tests/ci-offline-docker-load-rehearsal.mjs",
+        "scripts/inspect-guided-resource-recovery.mjs",
+        "scripts/inspect-guided-resource-recovery-cli.mjs",
+        "tests/unit/inspect-guided-resource-recovery.test.js"
       ]
     }
   ]

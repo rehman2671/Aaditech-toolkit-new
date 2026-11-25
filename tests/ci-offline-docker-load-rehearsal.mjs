@@ -10,7 +10,7 @@ import {operateExistingComposeServices} from '../scripts/local-compose-service-l
 import {initializeFreshComposeEnvironment,validateFreshEnvironmentText} from '../scripts/initialize-fresh-compose-environment.mjs';
 import {randomUUID} from 'node:crypto';
 import {provisionFreshComposeResources,expectedFreshResources} from '../scripts/provision-fresh-compose-resources.mjs';
-import {inspectFreshComposeResources} from '../scripts/fresh-compose-resource-inventory.mjs';
+import {inspectFreshComposeResources,inspectProjectRecoveryResources} from '../scripts/fresh-compose-resource-inventory.mjs';
 import {join,dirname} from 'node:path';
 import {staged} from './fixtures/signed-offline-oci-fixture.mjs';
 import {prepareNativeOciArchive} from '../scripts/prepare-native-oci-archive.mjs';
@@ -84,10 +84,13 @@ await staged(async({input,g})=>{
   const resourcePolicy={confirmation:'PROVISION_EMPTY_COMPOSE_RESOURCES_ONLY_EXCLUSIVE_DAEMON_CUSTODY',project,lockRoot:resourceLock,release:input};
   const inventory=()=>inspectFreshComposeResources({confirmation:'INSPECT_FRESH_COMPOSE_RESOURCE_COLLISIONS_ONLY',project});
   assert.equal((await inventory()).resource_collision_free_observed,true);
+  const recovery=()=>inspectProjectRecoveryResources({confirmation:'INSPECT_PROJECT_RECOVERY_RESOURCES_ONLY',project,releaseSha256:input.trustedManifestSha256});
+  assert.equal((await recovery()).shape,'EMPTY');
   let receipt,created;
   try{
    receipt=await provisionFreshComposeResources(resourcePolicy);
    assert.equal(receipt.resources_provisioned,true);assert.equal(receipt.containers_created,false);assert.deepEqual((await inventory()).collision_counts,{containers:0,networks:1,volumes:5});
+   assert.equal((await recovery()).shape,'RESOURCES_ONLY');
    await assert.rejects(()=>provisionFreshComposeResources({...resourcePolicy,lockRoot:repeatLock}));
    assert.deepEqual((await inventory()).collision_counts,{containers:0,networks:1,volumes:5});
    const identityDirectory=join(dirname(destinationParent),'identity'),runtimeIdentityParent=join(dirname(destinationParent),'runtime-identity-parent');
@@ -100,6 +103,7 @@ await staged(async({input,g})=>{
    for(const role of ['api_data','agent_artifacts']){const st=await lstat('/var/lib/docker/volumes/'+project+'_'+role+'/_data');assert.equal(st.uid,1000);assert.equal(st.gid,1000);assert.equal(st.mode&0o777,0o700)}
    assert.equal(created.activation_blocked,true);assert.equal(created.services_started,false);assert.deepEqual((await inventory()).collision_counts,{containers:3,networks:1,volumes:5});
    for(const c of Object.values(created.containers))assert.equal(docker(['container','inspect','--format','{{.State.Status}}',c.containerId]).trim(),'created');
+   const recoveryProof=await recovery();assert.equal(recoveryProof.shape,'ALL_CANDIDATES_CREATED');assert.equal(recoveryProof.mutation_authorized,false);assert.equal(recoveryProof.resources.containers.length,3);
    const observed=await inspectStoppedComposeCandidates({...createInput,confirmation:'INSPECT_IDENTITY_BOUND_STOPPED_CANDIDATES_ONLY',containers:created.containers});
    assert.equal(observed.identity_mount_verified,true);assert.equal(observed.api_volume_ownership_verified,true);assert.equal(observed.stopped_candidates_verified,true);assert.equal(observed.signed_migrations_verified,true);assert.equal(observed.containers_created,false);assert.equal(observed.installation_authorized,false);assert.deepEqual(observed.containers,created.containers);
    const identityFile=join(runtimeIdentityParent,'runtime-identity','installation-identity.json');

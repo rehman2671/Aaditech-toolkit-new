@@ -26,7 +26,8 @@ const allowedEvidence=new Set([
  'diagnostic-evidence.js','diagnostic-review-contracts.js','tests/unit/diagnostic-review-contracts.test.js',
  'scripts/local-resource-diagnostic.mjs','tests/unit/local-resource-diagnostic.test.js',
  'scripts/local-categorical-diagnostics.mjs','tests/unit/local-categorical-diagnostics.test.js',
- 'tests/unit/local-battery-diagnostic.test.js','tests/unit/local-power-bluetooth-diagnostic.test.js',
+ 'tests/unit/local-battery-diagnostic.test.js',
+ 'Enterprise/deploy/LocalWindowsDiagnostics.ps1','Enterprise/tests/Test-LocalWindowsDiagnostics.ps1','tests/unit/local-power-bluetooth-diagnostic.test.js',
  'troubleshooting-incidents.js','database/migrations/020_troubleshooting_employee_bindings.sql','tests/unit/employee-troubleshooting.test.js','test-atomic-telemetry-batch-mysql.js'
 ]);
 describe('Troubleshooting register is a traceable source-level work inventory',()=>{

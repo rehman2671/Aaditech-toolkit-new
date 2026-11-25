@@ -800,3 +800,23 @@ Added scoped `summarizeTroubleshootingCategories` for all 26 issue categories, m
 ## Credential history reconciliation and recovery evidence causality (2026-11-25)
 
 2026-11-25 — Credential branch reconciliation of #110 c9128da7 and #111 6240cf59 against master 84f8c794: all changed code/test/migration paths reviewed; retained current exact or superseding implementation (unique current credential authority, explicit revocation and command quarantine, mandatory keyed telemetry, credential-bound app-usage snapshot migration 016, ordered later migrations and signed recovery review). Historical parent heads retained; original tracker evidence already present, no stale state overrides or duplicate IDs. Exact 84f8c794 CI #45498946352: 1,375/1,375 Vitest, 71.19% statements, including all 77 battery and 63 credential cases; PowerShell and API/MySQL passed; unsigned MSI running at observation, protected build skipped; safety #45498946372 passed. Recovery review now rejects ambiguous SQL count/clock row cardinality, noncanonical or unsafe integers, overflow-prone timestamps and signed evidence predating the persisted request. Added 32 focused cases; fresh exact-head CI required. This is review-only; independent approval, grant activation, ownership custody, uncertain command resolution, atomic Windows handoff, production signing and physical acceptance remain open. No production approval.
+
+## 2026-11-25 — Offline staging review gate
+
+Current batch stages independently pinned signed release bytes into private Linux storage, re-verifies staged manifest and payload and syncs files/directories. Fifteen new regression cases pending fresh CI. Seven Windows providers retained from #116 (166 checks passed per shell); current master green CI 45569189221 and safety 45569189216. No runtime import, install authorization or production acceptance. 50 parent and 158 granular IDs retained: 42 source-level, 43 partial, 73 pending. DEC-001 and physical offline acceptance remain required.
+
+## 2026-11-25 — Staged custody and TLS material review gate
+
+Added independent staged release reinspection with private modes, exact tree and signed payload re-verification; staging publication reuses this check. Added local direct-root LAN leaf/key custody, exact SAN, server EKU, validity, key match and secure-context inspection. 53 named regression cases pending execution. #117 prior CI 45579087345: 1630/1632 tests, two Windows capability mapping mismatches corrected, PowerShell passed, API/MSI skipped. No runtime import, issuance, listener, trusted OS distribution, production approval or main merge.
+
+## 2026-11-25 — Local identity lock gate
+
+Dedicated persistent identity initialization, exact UUID/raw SHA-256-pinned readback and cooperative local setup lock are implemented in the review candidate; 82 new regression cases defined. Prior CI 45637884369 Node and API passed; PowerShell/MSI canceled. Fresh combined CI and independently approved actual runtime/resource observation, DB/backup binding, physical restore, Windows ACL and DEC-001 remain required. No production acceptance.
+
+## 2026-11-25 — Local runtime observation gate
+
+Prior exact e107e210 CI 45639287071 passed 1,972 tests, PowerShell and real API/MySQL; MSI jobs skipped. Candidate adds fixed local Linux Docker GET-only runtime/image-ID observation, 83 unit cases and actual CI disposable Docker observation. Fresh CI required. No image import, release manifest/layer verification, actual runtime compatibility, installer execution or production acceptance. DEC-001 and independently approved image/runtime topology remain required.
+
+## 2026-11-25 — Signed staged OCI runtime binding (documentation catch-up)
+
+Exact review head `09908e11014727f955f05fc572d8c422709af28d` CI 45648531712 passed 2,131/2,131 Vitest (71.20% statements), PowerShell, actual Docker socket observation and API/MySQL; both MSI jobs skipped. The signed OCI profile verifies three role manifests/config IDs and compressed/uncompressed layer digests with bounded streaming; no archive extraction, image import or runtime mutation. DEC-001 and disconnected physical acceptance remain open. This entry reconciles the previously timed-out documentation update; it does not certify installation or production readiness.

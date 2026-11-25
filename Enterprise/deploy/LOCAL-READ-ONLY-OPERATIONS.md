@@ -111,3 +111,56 @@ node scripts/local-diagnostic-cli.mjs bluetooth --radio rfkill0 --confirm-local-
 ```
 
 Select a known local rfkill index; do not scan or mutate radios. Kernel RF blocking does not establish controller power or service health. The existing private-directory custody CLI accepts these collector options with its separate explicit retention confirmation. No remote invocation or operational acceptance is implied.
+
+## Explicit offline release staging (2026-11-25)
+
+This operation **writes** a private local copy, unlike read-only preflight. Use an existing trusted Linux directory with mode 0700. Provide bounded JSON via stdin with exactly `destinationParent` and `bundle` (`root`, `manifest`, `signature`, `trustedManifestSha256`, `trustedPublicKeyPem`, `trustedSignerSpkiSha256`). All paths absolute, pins independently approved. Source and destination must be separate, trusted local storage.
+
+```sh
+node scripts/stage-offline-lan-bundle-cli.mjs --confirm-local-staging < staging-input.json
+```
+
+Successful output identifies a unique private staging directory, manifest digest and verified file count. 64 GiB reference cap and capacity check; no runtime import or execution. Ordinary failures clean the unique stage; crash remnants need operator reconciliation. Do not launch staged bytes on the basis of this receipt. No protection against hostile same-UID writers, no physical offline acceptance. Fresh CI required. Seven Windows read-only providers from #116 are also carried forward; both PowerShell versions passed 166 checks at that prior head, not this new head.
+
+## Reinspect an offline stage and supplied TLS material (2026-11-25)
+
+Use trusted local Linux storage and an existing owner-only 0700 staging parent. `stage-inspection.json` contains exactly `stagedDirectory`, `trustedManifestSha256`, `trustedPublicKeyPem`, `trustedSignerSpkiSha256`; use independently approved pins, not a receipt as trust authority.
+
+```sh
+node scripts/inspect-staged-lan-bundle-cli.mjs --confirm-local-read-only < stage-inspection.json
+```
+
+The stage must retain the generated release directory name, private 0700 directories, private 0600 single-link files and exactly manifest.json, manifest.sig and payload at its top level. Inspection re-verifies bytes and snapshots metadata; never proves subsequent immutability or permission to execute.
+
+`tls-material.json` contains exactly `address`, `hostname`, `port`, `rootPem` (public CA only), `trustedRootSha256`, `leafCertificatePath`, `privateKeyPath`. Use absolute canonical local paths, separate 0600 certificate/key files in 0700 owner-only directories. Unencrypted single PEM key only; direct-root serverAuth leaf only, intermediate chains unsupported. Never put private key bytes in JSON or logs.
+
+```sh
+node scripts/private-lan-tls-material-cli.mjs --confirm-local-read-only < tls-material.json
+```
+
+Checks local private custody, independent root pin, direct signature, exact DNS/IP SAN, dates, server EKU, matching key and local secure-context creation. No network, listener, certificate issuance, trust store changes, revocation proof or runtime install. Independent approved PKI, actual TLS handshake, physical LAN acceptance and fresh CI remain required.
+
+## Explicit locked identity metadata initialization (2026-11-25)
+
+Initialization **writes** local identity metadata; it is not a read-only command or an installation. Prepare independent existing trusted owner-only (0700) identity and lock directories. Use JSON via stdin containing exactly `directoryPath`, `lockRoot`, and `observed` with explicit `database`, `credentials`, `service` states. Only all `absent` is accepted; do not supply this unless independently observed. These inputs do not prove actual absence. Paths must be absolute and non-overlapping.
+
+```sh
+node scripts/local-installation-identity-cli.mjs --initialize-empty-store < identity-init.json
+node scripts/local-installation-identity-cli.mjs --inspect-pinned-store < identity-inspect.json
+```
+
+Retain the UUID and exact file digest in independently trusted custody. The inspection JSON contains exactly `directoryPath`, `expectedInstallationId`, `expectedIdentitySha256`. Never obtain the expected pins solely from a possibly replaced file. Failure or interruption can leave an exclusive setup.lock marker: do not automatically remove it or rerun initialization. Reconcile actual process/resource/identity state under operator review. No Windows ACL, hostile same-UID protection, database binding, restore or install execution. Fresh combined CI required.
+
+## Local Docker runtime observation (2026-11-25)
+
+On a trusted Linux host with an existing root-owned local Docker daemon/socket, supply an independently reviewed JSON policy with exactly `architecture` (`amd64` or `arm64`) and `imageIds` (`api`, `database`, `ingress`, each a distinct lowercase `sha256:` config ID). Do not derive production expected pins from the daemon being checked. Run:
+
+```sh
+node scripts/local-docker-runtime-preflight-cli.mjs --confirm-local-docker-read-only < runtime-policy.json
+```
+
+Exit 0 means matching observed IDs and external review required, 2 means blocked, 1 means refusal. The fixed `/run/docker.sock` observer only sends allowlisted GET requests, does not use environment endpoint settings, and exports categorical state, not image config or daemon ID. Local root and host namespace must be trusted. Image config IDs are not registry digest or layer verification. No runtime import, install authorization, compatibility, resource absence or production acceptance. Fresh CI required.
+
+## 2026-11-25 — Signed staged OCI runtime binding
+
+Use `node scripts/inspect-offline-oci-runtime-cli.mjs --inspect-signed-oci < oci-policy.json` or `--observe-bound-local-runtime`. JSON requires stagedDirectory, trustedManifestSha256, trustedSignerSpkiSha256, trustedPublicKeyPem and architecture. Supported narrow OCI profile: runtime/oci-layout, runtime/index.json, runtime/blobs/sha256, exactly api/database/ingress manifests annotated with org.aaditech.role, Linux amd64 or arm64 and gzip layers. Independently pinned release and trusted local custody are required. Compressed and uncompressed digests checked, with 8 GiB per unique decompressed layer, 32 GiB aggregate and 120-second per-layer deadline. No extraction, import, daemon mutation or install authority. Fresh CI required.

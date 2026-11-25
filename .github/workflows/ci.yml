@@ -68,6 +68,10 @@ jobs:
       - name: Test Windows prerequisite dry-run never changes execution policy
         run: pwsh -NoProfile -File ./Enterprise/tests/Test-PrereqsVerifyOnly.ps1
 
+      - name: Local Windows read-only diagnostic adapters (PowerShell 7)
+        run: pwsh -NoProfile -File ./Enterprise/tests/Test-LocalWindowsDiagnostics.ps1
+      - name: Local Windows read-only diagnostic adapters (PowerShell 5.1)
+        run: powershell.exe -NoProfile -ExecutionPolicy Bypass -File ./Enterprise/tests/Test-LocalWindowsDiagnostics.ps1
       - name: Read-only LAN Windows host preflight (PowerShell 7)
         run: pwsh -NoProfile -File ./Enterprise/tests/Test-LanWindowsHostPreflight.ps1
       - name: Read-only LAN Windows host preflight (Windows PowerShell 5.1)
@@ -402,6 +406,28 @@ jobs:
 
       - name: Verify repository version consistency
         run: node scripts/check-version-consistency.cjs
+
+      - name: Observe existing local CI Docker image without runtime mutation
+        shell: bash
+        run: |
+          export CI_DATABASE_IMAGE_ID="$(docker image inspect mysql:8.0 --format '{{.Id}}')"
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import {randomBytes} from 'node:crypto';
+          import {inspectLocalDockerRuntime} from './scripts/local-docker-runtime-preflight.mjs';
+          // The already present CI service image is a test observation only.
+          // No pull/import, production publisher approval or deployment.
+          const fake=()=> 'sha256:'+randomBytes(32).toString('hex');
+          const result=await inspectLocalDockerRuntime({
+            confirmation:'OBSERVE_LOCAL_DOCKER_ONLY',architecture:'amd64',
+            imageIds:{api:fake(),database:process.env.CI_DATABASE_IMAGE_ID,ingress:fake()}
+          });
+          assert.equal(result.runtime_state,'LOCAL_LINUX_DAEMON_OBSERVED');
+          assert.equal(result.decision,'BLOCKED');
+          assert.deepEqual(result.images.map(x=>x.state),['NOT_FOUND','PINNED_ID_OBSERVED','NOT_FOUND']);
+          assert.equal(result.installation_authorized,false);
+          console.log('PASS: actual local Docker socket observation and missing image refusal.');
+          NODE
 
       - name: Run Vitest unit & integration test suite (enforcing 70%+ coverage)
         env:

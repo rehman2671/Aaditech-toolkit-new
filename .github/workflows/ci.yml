@@ -683,6 +683,16 @@ jobs:
           AADITECH_IDENTITY_MIGRATION: isolated-ci
         run: node test-device-identity-index-migration.js
 
+      - name: Rehearse signed fresh MySQL schema and installation identity in isolated database
+        timeout-minutes: 3
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_ROOT_PASSWORD: ci_root_password
+          NODE_ENV: test
+          AADITECH_FRESH_SCHEMA_REHEARSAL: isolated-ci
+        run: node test-fresh-mysql-schema-ci.js
+
       - name: Rehearse persistent MySQL identity backup and restore in separate disposable Compose project
         timeout-minutes: 10
         run: bash Enterprise/tests/Run-Disposable-MySQL-Recovery-CI.sh

@@ -30,6 +30,7 @@ import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 import * as db from './db.js';
 import {readPersistentSetupStatus,completeInitialSetup} from './initial-setup-transaction.js';
+import {identityPolicy as cleanSetupIdentityPolicy} from './installation-database-identity.js';
 import {registerTroubleshootingHelpRoutes} from './troubleshooting-help-routes.js';
 import {registerBoundEmployeeRoutes} from './troubleshooting-employee-routes.js';
 import {registerIncidentReviewRoutes} from './troubleshooting-review-routes.js';
@@ -2454,7 +2455,8 @@ app.post(['/api/v1/setup', '/api/setup'], async (req, res, next) => {
     const origin=resolveAgentOrigin(req);
     if(!origin||server_host!==origin.host)return res.status(400).json({error:'SETUP_INVALID',detail:'Use the operator-configured HTTPS server hostname.'});
     try{
-      const result=await completeInitialSetup(db,{body:req.body,configuredHost:origin.host,passwordHash:await bcrypt.hash(admin_password,10)});
+      const freshIdentityPolicy=process.env.AADITECH_BOUND_REPORTS==='enabled'?cleanSetupIdentityPolicy(process.env):null;
+      const result=await completeInitialSetup(db,{body:req.body,configuredHost:origin.host,passwordHash:await bcrypt.hash(admin_password,10),freshIdentityPolicy});
       const token=issueUserToken(result.admin);
       res.cookie('auth_token',token,{httpOnly:true,secure:true,sameSite:'lax',maxAge:8*3600*1000});
       res.cookie('itk_session',token,{httpOnly:true,secure:true,sameSite:'lax',maxAge:8*3600*1000});

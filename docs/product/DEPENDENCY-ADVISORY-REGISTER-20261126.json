@@ -29,7 +29,7 @@
       "via_packages": [],
       "locked_version": "2.0.7",
       "scope": "production",
-      "status": "NOT_REPORTED_IN_VERIFIED_MASS20_INSTALLED_AUDIT",
+      "status": "NOT_REPORTED_IN_VERIFIED_MASS21_INSTALLED_AUDIT",
       "fix_available_reported": true,
       "fix_version_verified": true,
       "next": "Monitor exact-head audit and regression; no production acceptance"
@@ -46,7 +46,7 @@
       "via_packages": [],
       "locked_version": "5.3.1",
       "scope": "production",
-      "status": "NOT_REPORTED_IN_VERIFIED_MASS20_INSTALLED_AUDIT",
+      "status": "NOT_REPORTED_IN_VERIFIED_MASS21_INSTALLED_AUDIT",
       "fix_available_reported": true,
       "fix_version_verified": true,
       "next": "Monitor exact-head audit and regression; no production acceptance"
@@ -61,7 +61,7 @@
       "via_packages": [],
       "locked_version": "1.20.6",
       "scope": "production",
-      "status": "NOT_REPORTED_IN_VERIFIED_MASS20_INSTALLED_AUDIT",
+      "status": "NOT_REPORTED_IN_VERIFIED_MASS21_INSTALLED_AUDIT",
       "fix_available_reported": true,
       "fix_version_verified": true,
       "next": "Monitor exact-head audit and regression; no production acceptance"
@@ -78,7 +78,7 @@
       "via_packages": [],
       "locked_version": "1.16.0",
       "scope": "production",
-      "status": "NOT_REPORTED_IN_VERIFIED_MASS20_INSTALLED_AUDIT",
+      "status": "NOT_REPORTED_IN_VERIFIED_MASS21_INSTALLED_AUDIT",
       "fix_available_reported": true,
       "fix_version_verified": true,
       "next": "Monitor exact-head audit and regression; no production acceptance"
@@ -93,7 +93,7 @@
       ],
       "locked_version": "6.0.5",
       "scope": "production",
-      "status": "NOT_REPORTED_IN_VERIFIED_MASS20_INSTALLED_AUDIT",
+      "status": "NOT_REPORTED_IN_VERIFIED_MASS21_INSTALLED_AUDIT",
       "fix_available_reported": true,
       "fix_version_verified": true,
       "next": "Monitor exact-head audit and regression; no production acceptance"
@@ -108,7 +108,7 @@
       "via_packages": [],
       "locked_version": "4.3.1",
       "scope": "production",
-      "status": "NOT_REPORTED_IN_VERIFIED_MASS20_INSTALLED_AUDIT",
+      "status": "NOT_REPORTED_IN_VERIFIED_MASS21_INSTALLED_AUDIT",
       "fix_available_reported": true,
       "fix_version_verified": true,
       "next": "Monitor exact-head audit and regression; no production acceptance"
@@ -123,7 +123,7 @@
       ],
       "locked_version": "7.2.0",
       "scope": "production",
-      "status": "NOT_REPORTED_IN_VERIFIED_MASS20_INSTALLED_AUDIT",
+      "status": "NOT_REPORTED_IN_VERIFIED_MASS21_INSTALLED_AUDIT",
       "fix_available_reported": true,
       "fix_version_verified": true,
       "next": "Monitor exact-head audit and regression; no production acceptance"
@@ -139,7 +139,7 @@
       ],
       "locked_version": "7.0.4",
       "scope": "production",
-      "status": "NOT_REPORTED_IN_VERIFIED_MASS20_INSTALLED_AUDIT",
+      "status": "NOT_REPORTED_IN_VERIFIED_MASS21_INSTALLED_AUDIT",
       "fix_available_reported": true,
       "fix_version_verified": true,
       "next": "Monitor exact-head audit and regression; no production acceptance"
@@ -154,7 +154,7 @@
       ],
       "locked_version": "6.5.0",
       "scope": "production",
-      "status": "NOT_REPORTED_IN_VERIFIED_MASS20_INSTALLED_AUDIT",
+      "status": "NOT_REPORTED_IN_VERIFIED_MASS21_INSTALLED_AUDIT",
       "fix_available_reported": true,
       "fix_version_verified": true,
       "next": "Monitor exact-head audit and regression; no production acceptance"
@@ -169,7 +169,7 @@
       "via_packages": [],
       "locked_version": "4.6.5",
       "scope": "production",
-      "status": "NOT_REPORTED_IN_VERIFIED_MASS20_INSTALLED_AUDIT",
+      "status": "NOT_REPORTED_IN_VERIFIED_MASS21_INSTALLED_AUDIT",
       "fix_available_reported": true,
       "fix_version_verified": true,
       "next": "Monitor exact-head audit and regression; no production acceptance"
@@ -184,7 +184,7 @@
       "via_packages": [],
       "locked_version": "10.7.2",
       "scope": "production",
-      "status": "NOT_REPORTED_IN_VERIFIED_MASS20_INSTALLED_AUDIT",
+      "status": "NOT_REPORTED_IN_VERIFIED_MASS21_INSTALLED_AUDIT",
       "fix_available_reported": true,
       "fix_version_verified": true,
       "next": "Monitor exact-head audit and regression; no production acceptance"
@@ -201,10 +201,10 @@
       "via_packages": [],
       "locked_version": "6.15.3",
       "scope": "production",
-      "status": "CANDIDATE_AUDIT_NOT_REPORTED_PENDING_EXACT_HEAD_CI",
+      "status": "NOT_REPORTED_IN_VERIFIED_MASS21_INSTALLED_AUDIT",
       "fix_available_reported": true,
       "fix_version_verified": false,
-      "next": "Verify installed MASS-21 graph and audit"
+      "next": "Monitor exact-head audit and regression; no production acceptance"
     },
     {
       "package": "source-map-js",
@@ -216,7 +216,7 @@
       "via_packages": [],
       "locked_version": "1.2.1",
       "scope": "development",
-      "status": "NOT_REPORTED_IN_VERIFIED_MASS20_INSTALLED_AUDIT",
+      "status": "NOT_REPORTED_IN_VERIFIED_MASS21_INSTALLED_AUDIT",
       "fix_available_reported": true,
       "fix_version_verified": true,
       "next": "Monitor exact-head audit and regression; no production acceptance"
@@ -236,7 +236,7 @@
       "via_packages": [],
       "locked_version": "8.3.0",
       "scope": "development",
-      "status": "NOT_REPORTED_IN_VERIFIED_MASS20_INSTALLED_AUDIT",
+      "status": "NOT_REPORTED_IN_VERIFIED_MASS21_INSTALLED_AUDIT",
       "fix_available_reported": true,
       "fix_version_verified": true,
       "next": "Monitor exact-head audit and regression; no production acceptance"
@@ -251,10 +251,10 @@
       ],
       "locked_version": "5.0.1",
       "scope": "development",
-      "status": "OPEN_CANDIDATE_AUDIT",
+      "status": "OPEN_VERIFIED_DEVELOPMENT_MODERATE",
       "fix_available_reported": true,
       "fix_version_verified": false,
-      "next": "Resolve remaining development moderate advisory; exact-head CI pending"
+      "next": "Review compatible Vitest family upgrade; current non-forced resolver returned zero changes"
     },
     {
       "package": "@vitest/mocker",
@@ -267,10 +267,10 @@
       "via_packages": [],
       "locked_version": "5.0.1",
       "scope": "development",
-      "status": "OPEN_CANDIDATE_AUDIT",
+      "status": "OPEN_VERIFIED_DEVELOPMENT_MODERATE",
       "fix_available_reported": true,
       "fix_version_verified": false,
-      "next": "Resolve remaining development moderate advisory; exact-head CI pending"
+      "next": "Review compatible Vitest family upgrade; current non-forced resolver returned zero changes"
     },
     {
       "package": "vitest",
@@ -283,10 +283,10 @@
       ],
       "locked_version": "5.0.1",
       "scope": "development",
-      "status": "OPEN_CANDIDATE_AUDIT",
+      "status": "OPEN_VERIFIED_DEVELOPMENT_MODERATE",
       "fix_available_reported": true,
       "fix_version_verified": false,
-      "next": "Resolve remaining development moderate advisory; exact-head CI pending"
+      "next": "Review compatible Vitest family upgrade; current non-forced resolver returned zero changes"
     },
     {
       "package": "express",
@@ -298,9 +298,9 @@
       ],
       "scope": "production",
       "locked_version": "4.22.2",
-      "status": "CANDIDATE_AUDIT_NOT_REPORTED_PENDING_EXACT_HEAD_CI",
+      "status": "NOT_REPORTED_IN_VERIFIED_MASS21_INSTALLED_AUDIT",
       "fix_version_verified": false,
-      "next": "Verify installed MASS-21 graph and audit"
+      "next": "Monitor exact-head audit and regression; no production acceptance"
     }
   ],
   "release_authorized": false,
@@ -509,5 +509,25 @@
       ]
     },
     "exact_head_verification_pending": true
+  },
+  "installed_mass21": {
+    "head": "1192b7a1ae8db67461edbadcc3c95c402e55ee5d",
+    "run_id": 45707345886,
+    "job_id": 139532583916,
+    "lock_sha256": "2c2163f026bccd844ae09872690adf7465098d79c630f081be41cc0cf2272744",
+    "production": {
+      "critical": 0,
+      "high": 0,
+      "moderate": 0,
+      "total": 0
+    },
+    "full": {
+      "critical": 0,
+      "high": 0,
+      "moderate": 3,
+      "total": 3
+    },
+    "node_tests_passed": 2815,
+    "compatible_candidate_changes": 0
   }
 }

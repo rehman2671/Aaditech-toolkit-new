@@ -9,6 +9,8 @@ function check({pkg,lock,docker,version,workflow}){
   const setup=steps.filter(s=>String(s.uses||'').startsWith('actions/setup-node@'));
   if(setup.length!==1||setup[0].with?.['node-version']!=='24'||setup[0].if!==undefined||setup[0]['continue-on-error']!==undefined)fail();
  }
+ const fresh=wf.jobs['api-tests'].steps.filter(s=>s.run==='node test-fresh-mysql-schema-ci.js');
+ if(fresh.length!==1||fresh[0].if!==undefined||fresh[0].shell!==undefined||fresh[0]['working-directory']!==undefined||fresh[0]['continue-on-error']!==undefined||fresh[0]['timeout-minutes']!==3||fresh[0].env?.AADITECH_FRESH_SCHEMA_REHEARSAL!=='isolated-ci'||fresh[0].env?.DB_HOST!=='127.0.0.1'||fresh[0].env?.DB_PORT!==3306||fresh[0].env?.NODE_ENV!=='test')fail();
  const live=wf.jobs['api-tests'].steps.filter(s=>s.run==='bash Enterprise/tests/Run-Disposable-MySQL-Recovery-CI.sh');
  if(live.length!==1||live[0].if!==undefined||live[0].env!==undefined||live[0].shell!==undefined||live[0]['working-directory']!==undefined||live[0]['continue-on-error']!==undefined||live[0]['timeout-minutes']!==10)fail();
  const steps=wf.jobs['node-tests'].steps;

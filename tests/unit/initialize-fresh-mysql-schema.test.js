@@ -1,0 +1,10 @@
+import {it,expect} from 'vitest';
+import {selectSignedMigrationEntries as select,verifyFactorySeedRows as seed,validateFreshSchemaRequest as policy} from '../../scripts/initialize-fresh-mysql-schema.mjs';
+const entries=Array.from({length:24},(_,i)=>({path:'database/migrations/'+String(i+1).padStart(3,'0')+'_fixture.sql',size:10,sha256:'a'.repeat(64)}));
+it('requires exactly 24 ordered signed migration entries',()=>expect(select([...entries].reverse()).map(e=>e.path)).toEqual(entries.map(e=>e.path)));
+it.each([entries.slice(1),[...entries,entries[0]],entries.map((e,i)=>i===3?{...e,path:'database/migrations/004_../x.sql'}:e),entries.map((e,i)=>i===3?{...e,size:0}:e),entries.map((e,i)=>i===3?{...e,sha256:'0'.repeat(64)}:e)].map(x=>[x]))('refuses missing or malformed signed migration sequence',v=>expect(()=>select(v)).toThrow());
+it('checks exact factory identity sets without permitting extra rows',()=>{expect(seed('users',[{id:3},{id:1},{id:2}])).toBe(3);expect(seed('devices',[{id:'1'},{id:'2'},{id:'3'}])).toBe(3)});
+it.each([[{id:1},{id:2},{id:4}],[{id:1},{id:2}],[{id:1},{id:2},{id:3},{id:4}],[{id:1},{id:2},{id:2}],[{id:1,x:true},{id:2},{id:3}],Array(3)].map(x=>[x]))('rejects unknown seed rows',rows=>expect(()=>seed('users',rows)).toThrow());
+const request={confirmation:'INITIALIZE_EMPTY_MYSQL_SCHEMA_ONLY_EXCLUSIVE_WRITER_CUSTODY',databaseName:'it_toolkit',release:{confirmation:'ADMIT_SIGNED_FRESH_MYSQL_MIGRATIONS_ONLY',stagedDirectory:'/private/stage',trustedManifestSha256:'a'.repeat(64),trustedPublicKeyPem:'fixture',trustedSignerSpkiSha256:'b'.repeat(64)},identity:{confirmation:'INSPECT_PINNED_IDENTITY_STORE_ONLY',directoryPath:'/private/id',expectedInstallationId:'fixture',expectedIdentitySha256:'c'.repeat(64)}};
+it('pins the dedicated database, release and identity input',()=>expect(policy(request)).toMatchObject({databaseName:'it_toolkit'}));
+it.each([{databaseName:'mysql'},{databaseName:'foreign'},{confirmation:'yes'},{release:{...request.release,extra:true}},{identity:{...request.identity,extra:true}},{extra:true}])('rejects unsafe initialization input %j',patch=>expect(()=>policy({...request,...patch})).toThrow());

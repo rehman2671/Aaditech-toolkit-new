@@ -29,10 +29,11 @@ function graph(architecture='amd64',layerOverride=null){
  const input={architecture,entries,readMetadata:async path=>docs.get(path)};
  return {files,docs,configs,manifests,index,layout,entries,input};
 }
-export async function staged(fn,layerOverride=null){
+export async function staged(fn,layerOverride=null,extraFiles=new Map()){
  const dir=await mkdtemp(join(await realpath(tmpdir()),'oci-lan-'));
  try{
   const g=graph('amd64',layerOverride),root=join(dir,'source'),destinationParent=join(dir,'dest');
+  for(const [path,bytes] of extraFiles){if(g.files.has(path)||!Buffer.isBuffer(bytes))throw Error('INVALID_EXTRA_FIXTURE');g.files.set(path,bytes);g.entries.push({path,size:bytes.length,sha256:sha(bytes)})}
   await mkdir(root);await mkdir(destinationParent,{mode:0o700});await chmod(destinationParent,0o700);
   for(const [name,bytes] of g.files){const path=join(root,name);await mkdir(dirname(path),{recursive:true});await writeFile(path,bytes)}
   const manifest=join(dir,'manifest.json'),signature=join(dir,'manifest.sig'),key=generateKeyPairSync('ed25519');

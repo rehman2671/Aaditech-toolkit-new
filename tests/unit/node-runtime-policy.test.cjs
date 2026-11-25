@@ -19,3 +19,5 @@ test('Docker locked install cannot be replaced',()=>assert.throws(()=>check({...
 
 test('offline recovery regression cannot be skipped',()=>assert.throws(()=>check({...base,workflow:base.workflow.replace('run: bash -n Enterprise/tests/Test-MySQL-Live-Rehearsal.sh && bash Enterprise/tests/Test-MySQL-Backup-Restore.sh','run: echo skipped')})));
 test('persistent recovery rehearsal cannot be skipped',()=>assert.throws(()=>check({...base,workflow:base.workflow.replace('run: bash Enterprise/tests/Run-Disposable-MySQL-Recovery-CI.sh','run: echo skipped')})));
+
+test('fresh schema rehearsal cannot be skipped',()=>assert.throws(()=>check({...base,workflow:base.workflow.replace('run: node test-fresh-mysql-schema-ci.js','run: echo skipped')})));

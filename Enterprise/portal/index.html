@@ -399,6 +399,7 @@ async function start() {
   try { const r=await fetch('/api/setup/status',{cache:'no-store'}); if(!r.ok)throw Error(); status=await r.json(); if(typeof status.setup_complete!=='boolean')throw Error(); }
   catch { app.replaceChildren(); const p=document.createElement('p');p.textContent='Server setup status unavailable. Check server and database health before continuing.';const b=document.createElement('button');b.textContent='Retry';b.addEventListener('click',start);app.append(p,b);return; }
   window.__setupHost=status.server_host;
+  window.__setupProfile=status.bootstrap_profile==='clean_install_v1'?'clean_install_v1':null;
   window.__defaultBuildMode = status.default_build_mode || 'manual';
   if (!status.setup_complete) return renderSetup();
   let boot;
@@ -596,6 +597,7 @@ function renderSetup() {
         <div style="flex:1"><label>Admin username</label><input id="admin_username" value="admin" /></div>
         <div style="flex:1"><label>Brand color</label><input id="branding_color" type="color" value="#38bdf8" style="padding:2px;height:38px" /></div>
       </div>
+      ${window.__setupProfile==='clean_install_v1'?'<label>Administrator email</label><input id="admin_email" type="email" maxlength="128" autocomplete="email" required />':''}
       <label>Admin password (min 12 chars)</label><input id="admin_password" type="password" />
       <label>Repeat password</label><input id="admin_password2" type="password" />
 
@@ -648,6 +650,7 @@ async function doSetup() {
     server_host: (document.getElementById('server_host')?.value || '').trim(),
     admin_username: (document.getElementById('admin_username')?.value || '').trim(),
     admin_password: p1,
+    ...(window.__setupProfile==='clean_install_v1'?{admin_email:(document.getElementById('admin_email')?.value||'').trim()}:{}) ,
     branding: { color: document.getElementById('branding_color')?.value || '#38bdf8', logo_text: (document.getElementById('company_name')?.value || '').trim() },
     build_mode: document.getElementById('build_mode')?.value || 'manual',
   };

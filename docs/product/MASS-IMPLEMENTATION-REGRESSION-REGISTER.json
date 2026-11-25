@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
-  "batch": "MASS-21",
+  "batch": "MASS-22",
   "date": "2026-11-26",
   "target": "20 implementation prompts planning target, 50–100 actual development tasks per batch aspirational; count only delivered functional work, not test cases",
-  "base_commit": "7bbd3893098b75f58934e26582091f944c540020",
+  "base_commit": "1192b7a1ae8db67461edbadcc3c95c402e55ee5d",
   "source_of_truth": [
     "docs/product/DELIVERY-TRACKER.json",
     "docs/product/TROUBLESHOOTING-WORK-REGISTER.json",
@@ -3659,6 +3659,55 @@
         "Offline malformed/duplicate/unsafe environment and ambient override denial",
         "Actual disposable persistent identity restart, encrypted restore and safety backup CI pending"
       ]
+    },
+    {
+      "id": "MASS-22-01",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Signed migration admission, empty MySQL schema initialization, exact factory seed cleanup and installation identity binding",
+      "dependencies": [
+        "MASS-12-02",
+        "MASS-20-02",
+        "MASS-21-02",
+        "M1",
+        "DEC-001"
+      ],
+      "paths": [
+        "scripts/initialize-fresh-mysql-schema.mjs",
+        "tests/unit/initialize-fresh-mysql-schema.test.js",
+        "tests/fixtures/signed-offline-oci-fixture.mjs",
+        "test-fresh-mysql-schema-ci.js",
+        "docs/product/SIGNED-FRESH-MYSQL-SCHEMA-AND-CLEAN-BOOTSTRAP.md"
+      ],
+      "regression": [
+        "MASS-21 all applicable CI and actual persistent recovery passed",
+        "Exact-head signed fresh schema and occupied-target refusal CI pending"
+      ]
+    },
+    {
+      "id": "MASS-22-02",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Identity-bound clean first-run administrator, workspace/company/membership creation and portal email",
+      "dependencies": [
+        "MASS-22-01",
+        "MASS-10-01",
+        "M1"
+      ],
+      "paths": [
+        "initial-setup-transaction.js",
+        "server.js",
+        "validation.js",
+        "Enterprise/portal/index.html",
+        "tests/unit/initial-setup-transaction.test.js",
+        "test-fresh-mysql-schema-ci.js",
+        ".github/workflows/ci.yml",
+        "scripts/check-node-runtime-policy.cjs",
+        "tests/unit/node-runtime-policy.test.cjs",
+        "docs/product/SIGNED-FRESH-MYSQL-SCHEMA-AND-CLEAN-BOOTSTRAP.md"
+      ],
+      "regression": [
+        "Clean bootstrap missing identity denial and repeat denial",
+        "Actual signed fresh MySQL bootstrap CI pending; no runtime activation"
+      ]
     }
   ],
   "unresolved": [
@@ -3929,6 +3978,17 @@
         "docs/product/DEPENDENCY-ADVISORY-REGISTER-20261126.json",
         "Enterprise/tests/Test-MySQL-Backup-Restore.sh",
         "Enterprise/tests/Run-Disposable-MySQL-Recovery-CI.sh"
+      ]
+    },
+    {
+      "id": "MASS-22",
+      "base_commit": "1192b7a1ae8db67461edbadcc3c95c402e55ee5d",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "evidence": [
+        "docs/product/SIGNED-FRESH-MYSQL-SCHEMA-AND-CLEAN-BOOTSTRAP.md",
+        "docs/product/DEPENDENCY-ADVISORY-REGISTER-20261126.json",
+        "test-fresh-mysql-schema-ci.js",
+        "tests/unit/initialize-fresh-mysql-schema.test.js"
       ]
     }
   ]

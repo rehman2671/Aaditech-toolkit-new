@@ -8186,6 +8186,17 @@
         "runtime-shutdown.js",
         "tests/unit/runtime-shutdown.test.js"
       ]
+    },
+    {
+      "id": "MASS-44",
+      "base_commit": "0153dc8a5b21e887a6519027fd9a8659fb86cffc",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "evidence": [
+        "runtime-shutdown.js",
+        "tests/unit/runtime-shutdown-deadline.test.js"
+      ],
+      "local_verification": "Equivalent isolated Node 22 harness passed 60/60; repository Vitest pending",
+      "regression_definitions": 60
     }
   ]
 }

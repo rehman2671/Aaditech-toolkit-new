@@ -2,6 +2,7 @@ import { scopedAlertRules, isApprovedWebhookUrl, deliverTenantWebhook } from './
 import { smtpTransportConfig, isApprovedEmailRecipient, deliverTenantEmail } from './smtp-alerts.js';
 import { startNotificationOutboxWorker } from './notification-outbox.js';
 import {createRuntimeShutdown,createTaskTracker} from './runtime-shutdown.js';
+import {createHttpWorkTracker,installHttpRouteTracking} from './http-work-tracker.js';
 import { destinationFingerprint } from './notification-destination.js';
 import { approvedGithubBuildConfig, readApprovedBuildStatus, dispatchApprovedBuild } from './github-build-release.js';
 /**
@@ -155,6 +156,8 @@ if (REQUIRE_SECURE_SETUP && INITIAL_SETUP_TOKEN.length < 32) {
 const revokedTokens = new Set();
 
 const app = express();
+const httpWork=createHttpWorkTracker();
+installHttpRouteTracking(app,httpWork);
 const auditTasks=createTaskTracker();
 let shutdownController;
 app.use((req,res,next)=>{
@@ -850,7 +853,7 @@ app.use((req, res, next) => {
 app.use(['/api', '/api/v1'], apiLimiter);
 
 // ---------------- UNIVERSAL API SECURITY GATEWAY ----------------
-app.use(async (req, res, next) => {
+app.use(httpWork.wrap(async (req, res, next) => {
   const p = req.path;
 
   // 1. Static and non-API files are completely open
@@ -917,7 +920,7 @@ app.use(async (req, res, next) => {
 
   // 4. All other API endpoints strictly require user authentication
   return authenticateUserToken(req, res, next);
-});
+}));
 
 // Real Bcrypt Login Handler for both /api/v1/auth/login and /api/login
 async function handleLogin(req, res) {
@@ -3648,7 +3651,7 @@ if (!runningUnderVitest) {
   shutdownController=createRuntimeShutdown({
     stopAccepting:()=>new Promise((resolve,reject)=>{serverInstance.close(err=>err?reject(err):resolve());serverInstance.closeIdleConnections?.()}),
     stopBackground:async()=>{await Promise.all([stopOutbox(),db.stopDatabaseBackgroundWork()])},
-    drain:async()=>{await auditTasks.drain();await db.drainDatabaseWork()},
+    drain:async()=>{await httpWork.sealAndDrain();await auditTasks.drain();await db.drainDatabaseWork()},
     closeResources:()=>db.closeDatabaseResources()
   });
   let shutdownRequested=false;

@@ -8196,7 +8196,49 @@
         "tests/unit/runtime-shutdown-deadline.test.js"
       ],
       "local_verification": "Equivalent isolated Node 22 harness passed 60/60; repository Vitest pending",
-      "regression_definitions": 60
+      "regression_definitions": 60,
+      "exact_head_ci": {
+        "head": "a43d3ed263181e83efe5fa7dfd78dee88b9c1209",
+        "run": 45718589562,
+        "jobs": [
+          {
+            "id": 139570905562,
+            "name": "Node.js Unit & Integration Tests (Vitest + MySQL 8)",
+            "status": "in_progress",
+            "conclusion": null
+          },
+          {
+            "id": 139570906012,
+            "name": "PowerShell validation",
+            "status": "in_progress",
+            "conclusion": null
+          },
+          {
+            "id": 139570906038,
+            "name": "Offline Docker load compatibility (disposable runner)",
+            "status": "in_progress",
+            "conclusion": null
+          }
+        ],
+        "scope": "Observed run in progress; no acceptance promotion"
+      }
+    },
+    {
+      "id": "MASS-45",
+      "base_commit": "a43d3ed263181e83efe5fa7dfd78dee88b9c1209",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "evidence": [
+        "http-work-tracker.js",
+        "server.js",
+        "tests/unit/http-work-tracker.test.js",
+        "tests/unit/http-work-tracker-express.test.js"
+      ],
+      "regression_definitions": 62,
+      "local_verification": "58/58 isolated Node 22 node:test equivalent, including real loopback disconnected client; 4 Express/Supertest cases not executed locally",
+      "limitations": [
+        "Returned promises only; detached callbacks and third-party router internals not tracked",
+        "No independent transaction quiescence or forced-kill reconciliation proof"
+      ]
     }
   ]
 }

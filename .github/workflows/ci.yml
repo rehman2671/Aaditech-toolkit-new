@@ -77,6 +77,11 @@ jobs:
       - name: Read-only LAN Windows host preflight (Windows PowerShell 5.1)
         run: powershell.exe -NoProfile -ExecutionPolicy Bypass -File ./Enterprise/tests/Test-LanWindowsHostPreflight.ps1
 
+      - name: Private LAN independently pinned root trust policy (PowerShell 7)
+        run: pwsh -NoProfile -File ./Enterprise/tests/Test-PrivateWindowsRootTrust.ps1
+      - name: Private LAN independently pinned root trust policy (Windows PowerShell 5.1)
+        run: powershell.exe -NoProfile -ExecutionPolicy Bypass -File ./Enterprise/tests/Test-PrivateWindowsRootTrust.ps1
+
       - name: Retired legacy Windows SYSTEM installer must fail closed
         run: pwsh -NoProfile -File ./Enterprise/tests/Test-LegacyAgentInstallerDisabled.ps1
 

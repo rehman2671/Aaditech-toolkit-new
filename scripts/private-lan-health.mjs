@@ -18,7 +18,7 @@ export function verifyHealthBody(bytes){
 }
 export async function probePrivateLanHealth(input){
  if(!input||Object.getPrototypeOf(input)!==Object.prototype||Reflect.ownKeys(input).length!==fields.length||!fields.every(k=>Object.hasOwn(Object.getOwnPropertyDescriptor(input,k)??{},'value'))||input.confirmation!=='PROBE_PINNED_PRIVATE_LAN_HEALTH_ONLY'||!digest(input.trustedLeafSha256))fail();
- const p={...input},target=validatePrivateTlsInputs(p);
+ const p={...input},target=validatePrivateTlsInputs(p),root=new X509Certificate(target.rootPem);
  return new Promise((resolve,reject)=>{
   let req,settled=false,verified=false,tlsVersion=null;
   const finish=(err,result)=>{if(settled)return;settled=true;clearTimeout(timer);req?.destroy();err?reject(Error('PRIVATE_LAN_HEALTH_UNVERIFIED')):resolve(Object.freeze(result))};
@@ -29,11 +29,11 @@ export async function probePrivateLanHealth(input){
     headers:{Host:target.hostname+(target.port===443?'':':'+target.port),Accept:'application/json',Connection:'close'},
     checkServerIdentity:(_name,peer)=>{try{
      const leaf=new X509Certificate(peer.raw),now=Date.now(),match=isIP(target.hostname)?leaf.checkIP(target.hostname):leaf.checkHost(target.hostname,{subject:'never',wildcards:false});
-     if(leaf.ca||!match||!leaf.keyUsage?.includes('1.3.6.1.5.5.7.3.1')||!(Date.parse(leaf.validFrom)<=now&&now<=Date.parse(leaf.validTo))||createHash('sha256').update(leaf.raw).digest('hex')!==p.trustedLeafSha256)return Error('PRIVATE_LEAF_PIN_MISMATCH');
+     if(leaf.ca||!leaf.checkIssued(root)||!leaf.verify(root.publicKey)||!match||!leaf.keyUsage?.includes('1.3.6.1.5.5.7.3.1')||!(Date.parse(leaf.validFrom)<=now&&now<=Date.parse(leaf.validTo))||createHash('sha256').update(leaf.raw).digest('hex')!==p.trustedLeafSha256)return Error('PRIVATE_LEAF_PIN_MISMATCH');
      verified=true;return undefined;
     }catch{return Error('PRIVATE_LEAF_PIN_MISMATCH')}}
    },res=>{
-    if(!verified||!res.socket.authorized||res.statusCode!==200||typeof res.headers['content-type']!=='string'||!/^application\/json(?:\s*;\s*charset=utf-8)?$/i.test(res.headers['content-type'])||res.headers['content-encoding']!==undefined){res.destroy();finish(true);return}
+    if(!verified||!res.socket.authorized||res.socket.remoteAddress!==target.address||res.socket.remotePort!==target.port||res.statusCode!==200||typeof res.headers['content-type']!=='string'||!/^application\/json(?:\s*;\s*charset=utf-8)?$/i.test(res.headers['content-type'])||res.headers['content-encoding']!==undefined){res.destroy();finish(true);return}
     tlsVersion=res.socket.getProtocol();
     const parts=[];let n=0;
     res.on('data',b=>{n+=b.length;if(n>16384){res.destroy();finish(true)}else parts.push(b)});

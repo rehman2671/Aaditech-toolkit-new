@@ -150,3 +150,13 @@ node scripts/local-installation-identity-cli.mjs --inspect-pinned-store < identi
 ```
 
 Retain the UUID and exact file digest in independently trusted custody. The inspection JSON contains exactly `directoryPath`, `expectedInstallationId`, `expectedIdentitySha256`. Never obtain the expected pins solely from a possibly replaced file. Failure or interruption can leave an exclusive setup.lock marker: do not automatically remove it or rerun initialization. Reconcile actual process/resource/identity state under operator review. No Windows ACL, hostile same-UID protection, database binding, restore or install execution. Fresh combined CI required.
+
+## Local Docker runtime observation (2026-11-25)
+
+On a trusted Linux host with an existing root-owned local Docker daemon/socket, supply an independently reviewed JSON policy with exactly `architecture` (`amd64` or `arm64`) and `imageIds` (`api`, `database`, `ingress`, each a distinct lowercase `sha256:` config ID). Do not derive production expected pins from the daemon being checked. Run:
+
+```sh
+node scripts/local-docker-runtime-preflight-cli.mjs --confirm-local-docker-read-only < runtime-policy.json
+```
+
+Exit 0 means matching observed IDs and external review required, 2 means blocked, 1 means refusal. The fixed `/run/docker.sock` observer only sends allowlisted GET requests, does not use environment endpoint settings, and exports categorical state, not image config or daemon ID. Local root and host namespace must be trusted. Image config IDs are not registry digest or layer verification. No runtime import, install authorization, compatibility, resource absence or production acceptance. Fresh CI required.

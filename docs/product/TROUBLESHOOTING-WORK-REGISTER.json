@@ -4,7 +4,7 @@
   "date": "2026-11-25",
   "parent_tracker": "DELIVERY-TRACKER.json",
   "production_accepted": false,
-  "note": "Planning/implementation register, not verified delivery. Guidance and review formats are source-level only; existing reference collectors are partial, not platform acceptance. Parent tracker remains authoritative. No task is marked accepted. Combined review reconciliation preserves all 158 original IDs; partial entries identify local reference source/test files; no platform verification or acceptance inferred.",
+  "note": "Planning/implementation register, not verified delivery. Guidance and review formats are source-level only; existing reference collectors are partial, not platform acceptance. Parent tracker remains authoritative. No task is marked accepted. Combined review reconciliation preserves all 158 original IDs; partial entries identify local reference source/test files; no platform verification or acceptance inferred. 2026-11-25: PR #117 CI identified two Windows capability mapping mismatches (Bluetooth/power) against existing partial reference tasks; catalog corrected, no state promoted pending fresh CI.",
   "counts": {
     "IMPLEMENTED_PENDING_COMBINED_CI": 42,
     "PARTIAL_REFERENCE_ONLY": 43,

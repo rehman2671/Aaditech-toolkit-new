@@ -37,14 +37,16 @@ function get(target,root,leafPin,path,expected){
   }catch{finish(true)}
  });
 }
-export async function probePrivateLanHttps(input,assertHeld){
- if(!exact(input,['confirmation','address','hostname','port','rootPem','trustedRootSha256','trustedLeafSha256'])||input.confirmation!=='PROBE_PINNED_PRIVATE_LAN_HTTPS_ONLY'||typeof assertHeld!=='function'||typeof input.trustedLeafSha256!=='string'||!/^[a-f0-9]{64}$/.test(input.trustedLeafSha256)||!/[a-z]/.test(input.hostname))fail();
+export async function probePrivateLanHttps(input,assertHeld){return probe(input,assertHeld,false)}
+export async function probeExistingPrivateLanHttps(input,assertHeld){return probe(input,assertHeld,true)}
+async function probe(input,assertHeld,existing){
+ if(!exact(input,['confirmation','address','hostname','port','rootPem','trustedRootSha256','trustedLeafSha256'])||input.confirmation!==(existing?'PROBE_PINNED_EXISTING_PRIVATE_LAN_HTTPS_ONLY':'PROBE_PINNED_PRIVATE_LAN_HTTPS_ONLY')||typeof assertHeld!=='function'||typeof input.trustedLeafSha256!=='string'||!/^[a-f0-9]{64}$/.test(input.trustedLeafSha256)||!/[a-z]/.test(input.hostname))fail();
  const target=validatePrivateTlsInputs(input),root=new X509Certificate(target.rootPem),pin=input.trustedLeafSha256;
  await assertHeld();
  const health=await get(target,root,pin,'/healthz',200);await assertHeld();
  if(health?.status!=='ok'||health.components?.database!=='HEALTHY')fail();
  const setup=await get(target,root,pin,'/api/v1/setup/status',200);await assertHeld();
- if(setup?.setup_complete!==false||setup.bootstrap_profile!=='clean_install_v1'||setup.server_host!==target.hostname)fail();
+ if(!setup||setup.server_host!==target.hostname||!(setup.setup_complete===false&&setup.bootstrap_profile==='clean_install_v1'||existing&&setup.setup_complete===true&&!Object.hasOwn(setup,'bootstrap_profile')))fail();
  for(const path of ['/metrics','/docs','/openapi.json']){await get(target,root,pin,path,404);await assertHeld()}
- return Object.freeze({schema_version:1,root_sha256:target.fingerprint,leaf_sha256:pin,exact_leaf_verified:true,application_readiness_verified:true,clean_setup_verified:true,private_routes_denied:true,system_trust_verified:false,installation_authorized:false,production_accepted:false});
+ return Object.freeze({schema_version:1,root_sha256:target.fingerprint,leaf_sha256:pin,exact_leaf_verified:true,application_readiness_verified:true,clean_setup_verified:setup.setup_complete===false,...(existing?{setup_state_observed:setup.setup_complete?'COMPLETED':'CLEAN_FIRST_RUN'}:{}),private_routes_denied:true,system_trust_verified:false,installation_authorized:false,production_accepted:false});
 }

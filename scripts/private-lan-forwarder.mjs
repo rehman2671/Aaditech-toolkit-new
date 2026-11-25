@@ -5,7 +5,8 @@
 import {createServer,createConnection,isIPv4} from 'node:net';
 import {networkInterfaces} from 'node:os';
 import {validatePrivateTlsInputs} from './private-lan-tls-preflight.mjs';
-import {probePrivateLanHttps} from './probe-private-lan-https.mjs';
+import {probePrivateLanHttps,probeExistingPrivateLanHttps} from './probe-private-lan-https.mjs';
+import {validateLivePrivateStackPolicy,inspectLivePrivateStack} from './create-stopped-compose-candidates.mjs';
 import {probePrivateLanHealth} from './private-lan-health.mjs';
 import {inspectLocalInstallationIdentity} from './installation-identity-store-posix.mjs';
 import {isAbsolute,resolve} from 'node:path';
@@ -51,7 +52,26 @@ export function validatePrivateLanForwarderPolicy(input){
  validatePrivateTlsInputs({address:input.ingressAddress,hostname:input.hostname,port:443,rootPem:input.rootPem,trustedRootSha256:input.trustedRootSha256});
  return Object.freeze({...input,identity:Object.freeze({...i}),subnet});
 }
-export async function startPrivateLanForwarder(input){
+export function validateExistingLanForwarderPolicy(input){
+ if(!exact(input,['confirmation','forwarder','stack'])||input.confirmation!=='RUN_PINNED_EXISTING_PRIVATE_LAN_FORWARDER_ONLY_EXCLUSIVE_OPERATOR_CUSTODY')fail();
+ const p=validatePrivateLanForwarderPolicy(input.forwarder),s=validateLivePrivateStackPolicy(input.stack);
+ if(p.hostname!==s.serverHost||p.ingressAddress!==s.runningPins.processes.caddy.ip||p.bindAddress!==s.tls.address||p.rootPem!==s.tls.rootPem||p.trustedRootSha256!==s.tls.trustedRootSha256||p.trustedLeafSha256!==s.tls.trustedLeafSha256||JSON.stringify(p.identity)!==JSON.stringify(s.storage.identity))fail();
+ // Retain original exact request shape; validated policy objects may include
+ // derived fields and must not be fed back into strict adapters.
+ return Object.freeze({forwarder:Object.freeze({...input.forwarder,identity:Object.freeze({...input.forwarder.identity})}),stack:Object.freeze({...input.stack,release:s.release,storage:s.storage,tls:s.tls,containers:s.containers,runningPins:s.runningPins})});
+}
+export async function startExistingPrivateLanForwarder(input){
+ const p=validateExistingLanForwarderPolicy(input);
+ const inspect=async()=>{
+  const proof=await inspectLivePrivateStack(p.stack);
+  if(!proof.live_stack_verified||!proof.database_history_verified||!proof.private_https_readiness_verified||proof.services_mutated!==false||proof.private_ingress_address!==p.forwarder.ingressAddress)fail();
+  return proof;
+ };
+ await inspect();
+ return startForwarder(p.forwarder,inspect);
+}
+export async function startPrivateLanForwarder(input){return startForwarder(input,null)}
+async function startForwarder(input,inspectExisting){
  const p=validatePrivateLanForwarderPolicy(input);
  if(process.platform!=='linux'||process.geteuid?.()!==0)fail();
  const selected=selectApprovedLanInterface(p,networkInterfaces());
@@ -62,7 +82,8 @@ export async function startPrivateLanForwarder(input){
  const target={address:p.ingressAddress,hostname:p.hostname,port:443,rootPem:p.rootPem,trustedRootSha256:p.trustedRootSha256,trustedLeafSha256:p.trustedLeafSha256};
  // Initial commissioning requires the clean first-run setup marker. Existing
  // installations must use a separately reviewed reconfiguration procedure.
- await guard();await probePrivateLanHttps({confirmation:'PROBE_PINNED_PRIVATE_LAN_HTTPS_ONLY',...target},guard);await guard();
+ const probe=inspectExisting?probeExistingPrivateLanHttps:probePrivateLanHttps,confirmation=inspectExisting?'PROBE_PINNED_EXISTING_PRIVATE_LAN_HTTPS_ONLY':'PROBE_PINNED_PRIVATE_LAN_HTTPS_ONLY';
+ await guard();await probe({confirmation,...target},guard);await guard();
  const sockets=new Set(),perSource=new Map(),maxConnections=64,maxPerSource=8,idleMs=60000,connectMs=5000,maxAgeMs=300000;
  let server,timer,stopping=false,checking=false,resolveClosed,accepting=false,commissioning=false;
  const closed=new Promise(ok=>{resolveClosed=ok});
@@ -105,15 +126,15 @@ export async function startPrivateLanForwarder(input){
   server.on('error',()=>{void stop()});
   const bound=server.address();if(!bound||bound.address!==p.bindAddress||bound.port!==443||bound.family!=='IPv4')fail();
   commissioning=true;
-  const receipt=await probePrivateLanHttps({confirmation:'PROBE_PINNED_PRIVATE_LAN_HTTPS_ONLY',...target,address:p.bindAddress},guard);
+  const receipt=await probe({confirmation,...target,address:p.bindAddress},guard);
   if(!receipt.application_readiness_verified||!receipt.exact_leaf_verified||!receipt.private_routes_denied)fail();
-  await guard();if(stopping)fail();commissioning=false;accepting=true;
+  await guard();if(inspectExisting)await inspectExisting();if(stopping)fail();commissioning=false;accepting=true;
   // Health after setup is intentionally not tied to setup_complete=false.
   // Failure stops the foreground listener; no auto-restart or DNS fallback.
   timer=setInterval(async()=>{
    if(stopping||checking)return;checking=true;
    try{await guard();await probePrivateLanHealth({confirmation:'PROBE_PINNED_PRIVATE_LAN_HEALTH_ONLY',...target});await guard()}catch{void stop()}finally{checking=false}
   },15000);
-  return Object.freeze({receipt:Object.freeze({schema_version:1,private_listener_verified:true,private_subnet_restricted:true,remote_admission_after_readiness:true,connection_limits_enforced:true,tls_passthrough:true,local_https_verified:true,remote_client_verified:false,firewall_verified:false,host_ports_published_by_docker:false,system_service_installed:false,production_accepted:false}),close:stop,closed});
+  return Object.freeze({receipt:Object.freeze({schema_version:1,private_listener_verified:true,private_subnet_restricted:true,remote_admission_after_readiness:true,connection_limits_enforced:true,existing_stack_readmitted:!!inspectExisting,tls_passthrough:true,local_https_verified:true,remote_client_verified:false,firewall_verified:false,host_ports_published_by_docker:false,system_service_installed:false,production_accepted:false}),close:stop,closed});
  }catch{await stop();fail()}
 }

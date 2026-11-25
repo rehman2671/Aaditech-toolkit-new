@@ -1,10 +1,12 @@
 import {describe,it,expect} from 'vitest';
-import {mkdtemp,mkdir,chmod,writeFile,readdir,readFile,rm,lstat,realpath,symlink,link} from 'node:fs/promises';
+import {mkdtemp,mkdir,chmod,writeFile,readdir,readFile,rm,lstat,realpath,symlink,link,rename} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {generateKeyPairSync,createHash,sign} from 'node:crypto';
 import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
+import {inspectStagedLanBundle as inspect} from '../../scripts/inspect-staged-lan-bundle.mjs';
+import {runStagedInspectionCli} from '../../scripts/inspect-staged-lan-bundle-cli.mjs';
 import {runOfflineStagingCli} from '../../scripts/stage-offline-lan-bundle-cli.mjs';
 import {stageOfflineLanBundle as stage} from '../../scripts/stage-offline-lan-bundle.mjs';
 import {verifySignedLanBundle} from '../../scripts/verify-lan-bundle.mjs';
@@ -80,5 +82,58 @@ describe.skipIf(process.platform!=='linux')('offline staging operator CLI',()=>{
    JSON.stringify({...doc,bundle:{...doc.bundle,root:'relative'}})];
   for(const payload of invalid)await expect(runOfflineStagingCli(Buffer.from(payload),args)).rejects.toThrow('OFFLINE_STAGING_INPUT_INVALID');
   expect(await readdir(x.destinationParent)).toEqual([]);
+ }));
+});
+
+describe.skipIf(process.platform!=='linux')('staged release custody and independent re-verification',()=>{
+ async function staged(x){
+  const r=await stage(x.input);
+  return {confirmation:'INSPECT_STAGED_RELEASE_ONLY',stagedDirectory:r.staged_directory,
+    trustedManifestSha256:x.bundle.trustedManifestSha256,trustedSignerSpkiSha256:x.bundle.trustedSignerSpkiSha256,
+    trustedPublicKeyPem:x.bundle.trustedPublicKeyPem};
+ }
+ it('reverifies a staged copy independently after source removal',()=>fixture(async x=>{
+  const q=await staged(x);await rm(x.bundle.root,{recursive:true});
+  const r=await inspect(q);expect(r).toMatchObject({files:3,private_custody_observed:true,staged_signature_verified:true,
+    staged_payload_integrity_verified:true,runtime_imported:false,installation_authorized:false,production_accepted:false});
+  expect(JSON.stringify(r)).not.toContain(q.stagedDirectory);
+ }));
+ for(const [name,change] of [
+  ['no confirmation',async(q)=>({...q,confirmation:undefined})],
+  ['wrong manifest pin',async(q)=>({...q,trustedManifestSha256:'a'.repeat(64)})],
+  ['wrong signer pin',async(q)=>({...q,trustedSignerSpkiSha256:'b'.repeat(64)})],
+  ['zero manifest pin',async(q)=>({...q,trustedManifestSha256:'0'.repeat(64)})],
+  ['zero signer pin',async(q)=>({...q,trustedSignerSpkiSha256:'0'.repeat(64)})],
+  ['uppercase manifest pin',async(q)=>({...q,trustedManifestSha256:q.trustedManifestSha256.toUpperCase()})],
+  ['noncanonical directory',async(q)=>({...q,stagedDirectory:q.stagedDirectory+'/.'})],
+  ['relative directory',async(q)=>({...q,stagedDirectory:'release-123456'})],
+  ['stage name newline',async(q)=>({...q,stagedDirectory:q.stagedDirectory+'\n'})],
+  ['private parent mode changed',async(q,x)=>{await chmod(x.destinationParent,0o755);return q}],
+  ['stage mode changed',async(q)=>{await chmod(q.stagedDirectory,0o755);return q}],
+  ['payload mode changed',async(q)=>{await chmod(join(q.stagedDirectory,'payload'),0o755);return q}],
+  ['nested directory mode changed',async(q)=>{await chmod(join(q.stagedDirectory,'payload/images'),0o755);return q}],
+  ['manifest mode changed',async(q)=>{await chmod(join(q.stagedDirectory,'manifest.json'),0o644);return q}],
+  ['signature mode changed',async(q)=>{await chmod(join(q.stagedDirectory,'manifest.sig'),0o644);return q}],
+  ['payload mode changed',async(q)=>{await chmod(join(q.stagedDirectory,'payload/images/app.tar'),0o644);return q}],
+  ['payload content changed',async(q)=>{await writeFile(join(q.stagedDirectory,'payload/images/app.tar'),'changed');return q}],
+  ['extra top-level file',async(q)=>{await writeFile(join(q.stagedDirectory,'extra'),'x',{mode:0o600});return q}],
+  ['extra payload file',async(q)=>{await writeFile(join(q.stagedDirectory,'payload/extra'),'x',{mode:0o600});return q}],
+  ['missing payload',async(q)=>{await rm(join(q.stagedDirectory,'payload/empty'));return q}],
+  ['hardlinked payload',async(q,x)=>{await link(join(q.stagedDirectory,'payload/empty'),join(x.dir,'alias'));return q}],
+  ['symlinked payload',async(q,x)=>{await rm(join(q.stagedDirectory,'payload/empty'));await symlink(join(x.bundle.root,'empty'),join(q.stagedDirectory,'payload/empty'));return q}],
+  ['substituted detached signature',async(q)=>{await writeFile(join(q.stagedDirectory,'manifest.sig'),Buffer.alloc(64));return q}],
+  ['substituted manifest',async(q)=>{await writeFile(join(q.stagedDirectory,'manifest.json'),'{}');return q}],
+  ['renamed stage',async(q,x)=>{const dest=join(x.destinationParent,'renamed');await rename(q.stagedDirectory,dest);return {...q,stagedDirectory:dest}}]
+ ])it('refuses '+name,()=>fixture(async x=>{const q=await staged(x);await expect(inspect(await change(q,x))).rejects.toThrow()}));
+ it('exposes bounded read-only operator inspection and refuses duplicate keys',()=>fixture(async x=>{
+  const {confirmation,...q}=await staged(x),raw=JSON.stringify(q),flags=['--confirm-local-read-only'];
+  const script=fileURLToPath(new URL('../../scripts/inspect-staged-lan-bundle-cli.mjs',import.meta.url));
+  const result=spawnSync(process.execPath,[script,...flags],{input:raw,encoding:'utf8',timeout:15000});
+  expect(result.status).toBe(0);expect(JSON.parse(result.stdout).private_custody_observed).toBe(true);
+  expect(result.stdout).not.toContain(q.stagedDirectory);
+  for(const [bytes,args] of [[Buffer.from(raw),[]],[Buffer.alloc(32769),flags],[Buffer.from([255]),flags],
+   [Buffer.from(raw.replace('"stagedDirectory":','"stagedDirectory":null,"stagedDirectory":')),flags],
+   [Buffer.from(JSON.stringify({...q,execute:true})),flags]])
+   await expect(runStagedInspectionCli(bytes,args)).rejects.toThrow('STAGED_RELEASE_INPUT_INVALID');
  }));
 });

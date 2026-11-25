@@ -1,5 +1,5 @@
 import { describe,it,expect } from 'vitest';
-import { mkdtemp,chmod,rm,writeFile,readFile,symlink,stat } from 'node:fs/promises';
+import { mkdtemp,chmod,rm,writeFile,readFile,symlink,stat,realpath,link } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { planInstallationIdentity as plan,validateInstallationIdentity } from '../../scripts/installation-identity.mjs';
@@ -74,4 +74,61 @@ it('requires explicit own data fields for identity and observed local state',()=
  for(const bad of [Object.create(empty),observed,{...empty,extra:true}])
   expect(plan({intent:'fresh',observed:bad}).reason).toBe('LOCAL_STATE_UNKNOWN');
  expect(reads).toBe(0);
+});
+
+
+describe.skipIf(process.platform!=='linux')('bounded private identity custody',()=>{
+ async function fixture(run){
+  const dir=await mkdtemp(join(await realpath(tmpdir()),'itk-identity-custody-'));
+  try{await chmod(dir,0o700);await run(dir,join(dir,'installation-identity.json'))}
+  finally{await rm(dir,{recursive:true,force:true})}
+ }
+ const valid=JSON.stringify(A);
+ const invalid=[
+ ['duplicate ID',valid.replace('"installation_id":','"installation_id":"'+B.installation_id+'","installation_id":')],
+ ['duplicate schema',valid.replace('"schema_version":1','"schema_version":2,"schema_version":1')],
+ ['escaped duplicate',valid.replace('"schema_version":1','"schema_version":2,"schema\\u005fversion":1')],
+ ['invalid UTF-8',Buffer.from([0xff,0xfe])],
+ ['UTF-8 BOM',Buffer.concat([Buffer.from([0xef,0xbb,0xbf]),Buffer.from(valid)])],
+ ['oversized',Buffer.alloc(1025,32)],['empty',''],
+ ['trailing object',valid+'{}'],['unknown field',JSON.stringify({...A,secret:'test'})],
+ ['wrong UUID version',JSON.stringify({...A,installation_id:A.installation_id.replace('-4ea4-','-5ea4-')})],
+ ['schema string',JSON.stringify({...A,schema_version:'1'})],
+ ['null','null'],['array','[]']
+ ];
+ it.each(invalid)('refuses %s and preserves bytes',(_name,bytes)=>fixture(async(dir,file)=>{
+  await writeFile(file,bytes,{mode:0o600});
+  const original=await readFile(file);
+  await expect(read(dir)).rejects.toThrow();
+  await expect(init(dir,empty)).rejects.toThrow();
+  expect(await readFile(file)).toEqual(original);
+ }));
+ it.each([0o644,0o400,0o1600,0o2600,0o4600])('rejects invalid file mode %s',mode=>fixture(async(dir,file)=>{
+  await writeFile(file,valid,{mode:0o600});await chmod(file,mode);
+  await expect(read(dir)).rejects.toThrow();
+ }));
+ it.each([0o755,0o500,0o1700,0o2700,0o4700])('rejects invalid directory mode %s',mode=>fixture(async(dir)=>{
+  await chmod(dir,mode);
+  try{await expect(read(dir)).rejects.toThrow('IDENTITY_DIRECTORY_NOT_PRIVATE')}
+  finally{await chmod(dir,0o700)}
+ }));
+ it('rejects hardlinked identity without overwriting it',()=>fixture(async(dir,file)=>{
+  await writeFile(file,valid,{mode:0o600});const alias=join(dir,'alias');
+  await link(file,alias);await expect(read(dir)).rejects.toThrow();
+  await expect(init(dir,empty)).rejects.toThrow();expect(await readFile(alias,'utf8')).toBe(valid);
+ }));
+ it('refuses noncanonical, relative, NUL and control-character directory paths',()=>fixture(async(dir)=>{
+  for(const p of [dir+'/../'+dir.split('/').at(-1),'.',dir+'\0',dir+'\n'])
+   await expect(read(p)).rejects.toThrow('IDENTITY_DIRECTORY_NOT_PRIVATE');
+ }));
+ it('snapshots fresh observations before awaiting directory checks',()=>fixture(async(dir)=>{
+  const observed={...live};const pending=init(dir,observed);
+  Object.assign(observed,empty);
+  await expect(pending).rejects.toThrow('EXISTING_STATE_WITHOUT_IDENTITY');
+  expect(await read(dir)).toBeNull();
+ }));
+ it('permits valid legacy whitespace without accepting duplicate keys',()=>fixture(async(dir,file)=>{
+  await writeFile(file,' \n'+JSON.stringify(A,null,2)+'\n',{mode:0o600});
+  expect(await read(dir)).toEqual(A);
+ }));
 });

@@ -39,3 +39,17 @@ it('rejects inherited, accessor and hidden setup evidence without executing gett
  const missing={...all};delete missing.approved_release;
  expect(plan({intent:'fresh',observed:empty,evidence:missing}).missing).toContain('approved_release');
 });
+
+
+describe('every setup prerequisite remains fail-closed',()=>{
+ const input={intent:'fresh',observed:empty};
+ it.each(setupGateNames)('blocks missing %s even with all other evidence present',key=>{
+  const evidence={...all};delete evidence[key];
+  const result=plan({...input,evidence});
+  expect(result).toMatchObject({decision:'BLOCKED',reason:'EVIDENCE_REQUIRED',missing:[key],execution_authorized:false,production_accepted:false});
+ });
+ it.each(setupGateNames)('blocks failed %s even with all other evidence present',key=>{
+  const result=plan({...input,evidence:{...all,[key]:'FAILED'}});
+  expect(result).toMatchObject({decision:'BLOCKED',reason:'PREREQUISITE_FAILED',missing:[key],execution_authorized:false,production_accepted:false});
+ });
+});

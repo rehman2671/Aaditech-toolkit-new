@@ -11,7 +11,7 @@ const expected=new Map();
 function add(id,parent,state,requires=[]){if(expected.has(id))throw Error('duplicate expected task');expected.set(id,{parent,state,requires})}
 for(const issue of troubleshootingCatalog){
  add(issue.id+'-GUIDE','M4','IMPLEMENTED_PENDING_COMBINED_CI');
- add(issue.id+'-INTAKE','M4','PENDING',[issue.id+'-GUIDE']);
+ add(issue.id+'-INTAKE','M4','PARTIAL_REFERENCE_ONLY',[issue.id+'-GUIDE']);
  add(issue.id+'-OUTCOME','M5','PENDING',[issue.id+'-INTAKE']);
 }
 for(const d of diagnosticCapabilities){
@@ -26,7 +26,8 @@ const allowedEvidence=new Set([
  'diagnostic-evidence.js','diagnostic-review-contracts.js','tests/unit/diagnostic-review-contracts.test.js',
  'scripts/local-resource-diagnostic.mjs','tests/unit/local-resource-diagnostic.test.js',
  'scripts/local-categorical-diagnostics.mjs','tests/unit/local-categorical-diagnostics.test.js',
- 'tests/unit/local-battery-diagnostic.test.js','tests/unit/local-power-bluetooth-diagnostic.test.js'
+ 'tests/unit/local-battery-diagnostic.test.js','tests/unit/local-power-bluetooth-diagnostic.test.js',
+ 'troubleshooting-incidents.js','database/migrations/020_troubleshooting_employee_bindings.sql','tests/unit/employee-troubleshooting.test.js','test-atomic-telemetry-batch-mysql.js'
 ]);
 describe('Troubleshooting register is a traceable source-level work inventory',()=>{
  it('contains exactly the catalog-derived task identities and existing parent tracker',()=>{

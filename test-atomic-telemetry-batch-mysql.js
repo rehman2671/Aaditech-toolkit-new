@@ -6,7 +6,7 @@ import mysql from 'mysql2/promise';
 import request from 'supertest';
 import * as db from './db.js';
 import {createRecoveryReviewRequest,reserveRecoveryReview,inspectRecoveryReview} from './device-recovery-review.js';
-import {createTroubleshootingIncident,inspectTroubleshootingIncident,recordDiagnosticPlan,summarizeTroubleshootingIntake,summarizeTroubleshootingCategories,inspectDiagnosticPlan} from './troubleshooting-incidents.js';
+import {createTroubleshootingIncident,inspectTroubleshootingIncident,recordDiagnosticPlan,summarizeTroubleshootingIntake,summarizeTroubleshootingCategories,inspectDiagnosticPlan,changeEmployeeReportBinding,createEmployeeTroubleshootingReport} from './troubleshooting-incidents.js';
 import {withSchemaMigrationLock} from './schema-migration-lock.js';
 
 if (process.env.GITHUB_ACTIONS !== 'true' ||
@@ -261,6 +261,34 @@ try {
   assert.equal((await summarizeTroubleshootingIntake(pool,{...windowArgs,from:'2026-12-01 00:00:00.000',until:'2026-12-02 00:00:00.000'})).escalated,1);
   console.log('[PASS] Bounded troubleshooting cohort, half-open boundaries, plan cutoff and scoped reporting.');
   console.log('[PASS] Scoped per-category report and persisted planned-only inspection, no invented outcomes.');
+  // Report-only employee binding; no HTTP exposure or actual diagnostic consent.
+  const [employeeRow]=await pool.query("INSERT INTO users (tenant_id,username,email,password_hash,role,active,status) VALUES (?,?,?,?,'MONITORING',1,'ACTIVE')",[reviewTenant,label+'-employee',label+'-employee@invalid.example','CI-only-no-login']);
+  const employee={id:employeeRow.insertId,tenant_id:reviewTenant,role:'MONITORING'};
+  const grant={principal:admins[0],installationId,deviceId:reviewDevice,employeeId:employee.id,action:'GRANT',confirmation:'CONFIRM_GRANT_REPORT_ONLY'};
+  const report={principal:employee,installationId,deviceId:reviewDevice,requestId:crypto.randomUUID(),categoryId:'TR-24',hazard:'PHYSICAL_HAZARD',consent:'SUBMIT_REPORT_ONLY'};
+  await assert.rejects(()=>createEmployeeTroubleshootingReport(pool,report),/EMPLOYEE_SCOPE_DENIED/);
+  const grants=await Promise.all(Array.from({length:4},()=>changeEmployeeReportBinding(pool,grant)));
+  assert.equal(new Set(grants.map(x=>x.binding_id)).size,1);
+  assert.equal(grants.filter(x=>!x.duplicate).length,1);
+  await assert.rejects(()=>createEmployeeTroubleshootingReport(pool,{...report,consent:'DIAGNOSTIC'}),/EMPLOYEE_REPORT_INVALID/);
+  await assert.rejects(()=>createEmployeeTroubleshootingReport(pool,{...report,installationId:crypto.randomUUID()}),/EMPLOYEE_SCOPE_DENIED/);
+  const reports=await Promise.all(Array.from({length:4},()=>createEmployeeTroubleshootingReport(pool,report)));
+  assert.equal(new Set(reports.map(x=>x.incident_id)).size,1);
+  assert.equal(reports.filter(x=>!x.duplicate).length,1);
+  assert.equal(reports[0].status,'ESCALATED');
+  assert.equal(reports[0].execution_authorized,false);
+  assert.equal(reports[0].repair_authorized,false);
+  await assert.rejects(()=>createEmployeeTroubleshootingReport(pool,{...report,categoryId:'TR-01'}),/INCIDENT_IDEMPOTENCY_CONFLICT/);
+  await pool.query('UPDATE users SET active=0 WHERE id=?',[employee.id]);
+  await assert.rejects(()=>createEmployeeTroubleshootingReport(pool,report),/EMPLOYEE_SCOPE_DENIED/);
+  const revoke={...grant,action:'REVOKE',confirmation:'CONFIRM_REVOKE_REPORT_ONLY'};
+  assert.equal((await changeEmployeeReportBinding(pool,revoke)).state,'REVOKED');
+  assert.equal((await changeEmployeeReportBinding(pool,revoke)).duplicate,true);
+  await pool.query('UPDATE users SET active=1 WHERE id=?',[employee.id]);
+  await assert.rejects(()=>createEmployeeTroubleshootingReport(pool,report),/EMPLOYEE_SCOPE_DENIED/);
+  await assert.rejects(()=>changeEmployeeReportBinding(pool,grant),/EMPLOYEE_BINDING_REGRANT_BLOCKED/);
+  assert.equal(await single("SELECT COUNT(*) AS n FROM audit_logs WHERE tenant_id=? AND action IN ('TROUBLESHOOTING_EMPLOYEE_BINDING_GRANTED','TROUBLESHOOTING_EMPLOYEE_BINDING_REVOKED','TROUBLESHOOTING_EMPLOYEE_REPORT_RECORDED')",[reviewTenant]),3);
+  console.log('[PASS] Employee report-only binding, scope, consent, idempotency and revocation on real MySQL.');
   // Real separate connections must serialize on the schema advisory lock.
   const order=[];
   await Promise.all(Array.from({length:3},(_,i)=>withSchemaMigrationLock(pool,async c=>{
@@ -321,6 +349,7 @@ try {
     await pool.query('DELETE FROM events WHERE tenant_id IN (?,?)',[tenantA,tenantB]);
     await pool.query('DELETE FROM telemetry_batches WHERE tenant_id IN (?,?)',[tenantA,tenantB]);
     await pool.query('DELETE FROM devices WHERE id IN (?,?)',[devA,devB]);
+    await pool.query('DELETE FROM troubleshooting_employee_bindings WHERE tenant_id=?',[reviewTenant]);
     await pool.query('DELETE FROM troubleshooting_diagnostic_plans WHERE tenant_id=?',[reviewTenant]);
     await pool.query('DELETE FROM troubleshooting_incidents WHERE tenant_id=?',[reviewTenant]);
     await pool.query('DELETE FROM device_recovery_reviews WHERE tenant_id=?',[reviewTenant]);

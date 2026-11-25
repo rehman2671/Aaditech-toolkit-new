@@ -7,8 +7,8 @@
   "note": "Planning/implementation register, not verified delivery. Guidance and review formats are source-level only; existing reference collectors are partial, not platform acceptance. Parent tracker remains authoritative. No task is marked accepted. Combined review reconciliation preserves all 158 original IDs; partial entries identify local reference source/test files; no platform verification or acceptance inferred.",
   "counts": {
     "IMPLEMENTED_PENDING_COMBINED_CI": 42,
-    "PENDING": 106,
-    "PARTIAL_REFERENCE_ONLY": 10
+    "PENDING": 80,
+    "PARTIAL_REFERENCE_ONLY": 36
   },
   "tasks": [
     {
@@ -25,11 +25,17 @@
       "id": "TR-01-INTAKE",
       "parent": "M4",
       "title": "Authenticated employee intake, role/scope and consent validation for PC_SLOW",
-      "state": "PENDING",
+      "state": "PARTIAL_REFERENCE_ONLY",
       "requires": [
         "TR-01-GUIDE"
       ],
-      "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
+      "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection.",
+      "evidence": [
+        "troubleshooting-incidents.js",
+        "database/migrations/020_troubleshooting_employee_bindings.sql",
+        "tests/unit/employee-troubleshooting.test.js",
+        "test-atomic-telemetry-batch-mysql.js"
+      ]
     },
     {
       "id": "TR-01-OUTCOME",
@@ -55,11 +61,17 @@
       "id": "TR-02-INTAKE",
       "parent": "M4",
       "title": "Authenticated employee intake, role/scope and consent validation for WIFI_NO_INTERNET",
-      "state": "PENDING",
+      "state": "PARTIAL_REFERENCE_ONLY",
       "requires": [
         "TR-02-GUIDE"
       ],
-      "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
+      "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection.",
+      "evidence": [
+        "troubleshooting-incidents.js",
+        "database/migrations/020_troubleshooting_employee_bindings.sql",
+        "tests/unit/employee-troubleshooting.test.js",
+        "test-atomic-telemetry-batch-mysql.js"
+      ]
     },
     {
       "id": "TR-02-OUTCOME",
@@ -85,11 +97,17 @@
       "id": "TR-03-INTAKE",
       "parent": "M4",
       "title": "Authenticated employee intake, role/scope and consent validation for WINDOWS_UPDATE_FAILURE",
-      "state": "PENDING",
+      "state": "PARTIAL_REFERENCE_ONLY",
       "requires": [
         "TR-03-GUIDE"
       ],
-      "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
+      "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection.",
+      "evidence": [
+        "troubleshooting-incidents.js",
+        "database/migrations/020_troubleshooting_employee_bindings.sql",
+        "tests/unit/employee-troubleshooting.test.js",
+        "test-atomic-telemetry-batch-mysql.js"
+      ]
     },
     {
       "id": "TR-03-OUTCOME",
@@ -115,11 +133,17 @@
       "id": "TR-04-INTAKE",
       "parent": "M4",
       "title": "Authenticated employee intake, role/scope and consent validation for DISK_FULL",
-      "state": "PENDING",
+      "state": "PARTIAL_REFERENCE_ONLY",
       "requires": [
         "TR-04-GUIDE"
       ],
-      "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
+      "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection.",
+      "evidence": [
+        "troubleshooting-incidents.js",
+        "database/migrations/020_troubleshooting_employee_bindings.sql",
+        "tests/unit/employee-troubleshooting.test.js",
+        "test-atomic-telemetry-batch-mysql.js"
+      ]
     },
     {
       "id": "TR-04-OUTCOME",
@@ -145,11 +169,17 @@
       "id": "TR-05-INTAKE",
       "parent": "M4",
       "title": "Authenticated employee intake, role/scope and consent validation for BLUE_SCREEN",
-      "state": "PENDING",
+      "state": "PARTIAL_REFERENCE_ONLY",
       "requires": [
         "TR-05-GUIDE"
       ],
-      "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
+      "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection.",
+      "evidence": [
+        "troubleshooting-incidents.js",
+        "database/migrations/020_troubleshooting_employee_bindings.sql",
+        "tests/unit/employee-troubleshooting.test.js",
+        "test-atomic-telemetry-batch-mysql.js"
+      ]
     },
     {
       "id": "TR-05-OUTCOME",
@@ -175,11 +205,17 @@
       "id": "TR-06-INTAKE",
       "parent": "M4",
       "title": "Authenticated employee intake, role/scope and consent validation for NO_SOUND",
-      "state": "PENDING",
+      "state": "PARTIAL_REFERENCE_ONLY",
       "requires": [
         "TR-06-GUIDE"
       ],
-      "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
+      "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection.",
+      "evidence": [
+        "troubleshooting-incidents.js",
+        "database/migrations/020_troubleshooting_employee_bindings.sql",
+        "tests/unit/employee-troubleshooting.test.js",
+        "test-atomic-telemetry-batch-mysql.js"
+      ]
     },
     {
       "id": "TR-06-OUTCOME",
@@ -205,11 +241,17 @@
       "id": "TR-07-INTAKE",
       "parent": "M4",
       "title": "Authenticated employee intake, role/scope and consent validation for BLUETOOTH_FAILURE",
-      "state": "PENDING",
+      "state": "PARTIAL_REFERENCE_ONLY",
       "requires": [
         "TR-07-GUIDE"
       ],
-      "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
+      "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection.",
+      "evidence": [
+        "troubleshooting-incidents.js",
+        "database/migrations/020_troubleshooting_employee_bindings.sql",
+        "tests/unit/employee-troubleshooting.test.js",
+        "test-atomic-telemetry-batch-mysql.js"
+      ]
     },
     {
       "id": "TR-07-OUTCOME",
@@ -235,11 +277,17 @@
       "id": "TR-08-INTAKE",
       "parent": "M4",
       "title": "Authenticated employee intake, role/scope and consent validation for PRINTER_FAILURE",
-      "state": "PENDING",
+      "state": "PARTIAL_REFERENCE_ONLY",
       "requires": [
         "TR-08-GUIDE"
       ],
-      "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
+      "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection.",
+      "evidence": [
+        "troubleshooting-incidents.js",
+        "database/migrations/020_troubleshooting_employee_bindings.sql",
+        "tests/unit/employee-troubleshooting.test.js",
+        "test-atomic-telemetry-batch-mysql.js"
+      ]
     },
     {
       "id": "TR-08-OUTCOME",
@@ -265,11 +313,17 @@
       "id": "TR-09-INTAKE",
       "parent": "M4",
       "title": "Authenticated employee intake, role/scope and consent validation for DISPLAY_FAILURE",
-      "state": "PENDING",
+      "state": "PARTIAL_REFERENCE_ONLY",
       "requires": [
         "TR-09-GUIDE"
       ],
-      "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
+      "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection.",
+      "evidence": [
+        "troubleshooting-incidents.js",
+        "database/migrations/020_troubleshooting_employee_bindings.sql",
+        "tests/unit/employee-troubleshooting.test.js",
+        "test-atomic-telemetry-batch-mysql.js"
+      ]
     },
     {
       "id": "TR-09-OUTCOME",
@@ -295,11 +349,17 @@
       "id": "TR-10-INTAKE",
       "parent": "M4",
       "title": "Authenticated employee intake, role/scope and consent validation for SLOW_BOOT",
-      "state": "PENDING",
+      "state": "PARTIAL_REFERENCE_ONLY",
       "requires": [
         "TR-10-GUIDE"
       ],
-      "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
+      "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection.",
+      "evidence": [
+        "troubleshooting-incidents.js",
+        "database/migrations/020_troubleshooting_employee_bindings.sql",
+        "tests/unit/employee-troubleshooting.test.js",
+        "test-atomic-telemetry-batch-mysql.js"
+      ]
     },
     {
       "id": "TR-10-OUTCOME",
@@ -325,11 +385,17 @@
       "id": "TR-11-INTAKE",
       "parent": "M4",
       "title": "Authenticated employee intake, role/scope and consent validation for SUSPECTED_MALWARE",
-      "state": "PENDING",
+      "state": "PARTIAL_REFERENCE_ONLY",
       "requires": [
         "TR-11-GUIDE"
       ],
-      "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
+      "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection.",
+      "evidence": [
+        "troubleshooting-incidents.js",
+        "database/migrations/020_troubleshooting_employee_bindings.sql",
+        "tests/unit/employee-troubleshooting.test.js",
+        "test-atomic-telemetry-batch-mysql.js"
+      ]
     },
     {
       "id": "TR-11-OUTCOME",
@@ -355,11 +421,17 @@
       "id": "TR-12-INTAKE",
       "parent": "M4",
       "title": "Authenticated employee intake, role/scope and consent validation for OUTLOOK_CRASH",
-      "state": "PENDING",
+      "state": "PARTIAL_REFERENCE_ONLY",
       "requires": [
         "TR-12-GUIDE"
       ],
-      "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
+      "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection.",
+      "evidence": [
+        "troubleshooting-incidents.js",
+        "database/migrations/020_troubleshooting_employee_bindings.sql",
+        "tests/unit/employee-troubleshooting.test.js",
+        "test-atomic-telemetry-batch-mysql.js"
+      ]
     },
     {
       "id": "TR-12-OUTCOME",
@@ -385,11 +457,17 @@
       "id": "TR-13-INTAKE",
       "parent": "M4",
       "title": "Authenticated employee intake, role/scope and consent validation for SHELL_FROZEN",
-      "state": "PENDING",
+      "state": "PARTIAL_REFERENCE_ONLY",
       "requires": [
         "TR-13-GUIDE"
       ],
-      "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
+      "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection.",
+      "evidence": [
+        "troubleshooting-incidents.js",
+        "database/migrations/020_troubleshooting_employee_bindings.sql",
+        "tests/unit/employee-troubleshooting.test.js",
+        "test-atomic-telemetry-batch-mysql.js"
+      ]
     },
     {
       "id": "TR-13-OUTCOME",
@@ -415,11 +493,17 @@
       "id": "TR-14-INTAKE",
       "parent": "M4",
       "title": "Authenticated employee intake, role/scope and consent validation for BATTERY_DRAIN",
-      "state": "PENDING",
+      "state": "PARTIAL_REFERENCE_ONLY",
       "requires": [
         "TR-14-GUIDE"
       ],
-      "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
+      "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection.",
+      "evidence": [
+        "troubleshooting-incidents.js",
+        "database/migrations/020_troubleshooting_employee_bindings.sql",
+        "tests/unit/employee-troubleshooting.test.js",
+        "test-atomic-telemetry-batch-mysql.js"
+      ]
     },
     {
       "id": "TR-14-OUTCOME",
@@ -445,11 +529,17 @@
       "id": "TR-15-INTAKE",
       "parent": "M4",
       "title": "Authenticated employee intake, role/scope and consent validation for VPN_NO_INTERNET",
-      "state": "PENDING",
+      "state": "PARTIAL_REFERENCE_ONLY",
       "requires": [
         "TR-15-GUIDE"
       ],
-      "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
+      "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection.",
+      "evidence": [
+        "troubleshooting-incidents.js",
+        "database/migrations/020_troubleshooting_employee_bindings.sql",
+        "tests/unit/employee-troubleshooting.test.js",
+        "test-atomic-telemetry-batch-mysql.js"
+      ]
     },
     {
       "id": "TR-15-OUTCOME",
@@ -475,11 +565,17 @@
       "id": "TR-16-INTAKE",
       "parent": "M4",
       "title": "Authenticated employee intake, role/scope and consent validation for COPILOT_POLICY",
-      "state": "PENDING",
+      "state": "PARTIAL_REFERENCE_ONLY",
       "requires": [
         "TR-16-GUIDE"
       ],
-      "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
+      "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection.",
+      "evidence": [
+        "troubleshooting-incidents.js",
+        "database/migrations/020_troubleshooting_employee_bindings.sql",
+        "tests/unit/employee-troubleshooting.test.js",
+        "test-atomic-telemetry-batch-mysql.js"
+      ]
     },
     {
       "id": "TR-16-OUTCOME",
@@ -505,11 +601,17 @@
       "id": "TR-17-INTAKE",
       "parent": "M4",
       "title": "Authenticated employee intake, role/scope and consent validation for PREINSTALLED_APPS",
-      "state": "PENDING",
+      "state": "PARTIAL_REFERENCE_ONLY",
       "requires": [
         "TR-17-GUIDE"
       ],
-      "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
+      "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection.",
+      "evidence": [
+        "troubleshooting-incidents.js",
+        "database/migrations/020_troubleshooting_employee_bindings.sql",
+        "tests/unit/employee-troubleshooting.test.js",
+        "test-atomic-telemetry-batch-mysql.js"
+      ]
     },
     {
       "id": "TR-17-OUTCOME",
@@ -535,11 +637,17 @@
       "id": "TR-18-INTAKE",
       "parent": "M4",
       "title": "Authenticated employee intake, role/scope and consent validation for TELEMETRY_POLICY",
-      "state": "PENDING",
+      "state": "PARTIAL_REFERENCE_ONLY",
       "requires": [
         "TR-18-GUIDE"
       ],
-      "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
+      "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection.",
+      "evidence": [
+        "troubleshooting-incidents.js",
+        "database/migrations/020_troubleshooting_employee_bindings.sql",
+        "tests/unit/employee-troubleshooting.test.js",
+        "test-atomic-telemetry-batch-mysql.js"
+      ]
     },
     {
       "id": "TR-18-OUTCOME",
@@ -565,11 +673,17 @@
       "id": "TR-19-INTAKE",
       "parent": "M4",
       "title": "Authenticated employee intake, role/scope and consent validation for DRIVER_REGRESSION",
-      "state": "PENDING",
+      "state": "PARTIAL_REFERENCE_ONLY",
       "requires": [
         "TR-19-GUIDE"
       ],
-      "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
+      "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection.",
+      "evidence": [
+        "troubleshooting-incidents.js",
+        "database/migrations/020_troubleshooting_employee_bindings.sql",
+        "tests/unit/employee-troubleshooting.test.js",
+        "test-atomic-telemetry-batch-mysql.js"
+      ]
     },
     {
       "id": "TR-19-OUTCOME",
@@ -595,11 +709,17 @@
       "id": "TR-20-INTAKE",
       "parent": "M4",
       "title": "Authenticated employee intake, role/scope and consent validation for CONTEXT_MENU",
-      "state": "PENDING",
+      "state": "PARTIAL_REFERENCE_ONLY",
       "requires": [
         "TR-20-GUIDE"
       ],
-      "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
+      "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection.",
+      "evidence": [
+        "troubleshooting-incidents.js",
+        "database/migrations/020_troubleshooting_employee_bindings.sql",
+        "tests/unit/employee-troubleshooting.test.js",
+        "test-atomic-telemetry-batch-mysql.js"
+      ]
     },
     {
       "id": "TR-20-OUTCOME",
@@ -625,11 +745,17 @@
       "id": "TR-21-INTAKE",
       "parent": "M4",
       "title": "Authenticated employee intake, role/scope and consent validation for POWER_SAVER",
-      "state": "PENDING",
+      "state": "PARTIAL_REFERENCE_ONLY",
       "requires": [
         "TR-21-GUIDE"
       ],
-      "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
+      "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection.",
+      "evidence": [
+        "troubleshooting-incidents.js",
+        "database/migrations/020_troubleshooting_employee_bindings.sql",
+        "tests/unit/employee-troubleshooting.test.js",
+        "test-atomic-telemetry-batch-mysql.js"
+      ]
     },
     {
       "id": "TR-21-OUTCOME",
@@ -655,11 +781,17 @@
       "id": "TR-22-INTAKE",
       "parent": "M4",
       "title": "Authenticated employee intake, role/scope and consent validation for SLOW_STARTUP",
-      "state": "PENDING",
+      "state": "PARTIAL_REFERENCE_ONLY",
       "requires": [
         "TR-22-GUIDE"
       ],
-      "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
+      "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection.",
+      "evidence": [
+        "troubleshooting-incidents.js",
+        "database/migrations/020_troubleshooting_employee_bindings.sql",
+        "tests/unit/employee-troubleshooting.test.js",
+        "test-atomic-telemetry-batch-mysql.js"
+      ]
     },
     {
       "id": "TR-22-OUTCOME",
@@ -685,11 +817,17 @@
       "id": "TR-23-INTAKE",
       "parent": "M4",
       "title": "Authenticated employee intake, role/scope and consent validation for STORE_APPS_FAILURE",
-      "state": "PENDING",
+      "state": "PARTIAL_REFERENCE_ONLY",
       "requires": [
         "TR-23-GUIDE"
       ],
-      "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
+      "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection.",
+      "evidence": [
+        "troubleshooting-incidents.js",
+        "database/migrations/020_troubleshooting_employee_bindings.sql",
+        "tests/unit/employee-troubleshooting.test.js",
+        "test-atomic-telemetry-batch-mysql.js"
+      ]
     },
     {
       "id": "TR-23-OUTCOME",
@@ -715,11 +853,17 @@
       "id": "TR-24-INTAKE",
       "parent": "M4",
       "title": "Authenticated employee intake, role/scope and consent validation for BURNING_SMELL",
-      "state": "PENDING",
+      "state": "PARTIAL_REFERENCE_ONLY",
       "requires": [
         "TR-24-GUIDE"
       ],
-      "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
+      "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection.",
+      "evidence": [
+        "troubleshooting-incidents.js",
+        "database/migrations/020_troubleshooting_employee_bindings.sql",
+        "tests/unit/employee-troubleshooting.test.js",
+        "test-atomic-telemetry-batch-mysql.js"
+      ]
     },
     {
       "id": "TR-24-OUTCOME",
@@ -745,11 +889,17 @@
       "id": "TR-25-INTAKE",
       "parent": "M4",
       "title": "Authenticated employee intake, role/scope and consent validation for UNEXPECTED_SLEEP",
-      "state": "PENDING",
+      "state": "PARTIAL_REFERENCE_ONLY",
       "requires": [
         "TR-25-GUIDE"
       ],
-      "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
+      "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection.",
+      "evidence": [
+        "troubleshooting-incidents.js",
+        "database/migrations/020_troubleshooting_employee_bindings.sql",
+        "tests/unit/employee-troubleshooting.test.js",
+        "test-atomic-telemetry-batch-mysql.js"
+      ]
     },
     {
       "id": "TR-25-OUTCOME",
@@ -775,11 +925,17 @@
       "id": "TR-26-INTAKE",
       "parent": "M4",
       "title": "Authenticated employee intake, role/scope and consent validation for FIREWALL_STATUS",
-      "state": "PENDING",
+      "state": "PARTIAL_REFERENCE_ONLY",
       "requires": [
         "TR-26-GUIDE"
       ],
-      "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
+      "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection.",
+      "evidence": [
+        "troubleshooting-incidents.js",
+        "database/migrations/020_troubleshooting_employee_bindings.sql",
+        "tests/unit/employee-troubleshooting.test.js",
+        "test-atomic-telemetry-batch-mysql.js"
+      ]
     },
     {
       "id": "TR-26-OUTCOME",

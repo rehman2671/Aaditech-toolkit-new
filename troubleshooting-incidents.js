@@ -53,6 +53,10 @@ export async function createTroubleshootingIncident(pool,input){
  const status=plan.decision==='HUMAN_ONLY'?'ESCALATED':'OPEN';
  return transaction(pool,async c=>{
   await lockScope(c,s);
+  return recordScopedIntake(c,s,{requestId,categoryId,hazard,status});
+ });
+}
+async function recordScopedIntake(c,s,{requestId,categoryId,hazard,status,bindingId=null}){
   const [rows]=await c.query('SELECT '+columns+' FROM troubleshooting_incidents WHERE installation_id=? AND tenant_id=? AND actor_user_id=? AND intake_request_id=? FOR UPDATE',
     [s.installationId,s.tenant,s.actor,requestId]);
   if(!Array.isArray(rows)||rows.length>1)fail('INCIDENT_STATE_INVALID');
@@ -60,6 +64,10 @@ export async function createTroubleshootingIncident(pool,input){
    const row=rows[0];
    if(row.device_id!==s.deviceId||row.category_id!==categoryId||row.hazard!==hazard)fail('INCIDENT_IDEMPOTENCY_CONFLICT');
    if(row.intake_request_id!==requestId)fail('INCIDENT_STATE_INVALID');
+   if(bindingId){
+    const [audit]=await c.query("SELECT id FROM audit_logs WHERE tenant_id=? AND actor_id=? AND action='TROUBLESHOOTING_EMPLOYEE_REPORT_RECORDED' AND target_resource=? AND JSON_UNQUOTE(JSON_EXTRACT(details,'$.binding_id'))=? AND JSON_UNQUOTE(JSON_EXTRACT(details,'$.consent_scope'))='REPORT_ONLY'",[s.tenant,String(s.actor),'Incident:'+row.incident_id,bindingId]);
+    if(!Array.isArray(audit)||audit.length!==1||!uuid(audit[0]?.id))fail('EMPLOYEE_REPORT_REPLAY_UNVERIFIED');
+   }
    return view(row,s,true);
   }
   const id=randomUUID();
@@ -67,11 +75,10 @@ export async function createTroubleshootingIncident(pool,input){
     [id,s.installationId,s.tenant,s.deviceId,s.actor,requestId,categoryId,hazard,status]);
   if(r?.affectedRows!==1)fail('INCIDENT_WRITE_UNCONFIRMED');
   const [a]=await c.query('INSERT INTO audit_logs (id,tenant_id,actor_id,actor,action,target_resource,details,ip_address,created_at) VALUES (?,?,?,?,?,?,?,?,NOW(3))',
-    [randomUUID(),s.tenant,s.actor,String(s.actor),'TROUBLESHOOTING_INCIDENT_RECORDED','Incident:'+id,JSON.stringify({category_id:categoryId,status}),null]);
+    [randomUUID(),s.tenant,s.actor,String(s.actor),bindingId?'TROUBLESHOOTING_EMPLOYEE_REPORT_RECORDED':'TROUBLESHOOTING_INCIDENT_RECORDED','Incident:'+id,JSON.stringify({category_id:categoryId,status,...(bindingId?{binding_id:bindingId,consent_scope:'REPORT_ONLY'}:{})}),null]);
   if(a?.affectedRows!==1)fail('INCIDENT_AUDIT_UNCONFIRMED');
   return view({incident_id:id,installation_id:s.installationId,tenant_id:s.tenant,device_id:s.deviceId,
     actor_user_id:s.actor,intake_request_id:requestId,category_id:categoryId,hazard,status},s,false);
- });
 }
 export async function inspectTroubleshootingIncident(pool,input){
  const s=context(pool,input,['principal','installationId','deviceId','incidentId']);
@@ -231,5 +238,98 @@ export async function summarizeTroubleshootingCategories(pool,input){
    ...(window?{window,clock_basis:'DATABASE_WALL_CLOCK_DATETIME',plan_count_basis:'CREATED_AT_OR_AFTER_OPEN_AND_BEFORE_UNTIL'}:{}),
    diagnosed:null,executed_attempts:null,verified_resolved:null,resolution_rate:null,
    outcome_measurement:'NOT_IMPLEMENTED',production_accepted:false});
+ });
+}
+
+
+// Internal service only. The caller must authenticate the principal and
+// independently establish installation identity. No public route, device
+// enrollment, remote execution, diagnostic consent, or role provisioning.
+function employeeContext(pool,input,keys,role){
+ if(!input||Object.getPrototypeOf(input)!==Object.prototype||
+    Reflect.ownKeys(input).length!==keys.length||!keys.every(k=>Object.hasOwn(input,k)&&Object.hasOwn(Object.getOwnPropertyDescriptor(input,k),'value')))
+  fail('EMPLOYEE_REPORT_INVALID');
+ const {principal,installationId,deviceId}=input;
+ if(!pool?.getConnection||!principal||principal.role!==role||!Number.isSafeInteger(principal.id)||principal.id<1||
+    principal.id>2147483647||!uuid(principal.tenant_id)||!uuid(deviceId))fail('EMPLOYEE_REPORT_INVALID');
+ validateInstallationIdentity({schema_version:1,installation_id:installationId});
+ return Object.freeze({installationId,deviceId,tenant:principal.tenant_id,actor:principal.id});
+}
+async function employeeDeviceLock(c,s){
+ const [rows]=await c.query('SELECT id,tenant_id FROM devices WHERE id=? AND tenant_id=? FOR UPDATE',[s.deviceId,s.tenant]);
+ if(!Array.isArray(rows)||rows.length!==1||rows[0]?.id!==s.deviceId||rows[0]?.tenant_id!==s.tenant)fail('EMPLOYEE_SCOPE_DENIED');
+}
+async function employeeUserLock(c,s,id,role){
+ const [rows]=await c.query('SELECT id,tenant_id,role,active,status FROM users WHERE id=? AND tenant_id=? FOR UPDATE',[id,s.tenant]);
+ const u=Array.isArray(rows)&&rows.length===1?rows[0]:null;
+ if(!u||dbInt(u.id)!==id||u.tenant_id!==s.tenant||u.role!==role||![1,true,'1'].includes(u.active)||u.status!=='ACTIVE')
+  fail('EMPLOYEE_SCOPE_DENIED');
+}
+const bindingColumns='binding_id,installation_id,tenant_id,device_id,employee_user_id,granted_by,state,revoked_by,revoked_at';
+async function bindingLock(c,s,employeeId){
+ const [rows]=await c.query('SELECT '+bindingColumns+' FROM troubleshooting_employee_bindings WHERE installation_id=? AND tenant_id=? AND device_id=? AND employee_user_id=? FOR UPDATE',[s.installationId,s.tenant,s.deviceId,employeeId]);
+ if(!Array.isArray(rows)||rows.length>1)fail('EMPLOYEE_BINDING_UNVERIFIED');
+ if(!rows.length)return null;
+ const r=rows[0];
+ const validUser=x=>Number.isSafeInteger(dbInt(x))&&dbInt(x)>0&&dbInt(x)<=2147483647;
+ if(!r||!uuid(r.binding_id)||r.installation_id!==s.installationId||r.tenant_id!==s.tenant||r.device_id!==s.deviceId||
+    dbInt(r.employee_user_id)!==employeeId||!validUser(r.granted_by)||dbInt(r.granted_by)===employeeId||
+    !['ACTIVE','REVOKED'].includes(r.state)||
+    (r.state==='ACTIVE'?(r.revoked_by!==null||r.revoked_at!==null):(!validUser(r.revoked_by)||dbInt(r.revoked_by)===employeeId||r.revoked_at==null)))fail('EMPLOYEE_BINDING_UNVERIFIED');
+ return r;
+}
+async function employeeAudit(c,s,action,bindingId,employeeId){
+ const [a]=await c.query('INSERT INTO audit_logs (id,tenant_id,actor_id,actor,action,target_resource,details,ip_address,created_at) VALUES (?,?,?,?,?,?,?,?,NOW(3))',
+  [randomUUID(),s.tenant,s.actor,String(s.actor),action,'EmployeeBinding:'+bindingId,JSON.stringify({employee_user_id:employeeId,scope:'REPORT_ONLY'}),null]);
+ if(a?.affectedRows!==1)fail('EMPLOYEE_BINDING_AUDIT_UNCONFIRMED');
+}
+export async function changeEmployeeReportBinding(pool,input){
+ const s=employeeContext(pool,input,['principal','installationId','deviceId','employeeId','action','confirmation'],'SUPER_ADMIN');
+ const {employeeId,action,confirmation}=input;
+ if(!Number.isSafeInteger(employeeId)||employeeId<1||employeeId>2147483647||employeeId===s.actor||
+    !['GRANT','REVOKE'].includes(action)||confirmation!==('CONFIRM_'+action+'_REPORT_ONLY'))fail('EMPLOYEE_REPORT_INVALID');
+ return transaction(pool,async c=>{
+  await employeeDeviceLock(c,s);
+  // Consistent lock order across grant/revoke; grant requires active target.
+  // Revocation must remain possible after employee disablement or deletion.
+  if(action==='GRANT'){
+   for(const id of [s.actor,employeeId].sort((a,b)=>a-b))await employeeUserLock(c,s,id,id===s.actor?'SUPER_ADMIN':'MONITORING');
+  }else await employeeUserLock(c,s,s.actor,'SUPER_ADMIN');
+  const row=await bindingLock(c,s,employeeId);
+  const result=(binding_id,state,duplicate)=>Object.freeze({binding_id,state,duplicate,scope:'REPORT_ONLY',
+   diagnostic_authorized:false,repair_authorized:false,production_accepted:false});
+  if(action==='GRANT'){
+   if(row){
+    if(row.state!=='ACTIVE')fail('EMPLOYEE_BINDING_REGRANT_BLOCKED');
+    return result(row.binding_id,row.state,true);
+   }
+   const id=randomUUID();
+   const [w]=await c.query("INSERT INTO troubleshooting_employee_bindings (binding_id,installation_id,tenant_id,device_id,employee_user_id,granted_by,state) VALUES (?,?,?,?,?,?,'ACTIVE')",[id,s.installationId,s.tenant,s.deviceId,employeeId,s.actor]);
+   if(w?.affectedRows!==1)fail('EMPLOYEE_BINDING_WRITE_UNCONFIRMED');
+   await employeeAudit(c,s,'TROUBLESHOOTING_EMPLOYEE_BINDING_GRANTED',id,employeeId);
+   return result(id,'ACTIVE',false);
+  }
+  if(!row)fail('EMPLOYEE_BINDING_NOT_FOUND');
+  if(row.state==='REVOKED')return result(row.binding_id,'REVOKED',true);
+  const [w]=await c.query("UPDATE troubleshooting_employee_bindings SET state='REVOKED',revoked_by=?,revoked_at=NOW(3) WHERE binding_id=? AND installation_id=? AND tenant_id=? AND device_id=? AND employee_user_id=? AND state='ACTIVE'",[s.actor,row.binding_id,s.installationId,s.tenant,s.deviceId,employeeId]);
+  if(w?.affectedRows!==1)fail('EMPLOYEE_BINDING_WRITE_UNCONFIRMED');
+  await employeeAudit(c,s,'TROUBLESHOOTING_EMPLOYEE_BINDING_REVOKED',row.binding_id,employeeId);
+  return result(row.binding_id,'REVOKED',false);
+ });
+}
+export async function createEmployeeTroubleshootingReport(pool,input){
+ const s=employeeContext(pool,input,['principal','installationId','deviceId','requestId','categoryId','hazard','consent'],'MONITORING');
+ const {requestId,categoryId,hazard,consent}=input;
+ if(!uuid(requestId)||consent!=='SUBMIT_REPORT_ONLY')fail('EMPLOYEE_REPORT_INVALID');
+ const plan=planTroubleshooting({category_id:categoryId,intake_channel:'SELF_SERVICE',hazard});
+ if(plan.reason==='INVALID_INPUT')fail('EMPLOYEE_REPORT_INVALID');
+ const status=plan.decision==='HUMAN_ONLY'?'ESCALATED':'OPEN';
+ return transaction(pool,async c=>{
+  await employeeDeviceLock(c,s);
+  await employeeUserLock(c,s,s.actor,'MONITORING');
+  const row=await bindingLock(c,s,s.actor);
+  if(row?.state!=='ACTIVE')fail('EMPLOYEE_SCOPE_DENIED');
+  const recorded=await recordScopedIntake(c,s,{requestId,categoryId,hazard,status,bindingId:row.binding_id});
+  return Object.freeze({...recorded,consent_scope:'REPORT_ONLY',execution_authorized:false});
  });
 }

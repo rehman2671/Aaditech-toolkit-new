@@ -1,10 +1,11 @@
 import {it,expect} from 'vitest';
 import {generateKeyPairSync,createHash,sign} from 'node:crypto';
-import {mkdtemp,rm,realpath} from 'node:fs/promises';
+import {mkdtemp,rm,realpath,readdir,readFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {retainLocalDiagnosticArtifact} from '../../scripts/local-diagnostic-artifact-store.mjs';
 import {reviewRetainedDiagnosticArtifact} from '../../scripts/review-retained-diagnostic-artifact.mjs';
+import {recordRetainedDiagnosticReview} from '../../scripts/record-retained-diagnostic-review.mjs';
 const sha=b=>createHash('sha256').update(b).digest('hex'),id=n=>'00000000-0000-4000-8000-'+String(n).padStart(12,'0');
 it.skipIf(process.platform!=='linux')('reviews retained canonical artifact against separately supplied signed proof and pins, never accepts attempt',async()=>{
  const directory=await mkdtemp(join(await realpath(tmpdir()),'retained-review-'));
@@ -19,6 +20,19 @@ it.skipIf(process.platform!=='linux')('reviews retained canonical artifact again
   const r=await reviewRetainedDiagnosticArtifact(input);
   expect(r).toMatchObject({signature_and_binding_verified:true,artifact_content_verified:true,measured_fields:2,attempt_accepted:false,replay_consumed:false,verified_resolved:false});
   expect(r).not.toHaveProperty('artifact');
+  const ledgerDirectory=await mkdtemp(join(await realpath(tmpdir()),'review-ledger-'));
+  try{
+   const request={confirmation:'RECORD_LOCAL_REVIEW_ONCE_ONLY',ledgerDirectory,review:input};
+   const results=await Promise.allSettled([recordRetainedDiagnosticReview(request),recordRetainedDiagnosticReview(request)]);
+   expect(results.filter(x=>x.status==='fulfilled')).toHaveLength(1);
+   expect(results.find(x=>x.status==='fulfilled').value).toMatchObject({local_review_recorded:true,local_challenge_consumed:true,attempt_accepted:false,distributed_replay_protection_verified:false});
+   expect(await readdir(ledgerDirectory)).toEqual([expected.challengeSha256+'.json']);
+   const record=JSON.parse(await readFile(join(ledgerDirectory,expected.challengeSha256+'.json'),'utf8'));
+   expect(record).toMatchObject({challenge_sha256:expected.challengeSha256,review_only:true,attempt_accepted:false});
+   expect(record).not.toHaveProperty('artifact');
+   await expect(recordRetainedDiagnosticReview(request)).rejects.toThrow('LOCAL_DIAGNOSTIC_CHALLENGE_ALREADY_RECORDED');
+  }finally{await rm(ledgerDirectory,{recursive:true,force:true})}
+
   for(const patch of [{expected:{...expected,deviceId:id(9)}},{expected:{...expected,signerSpkiSha256:'c'.repeat(64)}},{signatureBase64:Buffer.alloc(64).toString('base64')},{expected:{...expected,artifactSha256:'d'.repeat(64)}}])await expect(reviewRetainedDiagnosticArtifact({...input,...patch})).rejects.toThrow();
  }finally{await rm(directory,{recursive:true,force:true})}
 });

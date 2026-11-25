@@ -4,6 +4,7 @@
 import {randomUUID} from 'node:crypto';
 import {validateInstallationIdentity} from './scripts/installation-identity.mjs';
 import {planTroubleshooting,troubleshootingCatalog} from './troubleshooting-policy.js';
+import {classifyDeviceObservation} from './device-observations.js';
 const uuid=x=>typeof x==='string'&&x.length===36&&/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(x);
 const fail=code=>{throw Error(code)};
 const dbInt=x=>typeof x==='number'&&Number.isSafeInteger(x)?x:
@@ -56,7 +57,7 @@ export async function createTroubleshootingIncident(pool,input){
   return recordScopedIntake(c,s,{requestId,categoryId,hazard,status});
  });
 }
-async function recordScopedIntake(c,s,{requestId,categoryId,hazard,status,bindingId=null}){
+async function recordScopedIntake(c,s,{requestId,categoryId,hazard,status,bindingId=null,observationSignal=null}){
   const [rows]=await c.query('SELECT '+columns+' FROM troubleshooting_incidents WHERE installation_id=? AND tenant_id=? AND actor_user_id=? AND intake_request_id=? FOR UPDATE',
     [s.installationId,s.tenant,s.actor,requestId]);
   if(!Array.isArray(rows)||rows.length>1)fail('INCIDENT_STATE_INVALID');
@@ -68,14 +69,22 @@ async function recordScopedIntake(c,s,{requestId,categoryId,hazard,status,bindin
     const [audit]=await c.query("SELECT id FROM audit_logs WHERE tenant_id=? AND actor_id=? AND action='TROUBLESHOOTING_EMPLOYEE_REPORT_RECORDED' AND target_resource=? AND JSON_UNQUOTE(JSON_EXTRACT(details,'$.binding_id'))=? AND JSON_UNQUOTE(JSON_EXTRACT(details,'$.consent_scope'))='REPORT_ONLY'",[s.tenant,String(s.actor),'Incident:'+row.incident_id,bindingId]);
     if(!Array.isArray(audit)||audit.length!==1||!uuid(audit[0]?.id))fail('EMPLOYEE_REPORT_REPLAY_UNVERIFIED');
    }
+   if(observationSignal){
+    const [audit]=await c.query("SELECT id FROM audit_logs WHERE tenant_id=? AND actor_id=? AND action='TROUBLESHOOTING_OBSERVATION_INCIDENT_RECORDED' AND target_resource=? AND JSON_UNQUOTE(JSON_EXTRACT(details,'$.observation_signal'))=?",[s.tenant,String(s.actor),'Incident:'+row.incident_id,observationSignal]);
+    if(!Array.isArray(audit)||audit.length!==1||!uuid(audit[0]?.id))fail('OBSERVATION_REPLAY_UNVERIFIED');
+   }
    return view(row,s,true);
+  }
+  if(observationSignal){
+   const [observed]=await c.query('SELECT id,tenant_id,hostname,status,agent_token_revoked,cpu_usage,memory_usage,disk_free_gb,disk_total_gb,TIMESTAMPDIFF(SECOND,telemetry_reported_at,NOW(3)) AS telemetry_age_seconds FROM devices WHERE id=? AND tenant_id=? FOR UPDATE',[s.deviceId,s.tenant]);
+   if(observed?.length!==1||observed[0].id!==s.deviceId||!classifyDeviceObservation(observed[0],s.tenant).signals.includes(observationSignal))fail('OBSERVATION_NOT_CURRENT');
   }
   const id=randomUUID();
   const [r]=await c.query('INSERT INTO troubleshooting_incidents (incident_id,installation_id,tenant_id,device_id,actor_user_id,intake_request_id,category_id,hazard,status) VALUES (?,?,?,?,?,?,?,?,?)',
     [id,s.installationId,s.tenant,s.deviceId,s.actor,requestId,categoryId,hazard,status]);
   if(r?.affectedRows!==1)fail('INCIDENT_WRITE_UNCONFIRMED');
   const [a]=await c.query('INSERT INTO audit_logs (id,tenant_id,actor_id,actor,action,target_resource,details,ip_address,created_at) VALUES (?,?,?,?,?,?,?,?,NOW(3))',
-    [randomUUID(),s.tenant,s.actor,String(s.actor),bindingId?'TROUBLESHOOTING_EMPLOYEE_REPORT_RECORDED':'TROUBLESHOOTING_INCIDENT_RECORDED','Incident:'+id,JSON.stringify({category_id:categoryId,status,...(bindingId?{binding_id:bindingId,consent_scope:'REPORT_ONLY'}:{})}),null]);
+    [randomUUID(),s.tenant,s.actor,String(s.actor),bindingId?'TROUBLESHOOTING_EMPLOYEE_REPORT_RECORDED':observationSignal?'TROUBLESHOOTING_OBSERVATION_INCIDENT_RECORDED':'TROUBLESHOOTING_INCIDENT_RECORDED','Incident:'+id,JSON.stringify({category_id:categoryId,status,...(bindingId?{binding_id:bindingId,consent_scope:'REPORT_ONLY'}:{}),...(observationSignal?{observation_signal:observationSignal,source:'HUMAN_CONFIRMED_TELEMETRY_OBSERVATION'}:{})}),null]);
   if(a?.affectedRows!==1)fail('INCIDENT_AUDIT_UNCONFIRMED');
   return view({incident_id:id,installation_id:s.installationId,tenant_id:s.tenant,device_id:s.deviceId,
     actor_user_id:s.actor,intake_request_id:requestId,category_id:categoryId,hazard,status},s,false);
@@ -331,5 +340,18 @@ export async function createEmployeeTroubleshootingReport(pool,input){
   if(row?.state!=='ACTIVE')fail('EMPLOYEE_SCOPE_DENIED');
   const recorded=await recordScopedIntake(c,s,{requestId,categoryId,hazard,status,bindingId:row.binding_id});
   return Object.freeze({...recorded,consent_scope:'REPORT_ONLY',execution_authorized:false});
+ });
+}
+
+// Manual technician intake from a current observation. No automatic incident
+// creation, no claim of diagnosis, and hazard remains UNKNOWN until assessed.
+const observationCategories=Object.freeze({HIGH_CPU_OBSERVATION:'TR-01',HIGH_MEMORY_OBSERVATION:'TR-01',LOW_DISK_OBSERVATION:'TR-04'});
+export async function createObservationIncident(pool,input){
+ const s=context(pool,input,['principal','installationId','deviceId','requestId','signal','confirmation']);
+ if(!uuid(input.requestId)||!Object.hasOwn(observationCategories,input.signal)||input.confirmation!=='CONFIRM_OBSERVATION_REPORT_ONLY')fail('INCIDENT_INVALID');
+ return transaction(pool,async c=>{
+  await lockScope(c,s);
+  const r=await recordScopedIntake(c,s,{requestId:input.requestId,categoryId:observationCategories[input.signal],hazard:'UNKNOWN',status:'OPEN',observationSignal:input.signal});
+  return {...r,observation_signal:input.signal,measurement_truth_verified:false,diagnostic_authorized:false,repair_authorized:false};
  });
 }

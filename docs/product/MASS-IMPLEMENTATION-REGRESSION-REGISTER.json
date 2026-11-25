@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "batch": "MASS-01",
+  "batch": "MASS-02",
   "date": "2026-11-26",
   "target": "20 implementation prompts planning target, 50–100 actual development tasks per batch aspirational; count only delivered functional work, not test cases",
   "base_commit": "26f6dd7ad116e85e9fd52235f681c3d57f8f7a23",
@@ -386,7 +386,13 @@
           "troubleshooting-incidents.js",
           "database/migrations/020_troubleshooting_employee_bindings.sql",
           "tests/unit/employee-troubleshooting.test.js",
-          "test-atomic-telemetry-batch-mysql.js"
+          "test-atomic-telemetry-batch-mysql.js",
+          "installation-database-identity.js",
+          "troubleshooting-employee-routes.js",
+          "database/migrations/021_installation_database_identity.sql",
+          "tests/unit/installation-database-identity.test.js",
+          "Enterprise/portal/troubleshooting-report.js",
+          "test-installation-database-identity-mysql.js"
         ],
         "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
       },
@@ -426,7 +432,13 @@
           "troubleshooting-incidents.js",
           "database/migrations/020_troubleshooting_employee_bindings.sql",
           "tests/unit/employee-troubleshooting.test.js",
-          "test-atomic-telemetry-batch-mysql.js"
+          "test-atomic-telemetry-batch-mysql.js",
+          "installation-database-identity.js",
+          "troubleshooting-employee-routes.js",
+          "database/migrations/021_installation_database_identity.sql",
+          "tests/unit/installation-database-identity.test.js",
+          "Enterprise/portal/troubleshooting-report.js",
+          "test-installation-database-identity-mysql.js"
         ],
         "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
       },
@@ -466,7 +478,13 @@
           "troubleshooting-incidents.js",
           "database/migrations/020_troubleshooting_employee_bindings.sql",
           "tests/unit/employee-troubleshooting.test.js",
-          "test-atomic-telemetry-batch-mysql.js"
+          "test-atomic-telemetry-batch-mysql.js",
+          "installation-database-identity.js",
+          "troubleshooting-employee-routes.js",
+          "database/migrations/021_installation_database_identity.sql",
+          "tests/unit/installation-database-identity.test.js",
+          "Enterprise/portal/troubleshooting-report.js",
+          "test-installation-database-identity-mysql.js"
         ],
         "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
       },
@@ -506,7 +524,13 @@
           "troubleshooting-incidents.js",
           "database/migrations/020_troubleshooting_employee_bindings.sql",
           "tests/unit/employee-troubleshooting.test.js",
-          "test-atomic-telemetry-batch-mysql.js"
+          "test-atomic-telemetry-batch-mysql.js",
+          "installation-database-identity.js",
+          "troubleshooting-employee-routes.js",
+          "database/migrations/021_installation_database_identity.sql",
+          "tests/unit/installation-database-identity.test.js",
+          "Enterprise/portal/troubleshooting-report.js",
+          "test-installation-database-identity-mysql.js"
         ],
         "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
       },
@@ -546,7 +570,13 @@
           "troubleshooting-incidents.js",
           "database/migrations/020_troubleshooting_employee_bindings.sql",
           "tests/unit/employee-troubleshooting.test.js",
-          "test-atomic-telemetry-batch-mysql.js"
+          "test-atomic-telemetry-batch-mysql.js",
+          "installation-database-identity.js",
+          "troubleshooting-employee-routes.js",
+          "database/migrations/021_installation_database_identity.sql",
+          "tests/unit/installation-database-identity.test.js",
+          "Enterprise/portal/troubleshooting-report.js",
+          "test-installation-database-identity-mysql.js"
         ],
         "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
       },
@@ -586,7 +616,13 @@
           "troubleshooting-incidents.js",
           "database/migrations/020_troubleshooting_employee_bindings.sql",
           "tests/unit/employee-troubleshooting.test.js",
-          "test-atomic-telemetry-batch-mysql.js"
+          "test-atomic-telemetry-batch-mysql.js",
+          "installation-database-identity.js",
+          "troubleshooting-employee-routes.js",
+          "database/migrations/021_installation_database_identity.sql",
+          "tests/unit/installation-database-identity.test.js",
+          "Enterprise/portal/troubleshooting-report.js",
+          "test-installation-database-identity-mysql.js"
         ],
         "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
       },
@@ -626,7 +662,13 @@
           "troubleshooting-incidents.js",
           "database/migrations/020_troubleshooting_employee_bindings.sql",
           "tests/unit/employee-troubleshooting.test.js",
-          "test-atomic-telemetry-batch-mysql.js"
+          "test-atomic-telemetry-batch-mysql.js",
+          "installation-database-identity.js",
+          "troubleshooting-employee-routes.js",
+          "database/migrations/021_installation_database_identity.sql",
+          "tests/unit/installation-database-identity.test.js",
+          "Enterprise/portal/troubleshooting-report.js",
+          "test-installation-database-identity-mysql.js"
         ],
         "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
       },
@@ -666,7 +708,13 @@
           "troubleshooting-incidents.js",
           "database/migrations/020_troubleshooting_employee_bindings.sql",
           "tests/unit/employee-troubleshooting.test.js",
-          "test-atomic-telemetry-batch-mysql.js"
+          "test-atomic-telemetry-batch-mysql.js",
+          "installation-database-identity.js",
+          "troubleshooting-employee-routes.js",
+          "database/migrations/021_installation_database_identity.sql",
+          "tests/unit/installation-database-identity.test.js",
+          "Enterprise/portal/troubleshooting-report.js",
+          "test-installation-database-identity-mysql.js"
         ],
         "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
       },
@@ -706,7 +754,13 @@
           "troubleshooting-incidents.js",
           "database/migrations/020_troubleshooting_employee_bindings.sql",
           "tests/unit/employee-troubleshooting.test.js",
-          "test-atomic-telemetry-batch-mysql.js"
+          "test-atomic-telemetry-batch-mysql.js",
+          "installation-database-identity.js",
+          "troubleshooting-employee-routes.js",
+          "database/migrations/021_installation_database_identity.sql",
+          "tests/unit/installation-database-identity.test.js",
+          "Enterprise/portal/troubleshooting-report.js",
+          "test-installation-database-identity-mysql.js"
         ],
         "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
       },
@@ -746,7 +800,13 @@
           "troubleshooting-incidents.js",
           "database/migrations/020_troubleshooting_employee_bindings.sql",
           "tests/unit/employee-troubleshooting.test.js",
-          "test-atomic-telemetry-batch-mysql.js"
+          "test-atomic-telemetry-batch-mysql.js",
+          "installation-database-identity.js",
+          "troubleshooting-employee-routes.js",
+          "database/migrations/021_installation_database_identity.sql",
+          "tests/unit/installation-database-identity.test.js",
+          "Enterprise/portal/troubleshooting-report.js",
+          "test-installation-database-identity-mysql.js"
         ],
         "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
       },
@@ -786,7 +846,13 @@
           "troubleshooting-incidents.js",
           "database/migrations/020_troubleshooting_employee_bindings.sql",
           "tests/unit/employee-troubleshooting.test.js",
-          "test-atomic-telemetry-batch-mysql.js"
+          "test-atomic-telemetry-batch-mysql.js",
+          "installation-database-identity.js",
+          "troubleshooting-employee-routes.js",
+          "database/migrations/021_installation_database_identity.sql",
+          "tests/unit/installation-database-identity.test.js",
+          "Enterprise/portal/troubleshooting-report.js",
+          "test-installation-database-identity-mysql.js"
         ],
         "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
       },
@@ -826,7 +892,13 @@
           "troubleshooting-incidents.js",
           "database/migrations/020_troubleshooting_employee_bindings.sql",
           "tests/unit/employee-troubleshooting.test.js",
-          "test-atomic-telemetry-batch-mysql.js"
+          "test-atomic-telemetry-batch-mysql.js",
+          "installation-database-identity.js",
+          "troubleshooting-employee-routes.js",
+          "database/migrations/021_installation_database_identity.sql",
+          "tests/unit/installation-database-identity.test.js",
+          "Enterprise/portal/troubleshooting-report.js",
+          "test-installation-database-identity-mysql.js"
         ],
         "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
       },
@@ -866,7 +938,13 @@
           "troubleshooting-incidents.js",
           "database/migrations/020_troubleshooting_employee_bindings.sql",
           "tests/unit/employee-troubleshooting.test.js",
-          "test-atomic-telemetry-batch-mysql.js"
+          "test-atomic-telemetry-batch-mysql.js",
+          "installation-database-identity.js",
+          "troubleshooting-employee-routes.js",
+          "database/migrations/021_installation_database_identity.sql",
+          "tests/unit/installation-database-identity.test.js",
+          "Enterprise/portal/troubleshooting-report.js",
+          "test-installation-database-identity-mysql.js"
         ],
         "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
       },
@@ -906,7 +984,13 @@
           "troubleshooting-incidents.js",
           "database/migrations/020_troubleshooting_employee_bindings.sql",
           "tests/unit/employee-troubleshooting.test.js",
-          "test-atomic-telemetry-batch-mysql.js"
+          "test-atomic-telemetry-batch-mysql.js",
+          "installation-database-identity.js",
+          "troubleshooting-employee-routes.js",
+          "database/migrations/021_installation_database_identity.sql",
+          "tests/unit/installation-database-identity.test.js",
+          "Enterprise/portal/troubleshooting-report.js",
+          "test-installation-database-identity-mysql.js"
         ],
         "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
       },
@@ -946,7 +1030,13 @@
           "troubleshooting-incidents.js",
           "database/migrations/020_troubleshooting_employee_bindings.sql",
           "tests/unit/employee-troubleshooting.test.js",
-          "test-atomic-telemetry-batch-mysql.js"
+          "test-atomic-telemetry-batch-mysql.js",
+          "installation-database-identity.js",
+          "troubleshooting-employee-routes.js",
+          "database/migrations/021_installation_database_identity.sql",
+          "tests/unit/installation-database-identity.test.js",
+          "Enterprise/portal/troubleshooting-report.js",
+          "test-installation-database-identity-mysql.js"
         ],
         "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
       },
@@ -986,7 +1076,13 @@
           "troubleshooting-incidents.js",
           "database/migrations/020_troubleshooting_employee_bindings.sql",
           "tests/unit/employee-troubleshooting.test.js",
-          "test-atomic-telemetry-batch-mysql.js"
+          "test-atomic-telemetry-batch-mysql.js",
+          "installation-database-identity.js",
+          "troubleshooting-employee-routes.js",
+          "database/migrations/021_installation_database_identity.sql",
+          "tests/unit/installation-database-identity.test.js",
+          "Enterprise/portal/troubleshooting-report.js",
+          "test-installation-database-identity-mysql.js"
         ],
         "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
       },
@@ -1026,7 +1122,13 @@
           "troubleshooting-incidents.js",
           "database/migrations/020_troubleshooting_employee_bindings.sql",
           "tests/unit/employee-troubleshooting.test.js",
-          "test-atomic-telemetry-batch-mysql.js"
+          "test-atomic-telemetry-batch-mysql.js",
+          "installation-database-identity.js",
+          "troubleshooting-employee-routes.js",
+          "database/migrations/021_installation_database_identity.sql",
+          "tests/unit/installation-database-identity.test.js",
+          "Enterprise/portal/troubleshooting-report.js",
+          "test-installation-database-identity-mysql.js"
         ],
         "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
       },
@@ -1066,7 +1168,13 @@
           "troubleshooting-incidents.js",
           "database/migrations/020_troubleshooting_employee_bindings.sql",
           "tests/unit/employee-troubleshooting.test.js",
-          "test-atomic-telemetry-batch-mysql.js"
+          "test-atomic-telemetry-batch-mysql.js",
+          "installation-database-identity.js",
+          "troubleshooting-employee-routes.js",
+          "database/migrations/021_installation_database_identity.sql",
+          "tests/unit/installation-database-identity.test.js",
+          "Enterprise/portal/troubleshooting-report.js",
+          "test-installation-database-identity-mysql.js"
         ],
         "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
       },
@@ -1106,7 +1214,13 @@
           "troubleshooting-incidents.js",
           "database/migrations/020_troubleshooting_employee_bindings.sql",
           "tests/unit/employee-troubleshooting.test.js",
-          "test-atomic-telemetry-batch-mysql.js"
+          "test-atomic-telemetry-batch-mysql.js",
+          "installation-database-identity.js",
+          "troubleshooting-employee-routes.js",
+          "database/migrations/021_installation_database_identity.sql",
+          "tests/unit/installation-database-identity.test.js",
+          "Enterprise/portal/troubleshooting-report.js",
+          "test-installation-database-identity-mysql.js"
         ],
         "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
       },
@@ -1146,7 +1260,13 @@
           "troubleshooting-incidents.js",
           "database/migrations/020_troubleshooting_employee_bindings.sql",
           "tests/unit/employee-troubleshooting.test.js",
-          "test-atomic-telemetry-batch-mysql.js"
+          "test-atomic-telemetry-batch-mysql.js",
+          "installation-database-identity.js",
+          "troubleshooting-employee-routes.js",
+          "database/migrations/021_installation_database_identity.sql",
+          "tests/unit/installation-database-identity.test.js",
+          "Enterprise/portal/troubleshooting-report.js",
+          "test-installation-database-identity-mysql.js"
         ],
         "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
       },
@@ -1186,7 +1306,13 @@
           "troubleshooting-incidents.js",
           "database/migrations/020_troubleshooting_employee_bindings.sql",
           "tests/unit/employee-troubleshooting.test.js",
-          "test-atomic-telemetry-batch-mysql.js"
+          "test-atomic-telemetry-batch-mysql.js",
+          "installation-database-identity.js",
+          "troubleshooting-employee-routes.js",
+          "database/migrations/021_installation_database_identity.sql",
+          "tests/unit/installation-database-identity.test.js",
+          "Enterprise/portal/troubleshooting-report.js",
+          "test-installation-database-identity-mysql.js"
         ],
         "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
       },
@@ -1226,7 +1352,13 @@
           "troubleshooting-incidents.js",
           "database/migrations/020_troubleshooting_employee_bindings.sql",
           "tests/unit/employee-troubleshooting.test.js",
-          "test-atomic-telemetry-batch-mysql.js"
+          "test-atomic-telemetry-batch-mysql.js",
+          "installation-database-identity.js",
+          "troubleshooting-employee-routes.js",
+          "database/migrations/021_installation_database_identity.sql",
+          "tests/unit/installation-database-identity.test.js",
+          "Enterprise/portal/troubleshooting-report.js",
+          "test-installation-database-identity-mysql.js"
         ],
         "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
       },
@@ -1266,7 +1398,13 @@
           "troubleshooting-incidents.js",
           "database/migrations/020_troubleshooting_employee_bindings.sql",
           "tests/unit/employee-troubleshooting.test.js",
-          "test-atomic-telemetry-batch-mysql.js"
+          "test-atomic-telemetry-batch-mysql.js",
+          "installation-database-identity.js",
+          "troubleshooting-employee-routes.js",
+          "database/migrations/021_installation_database_identity.sql",
+          "tests/unit/installation-database-identity.test.js",
+          "Enterprise/portal/troubleshooting-report.js",
+          "test-installation-database-identity-mysql.js"
         ],
         "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
       },
@@ -1306,7 +1444,13 @@
           "troubleshooting-incidents.js",
           "database/migrations/020_troubleshooting_employee_bindings.sql",
           "tests/unit/employee-troubleshooting.test.js",
-          "test-atomic-telemetry-batch-mysql.js"
+          "test-atomic-telemetry-batch-mysql.js",
+          "installation-database-identity.js",
+          "troubleshooting-employee-routes.js",
+          "database/migrations/021_installation_database_identity.sql",
+          "tests/unit/installation-database-identity.test.js",
+          "Enterprise/portal/troubleshooting-report.js",
+          "test-installation-database-identity-mysql.js"
         ],
         "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
       },
@@ -1346,7 +1490,13 @@
           "troubleshooting-incidents.js",
           "database/migrations/020_troubleshooting_employee_bindings.sql",
           "tests/unit/employee-troubleshooting.test.js",
-          "test-atomic-telemetry-batch-mysql.js"
+          "test-atomic-telemetry-batch-mysql.js",
+          "installation-database-identity.js",
+          "troubleshooting-employee-routes.js",
+          "database/migrations/021_installation_database_identity.sql",
+          "tests/unit/installation-database-identity.test.js",
+          "Enterprise/portal/troubleshooting-report.js",
+          "test-installation-database-identity-mysql.js"
         ],
         "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
       },
@@ -1386,7 +1536,13 @@
           "troubleshooting-incidents.js",
           "database/migrations/020_troubleshooting_employee_bindings.sql",
           "tests/unit/employee-troubleshooting.test.js",
-          "test-atomic-telemetry-batch-mysql.js"
+          "test-atomic-telemetry-batch-mysql.js",
+          "installation-database-identity.js",
+          "troubleshooting-employee-routes.js",
+          "database/migrations/021_installation_database_identity.sql",
+          "tests/unit/installation-database-identity.test.js",
+          "Enterprise/portal/troubleshooting-report.js",
+          "test-installation-database-identity-mysql.js"
         ],
         "acceptance": "Real authenticated employee workflow and negative cross-tenant/consent tests; no D3 collection."
       },
@@ -2355,6 +2511,86 @@
         "npm run lint",
         "npm run test:coverage"
       ]
+    },
+    {
+      "id": "MASS-02-01",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Migration 021, local pinned identity and explicit fresh DB bind, same-transaction checks",
+      "dependencies": [
+        "M1",
+        "DEC-001"
+      ],
+      "paths": [
+        "database/migrations/021_installation_database_identity.sql",
+        "database/mysql/schema.sql",
+        "db.js",
+        "installation-database-identity.js",
+        "scripts/bind-fresh-database-identity.mjs"
+      ],
+      "regression": [
+        "tests/unit/installation-database-identity.test.js",
+        "test-migrations-runner.js",
+        "test-installation-database-identity-mysql.js",
+        "Manual persistent restart/restore, cloned DB fencing, occupied/mismatched DB and Windows ACL adapter"
+      ]
+    },
+    {
+      "id": "MASS-02-02",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Bound report-only admin grant/revoke, assigned device list and 26-category incident creation HTTP routes",
+      "dependencies": [
+        "MASS-02-01",
+        "M4",
+        "PR-015"
+      ],
+      "paths": [
+        "troubleshooting-employee-routes.js",
+        "server.js",
+        "troubleshooting-incidents.js"
+      ],
+      "regression": [
+        "tests/unit/installation-database-identity.test.js",
+        "tests/unit/employee-troubleshooting.test.js",
+        "test-atomic-telemetry-batch-mysql.js",
+        "Real HTTP role/tenant/consent/revocation/retry tests pending"
+      ]
+    },
+    {
+      "id": "MASS-02-03",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Employee device selection, report-only consent and receipt, same-request retry, role-dependent assignment controls",
+      "dependencies": [
+        "MASS-02-02",
+        "MASS-01-02"
+      ],
+      "paths": [
+        "Enterprise/portal/troubleshooting.html",
+        "Enterprise/portal/troubleshooting-report.js",
+        "Enterprise/portal/troubleshooting-help.css"
+      ],
+      "regression": [
+        "Manual browser: employee assigned/unassigned/revoked, all 26 categories, hazard escalation, duplicate/ambiguous request, session changes, grant/revoke, mobile/keyboard; real acceptance pending"
+      ]
+    },
+    {
+      "id": "MASS-02-04",
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI",
+      "work": "Synchronize N70 action count and four-job signing governance; add isolated MySQL identity rehearsal",
+      "dependencies": [
+        "MASS-01-04",
+        "MASS-02-01"
+      ],
+      "paths": [
+        ".github/workflows/ci.yml",
+        "scripts/check-phase-n70-workflow-safety.cjs",
+        "tests/unit/stage70-workflow-safety.test.cjs",
+        "test-installation-database-identity-mysql.js"
+      ],
+      "regression": [
+        "npm run lint",
+        "node test-installation-database-identity-mysql.js in isolated CI",
+        "CI offline Docker compatibility retained"
+      ]
     }
   ],
   "unresolved": [
@@ -2376,7 +2612,15 @@
     },
     {
       "id": "BLOCK-EMPLOYEE",
-      "next": "Implement trusted local + persistent database identity binding; actual authenticated employee binding/report APIs and UI, consent, physical assignment and outcome lifecycle remain pending. No code from uncommitted draft counted."
+      "next": "Source APIs/UI added; verify real HTTP auth and role/tenant/device/consent/replay, owner-approved physical assignments, outcome lifecycle and approved installation/DB adoption. No production authorization."
+    },
+    {
+      "id": "BLOCK-DB-BINDING-FIELD",
+      "next": "Verify real persistent DB restart/restore, fencing and migration/adoption; temporary-table rehearsal is not persistent field evidence."
+    },
+    {
+      "id": "BLOCK-CI-45688959892",
+      "failure": "N70 lint rejected outdated governance contract; updated checker, fresh CI required. Docker identity mismatch remains separate."
     }
   ],
   "regression": {
@@ -2395,5 +2639,19 @@
     ],
     "policy": "No disabled checks, no synthetic pass claims, record exact commit and failure. Full regression at integration and before release; retain focused safety checks now."
   },
-  "production_accepted": false
+  "production_accepted": false,
+  "batches": [
+    {
+      "id": "MASS-01",
+      "head": "42e53d32045d8794d1cff153b1573071d52074bc"
+    },
+    {
+      "id": "MASS-02",
+      "source_commits": [
+        "b9c26ca0e756010d906547b0c00dfd7fcd3af2c8",
+        "8a27f9f7e3f9e201ab5e9f4fd0a8d81af5bb0ff8"
+      ],
+      "status": "SOURCE_IMPLEMENTED_PENDING_CI"
+    }
+  ]
 }
